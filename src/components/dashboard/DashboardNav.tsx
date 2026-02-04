@@ -20,30 +20,32 @@ export function DashboardNav({ activeTab, onTabChange }: DashboardNavProps) {
     ] as const;
 
     return (
-        <nav className="flex items-center gap-1 p-1.5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl w-fit mb-8 shadow-2xl">
-            {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
+        <div className="w-full overflow-x-auto mobile-scroll-container mb-8 -mx-2 px-2">
+            <nav className="flex items-center gap-1 p-1.5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl w-max min-w-full sm:w-fit shadow-2xl">
+                {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
 
-                return (
-                    <button
-                        key={tab.id}
-                        onClick={() => onTabChange(tab.id as TabId)}
-                        className={cn(
-                            "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 active:scale-95 group",
-                            isActive
-                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
-                        )}
-                    >
-                        <Icon className={cn(
-                            "w-4 h-4 transition-transform group-hover:scale-110",
-                            isActive ? "text-white" : "text-slate-500"
-                        )} />
-                        {tab.label}
-                    </button>
-                );
-            })}
-        </nav>
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => onTabChange(tab.id as TabId)}
+                            className={cn(
+                                "flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 active:scale-95 group whitespace-nowrap",
+                                isActive
+                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                            )}
+                        >
+                            <Icon className={cn(
+                                "w-4 h-4 transition-transform group-hover:scale-110 flex-shrink-0",
+                                isActive ? "text-white" : "text-slate-500"
+                            )} />
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
+            </nav>
+        </div>
     );
 }

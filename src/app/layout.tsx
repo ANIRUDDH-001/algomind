@@ -42,7 +42,7 @@ export default function RootLayout({
         <AuthProvider>
           <ErrorBoundary>
             <Navbar />
-            <main>
+            <main className="overflow-x-hidden">
               {children}
             </main>
             <Toaster />

@@ -42,7 +42,7 @@ export default function DashboardPage() {
     const previousSession = progress?.sessions[1];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader progress={progress} />
 
