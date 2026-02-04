@@ -1,10 +1,13 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { AssessmentResult } from '@/lib/assessment/analyzer';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { SkillDetailCard } from './SkillDetailCard';
 import { ProgressStore } from '@/lib/assessment/progress-store';
-import { Trophy, Clock, Target, Calendar, ChevronRight } from 'lucide-react';
+import { Trophy, Clock, Target, Calendar, ChevronRight, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExportReportButton } from '../dashboard/ExportReportButton';
 import { CognitiveSkill, UserProgress } from '@/types/assessment';
@@ -15,6 +18,7 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ assessment, onClose }: ReportCardProps) {
+    const router = useRouter();
     const store = new ProgressStore();
 
     // Extract primitive scores for weighted average calculation
@@ -141,10 +145,11 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                     })()}
 
                     <Button
-                        onClick={onClose}
-                        className="h-11 px-12 bg-white text-black hover:bg-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs transition-all"
+                        onClick={() => router.push('/dashboard')}
+                        className="h-11 px-12 bg-white text-black hover:bg-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-2"
                     >
-                        Return to Dashboard
+                        <LayoutDashboard className="w-4 h-4" />
+                        Go to Dashboard
                     </Button>
                 </div>
 
