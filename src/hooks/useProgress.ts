@@ -7,6 +7,7 @@ import { CognitiveSkill, SessionHistory, SkillTrend, UserProgress } from '@/type
 import { calculateTrend } from '@/lib/assessment/trend-calculator';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
+import { isDemoMode, getDemoProgress } from '@/lib/demo/manager';
 
 export function useProgress() {
     const { user } = useAuth();
@@ -16,7 +17,36 @@ export function useProgress() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchProgress = useCallback(async () => {
-        // Require both Supabase and logged in user
+        setIsLoading(true);
+        setError(null);
+
+        // Check if demo mode is enabled - return demo data
+        if (isDemoMode()) {
+            console.log('📊 [useProgress] Demo mode enabled - loading demo data');
+            const demoData = getDemoProgress();
+
+            if (demoData) {
+                setHistory(demoData.sessions);
+                setOverview({
+                    userId: 'demo-user',
+                    totalSessions: demoData.totalSessions,
+                    averageScore: demoData.averageScore,
+                    averageScores: demoData.averageScores,
+                    trends: demoData.trends.map(t => ({
+                        skill: t.skill as CognitiveSkill,
+                        trend: t.trend,
+                        change: t.change,
+                        recentScores: []
+                    })),
+                    sessions: demoData.sessions,
+                    lastUpdated: new Date(demoData.lastUpdated)
+                });
+            }
+            setIsLoading(false);
+            return;
+        }
+
+        // Require both Supabase and logged in user for real data
         if (!isSupabaseConfigured() || !user?.id) {
             console.log('📊 [useProgress] Supabase not configured or user not logged in');
             setHistory([]);
@@ -24,9 +54,6 @@ export function useProgress() {
             setIsLoading(false);
             return;
         }
-
-        setIsLoading(true);
-        setError(null);
 
         try {
             console.log('📊 [useProgress] Loading from Supabase for user:', user.id);
@@ -96,6 +123,12 @@ export function useProgress() {
     }, [fetchProgress]);
 
     const addSession = async (session: SessionHistory) => {
+        // In demo mode, don't save to database
+        if (isDemoMode()) {
+            console.log('📊 [useProgress] Demo mode - skipping save');
+            return;
+        }
+
         if (!isSupabaseConfigured() || !user?.id) {
             console.error('❌ [useProgress] Cannot save - Supabase not configured or user not logged in');
             throw new Error('Please log in to save your progress');

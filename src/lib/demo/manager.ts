@@ -7,22 +7,15 @@ export function isDemoMode(): boolean {
 
 export function enableDemoMode(): void {
     localStorage.setItem(DEMO_MODE_KEY, 'true');
-    loadDemoData();
 }
 
 export function disableDemoMode(): void {
     localStorage.removeItem(DEMO_MODE_KEY);
-    clearDemoData();
 }
 
-function loadDemoData(): void {
-    // Import and generate demo progress data
-    const demoProgress = generateImpressiveDemoData();
-    localStorage.setItem('algomind_progress_default', JSON.stringify(demoProgress));
-}
-
-function clearDemoData(): void {
-    localStorage.removeItem('algomind_progress_default');
+// Get demo progress data for display
+export function getDemoProgress() {
+    return generateImpressiveDemoData();
 }
 
 // Generate impressive demo data showing clear progression
