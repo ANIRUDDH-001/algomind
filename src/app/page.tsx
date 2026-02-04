@@ -1,10 +1,38 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Mic, LineChart, Code2, Sparkles } from "lucide-react";
+import { Brain, Mic, LineChart, Code2, Sparkles, Settings } from "lucide-react";
+import { IntroAnimation } from '@/components/onboarding/IntroAnimation';
+import { shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 
 export default function Home() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setShowOnboarding(shouldShowOnboarding());
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    markOnboardingComplete();
+    setShowOnboarding(false);
+  };
+
+  // Don't render until mounted (avoid hydration mismatch)
+  if (!mounted) {
+    return null;
+  }
+
+  // Show onboarding animation for first-time visitors
+  if (showOnboarding) {
+    return <IntroAnimation onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Animated background elements */}
@@ -24,13 +52,27 @@ export default function Home() {
             </div>
             <span className="text-xl font-bold text-white">AlgoMind</span>
           </div>
-          <Badge
-            variant="outline"
-            className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-          >
-            <Sparkles className="w-3 h-3 mr-1" />
-            Beta Version
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+                <LineChart className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+            <Badge
+              variant="outline"
+              className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              Beta
+            </Badge>
+          </div>
         </header>
 
         {/* Hero Section */}
