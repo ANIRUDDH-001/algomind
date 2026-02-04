@@ -4,6 +4,7 @@ import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Navbar } from "@/components/layout/Navbar";
+import { DemoBanner } from "@/components/demo/DemoBanner";
 import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
@@ -40,6 +41,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ErrorBoundary>
+            <DemoBanner />
             <Navbar />
             <main className="pt-16">
               {children}

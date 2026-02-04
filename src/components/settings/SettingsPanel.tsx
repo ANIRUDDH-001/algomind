@@ -128,16 +128,13 @@ export function SettingsPanel() {
                                         {user.user_metadata?.full_name || 'AlgoMind User'}
                                     </p>
                                     <p className="text-slate-400">{user.email}</p>
-                                    <p className="text-xs text-slate-500 font-mono mt-1">
-                                        ID: {user.id.slice(0, 8)}...
-                                    </p>
                                 </div>
                             </div>
 
                             <Button
                                 onClick={handleSignOut}
-                                variant="outline"
-                                className="w-full border-slate-700 text-slate-300 hover:bg-slate-800"
+                                variant="destructive"
+                                className="w-full bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-900/50 transition-all font-bold"
                             >
                                 <LogOut className="w-4 h-4 mr-2" />
                                 Sign Out
@@ -220,38 +217,6 @@ export function SettingsPanel() {
                         </div>
                         <Button onClick={handleResetOnboarding} variant="outline">
                             Reset
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Danger Zone */}
-            <Card className="bg-red-950/20 border-red-900/50">
-                <CardHeader>
-                    <CardTitle className="text-red-400">Danger Zone</CardTitle>
-                    <CardDescription className="text-red-400/70">
-                        Irreversible actions
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-red-950/30 border border-red-900/50">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-red-500/20">
-                                <Trash2 className="w-5 h-5 text-red-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-white">Clear All Data</h3>
-                                <p className="text-sm text-slate-400">
-                                    Delete all progress, sessions, and assessments
-                                </p>
-                            </div>
-                        </div>
-                        <Button
-                            onClick={handleClearData}
-                            variant="destructive"
-                            disabled={isClearing}
-                        >
-                            {isClearing ? 'Clearing...' : 'Clear Data'}
                         </Button>
                     </div>
                 </CardContent>
