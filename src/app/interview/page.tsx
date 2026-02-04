@@ -22,7 +22,7 @@ function InterviewContent() {
 
     if (!isMounted || !problem) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+            <div className="fixed inset-0 top-16 bg-slate-950 flex items-center justify-center text-white">
                 <div className="animate-pulse flex flex-col items-center gap-4">
                     <div className="h-8 w-48 bg-slate-800 rounded"></div>
                     <p className="text-slate-500 text-sm">Initializing Session...</p>
@@ -32,7 +32,7 @@ function InterviewContent() {
     }
 
     return (
-        <div className="h-screen bg-slate-950 text-slate-100 overflow-y-auto">
+        <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
             <InterviewSession
                 problemId={problem.id}
                 title={problem.title}
@@ -44,7 +44,7 @@ function InterviewContent() {
 
 export default function InterviewPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+        <Suspense fallback={<div className="fixed inset-0 top-16 bg-slate-950" />}>
             <InterviewContent />
         </Suspense>
     );

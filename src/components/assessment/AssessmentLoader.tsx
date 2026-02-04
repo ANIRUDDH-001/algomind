@@ -1,8 +1,30 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit } from 'lucide-react';
 
+const SKILL_NAMES = [
+    'Problem Decomposition',
+    'Pattern Recognition',
+    'Algorithmic Thinking',
+    'Complexity Analysis',
+    'Communication Clarity',
+    'Edge Case Awareness',
+    'Optimization Mindset',
+    'Debugging Approach'
+];
+
 export function AssessmentLoader() {
+    const [currentSkill, setCurrentSkill] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentSkill(prev => (prev + 1) % SKILL_NAMES.length);
+        }, 1500);
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl">
             <div className="flex flex-col items-center gap-8 max-w-md w-full px-6">
@@ -43,8 +65,15 @@ export function AssessmentLoader() {
                             />
                         </div>
                         <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-slate-500">
-                            <span>Extracting Evidence</span>
-                            <span>Scoring Dimension 4/8</span>
+                            <motion.span
+                                key={currentSkill}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                            >
+                                Analyzing: {SKILL_NAMES[currentSkill]}
+                            </motion.span>
+                            <span>Scoring Dimension {currentSkill + 1}/{SKILL_NAMES.length}</span>
                         </div>
                     </div>
                 </div>

@@ -4,10 +4,14 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
-    const next = requestUrl.searchParams.get('next') ?? '/dashboard';
 
     if (code) {
-        const response = NextResponse.redirect(new URL(next, request.url));
+        // Check if user has seen onboarding
+        const hasSeenOnboarding = request.cookies.get('algomind_onboarding_complete');
+
+        // Determine redirect based on onboarding status
+        const redirectPath = hasSeenOnboarding ? '/dashboard' : '/';
+        const response = NextResponse.redirect(new URL(redirectPath, request.url));
 
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

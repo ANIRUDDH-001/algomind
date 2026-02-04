@@ -1,35 +1,36 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { enableDemoMode, disableDemoMode, isDemoMode } from '@/lib/demo/manager';
 import { resetOnboarding } from '@/lib/onboarding/manager';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FlaskConical, RotateCcw, Trash2, ArrowLeft, CheckCircle } from 'lucide-react';
+import { FlaskConical, RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export function SettingsPanel() {
     const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+    const [isClearing, setIsClearing] = useState(false);
+    const { user, signOut, isConfigured } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
         setDemoMode(isDemoMode());
     }, []);
 
-    const showFeedback = (message: string) => {
-        setActionFeedback(message);
-        setTimeout(() => setActionFeedback(null), 2000);
-    };
-
     const toggleDemoMode = () => {
         if (demoMode) {
             disableDemoMode();
-            showFeedback('Demo mode disabled');
+            toast.success('Demo mode disabled');
         } else {
             enableDemoMode();
-            showFeedback('Demo mode enabled');
+            toast.success('Demo mode enabled');
         }
         setDemoMode(!demoMode);
         setTimeout(() => window.location.reload(), 500);
@@ -37,16 +38,53 @@ export function SettingsPanel() {
 
     const handleResetOnboarding = () => {
         resetOnboarding();
-        showFeedback('Onboarding reset! Refreshing...');
+        toast.success('Onboarding reset! Redirecting...');
         setTimeout(() => window.location.href = '/', 1000);
     };
 
-    const handleClearData = () => {
-        if (confirm('Are you sure? This will delete all your progress and cannot be undone.')) {
-            localStorage.clear();
-            showFeedback('All data cleared!');
-            setTimeout(() => window.location.reload(), 500);
+    const handleClearData = async () => {
+        if (!confirm('Are you sure? This will delete ALL your interview sessions and progress. This cannot be undone!')) {
+            return;
         }
+
+        setIsClearing(true);
+
+        try {
+            // Clear localStorage
+            localStorage.clear();
+
+            // If authenticated and Supabase is configured, clear database
+            if (user && isConfigured) {
+                const supabase = getSupabase();
+                if (supabase) {
+                    // Delete assessments first (foreign key constraint)
+                    await supabase
+                        .from('assessments')
+                        .delete()
+                        .eq('user_id', user.id);
+
+                    // Delete sessions
+                    await supabase
+                        .from('interview_sessions')
+                        .delete()
+                        .eq('user_id', user.id);
+                }
+            }
+
+            toast.success('All data cleared successfully!');
+            setTimeout(() => window.location.reload(), 500);
+        } catch (error) {
+            console.error('Failed to clear data:', error);
+            toast.error('Failed to clear data. Please try again.');
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
+    const handleSignOut = async () => {
+        await signOut();
+        toast.success('Signed out successfully');
+        router.push('/');
     };
 
     if (!mounted) return null;
@@ -59,20 +97,96 @@ export function SettingsPanel() {
                 Back to Home
             </Link>
 
-            {/* Feedback Toast */}
-            {actionFeedback && (
-                <div className="fixed top-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top duration-200 z-50">
-                    <CheckCircle className="w-4 h-4" />
-                    {actionFeedback}
-                </div>
-            )}
+            <h1 className="text-3xl font-bold text-white">Settings</h1>
 
+            {/* User Profile Card */}
             <Card className="bg-slate-900/50 border-slate-800">
                 <CardHeader>
-                    <CardTitle className="text-white">Settings</CardTitle>
+                    <CardTitle className="text-white flex items-center gap-2">
+                        <User className="w-5 h-5" />
+                        Profile
+                    </CardTitle>
+                    <CardDescription>Your account information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {user ? (
+                        <>
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                                {user.user_metadata?.avatar_url ? (
+                                    <img
+                                        src={user.user_metadata.avatar_url}
+                                        alt={user.email || 'User'}
+                                        className="w-16 h-16 rounded-full ring-2 ring-slate-600"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                                        {user.email?.[0].toUpperCase()}
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-lg font-semibold text-white">
+                                        {user.user_metadata?.full_name || 'AlgoMind User'}
+                                    </p>
+                                    <p className="text-slate-400">{user.email}</p>
+                                    <p className="text-xs text-slate-500 font-mono mt-1">
+                                        ID: {user.id.slice(0, 8)}...
+                                    </p>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={handleSignOut}
+                                variant="outline"
+                                className="w-full border-slate-700 text-slate-300 hover:bg-slate-800"
+                            >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Sign Out
+                            </Button>
+                        </>
+                    ) : (
+                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-center">
+                            <p className="text-slate-400 mb-3">You're using AlgoMind as a guest</p>
+                            <Button onClick={() => router.push('/login')}>
+                                Sign In for Cloud Sync
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Storage Info */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                        <Database className="w-5 h-5" />
+                        Data Storage
+                    </CardTitle>
+                    <CardDescription>Where your data is stored</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Shield className={`w-4 h-4 ${isConfigured ? 'text-emerald-400' : 'text-yellow-400'}`} />
+                            <span className="font-medium text-white">
+                                {isConfigured ? 'Cloud Storage (Supabase)' : 'Local Storage Only'}
+                            </span>
+                        </div>
+                        <p className="text-sm text-slate-400">
+                            {isConfigured
+                                ? 'Your data is securely stored in the cloud and syncs across devices.'
+                                : 'Data is stored locally in your browser. Sign in to enable cloud sync.'}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* App Settings */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-white">App Settings</CardTitle>
                     <CardDescription>Configure AlgoMind options</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                     {/* Demo Mode */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700">
                         <div className="flex items-center gap-3">
@@ -108,8 +222,18 @@ export function SettingsPanel() {
                             Reset
                         </Button>
                     </div>
+                </CardContent>
+            </Card>
 
-                    {/* Clear All Data */}
+            {/* Danger Zone */}
+            <Card className="bg-red-950/20 border-red-900/50">
+                <CardHeader>
+                    <CardTitle className="text-red-400">Danger Zone</CardTitle>
+                    <CardDescription className="text-red-400/70">
+                        Irreversible actions
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
                     <div className="flex items-center justify-between p-4 rounded-xl bg-red-950/30 border border-red-900/50">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-red-500/20">
@@ -117,11 +241,17 @@ export function SettingsPanel() {
                             </div>
                             <div>
                                 <h3 className="font-semibold text-white">Clear All Data</h3>
-                                <p className="text-sm text-slate-400">Delete all progress and sessions</p>
+                                <p className="text-sm text-slate-400">
+                                    Delete all progress, sessions, and assessments
+                                </p>
                             </div>
                         </div>
-                        <Button onClick={handleClearData} variant="destructive">
-                            Clear Data
+                        <Button
+                            onClick={handleClearData}
+                            variant="destructive"
+                            disabled={isClearing}
+                        >
+                            {isClearing ? 'Clearing...' : 'Clear Data'}
                         </Button>
                     </div>
                 </CardContent>

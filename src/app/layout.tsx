@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Navbar } from "@/components/layout/Navbar";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +40,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ErrorBoundary>
-            {children}
+            <Navbar />
+            <main className="pt-16">
+              {children}
+            </main>
+            <Toaster />
           </ErrorBoundary>
         </AuthProvider>
       </body>

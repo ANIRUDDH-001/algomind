@@ -17,8 +17,21 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
             setTimeout(() => setStep(3), 4000),   // CTA appears
         ];
 
-        return () => timers.forEach(clearTimeout);
-    }, []);
+        // Keyboard listener to skip animation
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                onComplete();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+
+        return () => {
+            timers.forEach(clearTimeout);
+            window.removeEventListener('keydown', handleKeyPress);
+        };
+    }, [onComplete]);
 
     return (
         <div className="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center overflow-hidden">
@@ -200,7 +213,7 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
                 onClick={onComplete}
                 className="absolute top-8 right-8 text-white/50 hover:text-white text-sm font-medium transition-colors"
             >
-                Skip →
+                Skip (ESC / Space / Enter) →
             </button>
 
             {/* Animated particles */}

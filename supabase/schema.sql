@@ -89,15 +89,15 @@ CREATE TABLE public.assessments (
   session_id UUID REFERENCES public.interview_sessions(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   
-  -- 8 cognitive skills (1-10 scale)
+  -- 8 cognitive skills (1-10 scale) - MUST match TypeScript CognitiveSkill type
   problem_decomposition DECIMAL(3,1) CHECK (problem_decomposition BETWEEN 0 AND 10),
   pattern_recognition DECIMAL(3,1) CHECK (pattern_recognition BETWEEN 0 AND 10),
   algorithmic_thinking DECIMAL(3,1) CHECK (algorithmic_thinking BETWEEN 0 AND 10),
   complexity_analysis DECIMAL(3,1) CHECK (complexity_analysis BETWEEN 0 AND 10),
   communication_clarity DECIMAL(3,1) CHECK (communication_clarity BETWEEN 0 AND 10),
-  edge_case_handling DECIMAL(3,1) CHECK (edge_case_handling BETWEEN 0 AND 10),
-  debugging_skills DECIMAL(3,1) CHECK (debugging_skills BETWEEN 0 AND 10),
-  code_quality DECIMAL(3,1) CHECK (code_quality BETWEEN 0 AND 10),
+  edge_case_awareness DECIMAL(3,1) CHECK (edge_case_awareness BETWEEN 0 AND 10),
+  optimization_mindset DECIMAL(3,1) CHECK (optimization_mindset BETWEEN 0 AND 10),
+  debugging_approach DECIMAL(3,1) CHECK (debugging_approach BETWEEN 0 AND 10),
   
   overall_score DECIMAL(3,1) CHECK (overall_score BETWEEN 0 AND 10),
   
@@ -197,15 +197,15 @@ SELECT
   COALESCE(SUM(s.duration), 0) as total_practice_time,
   MAX(s.completed_at) as last_session_date,
   
-  -- Average skill scores
+  -- Average skill scores (matching column names)
   COALESCE(AVG(a.problem_decomposition), 0) as avg_problem_decomposition,
   COALESCE(AVG(a.pattern_recognition), 0) as avg_pattern_recognition,
   COALESCE(AVG(a.algorithmic_thinking), 0) as avg_algorithmic_thinking,
   COALESCE(AVG(a.complexity_analysis), 0) as avg_complexity_analysis,
   COALESCE(AVG(a.communication_clarity), 0) as avg_communication_clarity,
-  COALESCE(AVG(a.edge_case_handling), 0) as avg_edge_case_handling,
-  COALESCE(AVG(a.debugging_skills), 0) as avg_debugging_skills,
-  COALESCE(AVG(a.code_quality), 0) as avg_code_quality
+  COALESCE(AVG(a.edge_case_awareness), 0) as avg_edge_case_awareness,
+  COALESCE(AVG(a.optimization_mindset), 0) as avg_optimization_mindset,
+  COALESCE(AVG(a.debugging_approach), 0) as avg_debugging_approach
 FROM 
   auth.users u
   LEFT JOIN public.interview_sessions s ON u.id = s.user_id AND s.status = 'completed'

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useInterview } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { useProgress } from '@/hooks/useProgress';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { ConversationView } from './ConversationView';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
@@ -24,6 +25,7 @@ interface InterviewSessionProps {
 }
 
 export function InterviewSession({ problemId, title, content }: InterviewSessionProps) {
+    const { user } = useAuth();
     const {
         state,
         messages,
@@ -58,17 +60,19 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
         const assessment = await analyzeSession(`sess-${Date.now()}`, { title, description: content, difficulty: 'medium' }, transcript);
 
         if (assessment) {
-            console.log("Analysis successful, saving to progress store.");
-            // Save to local storage
+            console.log("✅ Analysis successful, saving to progress store...");
             const store = new ProgressStore();
             const skillScores: any = {};
             Object.entries(assessment.skills).forEach(([id, s]) => {
                 skillScores[id] = s.score;
             });
 
+            const userId = user?.id || 'guest-user';
+            console.log("💾 Saving session for user:", userId);
+
             await addSession({
                 sessionId: assessment.sessionId,
-                userId: 'demo-user',
+                userId,
                 problemId,
                 problemDifficulty: 'medium',
                 timestamp: new Date(),
@@ -76,6 +80,8 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
                 skills: skillScores,
                 overallScore: store.calculateWeightedScore(skillScores)
             });
+
+            console.log("🎉 Session saved successfully!");
         }
     };
 
