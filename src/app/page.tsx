@@ -22,9 +22,7 @@ export default function HomePage() {
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
     setShowOnboarding(false);
-    if (user) {
-      router.push('/dashboard');
-    }
+    // Stay on home page after intro animation - don't redirect to dashboard
   };
 
   if (showOnboarding) {

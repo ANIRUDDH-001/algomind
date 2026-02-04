@@ -1,6 +1,7 @@
 // Use sessionStorage so onboarding shows on every new login/browser session
 const ONBOARDING_SESSION_KEY = 'algomind_onboarding_shown_this_session';
 
+// Show intro animation only once per browser session
 export function shouldShowOnboarding(): boolean {
     if (typeof window === 'undefined') return false;
     // Show onboarding if not already shown in this session
