@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
 
 interface ProblemFiltersProps {
     onFilterChange: (filters: {
@@ -24,101 +24,48 @@ export function ProblemFilters({ onFilterChange }: ProblemFiltersProps) {
         onFilterChange({ difficulty, attempted: newAttempted });
     };
 
+    const difficultyLabels = {
+        all: 'All Levels',
+        easy: '🟢 Easy',
+        medium: '🟡 Medium',
+        hard: '🔴 Hard',
+    };
+
+    const attemptedLabels = {
+        all: 'All Problems',
+        attempted: '✓ Attempted',
+        'not-attempted': 'New Problems',
+    };
+
     return (
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 mb-6 space-y-5 border border-slate-700/50">
-            {/* Difficulty Filters */}
-            <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 block">
-                    Difficulty Level
-                </label>
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        onClick={() => handleDifficultyChange('all')}
-                        variant={difficulty === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        className={difficulty === 'all'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        All Levels
-                    </Button>
-                    <Button
-                        onClick={() => handleDifficultyChange('easy')}
-                        variant={difficulty === 'easy' ? 'default' : 'outline'}
-                        size="sm"
-                        className={difficulty === 'easy'
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        🟢 Easy
-                    </Button>
-                    <Button
-                        onClick={() => handleDifficultyChange('medium')}
-                        variant={difficulty === 'medium' ? 'default' : 'outline'}
-                        size="sm"
-                        className={difficulty === 'medium'
-                            ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        🟡 Medium
-                    </Button>
-                    <Button
-                        onClick={() => handleDifficultyChange('hard')}
-                        variant={difficulty === 'hard' ? 'default' : 'outline'}
-                        size="sm"
-                        className={difficulty === 'hard'
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        🔴 Hard
-                    </Button>
-                </div>
+        <div className="flex flex-wrap gap-3 mb-6">
+            {/* Difficulty Dropdown */}
+            <div className="relative">
+                <select
+                    value={difficulty}
+                    onChange={(e) => handleDifficultyChange(e.target.value as typeof difficulty)}
+                    className="appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                >
+                    <option value="all">All Levels</option>
+                    <option value="easy">🟢 Easy</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="hard">🔴 Hard</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
 
-            {/* Attempt Status Filters */}
-            <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 block">
-                    Attempt Status
-                </label>
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        onClick={() => handleAttemptedChange('all')}
-                        variant={attempted === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        className={attempted === 'all'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        All Problems
-                    </Button>
-                    <Button
-                        onClick={() => handleAttemptedChange('attempted')}
-                        variant={attempted === 'attempted' ? 'default' : 'outline'}
-                        size="sm"
-                        className={attempted === 'attempted'
-                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        ✓ Attempted
-                    </Button>
-                    <Button
-                        onClick={() => handleAttemptedChange('not-attempted')}
-                        variant={attempted === 'not-attempted' ? 'default' : 'outline'}
-                        size="sm"
-                        className={attempted === 'not-attempted'
-                            ? 'bg-slate-600 hover:bg-slate-700 text-white'
-                            : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                        }
-                    >
-                        New Problems
-                    </Button>
-                </div>
+            {/* Attempted Status Dropdown */}
+            <div className="relative">
+                <select
+                    value={attempted}
+                    onChange={(e) => handleAttemptedChange(e.target.value as typeof attempted)}
+                    className="appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                >
+                    <option value="all">All Problems</option>
+                    <option value="attempted">✓ Attempted</option>
+                    <option value="not-attempted">New Problems</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
         </div>
     );

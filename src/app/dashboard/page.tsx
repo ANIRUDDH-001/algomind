@@ -98,19 +98,6 @@ export default function DashboardPage() {
                                         >
                                             <StatsOverview progress={progress} />
                                         </DashboardCard>
-
-                                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                                                <Brain className="w-24 h-24 text-blue-400" />
-                                            </div>
-                                            <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-                                                <span className="p-1 px-2 bg-blue-500 text-[10px] rounded uppercase font-black">Pro Tip</span>
-                                                Pattern Recognition
-                                            </h4>
-                                            <p className="text-sm text-slate-400 leading-relaxed">
-                                                You've shown strong results in Problem Decomposition! Try focusing on **Pattern Recognition** in your next session to identify common data structures faster.
-                                            </p>
-                                        </div>
                                     </div>
                                 </div>
 

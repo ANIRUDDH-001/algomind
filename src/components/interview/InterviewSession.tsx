@@ -10,21 +10,20 @@ import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, LayoutDashboard } from 'lucide-react';
+import { StopCircle, Send, Flag } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
 import { SkillBadge } from '@/components/assessment/SkillBadge';
 import { ProgressStore } from '@/lib/assessment/progress-store';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import type { Problem } from '@/lib/supabase/problems';
 
 interface InterviewSessionProps {
-    problemId: string;
-    title: string;
-    content: string;
+    problem: Problem;
 }
 
-export function InterviewSession({ problemId, title, content }: InterviewSessionProps) {
+export function InterviewSession({ problem }: InterviewSessionProps) {
     const { user } = useAuth();
     const {
         state,
@@ -45,7 +44,7 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
 
     const handleStart = () => {
         setHasStarted(true);
-        startInterview(title, content);
+        startInterview(problem.title, problem.description);
     };
 
     const handleFinish = async () => {
@@ -57,7 +56,7 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
         console.log("Starting analysis flow...");
         // Trigger Analysis
         const transcript = messages.map(m => ({ role: m.role, content: m.content }));
-        const assessment = await analyzeSession(`sess-${Date.now()}`, { title, description: content, difficulty: 'medium' }, transcript);
+        const assessment = await analyzeSession(`sess-${Date.now()}`, { title: problem.title, description: problem.description, difficulty: problem.difficulty }, transcript);
 
         if (assessment) {
             console.log("✅ Analysis successful, saving to progress store...");
@@ -73,8 +72,8 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
             await addSession({
                 sessionId: assessment.sessionId,
                 userId,
-                problemId,
-                problemDifficulty: 'medium',
+                problemId: problem.id,
+                problemDifficulty: problem.difficulty,
                 timestamp: new Date(),
                 duration: 600, // mock
                 skills: skillScores,
@@ -123,14 +122,37 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
                 <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
                     <Card className="flex-1 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl">
                         <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
-                            <CardTitle className="text-sm font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent truncate">
-                                {title}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 overflow-y-auto flex-1 text-slate-400 text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
-                            <div className="prose prose-invert max-w-none prose-sm">
-                                <p className="opacity-90 whitespace-pre-wrap">{content}</p>
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-sm font-bold text-white truncate">
+                                    {problem.title}
+                                </CardTitle>
+                                <Badge className={cn(
+                                    "text-[10px] px-2 py-0 h-5 shrink-0",
+                                    problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
+                                    problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                                    problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
+                                )}>
+                                    {problem.difficulty}
+                                </Badge>
                             </div>
+                        </CardHeader>
+                        <CardContent className="p-4 overflow-y-auto flex-1 text-slate-300 text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-4">
+                            {/* Problem Description */}
+                            <div className="whitespace-pre-wrap">{problem.description}</div>
+
+                            {/* Examples - LeetCode Style */}
+                            {problem.examples && problem.examples.slice(0, 2).map((example, idx) => (
+                                <div key={idx} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                                    <p className="text-xs font-bold text-slate-400 mb-2">Example {idx + 1}:</p>
+                                    <div className="space-y-1 font-mono text-[11px]">
+                                        <p><span className="text-slate-500">Input:</span> <span className="text-blue-400">{example.input}</span></p>
+                                        <p><span className="text-slate-500">Output:</span> <span className="text-green-400">{example.output}</span></p>
+                                        {example.explanation && (
+                                            <p className="text-slate-400 font-sans mt-1"><span className="text-slate-500">Explanation:</span> {example.explanation}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </CardContent>
                     </Card>
 
@@ -258,7 +280,7 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
                                             {voice.transcript && !voice.isListening && (
                                                 <Button
                                                     className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 text-xs shadow-lg shadow-blue-900/20"
-                                                    onClick={() => submitUserResponse(voice.transcript, { title, content })}
+                                                    onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
                                                     disabled={isProcessing}
                                                 >
                                                     <Send className="w-3 h-3 mr-2" /> Send Message

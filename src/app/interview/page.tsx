@@ -67,11 +67,7 @@ function InterviewContent() {
 
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
-            <InterviewSession
-                problemId={problem.id}
-                title={problem.title}
-                content={problem.description}
-            />
+            <InterviewSession problem={problem} />
         </div>
     );
 }
