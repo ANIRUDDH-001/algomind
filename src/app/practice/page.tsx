@@ -1,20 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { getAllProblems, getRandomProblem, type Problem } from '@/lib/supabase/problems';
+import { ProblemFilters } from '@/components/practice/ProblemFilters';
+import { ProblemCard } from '@/components/practice/ProblemCard';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Loader2, Shuffle, Play } from 'lucide-react';
+import { Loader2, Shuffle, Brain } from 'lucide-react';
 
 export default function PracticePage() {
+    const { user } = useAuth();
     const [problems, setProblems] = useState<Problem[]>([]);
+    const [attemptedProblems, setAttemptedProblems] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        difficulty: 'all' as 'all' | 'easy' | 'medium' | 'hard',
+        attempted: 'all' as 'all' | 'attempted' | 'not-attempted',
+    });
     const router = useRouter();
 
     useEffect(() => {
         loadProblems();
     }, []);
+
+    useEffect(() => {
+        loadAttemptedProblems();
+    }, [user]);
 
     const loadProblems = async () => {
         setLoading(true);
@@ -23,12 +36,61 @@ export default function PracticePage() {
         setLoading(false);
     };
 
+    const loadAttemptedProblems = async () => {
+        if (!user) return;
+
+        // Load from localStorage for now
+        try {
+            const attempted = localStorage.getItem(`attempted_problems_${user.id}`);
+            if (attempted) {
+                setAttemptedProblems(new Set(JSON.parse(attempted)));
+            }
+        } catch (e) {
+            console.error('Failed to load attempted problems:', e);
+        }
+    };
+
+    // Filter problems based on criteria
+    const filteredProblems = useMemo(() => {
+        return problems.filter((problem) => {
+            // Difficulty filter
+            if (filters.difficulty !== 'all' && problem.difficulty !== filters.difficulty) {
+                return false;
+            }
+
+            // Attempted filter
+            const isAttempted = attemptedProblems.has(problem.id);
+            if (filters.attempted === 'attempted' && !isAttempted) {
+                return false;
+            }
+            if (filters.attempted === 'not-attempted' && isAttempted) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [problems, filters, attemptedProblems]);
+
     const handleStartInterview = (problemId: string) => {
+        // Mark as attempted
+        const newAttempted = new Set(attemptedProblems);
+        newAttempted.add(problemId);
+        setAttemptedProblems(newAttempted);
+
+        if (user) {
+            localStorage.setItem(
+                `attempted_problems_${user.id}`,
+                JSON.stringify(Array.from(newAttempted))
+            );
+        }
+
         router.push(`/interview?problemId=${problemId}`);
     };
 
     const handleRandomProblem = async () => {
-        const problem = await getRandomProblem();
+        const problem = await getRandomProblem(
+            filters.difficulty !== 'all' ? filters.difficulty : undefined
+        );
         if (problem) {
             handleStartInterview(problem.id);
         }
@@ -38,7 +100,10 @@ export default function PracticePage() {
         return (
             <ProtectedRoute>
                 <div className="min-h-screen flex items-center justify-center bg-slate-950">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                        <p className="text-slate-400 text-sm">Loading problems...</p>
+                    </div>
                 </div>
             </ProtectedRoute>
         );
@@ -47,72 +112,61 @@ export default function PracticePage() {
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
-                <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center justify-between mb-8">
-                        <h1 className="text-4xl font-bold text-white">Choose a Problem</h1>
+                <div className="max-w-5xl mx-auto">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h1 className="text-4xl font-black text-white mb-2">
+                                Practice Problems
+                            </h1>
+                            <p className="text-slate-400">
+                                {filteredProblems.length} problem{filteredProblems.length !== 1 ? 's' : ''} available
+                                {filters.difficulty !== 'all' && ` • ${filters.difficulty}`}
+                                {filters.attempted !== 'all' && ` • ${filters.attempted.replace('-', ' ')}`}
+                            </p>
+                        </div>
                         <Button
                             onClick={handleRandomProblem}
-                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            disabled={filteredProblems.length === 0}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg shadow-blue-900/20"
                         >
                             <Shuffle className="w-4 h-4 mr-2" />
                             Random Problem
                         </Button>
                     </div>
 
+                    {/* Filters */}
+                    <ProblemFilters onFilterChange={setFilters} />
+
+                    {/* Problems List */}
                     {problems.length === 0 ? (
-                        <div className="text-center py-16">
-                            <p className="text-slate-400 text-lg mb-4">No problems found in database.</p>
+                        <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+                            <Brain className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                            <p className="text-slate-400 text-lg mb-2">No problems found in database</p>
                             <p className="text-slate-500 text-sm">
-                                Add problems via Supabase SQL Editor using the create_problems_table.sql script.
+                                Run the SQL script in Supabase to add problems
                             </p>
+                        </div>
+                    ) : filteredProblems.length === 0 ? (
+                        <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+                            <p className="text-slate-400 text-lg mb-4">No problems match your filters</p>
+                            <Button
+                                onClick={() => setFilters({ difficulty: 'all', attempted: 'all' })}
+                                variant="outline"
+                                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                            >
+                                Clear Filters
+                            </Button>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {problems.map((problem) => (
-                                <div
+                            {filteredProblems.map((problem) => (
+                                <ProblemCard
                                     key={problem.id}
-                                    className="bg-slate-900 p-6 rounded-xl border border-slate-800 hover:border-blue-500/50 transition-colors"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-xl font-semibold text-white">
-                                                    {problem.title}
-                                                </h3>
-                                                <span
-                                                    className={`px-2 py-1 rounded text-xs font-medium ${problem.difficulty === 'easy'
-                                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                        : problem.difficulty === 'medium'
-                                                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                                                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                        }`}
-                                                >
-                                                    {problem.difficulty}
-                                                </span>
-                                            </div>
-                                            <p className="text-slate-400 line-clamp-2 mb-3">
-                                                {problem.description}
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {problem.tags.map((tag) => (
-                                                    <span
-                                                        key={tag}
-                                                        className="px-2 py-1 bg-slate-800 text-slate-400 rounded text-xs border border-slate-700"
-                                                    >
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <Button
-                                            onClick={() => handleStartInterview(problem.id)}
-                                            className="ml-4 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
-                                        >
-                                            <Play className="w-4 h-4 mr-2" />
-                                            Start
-                                        </Button>
-                                    </div>
-                                </div>
+                                    problem={problem}
+                                    attempted={attemptedProblems.has(problem.id)}
+                                    onStart={handleStartInterview}
+                                />
                             ))}
                         </div>
                     )}
