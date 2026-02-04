@@ -2,12 +2,12 @@
 
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, AlertCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginContent() {
     const { user, signIn, loading, isConfigured } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -40,7 +40,6 @@ export default function LoginPage() {
             setError(error.message);
             setIsSigningIn(false);
         }
-        // Don't set isSigningIn to false on success - OAuth redirect will happen
     };
 
     if (loading) {
@@ -141,5 +140,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-950">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }

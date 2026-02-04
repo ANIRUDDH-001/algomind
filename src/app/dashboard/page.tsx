@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
-    const { progress, isLoading, error } = useProgress('default');
+    const { progress, isLoading, error } = useProgress();
     const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>('overview');
     const [showPrevious, setShowPrevious] = useState(false);
 

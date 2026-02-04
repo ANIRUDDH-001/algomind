@@ -15,10 +15,14 @@ CREATE TABLE IF NOT EXISTS public.problems (
   space_complexity TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+);  
 
 -- Enable Row Level Security
 ALTER TABLE public.problems ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies first (safe re-run)
+DROP POLICY IF EXISTS "Anyone can view problems" ON public.problems;
+DROP POLICY IF EXISTS "Anonymous can view problems" ON public.problems;
 
 -- Allow all authenticated users to read problems
 CREATE POLICY "Anyone can view problems"
