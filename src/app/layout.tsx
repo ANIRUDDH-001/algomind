@@ -41,9 +41,8 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ErrorBoundary>
-            <DemoBanner />
             <Navbar />
-            <main className="pt-16">
+            <main>
               {children}
             </main>
             <Toaster />
