@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { getProgressStore, SupabaseProgressStore } from '@/lib/supabase/progress-store';
-import { ProgressStore } from '@/lib/assessment/progress-store';
+import { getProgressStore } from '@/lib/supabase/progress-store';
 import { CognitiveSkill, SessionHistory, SkillTrend, UserProgress } from '@/types/assessment';
 import { calculateTrend } from '@/lib/assessment/trend-calculator';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
@@ -17,38 +16,34 @@ export function useProgress() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchProgress = useCallback(async () => {
+        // Require both Supabase and logged in user
+        if (!isSupabaseConfigured() || !user?.id) {
+            console.log('📊 [useProgress] Supabase not configured or user not logged in');
+            setHistory([]);
+            setOverview(null);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 
         try {
-            let userHistory: SessionHistory[] = [];
+            console.log('📊 [useProgress] Loading from Supabase for user:', user.id);
+            const supabaseStore = getProgressStore();
+            const progress = await supabaseStore.getUserProgress(user.id);
 
-            // Try Supabase first if configured and user is logged in
-            if (isSupabaseConfigured() && user?.id) {
-                console.log('📊 [useProgress] Loading from Supabase for user:', user.id);
-                const supabaseStore = getProgressStore();
-                const progress = await supabaseStore.getUserProgress(user.id);
-
-                if (progress && progress.sessions.length > 0) {
-                    console.log('📊 [useProgress] Found', progress.sessions.length, 'sessions in Supabase');
-                    userHistory = progress.sessions;
-                }
-            }
-
-            // Fallback to local storage if no Supabase data
-            if (userHistory.length === 0) {
-                console.log('📊 [useProgress] Loading from local storage');
-                const localStore = new ProgressStore();
-                userHistory = await localStore.getUserHistory(user?.id || 'default-user');
-            }
-
-            setHistory(userHistory);
-
-            if (userHistory.length === 0) {
+            if (!progress || progress.sessions.length === 0) {
+                console.log('📊 [useProgress] No sessions found');
+                setHistory([]);
                 setOverview(null);
                 setIsLoading(false);
                 return;
             }
+
+            console.log('📊 [useProgress] Found', progress.sessions.length, 'sessions');
+            const userHistory = progress.sessions;
+            setHistory(userHistory);
 
             // Calculate Averages and Trends
             const averages: Record<CognitiveSkill, number> = {} as any;
@@ -59,7 +54,7 @@ export function useProgress() {
                 const scores = userHistory
                     .map(s => s.skills[skill])
                     .filter(s => s !== undefined && s > 0)
-                    .reverse(); // chronologically
+                    .reverse();
 
                 const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
                 averages[skill] = Math.round(avg * 10) / 10;
@@ -75,7 +70,7 @@ export function useProgress() {
             const totalAvg = userHistory.reduce((acc, s) => acc + s.overallScore, 0) / userHistory.length;
 
             setOverview({
-                userId: user?.id || 'default-user',
+                userId: user.id,
                 totalSessions: userHistory.length,
                 averageScore: Math.round(totalAvg * 10) / 10,
                 averageScores: averages,
@@ -101,22 +96,17 @@ export function useProgress() {
     }, [fetchProgress]);
 
     const addSession = async (session: SessionHistory) => {
-        console.log('💾 [useProgress] Saving session...');
+        if (!isSupabaseConfigured() || !user?.id) {
+            console.error('❌ [useProgress] Cannot save - Supabase not configured or user not logged in');
+            throw new Error('Please log in to save your progress');
+        }
+
+        console.log('💾 [useProgress] Saving session to Supabase...');
 
         try {
-            // Save to Supabase if configured
-            if (isSupabaseConfigured() && user?.id) {
-                console.log('💾 [useProgress] Saving to Supabase');
-                const supabaseStore = getProgressStore();
-                await supabaseStore.saveSession(user.id, session);
-                console.log('✅ [useProgress] Saved to Supabase');
-            }
-
-            // Also save to local storage as backup
-            console.log('💾 [useProgress] Saving to local storage');
-            const localStore = new ProgressStore();
-            await localStore.saveSession(session);
-            console.log('✅ [useProgress] Saved to local storage');
+            const supabaseStore = getProgressStore();
+            await supabaseStore.saveSession(user.id, session);
+            console.log('✅ [useProgress] Saved to Supabase');
 
             // Refresh the data
             await fetchProgress();

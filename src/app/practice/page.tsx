@@ -59,54 +59,63 @@ export default function PracticePage() {
                         </Button>
                     </div>
 
-                    <div className="space-y-4">
-                        {problems.map((problem) => (
-                            <div
-                                key={problem.id}
-                                className="bg-slate-900 p-6 rounded-xl border border-slate-800 hover:border-blue-500/50 transition-colors"
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="text-xl font-semibold text-white">
-                                                {problem.title}
-                                            </h3>
-                                            <span
-                                                className={`px-2 py-1 rounded text-xs font-medium ${problem.difficulty === 'easy'
+                    {problems.length === 0 ? (
+                        <div className="text-center py-16">
+                            <p className="text-slate-400 text-lg mb-4">No problems found in database.</p>
+                            <p className="text-slate-500 text-sm">
+                                Add problems via Supabase SQL Editor using the create_problems_table.sql script.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {problems.map((problem) => (
+                                <div
+                                    key={problem.id}
+                                    className="bg-slate-900 p-6 rounded-xl border border-slate-800 hover:border-blue-500/50 transition-colors"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h3 className="text-xl font-semibold text-white">
+                                                    {problem.title}
+                                                </h3>
+                                                <span
+                                                    className={`px-2 py-1 rounded text-xs font-medium ${problem.difficulty === 'easy'
                                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                                         : problem.difficulty === 'medium'
                                                             ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                                                             : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                    }`}
-                                            >
-                                                {problem.difficulty}
-                                            </span>
-                                        </div>
-                                        <p className="text-slate-400 line-clamp-2 mb-3">
-                                            {problem.description}
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {problem.tags.map((tag) => (
-                                                <span
-                                                    key={tag}
-                                                    className="px-2 py-1 bg-slate-800 text-slate-400 rounded text-xs border border-slate-700"
+                                                        }`}
                                                 >
-                                                    {tag}
+                                                    {problem.difficulty}
                                                 </span>
-                                            ))}
+                                            </div>
+                                            <p className="text-slate-400 line-clamp-2 mb-3">
+                                                {problem.description}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {problem.tags.map((tag) => (
+                                                    <span
+                                                        key={tag}
+                                                        className="px-2 py-1 bg-slate-800 text-slate-400 rounded text-xs border border-slate-700"
+                                                    >
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
+                                        <Button
+                                            onClick={() => handleStartInterview(problem.id)}
+                                            className="ml-4 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                                        >
+                                            <Play className="w-4 h-4 mr-2" />
+                                            Start
+                                        </Button>
                                     </div>
-                                    <Button
-                                        onClick={() => handleStartInterview(problem.id)}
-                                        className="ml-4 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
-                                    >
-                                        <Play className="w-4 h-4 mr-2" />
-                                        Start
-                                    </Button>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </ProtectedRoute>
