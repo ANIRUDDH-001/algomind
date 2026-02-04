@@ -1,0 +1,212 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useProgress } from '@/hooks/useProgress';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardNav } from '@/components/dashboard/DashboardNav';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { ExportReportButton } from '@/components/dashboard/ExportReportButton';
+import { StatsOverview } from '@/components/dashboard/StatsOverview';
+import { RadarChart } from '@/components/charts/RadarChart';
+import { RadarChartLegend } from '@/components/charts/RadarChartLegend';
+import { EmptyState } from '@/components/assessment/EmptyState';
+import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
+import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
+import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
+import { RecommendationEngine } from '@/lib/recommendations/engine';
+import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
+import { Brain, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+export default function DashboardPage() {
+    const { progress, isLoading, error } = useProgress('default');
+    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>('overview');
+    const [showPrevious, setShowPrevious] = useState(false);
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+                <div className="max-w-md space-y-4">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                        <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
+                        <p className="text-slate-500 text-sm mt-2">{error}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const latestSession = progress?.sessions[0];
+    const previousSession = progress?.sessions[1];
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+            <div className="max-w-7xl mx-auto">
+                <DashboardHeader progress={progress} />
+
+                <DashboardNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+                {!isLoading && (!progress || progress.totalSessions === 0) ? (
+                    <EmptyState
+                        title="Your journey hasn't started yet!"
+                        description="Complete your first voice-enabled interview to see your cognitive skill profile here."
+                    />
+                ) : (
+                    <div className="space-y-8 animate-in fade-in duration-700">
+                        {activeTab === 'overview' && (
+                            <>
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                    {/* Radar Chart - Left Half */}
+                                    <div className="lg:col-span-12 xl:col-span-7 h-full">
+                                        <DashboardCard
+                                            title="Cognitive Skill Profile"
+                                            subtitle="Assessment based on your latest interactions"
+                                            isLoading={isLoading}
+                                        >
+                                            <div className="flex flex-col items-center justify-center h-full py-4">
+                                                {latestSession ? (
+                                                    <>
+                                                        <RadarChart
+                                                            currentScores={latestSession.skills}
+                                                            previousScores={previousSession?.skills}
+                                                            showComparison={showPrevious}
+                                                            size="medium"
+                                                        />
+                                                        <RadarChartLegend
+                                                            showPrevious={showPrevious}
+                                                            onToggle={(type) => type === 'previous' && setShowPrevious(!showPrevious)}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center py-20 opacity-30 text-slate-500">
+                                                        <Brain className="w-16 h-16 mb-4" />
+                                                        <p>No assessment data available</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </DashboardCard>
+                                    </div>
+
+                                    {/* Stats & Overview - Right Half */}
+                                    <div className="lg:col-span-12 xl:col-span-5 space-y-6">
+                                        <DashboardCard
+                                            title="Performance Insights"
+                                            subtitle="Practice stats and skill distribution"
+                                            isLoading={isLoading}
+                                        >
+                                            <StatsOverview progress={progress} />
+                                        </DashboardCard>
+
+                                        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                                                <Brain className="w-24 h-24 text-blue-400" />
+                                            </div>
+                                            <h4 className="text-white font-bold mb-2 flex items-center gap-2">
+                                                <span className="p-1 px-2 bg-blue-500 text-[10px] rounded uppercase font-black">Pro Tip</span>
+                                                Pattern Recognition
+                                            </h4>
+                                            <p className="text-sm text-slate-400 leading-relaxed">
+                                                You've shown strong results in Problem Decomposition! Try focusing on **Pattern Recognition** in your next session to identify common data structures faster.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <SessionTimeline sessions={progress?.sessions || []} />
+                            </>
+                        )}
+
+                        {activeTab === 'skills' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {Object.keys(SKILL_DEFINITIONS).map((skillId) => (
+                                    <SkillTrendCard
+                                        key={skillId}
+                                        skill={skillId as any}
+                                        sessions={progress?.sessions || []}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <div className="lg:col-span-12">
+                                <DashboardCard
+                                    title="Complete History"
+                                    subtitle="Detailed list of all your practice sessions"
+                                    isLoading={isLoading}
+                                >
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                                        {progress?.sessions.map((session) => (
+                                            <div key={session.sessionId} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn(
+                                                        "w-12 h-12 rounded-xl flex items-center justify-center font-black text-white",
+                                                        session.overallScore >= 7.5 ? "bg-emerald-500" :
+                                                            session.overallScore >= 5.5 ? "bg-blue-500" : "bg-amber-500"
+                                                    )}>
+                                                        {session.overallScore.toFixed(1)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemId.replace(/-/g, ' ')}</h4>
+                                                        <p className="text-xs text-slate-500">{format(new Date(session.timestamp), 'PPP p')}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right flex items-center gap-4">
+                                                    <div className="hidden sm:block">
+                                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Duration</p>
+                                                        <p className="text-sm font-bold text-slate-300">{Math.floor((session.duration || 0) / 60)}m {Math.floor((session.duration || 0) % 60)}s</p>
+                                                    </div>
+                                                    <ExportReportButton progress={{
+                                                        ...progress!,
+                                                        sessions: [session],
+                                                        totalSessions: 1,
+                                                        averageScore: session.overallScore
+                                                    }} />
+                                                    <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-blue-400">
+                                                        <ChevronRight className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </DashboardCard>
+                            </div>
+                        )}
+
+                        {activeTab === 'insights' && (
+                            <div className="space-y-8">
+                                <div className="flex flex-col gap-1">
+                                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Personalized Insights</h2>
+                                    <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">AI-generated path based on your cognitive profile</p>
+                                </div>
+
+                                {progress && (
+                                    <RecommendationsPanel
+                                        recommendations={new RecommendationEngine().analyze(progress)}
+                                    />
+                                )}
+
+                                <div className="p-8 border border-slate-800 bg-slate-900/40 rounded-3xl flex flex-col md:flex-row items-center gap-6 group">
+                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl group-hover:scale-110 transition-transform">
+                                        <Brain className="w-8 h-8 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-bold mb-1 uppercase tracking-wide">Next Milestone</h4>
+                                        <p className="text-sm text-slate-500 max-w-xl">
+                                            Complete 3 more sessions focused on **Complexity Analysis** to reach your next skill milestone and unlock detailed performance benchmarks.
+                                        </p>
+                                    </div>
+                                    <Button className="md:ml-auto bg-white text-slate-950 hover:bg-slate-200 font-bold px-8 rounded-xl h-12">
+                                        View Roadmap
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

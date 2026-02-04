@@ -1,0 +1,49 @@
+'use client';
+
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { LayoutGrid, BarChart3, History, Lightbulb } from 'lucide-react';
+
+type TabId = 'overview' | 'skills' | 'history' | 'insights';
+
+interface DashboardNavProps {
+    activeTab: TabId;
+    onTabChange: (tab: TabId) => void;
+}
+
+export function DashboardNav({ activeTab, onTabChange }: DashboardNavProps) {
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: LayoutGrid },
+        { id: 'skills', label: 'Skills', icon: BarChart3 },
+        { id: 'history', label: 'History', icon: History },
+        { id: 'insights', label: 'Insights', icon: Lightbulb },
+    ] as const;
+
+    return (
+        <nav className="flex items-center gap-1 p-1.5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl w-fit mb-8 shadow-2xl">
+            {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+
+                return (
+                    <button
+                        key={tab.id}
+                        onClick={() => onTabChange(tab.id as TabId)}
+                        className={cn(
+                            "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 active:scale-95 group",
+                            isActive
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                        )}
+                    >
+                        <Icon className={cn(
+                            "w-4 h-4 transition-transform group-hover:scale-110",
+                            isActive ? "text-white" : "text-slate-500"
+                        )} />
+                        {tab.label}
+                    </button>
+                );
+            })}
+        </nav>
+    );
+}
