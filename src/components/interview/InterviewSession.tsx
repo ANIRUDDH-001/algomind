@@ -220,15 +220,24 @@ export function InterviewSession({ problemId, title, content }: InterviewSession
                                             </div>
                                         </div>
 
+                                        {/* AI Speaking - Prominent Stop Section */}
                                         {voice.isSpeaking && (
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={voice.stopSpeaking}
-                                                className="h-8 bg-slate-900/80 border-slate-700 hover:bg-slate-800 text-[10px] font-bold tracking-widest uppercase transition-all"
-                                            >
-                                                <StopCircle className="mr-2 h-3 w-3 text-red-500" /> Stop AI Voice
-                                            </Button>
+                                            <div className="flex flex-col items-center gap-4 p-4 bg-purple-950/30 border border-purple-500/30 rounded-2xl animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative">
+                                                        <div className="absolute inset-0 bg-purple-600 rounded-full animate-ping opacity-50" />
+                                                        <div className="relative w-4 h-4 bg-purple-500 rounded-full" />
+                                                    </div>
+                                                    <span className="text-sm font-bold text-purple-300">AI is speaking...</span>
+                                                </div>
+                                                <Button
+                                                    size="lg"
+                                                    onClick={voice.stopSpeaking}
+                                                    className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-8 shadow-lg shadow-red-900/30 transition-all"
+                                                >
+                                                    <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
+                                                </Button>
+                                            </div>
                                         )}
 
                                         <div className="w-full space-y-3 px-4">

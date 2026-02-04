@@ -92,22 +92,22 @@ export function Navbar() {
                                     </button>
                                 </DropdownMenuTrigger>
 
-                                {/* LIGHT THEME DROPDOWN - READABLE TEXT */}
+                                {/* DARK THEME DROPDOWN - MATCHES APP */}
                                 <DropdownMenuContent
                                     align="end"
-                                    className="w-56 bg-white border-slate-200"
+                                    className="w-56 bg-slate-800 border-slate-700 shadow-xl"
                                 >
-                                    <DropdownMenuLabel className="text-slate-900 font-semibold">
+                                    <DropdownMenuLabel className="text-slate-100 font-semibold">
                                         My Account
                                     </DropdownMenuLabel>
-                                    <div className="px-2 py-1.5 text-sm text-slate-600">
+                                    <div className="px-2 py-1.5 text-sm text-slate-400">
                                         {user.email}
                                     </div>
-                                    <DropdownMenuSeparator className="bg-slate-200" />
+                                    <DropdownMenuSeparator className="bg-slate-700" />
 
                                     <DropdownMenuItem
                                         onClick={() => router.push('/dashboard')}
-                                        className="text-slate-700 hover:bg-slate-100 cursor-pointer focus:bg-slate-100 focus:text-slate-900"
+                                        className="text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer focus:bg-slate-700 focus:text-white"
                                     >
                                         <BarChart className="mr-2 h-4 w-4" />
                                         Dashboard
@@ -115,17 +115,17 @@ export function Navbar() {
 
                                     <DropdownMenuItem
                                         onClick={() => router.push('/settings')}
-                                        className="text-slate-700 hover:bg-slate-100 cursor-pointer focus:bg-slate-100 focus:text-slate-900"
+                                        className="text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer focus:bg-slate-700 focus:text-white"
                                     >
                                         <Settings className="mr-2 h-4 w-4" />
                                         Settings
                                     </DropdownMenuItem>
 
-                                    <DropdownMenuSeparator className="bg-slate-200" />
+                                    <DropdownMenuSeparator className="bg-slate-700" />
 
                                     <DropdownMenuItem
                                         onClick={handleLogout}
-                                        className="text-red-600 hover:bg-red-50 cursor-pointer focus:bg-red-50 focus:text-red-700"
+                                        className="text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer focus:bg-red-950 focus:text-red-300"
                                     >
                                         <LogOut className="mr-2 h-4 w-4" />
                                         Logout
