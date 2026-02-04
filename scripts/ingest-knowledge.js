@@ -124,7 +124,7 @@ async function main() {
                     embeddedChunks.push({
                         ...chunk,
                         embedding,
-                        embeddingModel: 'text-embedding-004'
+                        embeddingModel: 'text-embedding-004' // Primary Gemini embedding model
                     });
                     console.log(`   SUCCESS: ${chunk.subtopic}`);
                 } else {

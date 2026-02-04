@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         const result = await client.chat(messages, {
             systemPrompt: enhancedSystemPrompt,
             temperature: 0.7,
-            maxTokens: 1024
+            maxTokens: 4096  // Higher limit for assessment JSON responses
         });
 
         return NextResponse.json(result);

@@ -22,8 +22,12 @@ export interface AssessmentResult {
 }
 
 export class CognitiveAnalyzer {
+    private maxRetries = 3;
+    private retryDelayMs = 1000;
+
     /**
      * Main entry point for analyzing an interview session
+     * Implements retry logic to handle model fallback
      */
     async analyze(
         sessionId: string,
@@ -32,39 +36,59 @@ export class CognitiveAnalyzer {
     ): Promise<AssessmentResult> {
         const prompt = generateAssessmentPrompt(problem, transcript, SKILL_DEFINITIONS);
 
-        try {
-            const rawResponse = await this.callAI(prompt);
-            const parsedData = this.parseResponse(rawResponse);
+        let lastError: Error | null = null;
 
-            // Post-process: calculate confidence and finalize structure
-            const sessionConfidence = calculateConfidence(transcript, parsedData);
+        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+            try {
+                console.log(`Assessment attempt ${attempt}/${this.maxRetries}...`);
 
-            const finalizedSkills: any = {};
-            Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
-                const data = parsedData.skills[skillId] || {
-                    score: 5,
-                    evidence: [],
-                    strengths: [],
-                    improvements: []
+                const rawResponse = await this.callAI(prompt);
+                const parsedData = this.parseResponse(rawResponse);
+
+                // Post-process: calculate confidence and finalize structure
+                const sessionConfidence = calculateConfidence(transcript, parsedData);
+
+                const finalizedSkills: any = {};
+                Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
+                    const data = parsedData.skills[skillId] || {
+                        score: 5,
+                        evidence: [],
+                        strengths: [],
+                        improvements: []
+                    };
+                    finalizedSkills[skillId] = {
+                        ...data,
+                        confidence: sessionConfidence
+                    };
+                });
+
+                console.log(`Assessment completed successfully on attempt ${attempt}`);
+
+                return {
+                    sessionId,
+                    timestamp: new Date(),
+                    problem,
+                    skills: finalizedSkills,
+                    overallFeedback: parsedData.overallFeedback || "No feedback generated.",
+                    nextSteps: parsedData.nextSteps || ["Review the session manually."]
                 };
-                finalizedSkills[skillId] = {
-                    ...data,
-                    confidence: sessionConfidence
-                };
-            });
 
-            return {
-                sessionId,
-                timestamp: new Date(),
-                problem,
-                skills: finalizedSkills,
-                overallFeedback: parsedData.overallFeedback || "No feedback generated.",
-                nextSteps: parsedData.nextSteps || ["Review the session manually."]
-            };
-        } catch (error) {
-            console.error("Assessment Analysis Failed:", error);
-            throw error;
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                console.warn(`Assessment attempt ${attempt} failed:`, lastError.message);
+
+                if (attempt < this.maxRetries) {
+                    // Wait before retrying (exponential backoff)
+                    const delay = this.retryDelayMs * Math.pow(2, attempt - 1);
+                    console.log(`Waiting ${delay}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
         }
+
+        // All retries exhausted
+        console.error(`Assessment failed after ${this.maxRetries} attempts`);
+        throw new Error(`Assessment failed after ${this.maxRetries} attempts. Last error: ${lastError?.message}`);
     }
 
     private async callAI(prompt: string): Promise<string> {
@@ -86,21 +110,54 @@ export class CognitiveAnalyzer {
     }
 
     private parseResponse(raw: string): any {
-        // 1. Strip markdown fences if present
-        const jsonString = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+        // 1. Strip markdown fences more thoroughly
+        let jsonString = raw
+            .replace(/^```(?:json)?\s*/i, '')  // Opening fence
+            .replace(/```\s*$/i, '')           // Closing fence
+            .trim();
+
+        // 2. Try to find JSON object boundaries if wrapped in extra text
+        const jsonStart = jsonString.indexOf('{');
+        const jsonEnd = jsonString.lastIndexOf('}');
+
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            jsonString = jsonString.slice(jsonStart, jsonEnd + 1);
+        }
+
+        // 3. Check if response appears truncated (no closing brace or ends abruptly)
+        const openBraces = (jsonString.match(/{/g) || []).length;
+        const closeBraces = (jsonString.match(/}/g) || []).length;
+
+        if (openBraces !== closeBraces) {
+            console.error("AI response appears truncated - mismatched braces:", { openBraces, closeBraces });
+            throw new Error(`AI response truncated (${openBraces} open braces, ${closeBraces} close braces). Retry with another model.`);
+        }
 
         try {
             const parsed = JSON.parse(jsonString);
 
-            // Basic validation
+            // Validate required fields exist
             if (!parsed.skills) {
-                throw new Error("Invalid response format: missing skills object");
+                throw new Error("Invalid response format: missing 'skills' object");
             }
 
+            // Validate we have at least some skill scores
+            const skillCount = Object.keys(parsed.skills).length;
+            if (skillCount === 0) {
+                throw new Error("Invalid response format: 'skills' object is empty");
+            }
+
+            console.log(`Successfully parsed assessment with ${skillCount} skills`);
             return parsed;
+
         } catch (e) {
-            console.error("Failed to parse AI JSON response:", raw);
-            throw new Error("Could not parse assessment results.");
+            const errorDetail = e instanceof Error ? e.message : 'Unknown parse error';
+            console.error("Failed to parse AI JSON response:", errorDetail);
+            console.error("Raw response (first 500 chars):", raw.substring(0, 500));
+
+            // Throw error to trigger model fallback in AI client
+            throw new Error(`Assessment parse failed: ${errorDetail}. The AI model may need to retry.`);
         }
     }
 }
+

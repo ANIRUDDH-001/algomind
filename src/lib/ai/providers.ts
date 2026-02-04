@@ -27,38 +27,38 @@ export interface EmbeddingModelConfig {
 export const CHAT_MODELS: ModelConfig[] = [
     // Tier 1: Best quality (Gemini 3.0)
     {
-        id: "gemini-2.0-flash",
+        id: "gemini-2.5-flash",
         provider: 'gemini',
         tier: 1,
         rpm: 10,
         rpd: 1000,
         contextWindow: 1000000,
         supportsEmbeddings: false,
-        description: "Gemini 2.0 Flash - Best quality, limited rate"
+        description: "Gemini 2.5 Flash - Best quality, limited rate"
     },
 
     // Tier 2: Good balance (Gemini 2.5)
     {
-        id: "gemini-1.5-flash",
+        id: "gemini-2.5-flash-lite",
         provider: 'gemini',
         tier: 2,
         rpm: 15,
         rpd: 1500,
         contextWindow: 1000000,
         supportsEmbeddings: false,
-        description: "Gemini 1.5 Flash - Good balance"
+        description: "Gemini 2.5 Flash lite - Good balance"
     },
 
     // Tier 3: Lighter model
     {
-        id: "gemini-1.5-flash-8b",
+        id: "gemma-3-27b-it",
         provider: 'gemini',
         tier: 3,
-        rpm: 15,
-        rpd: 1500,
-        contextWindow: 1000000,
+        rpm: 30,
+        rpd: 14400,
+        contextWindow: 150000,
         supportsEmbeddings: false,
-        description: "Gemini 1.5 Flash 8B - Lighter, faster"
+        description: "Gemma 3 27b - Lighter, faster"
     },
 
     // Tier 4: Groq - Powerful Fallback

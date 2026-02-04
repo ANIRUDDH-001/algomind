@@ -235,10 +235,14 @@ export class UnifiedAIClient {
     async healthCheck(): Promise<Record<string, { available: boolean; error?: string }>> {
         const results: Record<string, { available: boolean; error?: string }> = {};
 
+        // Find standard models for health checks from the registry
+        const geminiModel = CHAT_MODELS.find(m => m.provider === 'gemini')?.id;
+        const groqModel = CHAT_MODELS.find(m => m.provider === 'groq')?.id;
+
         // Check Gemini
-        if (this.gemini) {
+        if (this.gemini && geminiModel) {
             try {
-                const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const model = this.gemini.getGenerativeModel({ model: geminiModel });
                 await model.generateContent('Say "ok" if you can read this.');
                 results['gemini'] = { available: true };
             } catch (error) {
@@ -248,14 +252,14 @@ export class UnifiedAIClient {
                 };
             }
         } else {
-            results['gemini'] = { available: false, error: 'Not configured' };
+            results['gemini'] = { available: false, error: this.gemini ? 'No Gemini models in registry' : 'Not configured' };
         }
 
         // Check Groq
-        if (this.groq) {
+        if (this.groq && groqModel) {
             try {
                 await this.groq.chat.completions.create({
-                    model: 'llama-3.1-8b-instant',
+                    model: groqModel,
                     messages: [{ role: 'user', content: 'Say "ok"' }],
                     max_tokens: 10,
                 });
@@ -267,7 +271,7 @@ export class UnifiedAIClient {
                 };
             }
         } else {
-            results['groq'] = { available: false, error: 'Not configured' };
+            results['groq'] = { available: false, error: this.groq ? 'No Groq models in registry' : 'Not configured' };
         }
 
         return results;
