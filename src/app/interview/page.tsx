@@ -12,6 +12,13 @@ function InterviewContent() {
     const sessionId = searchParams.get('sessionId');
     const { history } = useProgress();
 
+    console.log('[InterviewPage RENDER] State:', {
+        problemId,
+        sessionId,
+        historyCount: history.length,
+        hasHistory: history.length > 0
+    });
+
     const [problem, setProblem] = useState<Problem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -19,6 +26,12 @@ function InterviewContent() {
     // Find session if viewing history
     const session = sessionId ? history.find(s => s.sessionId === sessionId) : null;
     const initialTranscript = session?.transcript;
+
+    useEffect(() => {
+        console.log('[InterviewPage] History updated:', history.length, 'sessions');
+        console.log('[InterviewPage] SessionId:', sessionId);
+        console.log('[InterviewPage] Found session:', !!session);
+    }, [history, sessionId, session]);
 
     useEffect(() => {
         async function loadProblem() {
