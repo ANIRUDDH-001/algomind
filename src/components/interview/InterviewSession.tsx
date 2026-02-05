@@ -100,7 +100,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     }
 
     return (
-        <div className="h-full flex flex-col p-6 overflow-hidden bg-slate-950">
+        <div className="min-h-screen lg:h-full flex flex-col p-4 lg:p-6 overflow-y-auto lg:overflow-hidden bg-slate-950 pt-20 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
@@ -117,7 +117,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 overflow-hidden">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
                 {/* Left Panel: Problem (3/12) */}
                 <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
                     <Card className="flex-1 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl">
@@ -136,23 +136,36 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-4 overflow-y-auto flex-1 text-slate-300 text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-4">
+                        <CardContent className="p-5 overflow-y-auto max-h-[40vh] lg:max-h-none flex-1 text-slate-300 text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-6">
                             {/* Problem Description */}
-                            <div className="whitespace-pre-wrap">{problem.description}</div>
+                            <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
 
                             {/* Examples - LeetCode Style */}
-                            {problem.examples && problem.examples.slice(0, 2).map((example, idx) => (
-                                <div key={idx} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                                    <p className="text-xs font-bold text-slate-400 mb-2">Example {idx + 1}:</p>
-                                    <div className="space-y-1 font-mono text-[11px]">
-                                        <p><span className="text-slate-500">Input:</span> <span className="text-blue-400">{example.input}</span></p>
-                                        <p><span className="text-slate-500">Output:</span> <span className="text-green-400">{example.output}</span></p>
-                                        {example.explanation && (
-                                            <p className="text-slate-400 font-sans mt-1"><span className="text-slate-500">Explanation:</span> {example.explanation}</p>
-                                        )}
+                            <div className="space-y-4 pt-2">
+                                {problem.examples && problem.examples.map((example, idx) => (
+                                    <div key={idx} className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
+                                        <p className="text-[13px] font-black uppercase tracking-wider text-slate-500 mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
+                                        <div className="space-y-2 font-mono text-sm">
+                                            <div className="flex flex-col sm:flex-row sm:gap-2">
+                                                <span className="text-slate-500 shrink-0 select-none">Input:</span>
+                                                <span className="text-blue-300 break-all">{example.input}</span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:gap-2">
+                                                <span className="text-slate-500 shrink-0 select-none">Output:</span>
+                                                <span className="text-emerald-400 break-all">{example.output}</span>
+                                            </div>
+                                            {example.explanation && (
+                                                <div className="pt-2 mt-2 border-t border-slate-700/30">
+                                                    <p className="text-slate-400 font-sans text-[13px] leading-normal">
+                                                        <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
+                                                        {example.explanation}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -170,9 +183,9 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                     size="sm"
                                     onClick={handleFinish}
                                     disabled={isAnalyzing}
-                                    className="w-full h-8 text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
+                                    className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
                                 >
-                                    <Flag className="w-3 h-3 mr-1.5" /> End & Analyze
+                                    <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
                                 </Button>
                             )}
                         </div>
@@ -181,10 +194,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
                 {/* Center Panel: Interaction (5/12) */}
                 <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
-                    <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col">
+                    <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col min-h-[400px]">
                         <CardContent className="p-0 flex-1 flex flex-col">
                             {!hasStarted ? (
-                                <div className="flex-1 flex items-center justify-center p-8">
+                                <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
                                     <Button
                                         size="lg"
                                         className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-16 text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
@@ -206,7 +219,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                         />
                                     </div>
 
-                                    <div className="relative z-20 flex flex-col items-center gap-8 w-full">
+                                    <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full">
                                         <div className="flex flex-col items-center gap-6">
                                             <div className="relative group">
                                                 <MicrophoneButton
@@ -217,7 +230,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                                     disabled={isProcessing || voice.isSpeaking}
                                                     error={voice.error}
                                                     className={cn(
-                                                        "transition-all duration-500 scale-[1.2] shadow-2xl",
+                                                        "transition-all duration-500 scale-[1.1] lg:scale-[1.2] shadow-2xl",
                                                         voice.isListening && "ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                                     )}
                                                 />
@@ -244,7 +257,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
                                         {/* AI Speaking - Prominent Stop Section */}
                                         {voice.isSpeaking && (
-                                            <div className="flex flex-col items-center gap-4 p-4 bg-purple-950/30 border border-purple-500/30 rounded-2xl animate-pulse">
+                                            <div className="flex flex-col items-center gap-4 p-4 bg-purple-950/30 border border-purple-500/30 rounded-2xl animate-pulse w-full max-w-sm">
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative">
                                                         <div className="absolute inset-0 bg-purple-600 rounded-full animate-ping opacity-50" />
@@ -255,21 +268,21 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                                 <Button
                                                     size="lg"
                                                     onClick={voice.stopSpeaking}
-                                                    className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-8 shadow-lg shadow-red-900/30 transition-all"
+                                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-lg shadow-red-900/30 transition-all"
                                                 >
                                                     <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
                                                 </Button>
                                             </div>
                                         )}
 
-                                        <div className="w-full space-y-3 px-4">
+                                        <div className="w-full space-y-3 px-0 lg:px-4">
                                             <div className="flex justify-between items-center px-1">
                                                 <label className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
                                                 {(voice.transcript || voice.interimTranscript) && (
                                                     <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
                                                 )}
                                             </div>
-                                            <div className="h-32 bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden">
+                                            <div className="h-24 lg:h-32 bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden">
                                                 <TranscriptViewer
                                                     transcript={voice.transcript}
                                                     interimTranscript={voice.interimTranscript}
@@ -279,7 +292,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
                                             {voice.transcript && !voice.isListening && (
                                                 <Button
-                                                    className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 text-xs shadow-lg shadow-blue-900/20"
+                                                    className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 lg:h-10 text-xs shadow-lg shadow-blue-900/20"
                                                     onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
                                                     disabled={isProcessing}
                                                 >
@@ -295,14 +308,14 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 </div>
 
                 {/* Right Panel: History (4/12) */}
-                <div className="lg:col-span-4 flex flex-col h-full min-h-0">
+                <div className="lg:col-span-4 flex flex-col min-h-[400px] lg:h-full lg:min-h-0">
                     <div className="mb-2 flex justify-between items-center px-1">
                         <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
                         {messages.length > 0 && (
                             <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
                         )}
                     </div>
-                    <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl">
+                    <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[300px]">
                         <ConversationView
                             messages={messages}
                             isAISpeaking={voice.isSpeaking}
