@@ -131,7 +131,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 pb-32 lg:pb-5">
+            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 pb-32 lg:pb-5 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
                 <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
                 <div className="space-y-3 lg:space-y-4 pt-2">
                     {problem.examples && problem.examples.map((example, idx) => (
@@ -304,7 +304,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
                 )}
             </div>
-            <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px] pb-32 lg:pb-0">
+            <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px] pb-32 lg:pb-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
@@ -367,10 +367,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     {/* Tab Content Area - Takes available space */}
                     <div className="flex-1 overflow-hidden relative p-3 pb-0"> {/* Removed bottom padding from container */}
                         <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="flex-1 min-h-0">
+                            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
                                 <InteractionArea isMobile={true} />
                             </div>
-                            <div className="shrink-0 mb-24"> {/* Keep margin here to push controls above nav */}
+                            <div className="shrink-0 mb-36"> {/* Increased bottom padding to clear floating bar */}
                                 <ControlsCard />
                             </div>
                         </TabsContent>
