@@ -3,14 +3,22 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InterviewSession } from '@/components/interview/InterviewSession';
+import { useProgress } from '@/hooks/useProgress';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
     const problemId = searchParams.get('problemId');
+    const sessionId = searchParams.get('sessionId');
+    const { history } = useProgress();
+
     const [problem, setProblem] = useState<Problem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Find session if viewing history
+    const session = sessionId ? history.find(s => s.sessionId === sessionId) : null;
+    const initialTranscript = session?.transcript;
 
     useEffect(() => {
         async function loadProblem() {
@@ -67,7 +75,11 @@ function InterviewContent() {
 
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
-            <InterviewSession problem={problem} />
+            <InterviewSession
+                problem={problem}
+                initialTranscript={initialTranscript}
+                readOnly={!!sessionId}
+            />
         </div>
     );
 }

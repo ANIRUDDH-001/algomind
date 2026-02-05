@@ -306,6 +306,11 @@ export function useInterview() {
         submitUserResponse,
         autoSubmitEnabled,
         setAutoSubmitEnabled,
+        loadTranscript: (msgs: Message[]) => {
+            setMessages(msgs);
+            conversationHistoryRef.current = msgs;
+            setState('completed');
+        },
         voice: {
             isListening,
             transcript,

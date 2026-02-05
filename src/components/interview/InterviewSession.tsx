@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
@@ -23,9 +23,11 @@ import type { Problem } from '@/lib/supabase/problems';
 
 interface InterviewSessionProps {
     problem: Problem;
+    initialTranscript?: { role: string; content: string }[];
+    readOnly?: boolean;
 }
 
-export function InterviewSession({ problem }: InterviewSessionProps) {
+export function InterviewSession({ problem, initialTranscript, readOnly = false }: InterviewSessionProps) {
     const { user } = useAuth();
     const {
         state,
@@ -34,6 +36,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         startInterview,
         resetInterview,
         submitUserResponse,
+        loadTranscript,
         voice
     } = useInterview();
 
@@ -57,6 +60,20 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         setError(null);
         resetInterview();
     }, [problem.id, problem.title, resetInterview]);
+
+    // Handle Read-Only Mode / Resume Session
+    useEffect(() => {
+        if (readOnly && initialTranscript && initialTranscript.length > 0) {
+            console.log('📖 [SESSION] Loading read-only transcript:', initialTranscript.length, 'messages');
+            const msgs = initialTranscript.map(t => ({
+                role: t.role as 'user' | 'assistant' | 'system',
+                content: t.content,
+                timestamp: new Date() // Placeholder as we don't store per-msg timestamp yet
+            }));
+            loadTranscript(msgs);
+            setHasStarted(true);
+        }
+    }, [readOnly, initialTranscript, loadTranscript]);
 
     const handleStart = () => {
         setHasStarted(true);
@@ -260,25 +277,36 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                 </div>
                             </div>
 
-                            {/* Main Mic Button */}
-                            <div className="relative group my-2">
-                                <MicrophoneButton
-                                    isListening={voice.isListening}
-                                    onClick={() => {
-                                        if (voice.isListening) {
-                                            voice.stopListening();
-                                        } else if (!isProcessing && !voice.isSpeaking) {
-                                            voice.startListening();
-                                        }
-                                    }}
-                                    disabled={isProcessing || voice.isSpeaking}
-                                    error={voice.error}
-                                    className={cn(
-                                        "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
-                                        voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
-                                    )}
-                                />
-                            </div>
+                            {/* Microphone / Interactions */}
+                            {!readOnly && (
+                                <div className="flex justify-center pb-6">
+                                    <MicrophoneButton
+                                        isListening={voice.isListening}
+                                        onClick={() => {
+                                            if (voice.isListening) {
+                                                voice.stopListening();
+                                            } else if (!isProcessing && !voice.isSpeaking) {
+                                                voice.startListening();
+                                            }
+                                        }}
+                                        disabled={isProcessing || voice.isSpeaking}
+                                        className={cn(
+                                            "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
+                                            voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Read-Only Banner */}
+                            {readOnly && (
+                                <div className="flex justify-center pb-6">
+                                    <div className="bg-slate-800/80 px-4 py-2 rounded-full border border-slate-700 text-slate-400 text-sm font-medium flex items-center gap-2">
+                                        <BookOpen className="w-4 h-4" />
+                                        Session Completed (Read-Only)
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Stop AI Speaking Button - High Visibility */}
                             {voice.isSpeaking && (
@@ -337,16 +365,27 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                         {state.replace('-', ' ')}
                     </Badge>
                 </div>
-                {hasStarted && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleFinish}
-                        disabled={isAnalyzing}
-                        className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
-                    >
-                        <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
-                    </Button>
+                {(hasStarted || readOnly) && (
+                    !readOnly ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleFinish}
+                            disabled={isAnalyzing}
+                            className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
+                        >
+                            <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.history.back()}
+                            className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-800 border-slate-700 transition-all duration-300"
+                        >
+                            <ArrowLeft className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> Back
+                        </Button>
+                    )
                 )}
             </div>
         </Card>

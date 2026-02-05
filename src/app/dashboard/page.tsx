@@ -31,13 +31,8 @@ export default function DashboardPage() {
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = (session: SessionHistory) => {
         console.log('📖 [DASHBOARD] Opening session:', session.sessionId, session.problemId);
-
-        // Store session data and navigate to interview page with that problem
-        sessionStorage.setItem('viewSessionId', session.sessionId);
-        sessionStorage.setItem('currentProblemId', session.problemId);
-
-        // Navigate to interview page with the problem
-        router.push(`/interview?problem=${session.problemId}`);
+        // Navigate to interview page with the problem and session ID for read-only view
+        router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}`);
     };
 
     if (error) {
