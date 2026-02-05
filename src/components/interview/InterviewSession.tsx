@@ -364,64 +364,43 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 }
             `}} />
 
-            {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface */}
-            <div
-                className="lg:hidden flex-1 flex flex-col overflow-hidden"
-                onTouchStart={(e) => {
-                    const touch = e.touches[0];
-                    e.currentTarget.dataset.touchStartX = touch.clientX.toString();
-                    e.currentTarget.dataset.touchStartY = touch.clientY.toString();
-                }}
-                onTouchEnd={(e) => {
-                    const touch = e.changedTouches[0];
-                    const startX = parseFloat(e.currentTarget.dataset.touchStartX || '0');
-                    const startY = parseFloat(e.currentTarget.dataset.touchStartY || '0');
-                    const diffX = touch.clientX - startX;
-                    const diffY = touch.clientY - startY;
-
-                    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-                        const tabs = ['problem', 'interview', 'chat'];
-                        const currentIndex = tabs.indexOf(activeTab);
-
-                        if (diffX > 0 && currentIndex > 0) {
-                            setActiveTab(tabs[currentIndex - 1]);
-                        } else if (diffX < 0 && currentIndex < tabs.length - 1) {
-                            setActiveTab(tabs[currentIndex + 1]);
-                        }
-                    }
-                }}
-            >
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full bg-slate-950">
-                    {/* Tab Content: Single Scroll Container approach */}
-                    <div className="flex-1 overflow-hidden relative">
+            {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface with FIXED VIEWPORT */}
+            <div className="lg:hidden fixed top-16 bottom-[72px] left-0 right-0 z-0 bg-slate-950">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
+                    {/* 
+                        FIXED VIEWPORT CONTAINER 
+                        Content will scroll INSIDE this box, independent of Navbars.
+                        No more overlap. No more massive padding hacks.
+                    */}
+                    <div className="w-full h-full relative">
 
                         {/* INTERVIEW TAB */}
-                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="p-3">
+                        <TabsContent value="interview" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
+                            <div className="p-3 pb-6 min-h-full">
                                 <InteractionArea isMobile={true} />
-                                <div className="mt-6 mb-4">
+                                <div className="mt-4">
                                     <ControlsCard />
                                 </div>
                             </div>
                         </TabsContent>
 
                         {/* PROBLEM TAB */}
-                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-left-4 duration-300">
-                            <div className="p-3 h-full">
+                        <TabsContent value="problem" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
+                            <div className="p-3 pb-6 min-h-full">
                                 <ProblemCardContent isMobile={true} />
                             </div>
                         </TabsContent>
 
                         {/* CHAT TAB */}
-                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <div className="p-1 px-2 h-full">
+                        <TabsContent value="chat" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
+                            <div className="p-2 pb-6 min-h-full">
                                 <HistoryArea isMobile={true} />
                             </div>
                         </TabsContent>
                     </div>
 
-                    {/* Bottom Floating Tab Bar */}
-                    <div className="fixed bottom-6 left-4 right-4 z-50">
+                    {/* Bottom Floating Tab Bar - Fixed Outside the scroll area */}
+                    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
                         <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1.5 ring-1 ring-white/10">
                             <TabsList className="w-full h-12 bg-transparent grid grid-cols-3 gap-1">
                                 <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">

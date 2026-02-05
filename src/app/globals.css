@@ -135,12 +135,15 @@
 }
 
 /* Mobile scroll container for horizontal scrolling elements */
+/* Mobile scroll container for horizontal scrolling elements */
 .mobile-scroll-container {
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  /* scrollbar-width: none;  <-- REMOVED TO ALLOW VISIBLE SCROLL */
   -ms-overflow-style: none;
 }
 
+/* 
 .mobile-scroll-container::-webkit-scrollbar {
   display: none;
-}
+} 
+*/
