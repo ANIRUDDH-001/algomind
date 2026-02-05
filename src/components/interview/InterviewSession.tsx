@@ -163,7 +163,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                 </div>
             </CardHeader>
             <CardContent className={cn(
-                "p-3 lg:p-5 flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6",
+                "p-3 lg:p-5 flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0",
                 !isMobile ? "overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent" : "overflow-visible"
             )}>
                 <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
@@ -414,7 +414,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
     // --- Main Render ---
 
     return (
-        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
+        <div className="min-h-[100dvh] lg:h-screen lg:overflow-hidden flex flex-col bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
@@ -531,7 +531,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full max-h-[calc(100vh-64px)]">
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full">
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}
