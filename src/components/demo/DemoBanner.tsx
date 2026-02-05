@@ -31,15 +31,17 @@ export function DemoBanner({ onClose }: DemoBannerProps) {
             {/* Animated background pulse */}
             <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none" />
 
-            <div className="flex items-center gap-3 relative z-10">
+            <div className="flex items-center gap-2 sm:gap-3 relative z-10">
                 <div className="p-1 bg-white/20 rounded-full animate-bounce duration-[2000ms]">
                     <FlaskConical className="w-3.5 h-3.5" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                     <span className="font-black text-[10px] uppercase tracking-tighter bg-white text-blue-700 px-1.5 py-0.5 rounded">Demo Mode</span>
-                    <span className="text-xs font-medium sm:inline hidden">
-                        Simulated Data • <a href="/settings" className="underline hover:text-yellow-300 transition-colors">Go to Settings</a> to turn off
-                    </span>
+                    {/* Mobile: Short text, Desktop: Full text */}
+                    <a href="/settings" className="text-[10px] sm:text-xs font-medium underline hover:text-yellow-300 transition-colors">
+                        <span className="sm:hidden">Settings ⚙️</span>
+                        <span className="hidden sm:inline">Go to Settings to turn off</span>
+                    </a>
                 </div>
             </div>
 
