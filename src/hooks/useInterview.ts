@@ -225,10 +225,10 @@ export function useInterview() {
             if (isListening) stopListening();
         } else if (!isSpeaking && !isListening && !isProcessing) {
             // AI finished speaking & We are ready -> Resume Mic
-            // Small delay to ensure speaker echo is gone
+            // Increased delay to 1.5s to ensure audio is fully cleared and prevent "Self-Hearing" loops
             const timer = setTimeout(() => {
                 startListening();
-            }, 500);
+            }, 1500);
             return () => clearTimeout(timer);
         }
     }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state, isMicEnabled]);

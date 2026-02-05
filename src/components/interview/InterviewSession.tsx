@@ -171,7 +171,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     const InteractionArea = ({ isMobile = false }) => (
         <Card className={cn(
             "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
-            !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto shrink-0"
+            !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto min-h-[400px] shrink-0"
         )}>
             <CardContent className="p-0 flex-1 flex flex-col h-full">
                 {!hasStarted ? (
@@ -306,7 +306,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     );
 
     const HistoryArea = ({ isMobile = false }: { isMobile?: boolean }) => (
-        <div className={cn("flex flex-col", !isMobile ? "h-full" : "h-auto")}>
+        <div className={cn("flex flex-col", !isMobile ? "h-full" : "h-auto min-h-[60vh]")}>
             <div className="mb-2 flex justify-between items-center px-1">
                 <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
                 {messages.length > 0 && (
@@ -345,17 +345,17 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
-            {/* Force Mobile Scrollbars Style */}
+            {/* Force Mobile Scrollbars Style - Touch Friendly Indicator Look */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media (max-width: 1024px) {
                     .mobile-scroll::-webkit-scrollbar {
-                        width: 6px;
+                        width: 4px; /* Thin, like a native indicator */
                         background: transparent;
                     }
                     .mobile-scroll::-webkit-scrollbar-thumb {
-                        background: rgba(71, 85, 105, 0.6);
-                        border-radius: 3px;
+                        background: rgba(148, 163, 184, 0.5); /* slate-400/50 - Subtle but visible */
+                        border-radius: 10px; /* Fully rounded caps */
                     }
                 }
             `}} />
