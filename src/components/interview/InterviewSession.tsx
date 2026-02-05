@@ -198,6 +198,38 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                         </div>
 
                         <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
+                            {/* Top-right Status Badge - moved from fixed position */}
+                            <div className="absolute top-2 right-2 z-30">
+                                <div className="bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        {voice.isSpeaking && (
+                                            <span className="flex items-center gap-1.5 text-purple-400">
+                                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                                                AI Speaking
+                                            </span>
+                                        )}
+                                        {voice.isListening && !voice.isSpeaking && (
+                                            <span className="flex items-center gap-1.5 text-blue-400">
+                                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                                                Listening
+                                            </span>
+                                        )}
+                                        {isProcessing && !voice.isSpeaking && (
+                                            <span className="flex items-center gap-1.5 text-yellow-400">
+                                                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                                                Processing
+                                            </span>
+                                        )}
+                                        {!voice.isSpeaking && !voice.isListening && !isProcessing && (
+                                            <span className="flex items-center gap-1.5 text-green-400">
+                                                <span className="w-2 h-2 bg-green-400 rounded-full" />
+                                                Ready
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Status Indicator */}
                             <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
                                 <p className="text-xs font-bold text-white tracking-wide">
@@ -221,13 +253,17 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                             <div className="relative group my-2">
                                 <MicrophoneButton
                                     isListening={voice.isListening}
-                                    onClick={voice.isListening ? () => {
-                                        voice.stopListening();
-                                    } : voice.startListening}
+                                    onClick={() => {
+                                        if (voice.isListening) {
+                                            voice.stopListening();
+                                        } else if (!isProcessing && !voice.isSpeaking) {
+                                            voice.startListening();
+                                        }
+                                    }}
                                     disabled={isProcessing || voice.isSpeaking}
                                     error={voice.error}
                                     className={cn(
-                                        "transition-all duration-500 scale-[1.2] lg:scale-[1.4] shadow-2xl",
+                                        "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
                                         voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                     )}
                                 />
@@ -345,38 +381,6 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
-            {/* Bottom-left Status Indicator - For debugging and user clarity */}
-            {hasStarted && (
-                <div className="fixed bottom-4 left-4 z-50 bg-slate-800/90 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-700 text-sm hidden lg:block">
-                    <div className="flex items-center gap-2">
-                        <span className="text-slate-400 text-xs">Status:</span>
-                        {voice.isSpeaking && (
-                            <span className="flex items-center gap-1 text-purple-400">
-                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-                                <span className="text-xs">AI Speaking</span>
-                            </span>
-                        )}
-                        {voice.isListening && !voice.isSpeaking && (
-                            <span className="flex items-center gap-1 text-blue-400">
-                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                                <span className="text-xs">Listening</span>
-                            </span>
-                        )}
-                        {isProcessing && !voice.isSpeaking && (
-                            <span className="flex items-center gap-1 text-yellow-400">
-                                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                                <span className="text-xs">Processing</span>
-                            </span>
-                        )}
-                        {!voice.isSpeaking && !voice.isListening && !isProcessing && (
-                            <span className="flex items-center gap-1 text-green-400">
-                                <span className="w-2 h-2 bg-green-400 rounded-full" />
-                                <span className="text-xs">Ready</span>
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* Force Mobile Scrollbars Style - Touch Friendly Indicator Look */}
             <style dangerouslySetInnerHTML={{

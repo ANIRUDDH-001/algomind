@@ -230,19 +230,28 @@ export function useInterview() {
             return;
         }
 
-        // Mic is Enabled (Intent): Manage Active State
-        if (isSpeaking) {
-            // AI started speaking -> Stop Mic
-            if (isListening) stopListening();
-        } else if (!isSpeaking && !isListening && !isProcessing) {
-            // AI finished speaking & We are ready -> Resume Mic
-            // Increased delay to 1.5s to ensure audio is fully cleared and prevent "Self-Hearing" loops
+        // CRITICAL: Always stop mic immediately when AI is speaking OR processing
+        if (isSpeaking || isProcessing) {
+            if (isListening) {
+                console.log('🛑 [MIC] Stopping - AI is speaking or processing');
+                stopListening();
+            }
+            return; // Don't proceed to start logic
+        }
+
+        // Mic is Enabled (Intent) AND AI is not speaking/processing: Resume Mic
+        if (!isListening) {
+            // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
             const timer = setTimeout(() => {
-                startListening();
+                // Double-check conditions haven't changed during timeout
+                if (isMicEnabled && !isSpeaking && !isProcessing) {
+                    console.log('🎤 [MIC] Resuming after AI finished');
+                    startListening();
+                }
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state, isMicEnabled]);
+    }, [isSpeaking, isListening, isProcessing, startListening, stopListening, state, isMicEnabled]);
 
     // State Logging for Debugging
     useEffect(() => {
