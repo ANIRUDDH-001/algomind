@@ -81,11 +81,16 @@ export async function getProblemById(id: string): Promise<Problem | null> {
     }
 
     try {
+        console.log('[DEBUG] getProblemById called with id:', id);
+
         const { data, error } = await supabase
             .from('problems')
             .select('*')
             .eq('id', id)
             .single();
+
+        console.log('[DEBUG] getProblemById raw response:', { data, error });
+        console.log('[DEBUG] getProblemById external_url value:', data?.external_url);
 
         if (error) {
             console.error('Error fetching problem:', error);

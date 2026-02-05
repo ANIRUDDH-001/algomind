@@ -27,6 +27,11 @@ export const metadata: Metadata = {
     description: "Master DSA with AI voice interviews and cognitive assessment",
     type: "website",
   },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

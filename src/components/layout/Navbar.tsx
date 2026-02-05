@@ -47,14 +47,17 @@ export function Navbar() {
                     <div className="w-full px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             {/* Logo */}
+                            {/* Logo */}
                             <button
                                 onClick={() => router.push('/')}
-                                className="flex items-center gap-2 font-bold text-xl text-white hover:text-blue-400 transition-colors group"
+                                className="flex items-center gap-3 font-bold text-xl text-white hover:text-blue-400 transition-colors group"
                             >
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Brain className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="tracking-tight">AlgoMind</span>
+                                <img
+                                    src="/logo.svg"
+                                    alt="AlgoMind Logo"
+                                    className="w-8 h-8 group-hover:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                                />
+                                <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">AlgoMind</span>
                             </button>
 
                             {/* Navigation Links */}

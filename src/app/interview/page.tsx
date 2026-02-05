@@ -73,6 +73,13 @@ function InterviewContent() {
         );
     }
 
+    // Debug: Log the problem data to verify external_url is present
+    console.log('[DEBUG] Interview Page - Problem data:', {
+        id: problem.id,
+        title: problem.title,
+        external_url: problem.external_url
+    });
+
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
             <InterviewSession
