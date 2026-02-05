@@ -19,6 +19,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
     const recognitionRef = useRef<any>(null);
     const shouldListenRef = useRef(false);
+    const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const {
         language = 'en-US',
@@ -36,12 +37,27 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 setError('Browser not supported. Please use Chrome, Edge, or Safari.');
             }
         }
+
+        // Cleanup on unmount
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+                recognitionRef.current = null;
+            }
+            if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+        };
     }, []);
 
     const startListening = useCallback(() => {
         if (!isSupported) return;
+        if (isListening) return; // Prevent double start
 
         try {
+            // Stop existing if any
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (e) { }
+            }
+
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognitionRef.current = recognition;
@@ -50,18 +66,30 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             recognition.continuous = continuous;
             recognition.interimResults = interimResults;
 
+            // Grammar (optional, depends on browser support)
             const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
             if (SpeechGrammarList) {
-                const speechRecognitionList = new SpeechGrammarList();
-                const grammar = '#JSGF V1.0; grammar dsa; public <dsa> = ' + DSA_VOCABULARY.join(' | ') + ' ;';
-                speechRecognitionList.addFromString(grammar, 1);
-                recognition.grammars = speechRecognitionList;
+                try {
+                    const speechRecognitionList = new SpeechGrammarList();
+                    const grammar = '#JSGF V1.0; grammar dsa; public <dsa> = ' + DSA_VOCABULARY.join(' | ') + ' ;';
+                    speechRecognitionList.addFromString(grammar, 1);
+                    recognition.grammars = speechRecognitionList;
+                } catch (e) {
+                    // Ignore grammar errors
+                }
             }
 
             recognition.onstart = () => {
                 setIsListening(true);
                 setError(null);
                 setLastResultTime(Date.now());
+
+                // MAX LIMIT: 30 Seconds
+                if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+                maxTimeoutRef.current = setTimeout(() => {
+                    console.log("Mic timeout reached (30s). Restarting...");
+                    stopListening();
+                }, 30000);
             };
 
             recognition.onresult = (event: any) => {
@@ -114,18 +142,14 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             };
 
             recognition.onend = () => {
-                // Potential auto-restart if interrupted incorrectly (e.g. Chrome's 60s limit)
-                if (shouldListenRef.current && continuous) {
-                    setTimeout(() => {
-                        try {
-                            if (shouldListenRef.current) recognition.start();
-                        } catch (e) {
-                            console.error("Mic auto-restart failed:", e);
-                        }
-                    }, 300);
-                } else {
-                    setIsListening(false);
-                }
+                setIsListening(false);
+                if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+
+                // Auto-restart logic handled by shouldListenRef in parent or here
+                // Note: We removed the aggressive auto-restart here to let useInterview control it
+                // via state. BUT if "continuous" is true, we might want to restart?
+                // Actually, relies on the `useEffect` in useInterview to restart it if needed.
+                // WE REMOVED THE INTERNAL AUTO-RESTART LOOP to avoid zombies.
             };
 
             recognition.start();
@@ -134,14 +158,19 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             setError('Failed to start microphone.');
             setIsListening(false);
         }
-    }, [isSupported, language, continuous, interimResults, onTranscript, onError]);
+    }, [isSupported, language, continuous, interimResults, onTranscript, onError, isListening]);
 
     const stopListening = useCallback(() => {
         shouldListenRef.current = false;
+        if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+
         if (recognitionRef.current) {
-            recognitionRef.current.stop();
-            setIsListening(false);
+            try {
+                recognitionRef.current.stop();
+            } catch (e) { }
+            // Don't null it immediately, let onend handle state cleanup
         }
+        setIsListening(false);
     }, []);
 
     const resetTranscript = useCallback(() => {

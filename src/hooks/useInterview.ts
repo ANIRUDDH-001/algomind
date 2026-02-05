@@ -83,6 +83,12 @@ export function useInterview() {
         conversationHistoryRef.current.push(msg);
     };
 
+    // Mic Intent State
+    const [isMicEnabled, setIsMicEnabled] = useState(false);
+
+    // Initial Start: Enable Mic
+    // (Optional: If you want it to start automatically when interview starts)
+
     // Auto-Submit Logic
     useEffect(() => {
         if (!autoSubmitEnabled || !isListening || !transcript || isProcessing) return;
@@ -106,6 +112,9 @@ export function useInterview() {
         currentProblemRef.current = { title: problemTitle, content: problemContent };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
+
+        // Auto-enable mic on start if desired
+        setIsMicEnabled(true);
 
         const sysPrompt = generateSystemPrompt();
         const introPrompt = generateTurnPrompt({
@@ -137,6 +146,7 @@ export function useInterview() {
     const submitUserResponse = async (userText: string, problemContext: any) => {
         if (!userText.trim()) return;
 
+        // Don't disable intent, just stop listening momentarily for processing
         stopListening();
 
         const userMsg: Message = { role: 'user', content: userText, timestamp: new Date() };
@@ -181,6 +191,8 @@ export function useInterview() {
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 stopSpeaking();
+                setIsMicEnabled(false); // Disable mic on hide
+                stopListening();
             }
         };
 
@@ -189,17 +201,29 @@ export function useInterview() {
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopSpeaking(); // Force stop on unmount
+            stopListening();
         };
-    }, [stopSpeaking]);
+    }, [stopSpeaking, stopListening]);
 
     // INTELLIGENT MIC SYNC: Stop listening when AI speaks, Resume when done
+    // Controlled by isMicEnabled
     useEffect(() => {
-        if ((state as string) === 'idle') return; // Don't auto-start if not in session
+        if ((state as string) === 'idle') {
+            if (isListening) stopListening();
+            return;
+        }
 
-        if (isSpeaking && isListening) {
+        // If User Manually Disabled Mic -> Ensure Stopped
+        if (!isMicEnabled) {
+            if (isListening) stopListening();
+            return;
+        }
+
+        // Mic is Enabled (Intent): Manage Active State
+        if (isSpeaking) {
             // AI started speaking -> Stop Mic
-            stopListening();
-        } else if (!isSpeaking && !isListening && autoSubmitEnabled && !isProcessing && (state as string) !== 'idle') {
+            if (isListening) stopListening();
+        } else if (!isSpeaking && !isListening && !isProcessing) {
             // AI finished speaking & We are ready -> Resume Mic
             // Small delay to ensure speaker echo is gone
             const timer = setTimeout(() => {
@@ -207,7 +231,7 @@ export function useInterview() {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state]);
+    }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state, isMicEnabled]);
 
     const resetInterview = useCallback(() => {
         setMessages([]);
@@ -216,14 +240,20 @@ export function useInterview() {
         conversationHistoryRef.current = [];
         resetTranscript();
         setIsProcessing(false);
-    }, [resetTranscript]);
+        setIsMicEnabled(false); // Disable mic on reset
+        stopListening();
+    }, [resetTranscript, stopListening]);
+
+    const toggleMic = useCallback(() => {
+        setIsMicEnabled(prev => !prev);
+    }, []);
 
     return {
         state,
         messages,
         isProcessing,
         startInterview,
-        resetInterview, // Export new reset function
+        resetInterview,
         submitUserResponse,
         autoSubmitEnabled,
         setAutoSubmitEnabled,
@@ -231,8 +261,10 @@ export function useInterview() {
             isListening,
             transcript,
             interimTranscript,
-            startListening,
-            stopListening,
+            startListening: () => setIsMicEnabled(true), // Override to set intent
+            stopListening: () => setIsMicEnabled(false), // Override to set intent
+            toggleMic, // New toggle
+            isMicEnabled, // Expose state
             isSpeaking,
             pauseSpeaking,
             resumeSpeaking,
