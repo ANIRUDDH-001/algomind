@@ -49,6 +49,7 @@ export class SupabaseProgressStore {
                     duration: session.duration,
                     status: 'completed',
                     completed_at: session.timestamp.toISOString(),
+                    transcript: session.transcript || [] // Add transcript to database insert
                 })
                 .select()
                 .single();
@@ -133,8 +134,10 @@ export class SupabaseProgressStore {
                     problem_id,
                     problem_title,
                     problem_difficulty,
+
                     duration,
                     completed_at,
+                    transcript, 
                     assessments (
                       ${skillColumnsSelect},
                       overall_score
@@ -181,6 +184,7 @@ export class SupabaseProgressStore {
                     duration: s.duration || 0,
                     skills,
                     overallScore: Number(assessment.overall_score) || 0,
+                    transcript: s.transcript // Map transcript from DB response
                 };
             });
 
