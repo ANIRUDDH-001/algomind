@@ -362,35 +362,35 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                             <div className="flex-1 min-h-0">
                                 <InteractionArea isMobile={true} />
                             </div>
-                            <div className="shrink-0 mb-20"> {/* Increased bottom padding for floating bar */}
+                            <div className="shrink-0 mb-28"> {/* Increased bottom padding to clear floating bar */}
                                 <ControlsCard />
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-20 animate-in fade-in slide-in-from-left-4 duration-300">
+                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-28 animate-in fade-in slide-in-from-left-4 duration-300">
                             <ProblemCardContent />
                         </TabsContent>
 
-                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden mb-20 px-1 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden mb-28 px-1 animate-in fade-in slide-in-from-right-4 duration-300">
                             <HistoryArea />
                         </TabsContent>
                     </div>
 
                     {/* Bottom Floating Tab Bar */}
                     <div className="fixed bottom-6 left-4 right-4 z-50">
-                        <div className="bg-slate-950/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-1.5 ring-1 ring-white/10">
+                        <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1.5 ring-1 ring-white/10">
                             <TabsList className="w-full h-12 bg-transparent grid grid-cols-3 gap-1">
-                                <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <BookOpen className="w-4 h-4" />
-                                    <span className="text-[10px] font-medium">Problem</span>
+                                    <span className="text-[10px] font-bold">Problem</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <Mic className="w-4 h-4" />
-                                    <span className="text-[10px] font-medium">Interview</span>
+                                    <span className="text-[10px] font-bold">Interview</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <MessageSquare className="w-4 h-4" />
-                                    <span className="text-[10px] font-medium">Chat</span>
+                                    <span className="text-[10px] font-bold">Chat</span>
                                 </TabsTrigger>
                             </TabsList>
                         </div>
