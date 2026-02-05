@@ -39,6 +39,11 @@ function DashboardContent() {
         router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}`);
     }, [router]);
 
+    // Memoize recommendations calculation (must be at top level, not in JSX)
+    const recommendations = useMemo(() =>
+        progress ? new RecommendationEngine().analyze(progress) : [],
+        [progress]);
+
     if (error) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
@@ -194,7 +199,7 @@ function DashboardContent() {
 
                                 {progress && (
                                     <RecommendationsPanel
-                                        recommendations={useMemo(() => new RecommendationEngine().analyze(progress), [progress])}
+                                        recommendations={recommendations}
                                     />
                                 )}
 
