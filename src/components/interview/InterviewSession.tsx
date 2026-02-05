@@ -53,6 +53,8 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
 
     // Track session start time for duration calculation
     const startTimeRef = React.useRef<number>(0);
+    // Track if transcript has been loaded to prevent infinite loops
+    const transcriptLoadedRef = React.useRef(false);
 
     // Debugging and Reset on Problem Change
     useEffect(() => {
@@ -61,11 +63,12 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
         setHasStarted(false);
         setError(null);
         resetInterview();
+        transcriptLoadedRef.current = false; // Reset loaded state
     }, [problem.id, problem.title, resetInterview]);
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
-        if (readOnly && initialTranscript && initialTranscript.length > 0) {
+        if (readOnly && initialTranscript && initialTranscript.length > 0 && !transcriptLoadedRef.current) {
             console.log('📖 [SESSION] Loading read-only transcript:', initialTranscript.length, 'messages');
             const msgs = initialTranscript.map(t => ({
                 role: t.role as 'user' | 'assistant' | 'system',
@@ -74,6 +77,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             }));
             loadTranscript(msgs);
             setHasStarted(true);
+            transcriptLoadedRef.current = true;
         }
     }, [readOnly, initialTranscript, loadTranscript]);
 
@@ -533,7 +537,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full">
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden">
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}
