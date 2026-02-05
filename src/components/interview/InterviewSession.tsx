@@ -345,6 +345,39 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
+            {/* Bottom-left Status Indicator - For debugging and user clarity */}
+            {hasStarted && (
+                <div className="fixed bottom-4 left-4 z-50 bg-slate-800/90 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-700 text-sm hidden lg:block">
+                    <div className="flex items-center gap-2">
+                        <span className="text-slate-400 text-xs">Status:</span>
+                        {voice.isSpeaking && (
+                            <span className="flex items-center gap-1 text-purple-400">
+                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                                <span className="text-xs">AI Speaking</span>
+                            </span>
+                        )}
+                        {voice.isListening && !voice.isSpeaking && (
+                            <span className="flex items-center gap-1 text-blue-400">
+                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                                <span className="text-xs">Listening</span>
+                            </span>
+                        )}
+                        {isProcessing && !voice.isSpeaking && (
+                            <span className="flex items-center gap-1 text-yellow-400">
+                                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                                <span className="text-xs">Processing</span>
+                            </span>
+                        )}
+                        {!voice.isSpeaking && !voice.isListening && !isProcessing && (
+                            <span className="flex items-center gap-1 text-green-400">
+                                <span className="w-2 h-2 bg-green-400 rounded-full" />
+                                <span className="text-xs">Ready</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Force Mobile Scrollbars Style - Touch Friendly Indicator Look */}
             <style dangerouslySetInnerHTML={{
                 __html: `

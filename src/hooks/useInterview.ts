@@ -128,10 +128,13 @@ export function useInterview() {
 
         setIsProcessing(true);
         try {
+            console.log('🤖 [AI] Generating introduction response...');
             const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
+            console.log('✅ [AI] Generated response:', responseText.substring(0, 100) + '...');
             const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
 
             addMessage(aiMsg);
+            console.log('🎙️ [AI] Starting to speak...');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -146,6 +149,8 @@ export function useInterview() {
     const submitUserResponse = async (userText: string, problemContext: any) => {
         if (!userText.trim()) return;
 
+        console.log('👤 [USER] Spoke:', userText);
+
         // Don't disable intent, just stop listening momentarily for processing
         stopListening();
 
@@ -153,6 +158,7 @@ export function useInterview() {
         addMessage(userMsg);
         resetTranscript();
 
+        console.log('🔄 [STATE] Processing user response...');
         setIsProcessing(true);
         stateMachine.current.transition('USER_FINISHED_SPEAKING');
         setState(stateMachine.current.getState());
@@ -171,18 +177,23 @@ export function useInterview() {
         });
 
         try {
+            console.log('🤖 [AI] Generating response to user...');
             const responseText = await callChatApi(prompt, generateSystemPrompt(), problemContext);
+            console.log('✅ [AI] Generated response:', responseText.substring(0, 100) + '...');
             const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
 
             addMessage(aiMsg);
+            console.log('🎙️ [AI] Starting to speak...');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
         } catch (e) {
+            console.error('❌ [ERROR] Failed to process user response:', e);
             addMessage({ role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date() });
         } finally {
             setIsProcessing(false);
+            console.log('✅ [STATE] Processing complete');
         }
     };
 
@@ -232,6 +243,18 @@ export function useInterview() {
             return () => clearTimeout(timer);
         }
     }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state, isMicEnabled]);
+
+    // State Logging for Debugging
+    useEffect(() => {
+        console.log('📊 [STATE] Interview state:', {
+            interviewState: state,
+            isSpeaking,
+            isListening,
+            isProcessing,
+            isMicEnabled,
+            messagesCount: messages.length
+        });
+    }, [state, isSpeaking, isListening, isProcessing, isMicEnabled, messages.length]);
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
     useEffect(() => {

@@ -108,6 +108,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const speak = useCallback((text: string) => {
         if (!text) return;
 
+        console.log('🔊 [TTS] Starting speech:', text.substring(0, 50) + '...');
+
         // Clean text (remove markdown-ish artifacts if any)
         const cleanText = text.replace(/[*_#`]/g, '');
 
@@ -130,6 +132,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     }, []);
 
     const stop = useCallback(() => {
+        console.log('🛑 [TTS] User interrupted - stopping speech');
         window.speechSynthesis.cancel();
         queueRef.current = [];
         setIsSpeaking(false);
