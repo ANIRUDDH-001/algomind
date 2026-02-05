@@ -117,10 +117,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-                {/* Left Panel: Problem (3/12) */}
-                <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
-                    <Card className="flex-1 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 min-h-0">
+                {/* Left Panel: Problem (3/12) - Collapsible on mobile */}
+                <div className="lg:col-span-3 flex flex-col gap-4 shrink-0 lg:min-h-0">
+                    <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl max-h-[30vh] lg:max-h-none lg:flex-1">
                         <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
                             <div className="flex items-center gap-2">
                                 <CardTitle className="text-sm font-bold text-white truncate">
@@ -136,16 +136,16 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-5 overflow-y-auto max-h-[40vh] lg:max-h-none flex-1 text-slate-300 text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-6">
+                        <CardContent className="p-4 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-4 lg:space-y-6">
                             {/* Problem Description */}
                             <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
 
                             {/* Examples - LeetCode Style */}
-                            <div className="space-y-4 pt-2">
+                            <div className="space-y-3 lg:space-y-4 pt-2">
                                 {problem.examples && problem.examples.map((example, idx) => (
-                                    <div key={idx} className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
-                                        <p className="text-[13px] font-black uppercase tracking-wider text-slate-500 mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
-                                        <div className="space-y-2 font-mono text-sm">
+                                    <div key={idx} className="bg-slate-800/40 rounded-xl p-3 lg:p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
+                                        <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-slate-500 mb-2 lg:mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
+                                        <div className="space-y-2 font-mono text-xs lg:text-sm">
                                             <div className="flex flex-col sm:flex-row sm:gap-2">
                                                 <span className="text-slate-500 shrink-0 select-none">Input:</span>
                                                 <span className="text-blue-300 break-all">{example.input}</span>
@@ -156,7 +156,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                             </div>
                                             {example.explanation && (
                                                 <div className="pt-2 mt-2 border-t border-slate-700/30">
-                                                    <p className="text-slate-400 font-sans text-[13px] leading-normal">
+                                                    <p className="text-slate-400 font-sans text-[12px] lg:text-[13px] leading-normal">
                                                         <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
                                                         {example.explanation}
                                                     </p>
@@ -169,7 +169,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                         </CardContent>
                     </Card>
 
-                    <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-4">
+                    <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-3 lg:p-4">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status</span>
@@ -192,9 +192,9 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     </Card>
                 </div>
 
-                {/* Center Panel: Interaction (5/12) */}
-                <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
-                    <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col min-h-[400px]">
+                {/* Center Panel: Interaction (5/12) - Main focus on mobile */}
+                <div className="lg:col-span-5 flex flex-col gap-4 flex-1 lg:min-h-0">
+                    <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col min-h-[280px] lg:min-h-[400px]">
                         <CardContent className="p-0 flex-1 flex flex-col">
                             {!hasStarted ? (
                                 <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
@@ -308,14 +308,14 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 </div>
 
                 {/* Right Panel: History (4/12) */}
-                <div className="lg:col-span-4 flex flex-col min-h-[400px] lg:h-full lg:min-h-0">
+                <div className="lg:col-span-4 flex flex-col shrink-0 lg:shrink lg:h-full lg:min-h-0">
                     <div className="mb-2 flex justify-between items-center px-1">
                         <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
                         {messages.length > 0 && (
                             <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
                         )}
                     </div>
-                    <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[300px]">
+                    <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px]">
                         <ConversationView
                             messages={messages}
                             isAISpeaking={voice.isSpeaking}
