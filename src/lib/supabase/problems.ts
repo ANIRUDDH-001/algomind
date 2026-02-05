@@ -12,6 +12,10 @@ export interface Problem {
         output: string;
         explanation?: string;
     }[];
+    external_url?: string;
+    curated_lists?: string[];
+    time_complexity?: string;
+    space_complexity?: string;
 }
 
 export async function getRandomProblem(
@@ -94,3 +98,68 @@ export async function getProblemById(id: string): Promise<Problem | null> {
         return null;
     }
 }
+
+export interface PaginatedProblemsResult {
+    problems: Problem[];
+    totalCount: number;
+    totalPages: number;
+}
+
+export async function getProblemsPaginated(
+    page: number = 1,
+    limit: number = 15,
+    filters?: {
+        difficulty?: 'easy' | 'medium' | 'hard';
+        curatedList?: string;
+    }
+): Promise<PaginatedProblemsResult> {
+    const supabase = getSupabase();
+
+    if (!supabase || !isSupabaseConfigured()) {
+        console.error('Supabase not configured - cannot fetch problems');
+        return { problems: [], totalCount: 0, totalPages: 0 };
+    }
+
+    try {
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
+            .from('problems')
+            .select('*', { count: 'exact' });
+
+        // Apply difficulty filter
+        if (filters?.difficulty) {
+            query = query.eq('difficulty', filters.difficulty);
+        }
+
+        // Apply curated list filter
+        if (filters?.curatedList) {
+            query = query.contains('curated_lists', [filters.curatedList]);
+        }
+
+        // Add ordering and pagination
+        const { data, error, count } = await query
+            .order('difficulty', { ascending: true })
+            .order('title', { ascending: true })
+            .range(from, to);
+
+        if (error) {
+            console.error('Error fetching paginated problems:', error);
+            return { problems: [], totalCount: 0, totalPages: 0 };
+        }
+
+        const totalCount = count || 0;
+        const totalPages = Math.ceil(totalCount / limit);
+
+        return {
+            problems: data || [],
+            totalCount,
+            totalPages,
+        };
+    } catch (error) {
+        console.error('Failed to get paginated problems:', error);
+        return { problems: [], totalCount: 0, totalPages: 0 };
+    }
+}
+

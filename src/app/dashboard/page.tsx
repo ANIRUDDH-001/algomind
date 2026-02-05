@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useProgress } from '@/hooks/useProgress';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/assessment/EmptyState';
 import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
 import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
-import { RecommendationEngine } from '@/lib/recommendations/engine';
+import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { Brain, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,10 +39,25 @@ function DashboardContent() {
         router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}`);
     }, [router]);
 
-    // Memoize recommendations calculation (must be at top level, not in JSX)
-    const recommendations = useMemo(() =>
-        progress ? new RecommendationEngine().analyze(progress) : [],
-        [progress]);
+    // State for asynchronous recommendations
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [isRecLoading, setIsRecLoading] = useState(false);
+
+    useEffect(() => {
+        async function fetchRecommendations() {
+            if (!progress) return;
+            setIsRecLoading(true);
+            try {
+                const results = await new RecommendationEngine().analyze(progress);
+                setRecommendations(results);
+            } catch (err) {
+                console.error('Failed to fetch recommendations:', err);
+            } finally {
+                setIsRecLoading(false);
+            }
+        }
+        fetchRecommendations();
+    }, [progress]);
 
     if (error) {
         return (

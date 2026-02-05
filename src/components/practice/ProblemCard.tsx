@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Play, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Play, CheckCircle, ExternalLink } from 'lucide-react';
 import type { Problem } from '@/lib/supabase/problems';
 
 interface ProblemCardProps {
@@ -59,13 +59,26 @@ export function ProblemCard({ problem, attempted, onStart }: ProblemCardProps) {
                         </div>
                     </div>
 
-                    <Button
-                        onClick={() => onStart(problem.id)}
-                        className="shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg shadow-blue-900/20"
-                    >
-                        <Play className="w-4 h-4 mr-2" />
-                        Start
-                    </Button>
+                    <div className="flex flex-col gap-2 shrink-0">
+                        <Button
+                            onClick={() => onStart(problem.id)}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg shadow-blue-900/20"
+                        >
+                            <Play className="w-4 h-4 mr-2" />
+                            Start
+                        </Button>
+                        {problem.external_url && (
+                            <a
+                                href={problem.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500 hover:text-blue-400 transition-colors uppercase tracking-widest"
+                            >
+                                <ExternalLink className="w-3 h-3" />
+                                LeetCode/External
+                            </a>
+                        )}
+                    </div>
                 </div>
 
                 {/* Toggle Details Button */}

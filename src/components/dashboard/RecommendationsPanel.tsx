@@ -2,10 +2,9 @@
 
 import React from 'react';
 import { Recommendation } from '@/lib/recommendations/engine';
-import { Lightbulb, ArrowRight, TrendingDown, Target } from 'lucide-react';
+import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 interface RecommendationsPanelProps {
@@ -13,14 +12,20 @@ interface RecommendationsPanelProps {
 }
 
 export function RecommendationsPanel({ recommendations }: RecommendationsPanelProps) {
-    if (recommendations.length === 0) return null;
+    if (recommendations.length === 0) return (
+        <div className="p-12 border border-dashed border-slate-800 rounded-3xl text-center bg-slate-900/20">
+            <Dumbbell className="w-8 h-8 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-slate-400 font-bold mb-1">No specific recommendations yet</h3>
+            <p className="text-slate-500 text-sm">Complete more sessions to get personalized problem suggestions!</p>
+        </div>
+    );
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            {recommendations.map((rec, index) => (
+            {recommendations.map((rec) => (
                 <div
                     key={rec.skillId}
-                    className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300"
+                    className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col"
                 >
                     {/* Priority Badge */}
                     <div className="flex justify-between items-start mb-4">
@@ -41,29 +46,56 @@ export function RecommendationsPanel({ recommendations }: RecommendationsPanelPr
                     <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2 capitalize">
                         {rec.title}
                     </h3>
-                    <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                    <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                         {rec.description}
                     </p>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-auto">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">Recommended Problems</p>
-                        {rec.suggestedProblems.slice(0, 3).map(problem => (
-                            <Link
-                                key={problem.id}
-                                href={`/interview?problemId=${problem.id}`}
-                                className="flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800/80 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all group/item"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={cn(
-                                        "w-1.5 h-1.5 rounded-full",
-                                        problem.difficulty === 'easy' ? "bg-emerald-500" :
-                                            problem.difficulty === 'medium' ? "bg-blue-500" : "bg-red-500"
-                                    )} />
-                                    <span className="text-xs font-bold text-slate-300 group-hover/item:text-white transition-colors">{problem.title}</span>
+                        {rec.suggestedProblems.length > 0 ? (
+                            rec.suggestedProblems.map(problem => (
+                                <div key={problem.id} className="space-y-2">
+                                    <div className="flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800/80 rounded-2xl group/item">
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn(
+                                                "w-1.5 h-1.5 rounded-full",
+                                                problem.difficulty === 'easy' ? "bg-emerald-500" :
+                                                    problem.difficulty === 'medium' ? "bg-blue-500" : "bg-red-500"
+                                            )} />
+                                            <span className="text-xs font-bold text-slate-300">{problem.title}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {problem.external_url && (
+                                                <a
+                                                    href={problem.external_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-blue-400"
+                                                    title="Practice on LeetCode"
+                                                >
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                </a>
+                                            )}
+                                            <Link
+                                                href={`/interview?problemId=${problem.id}`}
+                                                className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-purple-400"
+                                                title="Start AI Mock Interview"
+                                            >
+                                                <Play className="w-3.5 h-3.5" />
+                                            </Link>
+                                        </div>
+                                    </div>
                                 </div>
-                                <ArrowRight className="w-3 h-3 text-slate-600 group-hover/item:text-blue-400 transition-all transform group-hover/item:translate-x-1" />
+                            ))
+                        ) : (
+                            <Link
+                                href="/practice"
+                                className="flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800/80 rounded-2xl hover:bg-slate-800 transition-all text-xs font-bold text-slate-400"
+                            >
+                                Explore more problems
+                                <ArrowRight className="w-3 h-3" />
                             </Link>
-                        ))}
+                        )}
                     </div>
 
                     {/* Decorative Background Icon */}
