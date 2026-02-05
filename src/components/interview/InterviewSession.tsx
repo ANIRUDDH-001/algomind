@@ -154,18 +154,30 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             !isMobile ? "h-full" : "h-auto"
         )}>
             <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
-                <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-bold text-white truncate">
-                        {problem.title}
-                    </CardTitle>
-                    <Badge className={cn(
-                        "text-[10px] px-2 py-0 h-5 shrink-0",
-                        problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
-                        problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                        problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
-                    )}>
-                        {problem.difficulty}
-                    </Badge>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-bold text-white truncate">
+                            {problem.title}
+                        </CardTitle>
+                        <Badge className={cn(
+                            "text-[10px] px-2 py-0 h-5 shrink-0",
+                            problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
+                            problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                            problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
+                        )}>
+                            {problem.difficulty}
+                        </Badge>
+                    </div>
+                    {problem.external_url && (
+                        <a
+                            href={problem.external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                        >
+                            🔗 Practice on LeetCode
+                        </a>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className={cn(

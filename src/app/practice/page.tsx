@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemsPaginated, getRandomProblem, type Problem } from '@/lib/supabase/problems';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PROBLEMS_PER_PAGE = 15;
+const PROBLEMS_PER_PAGE = 10;
 
 export default function PracticePage() {
     const { user } = useAuth();
@@ -30,6 +30,7 @@ export default function PracticePage() {
     const [filters, setFilters] = useState({
         difficulty: 'all' as 'all' | 'easy' | 'medium' | 'hard',
         curatedList: '',
+        attempted: 'all' as 'all' | 'attempted' | 'not-attempted',
     });
 
     // Load problems when filters or page changes
@@ -43,7 +44,7 @@ export default function PracticePage() {
         setTotalPages(result.totalPages);
         setTotalCount(result.totalCount);
         setLoading(false);
-    }, [currentPage, filters]);
+    }, [currentPage, filters.difficulty, filters.curatedList]);
 
     useEffect(() => {
         loadProblems();
@@ -65,10 +66,23 @@ export default function PracticePage() {
         }
     };
 
+    // Filter by attempted status (client-side since it's local data)
+    const displayedProblems = useMemo(() => {
+        if (filters.attempted === 'all') return problems;
+        return problems.filter(p => {
+            const isAttempted = attemptedProblems.has(p.id);
+            if (filters.attempted === 'attempted') return isAttempted;
+            if (filters.attempted === 'not-attempted') return !isAttempted;
+            return true;
+        });
+    }, [problems, filters.attempted, attemptedProblems]);
+
     // Reset to page 1 when filters change
     const handleFilterChange = (newFilters: typeof filters) => {
         setFilters(newFilters);
-        setCurrentPage(1);
+        if (newFilters.difficulty !== filters.difficulty || newFilters.curatedList !== filters.curatedList) {
+            setCurrentPage(1);
+        }
     };
 
     const handleStartInterview = (problemId: string) => {
@@ -104,6 +118,9 @@ export default function PracticePage() {
 
     // Get current curated list label
     const currentListLabel = CURATED_LISTS.find(l => l.value === filters.curatedList)?.label || 'All Problems';
+
+    // Pagination button styles - dark background
+    const paginationBtnStyles = "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800";
 
     return (
         <ProtectedRoute>
@@ -142,7 +159,7 @@ export default function PracticePage() {
                                 <p className="text-slate-400 text-sm">Loading problems...</p>
                             </div>
                         </div>
-                    ) : problems.length === 0 ? (
+                    ) : displayedProblems.length === 0 ? (
                         <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
                             <Brain className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                             <p className="text-slate-400 text-lg mb-2">No problems found</p>
@@ -150,9 +167,9 @@ export default function PracticePage() {
                                 Try changing your filters or add more problems to the database
                             </p>
                             <Button
-                                onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '' })}
+                                onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '', attempted: 'all' })}
                                 variant="outline"
-                                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                                className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
                             >
                                 Clear Filters
                             </Button>
@@ -161,7 +178,7 @@ export default function PracticePage() {
                         <>
                             {/* Problems List */}
                             <div className="space-y-4">
-                                {problems.map((problem) => (
+                                {displayedProblems.map((problem) => (
                                     <ProblemCard
                                         key={problem.id}
                                         problem={problem}
@@ -178,7 +195,7 @@ export default function PracticePage() {
                                         onClick={() => goToPage(currentPage - 1)}
                                         disabled={currentPage === 1}
                                         variant="outline"
-                                        className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                                        className={paginationBtnStyles}
                                     >
                                         <ChevronLeft className="w-4 h-4 mr-1" />
                                         Previous
@@ -194,7 +211,7 @@ export default function PracticePage() {
                                         onClick={() => goToPage(currentPage + 1)}
                                         disabled={currentPage === totalPages}
                                         variant="outline"
-                                        className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                                        className={paginationBtnStyles}
                                     >
                                         Next
                                         <ChevronRight className="w-4 h-4 ml-1" />

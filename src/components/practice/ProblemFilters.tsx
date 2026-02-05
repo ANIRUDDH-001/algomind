@@ -15,10 +15,12 @@ interface ProblemFiltersProps {
     onFilterChange: (filters: {
         difficulty: 'all' | 'easy' | 'medium' | 'hard';
         curatedList: string;
+        attempted: 'all' | 'attempted' | 'not-attempted';
     }) => void;
     currentFilters: {
         difficulty: 'all' | 'easy' | 'medium' | 'hard';
         curatedList: string;
+        attempted: 'all' | 'attempted' | 'not-attempted';
     };
 }
 
@@ -31,6 +33,13 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
         onFilterChange({ ...currentFilters, curatedList: newList });
     };
 
+    const handleAttemptedChange = (newAttempted: 'all' | 'attempted' | 'not-attempted') => {
+        onFilterChange({ ...currentFilters, attempted: newAttempted });
+    };
+
+    // Shared select styles - dark background with proper text color
+    const selectStyles = "appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors";
+
     return (
         <div className="flex flex-wrap gap-3 mb-6">
             {/* Curated List Dropdown */}
@@ -38,15 +47,15 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                 <select
                     value={currentFilters.curatedList}
                     onChange={(e) => handleCuratedListChange(e.target.value)}
-                    className="appearance-none bg-gradient-to-r from-blue-900/50 to-purple-900/50 border border-blue-500/30 text-white text-sm font-bold rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    className={selectStyles}
                 >
                     {CURATED_LISTS.map((list) => (
-                        <option key={list.value} value={list.value}>
+                        <option key={list.value} value={list.value} className="bg-slate-800 text-white">
                             {list.label}
                         </option>
                     ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
 
             {/* Difficulty Dropdown */}
@@ -54,12 +63,26 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                 <select
                     value={currentFilters.difficulty}
                     onChange={(e) => handleDifficultyChange(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
-                    className="appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    className={selectStyles}
                 >
-                    <option value="all">All Levels</option>
-                    <option value="easy">🟢 Easy</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="hard">🔴 Hard</option>
+                    <option value="all" className="bg-slate-800 text-white">All Levels</option>
+                    <option value="easy" className="bg-slate-800 text-white">🟢 Easy</option>
+                    <option value="medium" className="bg-slate-800 text-white">🟡 Medium</option>
+                    <option value="hard" className="bg-slate-800 text-white">🔴 Hard</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* Attempted Status Dropdown */}
+            <div className="relative">
+                <select
+                    value={currentFilters.attempted}
+                    onChange={(e) => handleAttemptedChange(e.target.value as 'all' | 'attempted' | 'not-attempted')}
+                    className={selectStyles}
+                >
+                    <option value="all" className="bg-slate-800 text-white">All Status</option>
+                    <option value="attempted" className="bg-slate-800 text-white">✓ Attempted</option>
+                    <option value="not-attempted" className="bg-slate-800 text-white">New Problems</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
