@@ -55,7 +55,7 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                 <ExportReportButton progress={progress} />
-                <Link href="/problems">
+                <Link href="/practice">
                     <Button className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 px-6 sm:px-8 shadow-xl shadow-blue-500/20 transition-all active:scale-95 w-full sm:w-auto">
                         <PlusCircle className="w-4 h-4 mr-2" />
                         Start Practice

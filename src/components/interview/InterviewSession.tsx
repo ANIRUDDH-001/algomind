@@ -330,7 +330,11 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     return (
         <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
-            {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
+            {error && (
+                <div className="fixed top-24 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-5 duration-300">
+                    <ErrorBanner message={error} onClose={() => setError(null)} />
+                </div>
+            )}
             {voice.error && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
                     <ErrorBanner
