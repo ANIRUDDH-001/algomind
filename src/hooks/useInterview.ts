@@ -233,6 +233,23 @@ export function useInterview() {
         }
     }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state, isMicEnabled]);
 
+    // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
+    useEffect(() => {
+        if (!isListening || !isMicEnabled) return;
+
+        const SILENCE_TIMEOUT = 7000; // 7 seconds
+
+        const checkSilence = setInterval(() => {
+            const timeSinceLastResult = Date.now() - lastResultTime;
+            if (timeSinceLastResult >= SILENCE_TIMEOUT && !transcript && !interimTranscript) {
+                console.log('7s silence detected. Auto-stopping mic.');
+                setIsMicEnabled(false); // Disable intent, stops cycling
+            }
+        }, 1000);
+
+        return () => clearInterval(checkSilence);
+    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript]);
+
     const resetInterview = useCallback(() => {
         setMessages([]);
         setState('idle');

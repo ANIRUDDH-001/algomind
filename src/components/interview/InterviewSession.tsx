@@ -331,8 +331,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && (
-                <div className="fixed top-24 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top-5 duration-300">
-                    <ErrorBanner message={error} onClose={() => setError(null)} />
+                <div className="fixed inset-0 z-[200] flex items-start justify-center pt-24 px-4 pointer-events-none">
+                    <div className="pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-300 max-w-md w-full">
+                        <ErrorBanner message={error} onClose={() => setError(null)} />
+                    </div>
                 </div>
             )}
             {voice.error && (
@@ -365,7 +367,33 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
             `}} />
 
             {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface with FIXED VIEWPORT */}
-            <div className="lg:hidden fixed top-16 bottom-[72px] left-0 right-0 z-0 bg-slate-950">
+            <div
+                className="lg:hidden fixed top-16 bottom-[72px] left-0 right-0 z-0 bg-slate-950"
+                onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    e.currentTarget.dataset.touchStartX = touch.clientX.toString();
+                    e.currentTarget.dataset.touchStartY = touch.clientY.toString();
+                }}
+                onTouchEnd={(e) => {
+                    const touch = e.changedTouches[0];
+                    const startX = parseFloat(e.currentTarget.dataset.touchStartX || '0');
+                    const startY = parseFloat(e.currentTarget.dataset.touchStartY || '0');
+                    const diffX = touch.clientX - startX;
+                    const diffY = touch.clientY - startY;
+
+                    // Only trigger if horizontal swipe is dominant (> 60px) and more horizontal than vertical
+                    if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+                        const tabs = ['problem', 'interview', 'chat'];
+                        const currentIndex = tabs.indexOf(activeTab);
+
+                        if (diffX > 0 && currentIndex > 0) {
+                            setActiveTab(tabs[currentIndex - 1]); // Swipe Right -> Previous Tab
+                        } else if (diffX < 0 && currentIndex < tabs.length - 1) {
+                            setActiveTab(tabs[currentIndex + 1]); // Swipe Left -> Next Tab
+                        }
+                    }
+                }}
+            >
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
                     {/* 
                         FIXED VIEWPORT CONTAINER 
