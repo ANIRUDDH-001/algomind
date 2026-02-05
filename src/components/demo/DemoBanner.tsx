@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { X, FlaskConical } from 'lucide-react';
 import { isDemoMode, disableDemoMode } from '@/lib/demo/manager';
 
@@ -8,8 +9,16 @@ interface DemoBannerProps {
 }
 
 export function DemoBanner({ onClose }: DemoBannerProps) {
-    if (typeof window === 'undefined') return null;
-    if (!isDemoMode()) return null;
+    // SSR-SAFE: Start with false, update on client mount
+    const [isDemo, setIsDemo] = useState(false);
+
+    useEffect(() => {
+        // Only runs on client, after hydration
+        setIsDemo(isDemoMode());
+    }, []);
+
+    // During SSR and initial hydration, render nothing (matches server)
+    if (!isDemo) return null;
 
     const handleDisable = () => {
         disableDemoMode();
@@ -28,7 +37,9 @@ export function DemoBanner({ onClose }: DemoBannerProps) {
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="font-black text-[10px] uppercase tracking-tighter bg-white text-blue-700 px-1.5 py-0.5 rounded">Demo Mode</span>
-                    <span className="text-xs font-bold sm:inline hidden">Presenting Simulated Data & Analytics</span>
+                    <span className="text-xs font-medium sm:inline hidden">
+                        Simulated Data • <a href="/settings" className="underline hover:text-yellow-300 transition-colors">Go to Settings</a> to turn off
+                    </span>
                 </div>
             </div>
 

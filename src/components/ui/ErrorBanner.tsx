@@ -19,17 +19,19 @@ export function ErrorBanner({ message, className, onClose, autoCloseMs = 5000 }:
 
     return (
         <div className={cn(
-            "fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md animate-in fade-in slide-in-from-top-4 duration-300",
+            // Solid floating banner - NO transparency, always on top
+            "fixed top-20 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-lg animate-in fade-in slide-in-from-top-4 duration-300",
             className
         )}>
-            <div className="mx-4 bg-red-500/10 backdrop-blur-md border border-red-500/20 rounded-xl p-4 flex items-start gap-3 shadow-2xl shadow-red-950/20">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            {/* Solid red background - fully opaque */}
+            <div className="bg-red-600 border-2 border-red-400 rounded-xl p-4 flex items-start gap-3 shadow-2xl shadow-red-950/50">
+                <AlertCircle className="w-6 h-6 text-white shrink-0 mt-0.5" />
                 <div className="flex-1">
-                    <p className="text-sm font-medium text-red-100">{message}</p>
+                    <p className="text-sm font-bold text-white">{message}</p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                    className="p-1.5 bg-red-700 hover:bg-red-800 rounded-lg transition-colors text-white"
                 >
                     <X className="w-4 h-4" />
                 </button>
