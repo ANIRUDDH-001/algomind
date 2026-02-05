@@ -169,10 +169,10 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                         </Badge>
                     </div>
                     <a
-                        href={problem.external_url || `https://www.google.com/search?q=leetcode+${encodeURIComponent(problem.title)}`}
+                        href={problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg text-[11px] font-bold text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-blue-500/10"
+                        className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg text-[11px] font-bold text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-blue-500/10"
                     >
                         🔗 Practice on LeetCode
                     </a>
@@ -209,7 +209,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                     ))}
                 </div>
             </CardContent>
-        </Card>
+        </Card >
     );
 
     const InteractionArea = ({ isMobile = false }) => (

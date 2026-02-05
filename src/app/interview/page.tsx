@@ -28,10 +28,33 @@ function InterviewContent() {
             try {
                 let fetchedProblem: Problem | null = null;
 
-                if (problemId) {
-                    fetchedProblem = await getProblemById(problemId);
-                } else {
-                    fetchedProblem = await getRandomProblem();
+                // First, try to get problem from sessionStorage (passed from Practice page)
+                const cachedProblem = sessionStorage.getItem('currentProblem');
+                if (cachedProblem && problemId) {
+                    try {
+                        const parsed = JSON.parse(cachedProblem) as Problem;
+                        console.log('[DEBUG] Read problem from sessionStorage:', {
+                            id: parsed.id,
+                            keys: Object.keys(parsed),
+                            external_url: parsed.external_url
+                        });
+
+                        // Verify it's the right problem
+                        if (parsed.id === problemId) {
+                            fetchedProblem = parsed;
+                        }
+                    } catch (e) {
+                        // Ignore parse errors, fall back to DB fetch
+                    }
+                }
+
+                // Fall back to DB fetch if no cached problem
+                if (!fetchedProblem) {
+                    if (problemId) {
+                        fetchedProblem = await getProblemById(problemId);
+                    } else {
+                        fetchedProblem = await getRandomProblem();
+                    }
                 }
 
                 if (!fetchedProblem) {
@@ -72,13 +95,6 @@ function InterviewContent() {
             </div>
         );
     }
-
-    // Debug: Log the problem data to verify external_url is present
-    console.log('[DEBUG] Interview Page - Problem data:', {
-        id: problem.id,
-        title: problem.title,
-        external_url: problem.external_url
-    });
 
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">

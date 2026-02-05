@@ -85,7 +85,7 @@ export default function PracticePage() {
         }
     };
 
-    const handleStartInterview = (problemId: string) => {
+    const handleStartInterview = (problemId: string, problem?: Problem) => {
         const newAttempted = new Set(attemptedProblems);
         newAttempted.add(problemId);
         setAttemptedProblems(newAttempted);
@@ -95,6 +95,11 @@ export default function PracticePage() {
                 `attempted_problems_${user.id}`,
                 JSON.stringify(Array.from(newAttempted))
             );
+        }
+
+        // Store full problem in sessionStorage for Interview page to use
+        if (problem) {
+            sessionStorage.setItem('currentProblem', JSON.stringify(problem));
         }
 
         router.push(`/interview?problemId=${problemId}`);
@@ -183,7 +188,7 @@ export default function PracticePage() {
                                         key={problem.id}
                                         problem={problem}
                                         attempted={attemptedProblems.has(problem.id)}
-                                        onStart={handleStartInterview}
+                                        onStart={(id) => handleStartInterview(id, problem)}
                                     />
                                 ))}
                             </div>
