@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
@@ -360,7 +361,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full">
                     {/* Tab Content Area - Takes available space */}
                     <div className="flex-1 overflow-hidden relative p-3">
-                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <div className="flex-1 min-h-0">
                                 <InteractionArea isMobile={true} />
                             </div>
@@ -369,7 +370,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-28 animate-in fade-in slide-in-from-left-4 duration-300">
+                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-hidden mb-28 animate-in fade-in slide-in-from-left-4 duration-300">
                             <ProblemCardContent />
                         </TabsContent>
 
@@ -400,27 +401,39 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 </Tabs>
             </div>
 
-            {/* DESKTOP LAYOUT (>= 1024px) - Grid Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-6 overflow-hidden h-full max-h-[calc(100vh-64px)]">
-                <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 h-full">
-                    {/* Left Panel: Problem (3/12) */}
-                    <div className="col-span-3 flex flex-col gap-4 h-full min-h-0">
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                            <ProblemCardContent />
+            {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full max-h-[calc(100vh-64px)]">
+                <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
+
+                    {/* Left Panel: Problem */}
+                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="flex flex-col min-w-[300px]">
+                        <div className="flex flex-col gap-4 h-full p-2">
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                <ProblemCardContent />
+                            </div>
+                            <ControlsCard />
                         </div>
-                        <ControlsCard />
-                    </div>
+                    </ResizablePanel>
 
-                    {/* Center Panel: Interaction (5/12) */}
-                    <div className="col-span-5 flex flex-col h-full min-h-0">
-                        <InteractionArea />
-                    </div>
+                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
 
-                    {/* Right Panel: History (4/12) */}
-                    <div className="col-span-4 flex flex-col h-full min-h-0">
-                        <HistoryArea />
-                    </div>
-                </div>
+                    {/* Center Panel: Interaction */}
+                    <ResizablePanel defaultSize={45} minSize={30} className="flex flex-col min-w-[400px]">
+                        <div className="h-full p-2">
+                            <InteractionArea />
+                        </div>
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
+
+                    {/* Right Panel: History */}
+                    <ResizablePanel defaultSize={30} minSize={20} maxSize={40} className="flex flex-col min-w-[300px]">
+                        <div className="h-full p-2">
+                            <HistoryArea />
+                        </div>
+                    </ResizablePanel>
+
+                </ResizablePanelGroup>
             </div>
         </div>
     );

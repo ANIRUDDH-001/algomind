@@ -192,6 +192,23 @@ export function useInterview() {
         };
     }, [stopSpeaking]);
 
+    // INTELLIGENT MIC SYNC: Stop listening when AI speaks, Resume when done
+    useEffect(() => {
+        if ((state as string) === 'idle') return; // Don't auto-start if not in session
+
+        if (isSpeaking && isListening) {
+            // AI started speaking -> Stop Mic
+            stopListening();
+        } else if (!isSpeaking && !isListening && autoSubmitEnabled && !isProcessing && (state as string) !== 'idle') {
+            // AI finished speaking & We are ready -> Resume Mic
+            // Small delay to ensure speaker echo is gone
+            const timer = setTimeout(() => {
+                startListening();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state]);
+
     return {
         state,
         messages,
