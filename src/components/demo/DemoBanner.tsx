@@ -35,10 +35,10 @@ export function DemoBanner({ onClose }: DemoBannerProps) {
                 <div className="p-1 bg-white/20 rounded-full animate-bounce duration-[2000ms]">
                     <FlaskConical className="w-3.5 h-3.5" />
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-black text-[10px] uppercase tracking-tighter bg-white text-blue-700 px-1.5 py-0.5 rounded">Demo Mode</span>
-                    {/* Mobile: Short text, Desktop: Full text */}
-                    <a href="/settings" className="text-[10px] sm:text-xs font-medium underline hover:text-yellow-300 transition-colors">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="font-black text-[10px] uppercase tracking-tighter bg-white text-blue-700 px-1.5 py-0.5 rounded shrink-0">Demo Mode</span>
+                    {/* Mobile: Short underline link, Desktop: Full descriptive link */}
+                    <a href="/settings" className="text-[10px] sm:text-xs font-bold text-white underline decoration-white/30 hover:decoration-white hover:text-yellow-200 transition-all">
                         <span className="sm:hidden">Settings ⚙️</span>
                         <span className="hidden sm:inline">Go to Settings to turn off</span>
                     </a>
