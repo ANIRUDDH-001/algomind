@@ -100,7 +100,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     }
 
     return (
-        <div className="min-h-screen lg:h-full flex flex-col p-4 lg:p-6 overflow-y-auto lg:overflow-hidden bg-slate-950 pt-20 lg:pt-6">
+        <div className="min-h-[100dvh] lg:h-full flex flex-col p-3 lg:p-6 overflow-y-auto lg:overflow-hidden bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
@@ -119,8 +119,8 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
             <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 min-h-0">
                 {/* Left Panel: Problem (3/12) - Collapsible on mobile */}
-                <div className="lg:col-span-3 flex flex-col gap-4 shrink-0 lg:min-h-0">
-                    <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl max-h-[30vh] lg:max-h-none lg:flex-1">
+                <div className="lg:col-span-3 flex flex-col gap-3 lg:gap-4 shrink-0 lg:min-h-0">
+                    <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl max-h-[25vh] lg:max-h-none lg:flex-1">
                         <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
                             <div className="flex items-center gap-2">
                                 <CardTitle className="text-sm font-bold text-white truncate">
@@ -136,7 +136,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-4 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-4 lg:space-y-6">
+                        <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-3 lg:space-y-6">
                             {/* Problem Description */}
                             <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
 
@@ -169,7 +169,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                         </CardContent>
                     </Card>
 
-                    <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-3 lg:p-4">
+                    <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-2.5 lg:p-4">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status</span>
@@ -200,7 +200,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                 <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
                                     <Button
                                         size="lg"
-                                        className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-16 text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
+                                        className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-12 lg:h-16 text-sm lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
                                         onClick={handleStart}
                                     >
                                         Begin Interview Experience
@@ -230,8 +230,8 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                                     disabled={isProcessing || voice.isSpeaking}
                                                     error={voice.error}
                                                     className={cn(
-                                                        "transition-all duration-500 scale-[1.1] lg:scale-[1.2] shadow-2xl",
-                                                        voice.isListening && "ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                                        "transition-all duration-500 scale-[1.0] lg:scale-[1.2] shadow-2xl",
+                                                        voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                                     )}
                                                 />
                                             </div>
