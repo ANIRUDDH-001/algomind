@@ -114,8 +114,11 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
     // --- Sub-components to avoid code duplication between Mobile/Desktop ---
 
-    const ProblemCardContent = () => (
-        <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl h-full">
+    const ProblemCardContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+        <Card className={cn(
+            "bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl",
+            !isMobile ? "h-full" : "h-auto"
+        )}>
             <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
                 <div className="flex items-center gap-2">
                     <CardTitle className="text-sm font-bold text-white truncate">
@@ -131,7 +134,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 pb-32 lg:pb-5 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+            <CardContent className={cn(
+                "p-3 lg:p-5 flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6",
+                !isMobile ? "overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent" : "overflow-visible"
+            )}>
                 <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
                 <div className="space-y-3 lg:space-y-4 pt-2">
                     {problem.examples && problem.examples.map((example, idx) => (
@@ -163,7 +169,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     );
 
     const InteractionArea = ({ isMobile = false }) => (
-        <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col h-full min-h-0 lg:min-h-[300px]">
+        <Card className={cn(
+            "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
+            !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto shrink-0"
+        )}>
             <CardContent className="p-0 flex-1 flex flex-col h-full">
                 {!hasStarted ? (
                     <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
@@ -296,15 +305,18 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         </Card>
     );
 
-    const HistoryArea = () => (
-        <div className="flex flex-col h-full">
+    const HistoryArea = ({ isMobile = false }: { isMobile?: boolean }) => (
+        <div className={cn("flex flex-col", !isMobile ? "h-full" : "h-auto")}>
             <div className="mb-2 flex justify-between items-center px-1">
                 <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
                 {messages.length > 0 && (
                     <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
                 )}
             </div>
-            <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px] pb-32 lg:pb-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+            <div className={cn(
+                "bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 shadow-2xl",
+                !isMobile ? "flex-1 overflow-hidden min-h-[200px] lg:min-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent" : "h-auto overflow-visible min-h-[200px]"
+            )}>
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
@@ -333,6 +345,21 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
+            {/* Force Mobile Scrollbars Style */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media (max-width: 1024px) {
+                    .mobile-scroll::-webkit-scrollbar {
+                        width: 6px;
+                        background: transparent;
+                    }
+                    .mobile-scroll::-webkit-scrollbar-thumb {
+                        background: rgba(71, 85, 105, 0.6);
+                        border-radius: 3px;
+                    }
+                }
+            `}} />
+
             {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface */}
             <div
                 className="lg:hidden flex-1 flex flex-col overflow-hidden"
@@ -348,41 +375,44 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     const diffX = touch.clientX - startX;
                     const diffY = touch.clientY - startY;
 
-                    // Only trigger if horizontal swipe is dominant and significant
                     if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
                         const tabs = ['problem', 'interview', 'chat'];
                         const currentIndex = tabs.indexOf(activeTab);
 
                         if (diffX > 0 && currentIndex > 0) {
-                            // Swipe Right -> Go left (e.g. Interview -> Problem)
                             setActiveTab(tabs[currentIndex - 1]);
                         } else if (diffX < 0 && currentIndex < tabs.length - 1) {
-                            // Swipe Left -> Go right (e.g. Interview -> Chat)
                             setActiveTab(tabs[currentIndex + 1]);
                         }
                     }
                 }}
             >
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full">
-                    {/* Tab Content Area - Takes available space */}
-                    <div className="flex-1 overflow-hidden relative p-3 pb-0"> {/* Removed bottom padding from container */}
-                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full bg-slate-950">
+                    {/* Tab Content: Single Scroll Container approach */}
+                    <div className="flex-1 overflow-hidden relative">
+
+                        {/* INTERVIEW TAB */}
+                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="p-3">
                                 <InteractionArea isMobile={true} />
-                            </div>
-                            <div className="shrink-0 mb-36"> {/* Increased bottom padding to clear floating bar */}
-                                <ControlsCard />
+                                <div className="mt-6 mb-4">
+                                    <ControlsCard />
+                                </div>
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
-                            {/* Problem Card handles internal scroll + padding */}
-                            <ProblemCardContent />
+                        {/* PROBLEM TAB */}
+                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-left-4 duration-300">
+                            <div className="p-3 h-full">
+                                <ProblemCardContent isMobile={true} />
+                            </div>
                         </TabsContent>
 
-                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden px-1 animate-in fade-in slide-in-from-right-4 duration-300">
-                            {/* History Area needs to handle padding */}
-                            <HistoryArea />
+                        {/* CHAT TAB */}
+                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll pb-40 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="p-1 px-2 h-full">
+                                <HistoryArea isMobile={true} />
+                            </div>
                         </TabsContent>
                     </div>
 
