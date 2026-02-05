@@ -209,11 +209,21 @@ export function useInterview() {
         }
     }, [isSpeaking, isListening, autoSubmitEnabled, isProcessing, startListening, stopListening, state]);
 
+    const resetInterview = useCallback(() => {
+        setMessages([]);
+        setState('idle');
+        stateMachine.current.reset();
+        conversationHistoryRef.current = [];
+        resetTranscript();
+        setIsProcessing(false);
+    }, [resetTranscript]);
+
     return {
         state,
         messages,
         isProcessing,
         startInterview,
+        resetInterview, // Export new reset function
         submitUserResponse,
         autoSubmitEnabled,
         setAutoSubmitEnabled,

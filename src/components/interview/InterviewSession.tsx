@@ -32,6 +32,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         messages,
         isProcessing,
         startInterview,
+        resetInterview,
         submitUserResponse,
         voice
     } = useInterview();
@@ -45,10 +46,14 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('interview');
 
-    // Debugging data glitch
+    // Debugging and Reset on Problem Change
     useEffect(() => {
         console.log('Rendering InterviewSession for problem:', problem.id, problem.title);
-    }, [problem]);
+        // Reset local and hook state when problem changes
+        setHasStarted(false);
+        setError(null);
+        resetInterview();
+    }, [problem.id, problem.title, resetInterview]);
 
     const handleStart = () => {
         setHasStarted(true);
@@ -126,7 +131,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-3 lg:space-y-6">
+            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6">
                 <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
                 <div className="space-y-3 lg:space-y-4 pt-2">
                     {problem.examples && problem.examples.map((example, idx) => (
@@ -406,7 +411,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}
-                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="flex flex-col min-w-[300px]">
+                    <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-problem">
                         <div className="flex flex-col gap-4 h-full p-2">
                             <div className="flex-1 min-h-0 overflow-hidden">
                                 <ProblemCardContent />
@@ -418,7 +423,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
 
                     {/* Center Panel: Interaction */}
-                    <ResizablePanel defaultSize={45} minSize={30} className="flex flex-col min-w-[400px]">
+                    <ResizablePanel defaultSize="50" minSize="30" id="panel-interaction">
                         <div className="h-full p-2">
                             <InteractionArea />
                         </div>
@@ -427,7 +432,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
 
                     {/* Right Panel: History */}
-                    <ResizablePanel defaultSize={30} minSize={20} maxSize={40} className="flex flex-col min-w-[300px]">
+                    <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-history">
                         <div className="h-full p-2">
                             <HistoryArea />
                         </div>
