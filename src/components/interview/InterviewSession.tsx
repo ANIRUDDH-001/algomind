@@ -239,12 +239,14 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                                         <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
                                     )}
                                 </div>
-                                <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden">
-                                    <TranscriptViewer
-                                        transcript={voice.transcript}
-                                        interimTranscript={voice.interimTranscript}
-                                        isEditable={false}
-                                    />
+                                <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden flex flex-col relative">
+                                    <div className="absolute inset-0 p-1">
+                                        <TranscriptViewer
+                                            transcript={voice.transcript}
+                                            interimTranscript={voice.interimTranscript}
+                                            isEditable={false}
+                                        />
+                                    </div>
                                 </div>
 
                                 {voice.transcript && !voice.isListening && (
@@ -399,10 +401,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Grid Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-6 overflow-hidden min-h-0">
-                <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+            <div className="hidden lg:flex flex-1 flex-col p-6 overflow-hidden h-full max-h-[calc(100vh-64px)]">
+                <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 h-full">
                     {/* Left Panel: Problem (3/12) */}
-                    <div className="col-span-3 flex flex-col gap-4">
+                    <div className="col-span-3 flex flex-col gap-4 h-full min-h-0">
                         <div className="flex-1 min-h-0 overflow-hidden">
                             <ProblemCardContent />
                         </div>
@@ -410,12 +412,12 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                     </div>
 
                     {/* Center Panel: Interaction (5/12) */}
-                    <div className="col-span-5 flex flex-col min-h-0">
+                    <div className="col-span-5 flex flex-col h-full min-h-0">
                         <InteractionArea />
                     </div>
 
                     {/* Right Panel: History (4/12) */}
-                    <div className="col-span-4 flex flex-col min-h-0">
+                    <div className="col-span-4 flex flex-col h-full min-h-0">
                         <HistoryArea />
                     </div>
                 </div>

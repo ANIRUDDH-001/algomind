@@ -176,6 +176,22 @@ export function useInterview() {
         }
     };
 
+    // Cleanup Audio on Unmount or Visibility Change
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopSpeaking();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            stopSpeaking(); // Force stop on unmount
+        };
+    }, [stopSpeaking]);
+
     return {
         state,
         messages,
