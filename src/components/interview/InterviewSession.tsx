@@ -420,7 +420,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
     // --- Main Render ---
 
     return (
-        <div className="min-h-[100dvh] lg:h-screen lg:overflow-hidden flex flex-col bg-slate-950 pt-16 lg:pt-6">
+        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
@@ -537,7 +537,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden">
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full max-h-[calc(100vh-64px)]">
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}
