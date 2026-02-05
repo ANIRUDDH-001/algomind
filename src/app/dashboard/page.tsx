@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useProgress } from '@/hooks/useProgress';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
@@ -19,11 +20,25 @@ import { Brain, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { SessionHistory } from '@/types/assessment';
 
 export default function DashboardPage() {
+    const router = useRouter();
     const { progress, isLoading, error } = useProgress();
     const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>('overview');
     const [showPrevious, setShowPrevious] = useState(false);
+
+    // Handler for clicking on a session in history or timeline
+    const handleSessionClick = (session: SessionHistory) => {
+        console.log('📖 [DASHBOARD] Opening session:', session.sessionId, session.problemId);
+
+        // Store session data and navigate to interview page with that problem
+        sessionStorage.setItem('viewSessionId', session.sessionId);
+        sessionStorage.setItem('currentProblemId', session.problemId);
+
+        // Navigate to interview page with the problem
+        router.push(`/interview?problem=${session.problemId}`);
+    };
 
     if (error) {
         return (
@@ -101,7 +116,7 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                <SessionTimeline sessions={progress?.sessions || []} />
+                                <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
                             </>
                         )}
 
@@ -126,7 +141,11 @@ export default function DashboardPage() {
                                 >
                                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
                                         {progress?.sessions.map((session) => (
-                                            <div key={session.sessionId} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors">
+                                            <div
+                                                key={session.sessionId}
+                                                onClick={() => handleSessionClick(session)}
+                                                className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors cursor-pointer"
+                                            >
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn(
                                                         "w-12 h-12 rounded-xl flex items-center justify-center font-black text-white",
@@ -145,13 +164,18 @@ export default function DashboardPage() {
                                                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Duration</p>
                                                         <p className="text-sm font-bold text-slate-300">{Math.floor((session.duration || 0) / 60)}m {Math.floor((session.duration || 0) % 60)}s</p>
                                                     </div>
-                                                    <ExportReportButton progress={{
-                                                        ...progress!,
-                                                        sessions: [session],
-                                                        totalSessions: 1,
-                                                        averageScore: session.overallScore
-                                                    }} />
-                                                    <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-blue-400">
+                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                        <ExportReportButton progress={{
+                                                            ...progress!,
+                                                            sessions: [session],
+                                                            totalSessions: 1,
+                                                            averageScore: session.overallScore
+                                                        }} />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleSessionClick(session)}
+                                                        className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-blue-400"
+                                                    >
                                                         <ChevronRight className="w-5 h-5" />
                                                     </button>
                                                 </div>
