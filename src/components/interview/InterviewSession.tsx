@@ -10,7 +10,8 @@ import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
@@ -41,6 +42,11 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     const [showBadge, setShowBadge] = useState(false);
     const [lastBadgeSkill, setLastBadgeSkill] = useState<any>('pattern-recognition');
     const [error, setError] = useState<string | null>(null);
+
+    // Debugging data glitch
+    useEffect(() => {
+        console.log('Rendering InterviewSession for problem:', problem.id, problem.title);
+    }, [problem]);
 
     const handleStart = () => {
         setHasStarted(true);
@@ -99,15 +105,216 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
         return <ReportCard assessment={result} onClose={resetAssessment} />;
     }
 
+    // --- Sub-components to avoid code duplication between Mobile/Desktop ---
+
+    const ProblemCardContent = () => (
+        <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl h-full">
+            <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
+                <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-bold text-white truncate">
+                        {problem.title}
+                    </CardTitle>
+                    <Badge className={cn(
+                        "text-[10px] px-2 py-0 h-5 shrink-0",
+                        problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
+                        problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                        problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
+                    )}>
+                        {problem.difficulty}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-3 lg:space-y-6">
+                <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
+                <div className="space-y-3 lg:space-y-4 pt-2">
+                    {problem.examples && problem.examples.map((example, idx) => (
+                        <div key={idx} className="bg-slate-800/40 rounded-xl p-3 lg:p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
+                            <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-slate-500 mb-2 lg:mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
+                            <div className="space-y-2 font-mono text-xs lg:text-sm">
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                    <span className="text-slate-500 shrink-0 select-none">Input:</span>
+                                    <span className="text-blue-300 break-all">{example.input}</span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:gap-2">
+                                    <span className="text-slate-500 shrink-0 select-none">Output:</span>
+                                    <span className="text-emerald-400 break-all">{example.output}</span>
+                                </div>
+                                {example.explanation && (
+                                    <div className="pt-2 mt-2 border-t border-slate-700/30">
+                                        <p className="text-slate-400 font-sans text-[12px] lg:text-[13px] leading-normal">
+                                            <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
+                                            {example.explanation}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
+    const InteractionArea = ({ isMobile = false }) => (
+        <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col h-full min-h-[300px]">
+            <CardContent className="p-0 flex-1 flex flex-col h-full">
+                {!hasStarted ? (
+                    <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
+                        <Button
+                            size="lg"
+                            className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
+                            onClick={handleStart}
+                        >
+                            Begin Interview Experience
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex-1 relative flex flex-col items-center justify-center p-4 lg:p-10 h-full">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                            <MicPulse
+                                state={
+                                    voice.isListening ? 'listening' :
+                                        isProcessing ? 'processing' :
+                                            voice.isSpeaking ? 'speaking' :
+                                                'idle'
+                                }
+                            />
+                        </div>
+
+                        <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
+                            {/* Status Indicator */}
+                            <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
+                                <p className="text-xs font-bold text-white tracking-wide">
+                                    {voice.isListening ? "I'M LISTENING..." :
+                                        isProcessing ? "THINKING..." :
+                                            voice.isSpeaking ? "AI IS SPEAKING..." :
+                                                "READY FOR YOU"}
+                                </p>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className={cn(
+                                        "w-1 h-1 rounded-full animate-pulse",
+                                        voice.isListening ? "bg-blue-500" : "bg-slate-600"
+                                    )} />
+                                    <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
+                                        {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Main Mic Button */}
+                            <div className="relative group my-2">
+                                <MicrophoneButton
+                                    isListening={voice.isListening}
+                                    onClick={voice.isListening ? () => {
+                                        voice.stopListening();
+                                    } : voice.startListening}
+                                    disabled={isProcessing || voice.isSpeaking}
+                                    error={voice.error}
+                                    className={cn(
+                                        "transition-all duration-500 scale-[1.2] lg:scale-[1.4] shadow-2xl",
+                                        voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                    )}
+                                />
+                            </div>
+
+                            {/* Stop AI Speaking Button - High Visibility */}
+                            {voice.isSpeaking && (
+                                <div className="z-50 w-full flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                    <Button
+                                        size="lg"
+                                        onClick={voice.stopSpeaking}
+                                        className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-xl shadow-red-900/40 transition-all px-8 rounded-full"
+                                    >
+                                        <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Transcript Area */}
+                            <div className="w-full space-y-3 px-1 lg:px-4 flex-1 min-h-0 flex flex-col">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
+                                    {(voice.transcript || voice.interimTranscript) && (
+                                        <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden">
+                                    <TranscriptViewer
+                                        transcript={voice.transcript}
+                                        interimTranscript={voice.interimTranscript}
+                                        isEditable={false}
+                                    />
+                                </div>
+
+                                {voice.transcript && !voice.isListening && (
+                                    <Button
+                                        className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 lg:h-10 text-xs shadow-lg shadow-blue-900/20"
+                                        onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
+                                        disabled={isProcessing}
+                                    >
+                                        <Send className="w-3 h-3 mr-2" /> Send Message
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const ControlsCard = () => (
+        <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-2.5 lg:p-4">
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status</span>
+                    <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 capitalize text-[10px] px-2 py-0 h-5">
+                        {state.replace('-', ' ')}
+                    </Badge>
+                </div>
+                {hasStarted && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleFinish}
+                        disabled={isAnalyzing}
+                        className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
+                    >
+                        <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
+                    </Button>
+                )}
+            </div>
+        </Card>
+    );
+
+    const HistoryArea = () => (
+        <div className="flex flex-col h-full">
+            <div className="mb-2 flex justify-between items-center px-1">
+                <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
+                {messages.length > 0 && (
+                    <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
+                )}
+            </div>
+            <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px]">
+                <ConversationView
+                    messages={messages}
+                    isAISpeaking={voice.isSpeaking}
+                />
+            </div>
+        </div>
+    );
+
+    // --- Main Render ---
+
     return (
-        <div className="min-h-[100dvh] lg:h-full flex flex-col p-3 lg:p-6 overflow-y-auto lg:overflow-hidden bg-slate-950 pt-16 lg:pt-6">
+        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
                     <ErrorBanner
                         message={`Mic Problem: ${voice.error}. Try clicking the mic button to restart.`}
-                        onClose={() => { }} // Hook handles clearing state usually
+                        onClose={() => { }}
                     />
                 </div>
             )}
@@ -117,209 +324,68 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
-            <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 min-h-0">
-                {/* Left Panel: Problem (3/12) - Collapsible on mobile */}
-                <div className="lg:col-span-3 flex flex-col gap-3 lg:gap-4 shrink-0 lg:min-h-0">
-                    <Card className="bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl max-h-[25vh] lg:max-h-none lg:flex-1">
-                        <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
-                            <div className="flex items-center gap-2">
-                                <CardTitle className="text-sm font-bold text-white truncate">
-                                    {problem.title}
-                                </CardTitle>
-                                <Badge className={cn(
-                                    "text-[10px] px-2 py-0 h-5 shrink-0",
-                                    problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
-                                    problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                                    problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
-                                )}>
-                                    {problem.difficulty}
-                                </Badge>
+            {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface */}
+            <div className="lg:hidden flex-1 flex flex-col overflow-hidden">
+                <Tabs defaultValue="interview" className="flex-1 flex flex-col h-full">
+                    {/* Tab Content Area - Takes available space */}
+                    <div className="flex-1 overflow-hidden relative p-3">
+                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3">
+                            <div className="flex-1 min-h-0">
+                                <InteractionArea isMobile={true} />
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-3 lg:p-5 overflow-y-auto flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 space-y-3 lg:space-y-6">
-                            {/* Problem Description */}
-                            <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
-
-                            {/* Examples - LeetCode Style */}
-                            <div className="space-y-3 lg:space-y-4 pt-2">
-                                {problem.examples && problem.examples.map((example, idx) => (
-                                    <div key={idx} className="bg-slate-800/40 rounded-xl p-3 lg:p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
-                                        <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-slate-500 mb-2 lg:mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
-                                        <div className="space-y-2 font-mono text-xs lg:text-sm">
-                                            <div className="flex flex-col sm:flex-row sm:gap-2">
-                                                <span className="text-slate-500 shrink-0 select-none">Input:</span>
-                                                <span className="text-blue-300 break-all">{example.input}</span>
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row sm:gap-2">
-                                                <span className="text-slate-500 shrink-0 select-none">Output:</span>
-                                                <span className="text-emerald-400 break-all">{example.output}</span>
-                                            </div>
-                                            {example.explanation && (
-                                                <div className="pt-2 mt-2 border-t border-slate-700/30">
-                                                    <p className="text-slate-400 font-sans text-[12px] lg:text-[13px] leading-normal">
-                                                        <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
-                                                        {example.explanation}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                            <div className="shrink-0 mb-14"> {/* Bottom padding for tab bar */}
+                                <ControlsCard />
                             </div>
-                        </CardContent>
-                    </Card>
+                        </TabsContent>
 
-                    <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-2.5 lg:p-4">
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Status</span>
-                                <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-400 capitalize text-[10px] px-2 py-0 h-5">
-                                    {state.replace('-', ' ')}
-                                </Badge>
-                            </div>
-                            {hasStarted && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleFinish}
-                                    disabled={isAnalyzing}
-                                    className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10"
-                                >
-                                    <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
-                                </Button>
-                            )}
-                        </div>
-                    </Card>
-                </div>
+                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-14">
+                            <ProblemCardContent />
+                        </TabsContent>
 
-                {/* Center Panel: Interaction (5/12) - Main focus on mobile */}
-                <div className="lg:col-span-5 flex flex-col gap-4 flex-1 lg:min-h-0">
-                    <Card className="flex-1 bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col min-h-[280px] lg:min-h-[400px]">
-                        <CardContent className="p-0 flex-1 flex flex-col">
-                            {!hasStarted ? (
-                                <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
-                                    <Button
-                                        size="lg"
-                                        className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-12 lg:h-16 text-sm lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
-                                        onClick={handleStart}
-                                    >
-                                        Begin Interview Experience
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="flex-1 relative flex flex-col items-center justify-center p-6 lg:p-10">
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-                                        <MicPulse
-                                            state={
-                                                voice.isListening ? 'listening' :
-                                                    isProcessing ? 'processing' :
-                                                        voice.isSpeaking ? 'speaking' :
-                                                            'idle'
-                                            }
-                                        />
-                                    </div>
-
-                                    <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full">
-                                        <div className="flex flex-col items-center gap-6">
-                                            <div className="relative group">
-                                                <MicrophoneButton
-                                                    isListening={voice.isListening}
-                                                    onClick={voice.isListening ? () => {
-                                                        voice.stopListening();
-                                                    } : voice.startListening}
-                                                    disabled={isProcessing || voice.isSpeaking}
-                                                    error={voice.error}
-                                                    className={cn(
-                                                        "transition-all duration-500 scale-[1.0] lg:scale-[1.2] shadow-2xl",
-                                                        voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
-                                                    )}
-                                                />
-                                            </div>
-
-                                            <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
-                                                <p className="text-xs font-bold text-white tracking-wide">
-                                                    {voice.isListening ? "I'M LISTENING..." :
-                                                        isProcessing ? "THINKING..." :
-                                                            voice.isSpeaking ? "AI IS SPEAKING..." :
-                                                                "READY FOR YOU"}
-                                                </p>
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <div className={cn(
-                                                        "w-1 h-1 rounded-full animate-pulse",
-                                                        voice.isListening ? "bg-blue-500" : "bg-slate-600"
-                                                    )} />
-                                                    <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
-                                                        {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* AI Speaking - Prominent Stop Section */}
-                                        {voice.isSpeaking && (
-                                            <div className="flex flex-col items-center gap-4 p-4 bg-purple-950/30 border border-purple-500/30 rounded-2xl animate-pulse w-full max-w-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        <div className="absolute inset-0 bg-purple-600 rounded-full animate-ping opacity-50" />
-                                                        <div className="relative w-4 h-4 bg-purple-500 rounded-full" />
-                                                    </div>
-                                                    <span className="text-sm font-bold text-purple-300">AI is speaking...</span>
-                                                </div>
-                                                <Button
-                                                    size="lg"
-                                                    onClick={voice.stopSpeaking}
-                                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-lg shadow-red-900/30 transition-all"
-                                                >
-                                                    <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
-                                                </Button>
-                                            </div>
-                                        )}
-
-                                        <div className="w-full space-y-3 px-0 lg:px-4">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
-                                                {(voice.transcript || voice.interimTranscript) && (
-                                                    <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
-                                                )}
-                                            </div>
-                                            <div className="h-24 lg:h-32 bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden">
-                                                <TranscriptViewer
-                                                    transcript={voice.transcript}
-                                                    interimTranscript={voice.interimTranscript}
-                                                    isEditable={false}
-                                                />
-                                            </div>
-
-                                            {voice.transcript && !voice.isListening && (
-                                                <Button
-                                                    className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 lg:h-10 text-xs shadow-lg shadow-blue-900/20"
-                                                    onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
-                                                    disabled={isProcessing}
-                                                >
-                                                    <Send className="w-3 h-3 mr-2" /> Send Message
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Right Panel: History (4/12) */}
-                <div className="lg:col-span-4 flex flex-col shrink-0 lg:shrink lg:h-full lg:min-h-0">
-                    <div className="mb-2 flex justify-between items-center px-1">
-                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
-                        {messages.length > 0 && (
-                            <Badge variant="secondary" className="bg-slate-800/50 text-slate-400 text-[9px]">{messages.length} turns</Badge>
-                        )}
+                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden mb-14 px-1">
+                            <HistoryArea />
+                        </TabsContent>
                     </div>
-                    <div className="flex-1 bg-slate-900/20 backdrop-blur-sm rounded-2xl border border-slate-800/50 overflow-hidden shadow-2xl min-h-[200px] lg:min-h-[300px]">
-                        <ConversationView
-                            messages={messages}
-                            isAISpeaking={voice.isSpeaking}
-                        />
+
+                    {/* Bottom Tab Bar */}
+                    <div className="flex-shrink-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800/50 pb-safe fixed bottom-0 left-0 right-0 z-50">
+                        <TabsList className="w-full h-14 bg-transparent grid grid-cols-3 gap-1 p-2">
+                            <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
+                                <BookOpen className="w-4 h-4" />
+                                <span className="text-[10px]">Problem</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
+                                <Mic className="w-4 h-4" />
+                                <span className="text-[10px]">Interview</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="text-[10px]">Chat</span>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+                </Tabs>
+            </div>
+
+            {/* DESKTOP LAYOUT (>= 1024px) - Grid Interface */}
+            <div className="hidden lg:flex flex-1 flex-col p-6 overflow-hidden min-h-0">
+                <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+                    {/* Left Panel: Problem (3/12) */}
+                    <div className="col-span-3 flex flex-col gap-4">
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <ProblemCardContent />
+                        </div>
+                        <ControlsCard />
+                    </div>
+
+                    {/* Center Panel: Interaction (5/12) */}
+                    <div className="col-span-5 flex flex-col min-h-0">
+                        <InteractionArea />
+                    </div>
+
+                    {/* Right Panel: History (4/12) */}
+                    <div className="col-span-4 flex flex-col min-h-0">
+                        <HistoryArea />
                     </div>
                 </div>
             </div>
