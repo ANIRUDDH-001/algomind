@@ -10,7 +10,7 @@ export interface Message {
     timestamp: Date;
 }
 
-const AUTO_SUBMIT_DELAY = 3500; // 3.5 seconds of silence
+const AUTO_SUBMIT_DELAY = 2500; // 2.5 seconds of silence = done speaking
 
 export function useInterview() {
     // State
@@ -245,7 +245,10 @@ export function useInterview() {
             const timer = setTimeout(() => {
                 // Double-check conditions haven't changed during timeout
                 if (isMicEnabled && !isSpeaking && !isProcessing) {
-                    console.log('🎤 [MIC] Resuming after AI finished');
+                    // CRITICAL: Reset transcript before resuming to prevent carryover
+                    // from speech captured during AI processing phase
+                    resetTranscript();
+                    console.log('🎤 [MIC] Resuming after AI finished (transcript cleared)');
                     startListening();
                 }
             }, 1500);

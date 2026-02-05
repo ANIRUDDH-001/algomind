@@ -65,8 +65,8 @@ export function RadarChart({
                         <Radar
                             name="Previous Session"
                             dataKey="previous"
-                            stroke="#64748b"
-                            fill="#64748b"
+                            stroke="#a855f7"
+                            fill="#a855f7"
                             fillOpacity={0.1}
                             strokeDasharray="4 4"
                             isAnimationActive={animated}

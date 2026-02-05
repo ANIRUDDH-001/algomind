@@ -50,7 +50,7 @@ export function RecommendationsPanel({ recommendations }: RecommendationsPanelPr
                         {rec.suggestedProblems.slice(0, 3).map(problem => (
                             <Link
                                 key={problem.id}
-                                href={`/interview?problem=${problem.id}`}
+                                href={`/interview?problemId=${problem.id}`}
                                 className="flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800/80 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all group/item"
                             >
                                 <div className="flex items-center gap-3">

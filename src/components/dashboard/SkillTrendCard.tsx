@@ -24,7 +24,7 @@ interface SkillTrendCardProps {
     className?: string;
 }
 
-export function SkillTrendCard({ skill, sessions, className }: SkillTrendCardProps) {
+function SkillTrendCardBase({ skill, sessions, className }: SkillTrendCardProps) {
     const definition = SKILL_DEFINITIONS[skill];
 
     // Prep data - most recent last
@@ -118,3 +118,5 @@ export function SkillTrendCard({ skill, sessions, className }: SkillTrendCardPro
         </div>
     );
 }
+
+export const SkillTrendCard = React.memo(SkillTrendCardBase);

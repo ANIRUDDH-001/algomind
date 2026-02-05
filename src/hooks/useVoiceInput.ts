@@ -84,12 +84,12 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 setError(null);
                 setLastResultTime(Date.now());
 
-                // MAX LIMIT: 30 Seconds
+                // MAX LIMIT: 60 Seconds (increased for longer explanations)
                 if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
                 maxTimeoutRef.current = setTimeout(() => {
-                    console.log("Mic timeout reached (30s). Restarting...");
+                    console.log("Mic timeout reached (60s). Stopping...");
                     stopListening();
-                }, 30000);
+                }, 60000);
             };
 
             recognition.onresult = (event: any) => {

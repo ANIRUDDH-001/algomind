@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useProgress } from '@/hooks/useProgress';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -33,11 +33,11 @@ function DashboardContent() {
     const [showPrevious, setShowPrevious] = useState(false);
 
     // Handler for clicking on a session in history or timeline
-    const handleSessionClick = (session: SessionHistory) => {
+    const handleSessionClick = useCallback((session: SessionHistory) => {
         console.log('📖 [DASHBOARD] Opening session:', session.sessionId, session.problemId);
         // Navigate to interview page with the problem and session ID for read-only view
         router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}`);
-    };
+    }, [router]);
 
     if (error) {
         return (
@@ -194,7 +194,7 @@ function DashboardContent() {
 
                                 {progress && (
                                     <RecommendationsPanel
-                                        recommendations={new RecommendationEngine().analyze(progress)}
+                                        recommendations={useMemo(() => new RecommendationEngine().analyze(progress), [progress])}
                                     />
                                 )}
 
@@ -208,9 +208,6 @@ function DashboardContent() {
                                             Complete 3 more sessions focused on **Complexity Analysis** to reach your next skill milestone and unlock detailed performance benchmarks.
                                         </p>
                                     </div>
-                                    <Button className="md:ml-auto bg-white text-slate-950 hover:bg-slate-200 font-bold px-8 rounded-xl h-12">
-                                        View Roadmap
-                                    </Button>
                                 </div>
                             </div>
                         )}
