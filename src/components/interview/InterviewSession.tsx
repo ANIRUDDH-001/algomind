@@ -46,6 +46,9 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('interview');
 
+    // Track session start time for duration calculation
+    const startTimeRef = React.useRef<number>(0);
+
     // Debugging and Reset on Problem Change
     useEffect(() => {
         console.log('Rendering InterviewSession for problem:', problem.id, problem.title);
@@ -57,6 +60,8 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
 
     const handleStart = () => {
         setHasStarted(true);
+        startTimeRef.current = Date.now(); // Record start time
+        console.log('⏱️ [SESSION] Started at:', new Date().toISOString());
         startInterview(problem.title, problem.description);
     };
 
@@ -80,6 +85,11 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
             });
 
             const userId = user?.id || 'guest-user';
+
+            // Calculate actual session duration
+            const actualDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            console.log('⏱️ [SESSION] Duration:', actualDuration, 'seconds');
+            console.log('📝 [SESSION] Transcript entries:', transcript.length);
             console.log("💾 Saving session for user:", userId);
 
             await addSession({
@@ -88,9 +98,10 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
                 problemId: problem.id,
                 problemDifficulty: problem.difficulty,
                 timestamp: new Date(),
-                duration: 600, // mock
+                duration: actualDuration,
                 skills: skillScores,
-                overallScore: store.calculateWeightedScore(skillScores)
+                overallScore: store.calculateWeightedScore(skillScores),
+                transcript: transcript
             });
 
             console.log("🎉 Session saved successfully!");

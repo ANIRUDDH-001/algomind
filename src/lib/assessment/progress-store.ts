@@ -10,6 +10,7 @@ export interface SessionHistory {
     duration: number; // seconds
     skills: Record<CognitiveSkill, number>;
     overallScore: number; // weighted average
+    transcript?: { role: string; content: string }[]; // conversation history
 }
 
 export interface SkillTrend {
