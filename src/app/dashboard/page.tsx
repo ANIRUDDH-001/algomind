@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useProgress } from '@/hooks/useProgress';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
@@ -22,10 +22,14 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
 
-export default function DashboardPage() {
+function DashboardContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { progress, isLoading, error } = useProgress();
-    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>('overview');
+
+    // Initialize tab from URL or default to overview
+    const initialTab = (searchParams.get('tab') as any) || 'overview';
+    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>(initialTab);
     const [showPrevious, setShowPrevious] = useState(false);
 
     // Handler for clicking on a session in history or timeline
@@ -214,5 +218,17 @@ export default function DashboardPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <React.Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue-500 rounded-full animate-spin border-t-transparent shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+            </div>
+        }>
+            <DashboardContent />
+        </React.Suspense>
     );
 }

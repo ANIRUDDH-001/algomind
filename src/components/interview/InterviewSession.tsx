@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useInterview } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { useProgress } from '@/hooks/useProgress';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ConversationView } from './ConversationView';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
@@ -28,6 +29,7 @@ interface InterviewSessionProps {
 }
 
 export function InterviewSession({ problem, initialTranscript, readOnly = false }: InterviewSessionProps) {
+    const router = useRouter();
     const { user } = useAuth();
     const {
         state,
@@ -380,7 +382,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.history.back()}
+                            onClick={() => router.push('/dashboard?tab=history')}
                             className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-800 border-slate-700 transition-all duration-300"
                         >
                             <ArrowLeft className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> Back
