@@ -42,6 +42,7 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
     const [showBadge, setShowBadge] = useState(false);
     const [lastBadgeSkill, setLastBadgeSkill] = useState<any>('pattern-recognition');
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState('interview');
 
     // Debugging data glitch
     useEffect(() => {
@@ -325,44 +326,74 @@ export function InterviewSession({ problem }: InterviewSessionProps) {
             </div>
 
             {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface */}
-            <div className="lg:hidden flex-1 flex flex-col overflow-hidden">
-                <Tabs defaultValue="interview" className="flex-1 flex flex-col h-full">
+            <div
+                className="lg:hidden flex-1 flex flex-col overflow-hidden"
+                onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    e.currentTarget.dataset.touchStartX = touch.clientX.toString();
+                    e.currentTarget.dataset.touchStartY = touch.clientY.toString();
+                }}
+                onTouchEnd={(e) => {
+                    const touch = e.changedTouches[0];
+                    const startX = parseFloat(e.currentTarget.dataset.touchStartX || '0');
+                    const startY = parseFloat(e.currentTarget.dataset.touchStartY || '0');
+                    const diffX = touch.clientX - startX;
+                    const diffY = touch.clientY - startY;
+
+                    // Only trigger if horizontal swipe is dominant and significant
+                    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+                        const tabs = ['problem', 'interview', 'chat'];
+                        const currentIndex = tabs.indexOf(activeTab);
+
+                        if (diffX > 0 && currentIndex > 0) {
+                            // Swipe Right -> Go left (e.g. Interview -> Problem)
+                            setActiveTab(tabs[currentIndex - 1]);
+                        } else if (diffX < 0 && currentIndex < tabs.length - 1) {
+                            // Swipe Left -> Go right (e.g. Interview -> Chat)
+                            setActiveTab(tabs[currentIndex + 1]);
+                        }
+                    }
+                }}
+            >
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full">
                     {/* Tab Content Area - Takes available space */}
                     <div className="flex-1 overflow-hidden relative p-3">
-                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3">
+                        <TabsContent value="interview" className="h-full m-0 data-[state=inactive]:hidden flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <div className="flex-1 min-h-0">
                                 <InteractionArea isMobile={true} />
                             </div>
-                            <div className="shrink-0 mb-14"> {/* Bottom padding for tab bar */}
+                            <div className="shrink-0 mb-20"> {/* Increased bottom padding for floating bar */}
                                 <ControlsCard />
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-14">
+                        <TabsContent value="problem" className="h-full m-0 data-[state=inactive]:hidden overflow-y-auto mb-20 animate-in fade-in slide-in-from-left-4 duration-300">
                             <ProblemCardContent />
                         </TabsContent>
 
-                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden mb-14 px-1">
+                        <TabsContent value="chat" className="h-full m-0 data-[state=inactive]:hidden mb-20 px-1 animate-in fade-in slide-in-from-right-4 duration-300">
                             <HistoryArea />
                         </TabsContent>
                     </div>
 
-                    {/* Bottom Tab Bar */}
-                    <div className="flex-shrink-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800/50 pb-safe fixed bottom-0 left-0 right-0 z-50">
-                        <TabsList className="w-full h-14 bg-transparent grid grid-cols-3 gap-1 p-2">
-                            <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
-                                <BookOpen className="w-4 h-4" />
-                                <span className="text-[10px]">Problem</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
-                                <Mic className="w-4 h-4" />
-                                <span className="text-[10px]">Interview</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-lg">
-                                <MessageSquare className="w-4 h-4" />
-                                <span className="text-[10px]">Chat</span>
-                            </TabsTrigger>
-                        </TabsList>
+                    {/* Bottom Floating Tab Bar */}
+                    <div className="fixed bottom-6 left-4 right-4 z-50">
+                        <div className="bg-slate-950/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-1.5 ring-1 ring-white/10">
+                            <TabsList className="w-full h-12 bg-transparent grid grid-cols-3 gap-1">
+                                <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                    <BookOpen className="w-4 h-4" />
+                                    <span className="text-[10px] font-medium">Problem</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                    <Mic className="w-4 h-4" />
+                                    <span className="text-[10px] font-medium">Interview</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-800 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg">
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span className="text-[10px] font-medium">Chat</span>
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
                     </div>
                 </Tabs>
             </div>
