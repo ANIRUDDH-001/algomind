@@ -444,7 +444,7 @@ export function InterviewSession({
                                         {/* Remaining Questions (authenticated users) */}
                                         {!isGuest && remainingQuestions !== undefined && (
                                             <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
-                                                {remainingQuestions}/5 questions today
+                                                {remainingQuestions}/5 questions remaining today
                                             </div>
                                         )}
                                     </div>
