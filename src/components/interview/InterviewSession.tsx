@@ -589,7 +589,7 @@ export function InterviewSession({
                                 />
                                 <Button
                                     onClick={() => shareCodeWithAI(userCode)}
-                                    disabled={!userCode.trim() || isProcessing}
+                                    disabled={!userCode.trim() || isProcessing || voice.isSpeaking}
                                     className="bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-900/20"
                                 >
                                     <Send className="w-4 h-4 mr-2" />
@@ -834,7 +834,7 @@ export function InterviewSession({
                                         />
                                         <Button
                                             onClick={() => shareCodeWithAI(userCode)}
-                                            disabled={!userCode.trim() || isProcessing}
+                                            disabled={!userCode.trim() || isProcessing || voice.isSpeaking}
                                             className="bg-green-600 hover:bg-green-500 text-white font-bold"
                                         >
                                             <Send className="w-4 h-4 mr-2" />
