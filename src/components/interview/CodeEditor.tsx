@@ -77,9 +77,10 @@ interface CodeEditorProps {
     onCodeChange: (code: string) => void;
     defaultLanguage?: string;
     initialCode?: string;
+    onLanguageChange?: (lang: string) => void;
 }
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '' }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
 
@@ -97,7 +98,11 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     <span className="text-sm text-slate-400">Language:</span>
                     <select
                         value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
+                        onChange={(e) => {
+                            const newLang = e.target.value;
+                            setLanguage(newLang);
+                            onLanguageChange?.(newLang);
+                        }}
                         className="px-3 py-1.5 bg-slate-900 text-white rounded border border-slate-700 text-sm focus:outline-none focus:border-blue-500"
                     >
                         <option value="python">Python</option>

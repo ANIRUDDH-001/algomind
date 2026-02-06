@@ -77,6 +77,7 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [showMobileWarning, setShowMobileWarning] = useState(false);
+    const [optimisticListening, setOptimisticListening] = useState<boolean | null>(null);
 
     // Track session start time for duration calculation
     const startTimeRef = React.useRef<number>(0);
@@ -88,6 +89,13 @@ export function InterviewSession({
     // Debugging and Reset on Problem Change
     // Logs removed for production cleanliness
 
+    // Sync optimistic state with real state
+    useEffect(() => {
+        if (optimisticListening === voice.isListening) {
+            setOptimisticListening(null);
+        }
+    }, [voice.isListening, optimisticListening]);
+
     useEffect(() => {
         // Reset local and hook state when problem changes
         setHasStarted(false);
@@ -95,6 +103,14 @@ export function InterviewSession({
         resetInterview();
         transcriptLoadedRef.current = false; // Reset loaded state
     }, [problem.id, problem.title, resetInterview]);
+
+    // Stop listening when AI speaks (prevent echo)
+    useEffect(() => {
+        if (voice.isSpeaking && voice.isListening) {
+            voice.stopListening();
+            setOptimisticListening(false);
+        }
+    }, [voice.isSpeaking, voice.isListening]);
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
@@ -461,7 +477,7 @@ export function InterviewSession({
                                     {/* Status Indicator */}
                                     <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
                                         <p className="text-xs font-bold text-white tracking-wide">
-                                            {voice.isListening ? "I'M LISTENING..." :
+                                            {(optimisticListening ?? voice.isListening) ? "I'M LISTENING..." :
                                                 isProcessing ? "THINKING..." :
                                                     voice.isSpeaking ? "AI IS SPEAKING..." :
                                                         "READY FOR YOU"}
@@ -469,10 +485,10 @@ export function InterviewSession({
                                         <div className="flex items-center justify-center gap-2">
                                             <div className={cn(
                                                 "w-1 h-1 rounded-full animate-pulse",
-                                                voice.isListening ? "bg-blue-500" : "bg-slate-600"
+                                                (optimisticListening ?? voice.isListening) ? "bg-blue-500" : "bg-slate-600"
                                             )} />
                                             <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
-                                                {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
+                                                {(optimisticListening ?? voice.isListening) ? "Auto-Submit Active" : "Waiting for mic"}
                                             </p>
                                         </div>
                                     </div>
@@ -481,18 +497,21 @@ export function InterviewSession({
                                     {!readOnly && (
                                         <div className="flex justify-center pb-6">
                                             <MicrophoneButton
-                                                isListening={voice.isListening}
+                                                isListening={optimisticListening ?? voice.isListening}
                                                 onClick={() => {
-                                                    if (voice.isListening) {
+                                                    const current = optimisticListening ?? voice.isListening;
+                                                    if (current) {
+                                                        setOptimisticListening(false);
                                                         voice.stopListening();
                                                     } else if (!isProcessing && !voice.isSpeaking) {
+                                                        setOptimisticListening(true);
                                                         voice.startListening();
                                                     }
                                                 }}
                                                 disabled={isProcessing || voice.isSpeaking}
                                                 className={cn(
                                                     "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
-                                                    voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                                    (optimisticListening ?? voice.isListening) && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                                 )}
                                             />
                                         </div>
@@ -560,6 +579,7 @@ export function InterviewSession({
                                     onCodeChange={setUserCode}
                                     defaultLanguage={codeLanguage}
                                     initialCode={userCode}
+                                    onLanguageChange={setCodeLanguage}
                                 />
                                 <Button
                                     onClick={() => shareCodeWithAI(userCode)}
@@ -804,6 +824,7 @@ export function InterviewSession({
                                             onCodeChange={setUserCode}
                                             defaultLanguage={codeLanguage}
                                             initialCode={userCode}
+                                            onLanguageChange={setCodeLanguage}
                                         />
                                         <Button
                                             onClick={() => shareCodeWithAI(userCode)}

@@ -32,8 +32,10 @@ export function MicrophoneButton({
                             variant={isListening ? "default" : "outline"}
                             size="icon"
                             className={cn(
-                                "h-16 w-16 rounded-full transition-all duration-300 shadow-lg relative",
-                                isListening ? "bg-blue-600 hover:bg-blue-700 border-blue-500" : "hover:bg-gray-100 dark:hover:bg-gray-800",
+                                "h-16 w-16 rounded-full transition-all duration-200 shadow-lg relative",
+                                isListening
+                                    ? "bg-blue-600 hover:bg-blue-700 border-blue-500 ring-2 ring-blue-500/20"
+                                    : "bg-white hover:bg-slate-200 text-slate-900 border-white ring-2 ring-white/20",
                                 error ? "border-red-500 text-red-500" : "",
                                 className
                             )}
@@ -43,7 +45,7 @@ export function MicrophoneButton({
                             {isListening ? (
                                 <Mic className="h-8 w-8 text-white" />
                             ) : (
-                                <MicOff className={cn("h-8 w-8", error ? "text-red-500" : "text-gray-500")} />
+                                <MicOff className={cn("h-8 w-8", error ? "text-red-500" : "text-slate-900")} />
                             )}
                         </Button>
                     </TooltipTrigger>
