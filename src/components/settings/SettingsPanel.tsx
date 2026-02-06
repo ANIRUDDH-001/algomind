@@ -12,6 +12,8 @@ import { FlaskConical, RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shi
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+import { VoiceSettings } from './VoiceSettings';
+
 export function SettingsPanel() {
     const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -150,6 +152,9 @@ export function SettingsPanel() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Voice Settings */}
+            <VoiceSettings />
 
             {/* Storage Info */}
             <Card className="bg-slate-900/50 border-slate-800">

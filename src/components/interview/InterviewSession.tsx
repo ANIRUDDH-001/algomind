@@ -183,18 +183,14 @@ export function InterviewSession({
     };
 
     // Guest trial turn tracking
+    const prevMessagesLengthRef = React.useRef(0);
     useEffect(() => {
         if (isGuest && hasStarted) {
-            // Count user messages as turns
-            const userTurns = messages.filter(m => m.role === 'user').length +
-                messages.filter(m => m.role === 'assistant').length;
-
-            // Record each new turn
-            const prevTurns = guestTrial.turnsUsed;
-            if (userTurns > prevTurns) {
-                for (let i = prevTurns; i < userTurns; i++) {
-                    guestTrial.recordTurn();
-                }
+            // Only process new messages
+            const currentLen = messages.length;
+            if (currentLen > prevMessagesLengthRef.current) {
+                prevMessagesLengthRef.current = currentLen;
+                guestTrial.recordTurn();
             }
 
             // Show login modal when trial is complete
@@ -202,7 +198,7 @@ export function InterviewSession({
                 setShowLoginModal(true);
             }
         }
-    }, [messages, isGuest, hasStarted, guestTrial, showLoginModal]);
+    }, [messages.length, isGuest, hasStarted, guestTrial.isTrialComplete, guestTrial.recordTurn, showLoginModal]);
 
     // Auto-end on limits (time or turns)
     useEffect(() => {
@@ -211,13 +207,15 @@ export function InterviewSession({
         }
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
 
-    // Increment turn counter when user speaks
+    // Increment turn counter when user speaks (use ref to track)
+    const prevUserMsgCountRef = React.useRef(0);
     useEffect(() => {
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg && lastMsg.role === 'user' && hasStarted) {
+        const userMsgs = messages.filter(m => m.role === 'user').length;
+        if (userMsgs > prevUserMsgCountRef.current && hasStarted) {
+            prevUserMsgCountRef.current = userMsgs;
             limits.incrementTurn();
         }
-    }, [messages, hasStarted]);
+    }, [messages, hasStarted, limits.incrementTurn]);
 
     // Demo Skill Badge logic: Trigger a badge on first user message as a "wow" factor
     useEffect(() => {

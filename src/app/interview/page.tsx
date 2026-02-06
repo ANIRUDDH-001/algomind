@@ -43,81 +43,97 @@ function InterviewContent() {
     }, [history, sessionId, session]);
 
     useEffect(() => {
-        async function loadProblemAndCheckLimits() {
+        async function loadData() {
             setLoading(true);
             setError(null);
 
             try {
-                // Check rate limit for authenticated users (not for viewing history)
-                if (!sessionId && userId) {
-                    const rateLimit = await checkUserRateLimit(userId);
-                    setRateLimitInfo(rateLimit);
+                // Parallel data fetching for better performance
+                const promises: Promise<any>[] = [];
 
-                    if (!rateLimit.allowed) {
-                        setError(`Daily limit reached (${rateLimit.remaining}/5 questions). Try again tomorrow!`);
+                // 1. Rate Limit Check (Authenticated users only, not history view)
+                if (!sessionId && userId) {
+                    promises.push(checkUserRateLimit(userId));
+                } else {
+                    promises.push(Promise.resolve(null)); // Placeholder
+                }
+
+                // 2. Fetch Problem
+                if (isGuest && !sessionId) {
+                    // Guest: Use hardcoded problem (instant)
+                    promises.push(Promise.resolve(getGuestProblem()));
+                } else {
+                    // Authenticated: Fetch from DB or Cache
+                    const cachedProblem = sessionStorage.getItem('currentProblem');
+                    if (cachedProblem && problemId) {
+                        try {
+                            const parsed = JSON.parse(cachedProblem) as Problem;
+                            if (parsed.id === problemId) {
+                                promises.push(Promise.resolve(parsed));
+                            } else {
+                                // Cache mismatch, fetch fresh
+                                promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                            }
+                        } catch (e) {
+                            promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                        }
+                    } else {
+                        promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                    }
+                }
+
+                // Wait for all data
+                const [rateLimitData, fetchedProblem] = await Promise.all(promises);
+
+                // Handle Rate Limit Result
+                if (rateLimitData) {
+                    setRateLimitInfo(rateLimitData);
+                    if (!rateLimitData.allowed) {
+                        setError(`Daily limit reached (${rateLimitData.remaining}/5 questions). Try again tomorrow!`);
                         setLoading(false);
                         return;
                     }
                 }
 
-                let fetchedProblem: (Problem & { ragContext?: string }) | null = null;
-
-                // GUEST USERS: Use hardcoded sample problems (no DB required)
-                if (isGuest && !sessionId) {
-                    console.log('[InterviewPage] Guest user - using sample problem');
-                    const guestProblem = getGuestProblem();
-                    fetchedProblem = guestProblem;
-                } else {
-                    // AUTHENTICATED USERS: Fetch from DB
-
-                    // First, try to get problem from sessionStorage (passed from Practice page)
-                    const cachedProblem = sessionStorage.getItem('currentProblem');
-
-                    if (cachedProblem && problemId) {
-                        try {
-                            const parsed = JSON.parse(cachedProblem) as Problem;
-                            // Verify it's the right problem
-                            if (parsed.id === problemId) {
-                                fetchedProblem = parsed;
-                            }
-                        } catch (e) {
-                            // Ignore parse errors, fall back to DB fetch
-                        }
-                    }
-
-                    // Fall back to DB fetch if no cached problem
-                    if (!fetchedProblem) {
-                        if (problemId) {
-                            fetchedProblem = await getProblemById(problemId);
-                        } else {
-                            fetchedProblem = await getRandomProblem();
-                        }
-                    }
-                }
-
+                // Handle Problem Result
                 if (!fetchedProblem) {
                     setError('No problems found. Please add problems to your database.');
                 } else {
                     setProblem(fetchedProblem);
                 }
+
             } catch (e) {
-                console.error('Failed to load problem:', e);
-                setError('Failed to load problem from database.');
+                console.error('Failed to load interview data:', e);
+                setError('Failed to load problem. Please try again.');
             } finally {
                 setLoading(false);
             }
         }
 
-        loadProblemAndCheckLimits();
+        loadData();
     }, [problemId, isGuest, userId, sessionId]);
 
 
     if (loading) {
         return (
-            <div className="fixed inset-0 top-16 bg-slate-950 flex items-center justify-center text-white">
-                <div className="animate-pulse flex flex-col items-center gap-4">
-                    <div className="h-8 w-48 bg-slate-800 rounded"></div>
-                    <p className="text-slate-500 text-sm">Loading Problem...</p>
+            <div className="fixed inset-0 top-16 bg-slate-950 flex flex-col lg:flex-row p-4 gap-4 animate-pulse">
+                {/* Desktop Skeleton Layout */}
+                <div className="hidden lg:flex w-1/4 h-full bg-slate-900/50 rounded-xl border border-slate-800/50 flex-col p-4 gap-4">
+                    <div className="h-6 w-3/4 bg-slate-800 rounded"></div>
+                    <div className="h-4 w-1/2 bg-slate-800 rounded"></div>
+                    <div className="flex-1 bg-slate-800/30 rounded-lg"></div>
+                </div>
+                <div className="hidden lg:flex w-1/2 h-full bg-slate-900/50 rounded-xl border border-slate-800/50 flex-col p-8 items-center justify-center gap-6">
+                    <div className="w-32 h-32 rounded-full bg-slate-800/50"></div>
+                    <div className="h-8 w-64 bg-slate-800 rounded"></div>
+                </div>
+                <div className="hidden lg:flex w-1/4 h-full bg-slate-900/50 rounded-xl border border-slate-800/50"></div>
+
+                {/* Mobile Skeleton Layout */}
+                <div className="lg:hidden flex-1 flex flex-col items-center justify-center gap-4">
+                    <div className="w-24 h-24 rounded-full bg-slate-800/50"></div>
+                    <div className="h-6 w-48 bg-slate-800 rounded"></div>
+                    <p className="text-slate-500 text-sm">Preparing Session...</p>
                 </div>
             </div>
         );
@@ -128,7 +144,7 @@ function InterviewContent() {
             <div className="fixed inset-0 top-16 bg-slate-950 flex items-center justify-center text-white">
                 <div className="text-center max-w-md px-6">
                     <p className="text-red-400 text-lg mb-4">{error || 'Problem not found'}</p>
-                    {!rateLimitInfo?.allowed ? (
+                    {rateLimitInfo && !rateLimitInfo.allowed ? (
                         <p className="text-slate-500 text-sm">
                             You&apos;ve used all your daily questions. Come back tomorrow!
                         </p>
