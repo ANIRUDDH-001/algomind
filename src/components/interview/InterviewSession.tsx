@@ -161,69 +161,83 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
 
     // --- Sub-components to avoid code duplication between Mobile/Desktop ---
 
-    const ProblemCardContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-        <Card className={cn(
-            "bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl",
-            !isMobile ? "h-full" : "h-auto"
-        )}>
-            <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-bold text-white truncate">
-                            {problem.title}
-                        </CardTitle>
-                        <Badge className={cn(
-                            "text-[10px] px-2 py-0 h-5 shrink-0",
-                            problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
-                            problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                            problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
-                        )}>
-                            {problem.difficulty}
-                        </Badge>
-                    </div>
-                    <a
-                        href={problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg text-[11px] font-bold text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-blue-500/10"
-                    >
-                        🔗 Practice on LeetCode
-                    </a>
-                </div>
-            </CardHeader>
-            <CardContent className={cn(
-                "p-3 lg:p-5 flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0",
-                !isMobile ? "overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent" : "overflow-visible"
+    const ProblemCardContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+        // Debug: Log the external_url on render
+        const leetcodeUrl = problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`;
+        console.log('🔗 [LINK DEBUG] Problem external_url:', problem.external_url);
+        console.log('🔗 [LINK DEBUG] Final leetcode URL:', leetcodeUrl);
+
+        return (
+            <Card className={cn(
+                "bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl",
+                !isMobile ? "h-full" : "h-auto"
             )}>
-                <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
-                <div className="space-y-3 lg:space-y-4 pt-2">
-                    {problem.examples && problem.examples.map((example, idx) => (
-                        <div key={idx} className="bg-slate-800/40 rounded-xl p-3 lg:p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
-                            <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-slate-500 mb-2 lg:mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
-                            <div className="space-y-2 font-mono text-xs lg:text-sm">
-                                <div className="flex flex-col sm:flex-row sm:gap-2">
-                                    <span className="text-slate-500 shrink-0 select-none">Input:</span>
-                                    <span className="text-blue-300 break-all">{example.input}</span>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:gap-2">
-                                    <span className="text-slate-500 shrink-0 select-none">Output:</span>
-                                    <span className="text-emerald-400 break-all">{example.output}</span>
-                                </div>
-                                {example.explanation && (
-                                    <div className="pt-2 mt-2 border-t border-slate-700/30">
-                                        <p className="text-slate-400 font-sans text-[12px] lg:text-[13px] leading-normal">
-                                            <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
-                                            {example.explanation}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
+                <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-bold text-white truncate">
+                                {problem.title}
+                            </CardTitle>
+                            <Badge className={cn(
+                                "text-[10px] px-2 py-0 h-5 shrink-0",
+                                problem.difficulty === 'easy' && 'bg-green-500/20 text-green-400 border-green-500/30',
+                                problem.difficulty === 'medium' && 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                                problem.difficulty === 'hard' && 'bg-red-500/20 text-red-400 border-red-500/30'
+                            )}>
+                                {problem.difficulty}
+                            </Badge>
                         </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card >
-    );
+                        <a
+                            href={leetcodeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                                console.log('🔗 [LINK DEBUG] Link clicked!');
+                                console.log('🔗 [LINK DEBUG] href:', leetcodeUrl);
+                                console.log('🔗 [LINK DEBUG] event:', e);
+                                // Don't prevent default - let the link open
+                            }}
+                            className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg text-[11px] font-bold text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-blue-500/10"
+                        >
+                            🔗 Practice on LeetCode
+                        </a>
+                    </div>
+                </CardHeader>
+                <CardContent className={cn(
+                    "p-3 lg:p-5 flex-1 text-slate-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0",
+                    !isMobile ? "overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent" : "overflow-visible"
+                )}>
+                    <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
+                    <div className="space-y-3 lg:space-y-4 pt-2">
+                        {problem.examples && problem.examples.map((example, idx) => (
+                            <div key={idx} className="bg-slate-800/40 rounded-xl p-3 lg:p-4 border border-slate-700/50 shadow-inner group hover:border-blue-500/30 transition-colors">
+                                <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-slate-500 mb-2 lg:mb-3 group-hover:text-blue-400 transition-colors">Example {idx + 1}:</p>
+                                <div className="space-y-2 font-mono text-xs lg:text-sm">
+                                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                                        <span className="text-slate-500 shrink-0 select-none">Input:</span>
+                                        <span className="text-blue-300 break-all">{example.input}</span>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:gap-2">
+                                        <span className="text-slate-500 shrink-0 select-none">Output:</span>
+                                        <span className="text-emerald-400 break-all">{example.output}</span>
+                                    </div>
+                                    {example.explanation && (
+                                        <div className="pt-2 mt-2 border-t border-slate-700/30">
+                                            <p className="text-slate-400 font-sans text-[12px] lg:text-[13px] leading-normal">
+                                                <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
+                                                {example.explanation}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card >
+        );
+    };
+
 
     const InteractionArea = ({ isMobile = false }) => (
         <Card className={cn(

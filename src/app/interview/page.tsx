@@ -43,39 +43,75 @@ function InterviewContent() {
 
                 // First, try to get problem from sessionStorage (passed from Practice page)
                 const cachedProblem = sessionStorage.getItem('currentProblem');
+                console.log('🔍 [INTERVIEW DEBUG] sessionStorage cachedProblem exists:', !!cachedProblem);
+                console.log('🔍 [INTERVIEW DEBUG] problemId from URL:', problemId);
+
                 if (cachedProblem && problemId) {
                     try {
                         const parsed = JSON.parse(cachedProblem) as Problem;
-                        console.log('[DEBUG] Read problem from sessionStorage:', {
+                        console.log('🔍 [INTERVIEW DEBUG] Parsed problem from sessionStorage:', {
                             id: parsed.id,
+                            title: parsed.title,
                             keys: Object.keys(parsed),
-                            external_url: parsed.external_url
+                            external_url: parsed.external_url,
+                            hasExternalUrl: !!parsed.external_url
                         });
 
                         // Verify it's the right problem
                         if (parsed.id === problemId) {
                             fetchedProblem = parsed;
+                            console.log('✅ [INTERVIEW DEBUG] Using problem from sessionStorage');
+                        } else {
+                            console.log('⚠️ [INTERVIEW DEBUG] Problem ID mismatch, will fetch from DB');
                         }
                     } catch (e) {
+                        console.error('❌ [INTERVIEW DEBUG] Failed to parse sessionStorage:', e);
                         // Ignore parse errors, fall back to DB fetch
                     }
+                } else {
+                    console.log('⚠️ [INTERVIEW DEBUG] No cached problem or no problemId, will fetch from DB');
                 }
 
                 // Fall back to DB fetch if no cached problem
                 if (!fetchedProblem) {
                     if (problemId) {
+                        console.log('📡 [INTERVIEW DEBUG] Fetching from DB via getProblemById...');
                         fetchedProblem = await getProblemById(problemId);
+                        if (fetchedProblem) {
+                            console.log('📡 [INTERVIEW DEBUG] DB response:', {
+                                id: fetchedProblem.id,
+                                title: fetchedProblem.title,
+                                keys: Object.keys(fetchedProblem),
+                                external_url: fetchedProblem.external_url,
+                                hasExternalUrl: !!fetchedProblem.external_url
+                            });
+                        }
                     } else {
+                        console.log('📡 [INTERVIEW DEBUG] Fetching random problem from DB...');
                         fetchedProblem = await getRandomProblem();
+                        if (fetchedProblem) {
+                            console.log('📡 [INTERVIEW DEBUG] Random problem from DB:', {
+                                id: fetchedProblem.id,
+                                title: fetchedProblem.title,
+                                keys: Object.keys(fetchedProblem),
+                                external_url: fetchedProblem.external_url,
+                                hasExternalUrl: !!fetchedProblem.external_url
+                            });
+                        }
                     }
                 }
 
                 if (!fetchedProblem) {
                     setError('No problems found. Please add problems to your database.');
                 } else {
+                    console.log('✅ [INTERVIEW DEBUG] Final problem being used:', {
+                        id: fetchedProblem.id,
+                        external_url: fetchedProblem.external_url
+                    });
                     setProblem(fetchedProblem);
                 }
             } catch (e) {
+                console.error('❌ [INTERVIEW DEBUG] loadProblem error:', e);
                 setError('Failed to load problem from database.');
             } finally {
                 setLoading(false);
@@ -84,6 +120,7 @@ function InterviewContent() {
 
         loadProblem();
     }, [problemId]);
+
 
     if (loading) {
         return (

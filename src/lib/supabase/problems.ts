@@ -29,21 +29,39 @@ export async function getRandomProblem(
     }
 
     try {
+        // The RPC function returns limited columns (missing external_url)
+        // So we get the random problem ID first, then fetch the full problem
         const { data, error } = await supabase.rpc('get_random_problem', {
             problem_difficulty: difficulty || null,
         });
 
         if (error) {
-            console.error('Error fetching problem:', error);
+            console.error('Error fetching random problem ID:', error);
             return null;
         }
 
-        return data?.[0] || null;
+        const randomProblem = data?.[0];
+        if (!randomProblem?.id) {
+            console.error('No random problem returned from RPC');
+            return null;
+        }
+
+        console.log('🎲 [RANDOM] Got random problem ID:', randomProblem.id);
+
+        // Now fetch the full problem with all columns including external_url
+        const fullProblem = await getProblemById(randomProblem.id);
+
+        if (fullProblem) {
+            console.log('🎲 [RANDOM] Full problem external_url:', fullProblem.external_url);
+        }
+
+        return fullProblem;
     } catch (error) {
         console.error('Failed to get random problem:', error);
         return null;
     }
 }
+
 
 export async function getAllProblems(): Promise<Problem[]> {
     const supabase = getSupabase();
