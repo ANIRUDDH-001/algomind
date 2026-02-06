@@ -22,7 +22,6 @@ export function useProgress() {
 
         // Check if demo mode is enabled - return demo data
         if (isDemoMode()) {
-            console.log('📊 [useProgress] Demo mode enabled - loading demo data');
             const demoData = getDemoProgress();
 
             if (demoData) {
@@ -48,7 +47,6 @@ export function useProgress() {
 
         // Require both Supabase and logged in user for real data
         if (!isSupabaseConfigured() || !user?.id) {
-            console.log('📊 [useProgress] Supabase not configured or user not logged in');
             setHistory([]);
             setOverview(null);
             setIsLoading(false);
@@ -56,19 +54,16 @@ export function useProgress() {
         }
 
         try {
-            console.log('📊 [useProgress] Loading from Supabase for user:', user.id);
             const supabaseStore = getProgressStore();
             const progress = await supabaseStore.getUserProgress(user.id);
 
             if (!progress || progress.sessions.length === 0) {
-                console.log('📊 [useProgress] No sessions found');
                 setHistory([]);
                 setOverview(null);
                 setIsLoading(false);
                 return;
             }
 
-            console.log('📊 [useProgress] Found', progress.sessions.length, 'sessions');
             const userHistory = progress.sessions;
             setHistory(userHistory);
 
@@ -106,10 +101,6 @@ export function useProgress() {
                 lastUpdated: new Date()
             });
 
-            console.log('📊 [useProgress] Progress loaded successfully:', {
-                totalSessions: userHistory.length,
-                averageScore: Math.round(totalAvg * 10) / 10
-            });
         } catch (e: any) {
             console.error('📊 [useProgress] Failed to load progress:', e);
             setError(e.message || "Failed to load progress");
@@ -125,7 +116,6 @@ export function useProgress() {
     const addSession = async (session: SessionHistory) => {
         // In demo mode, don't save to database
         if (isDemoMode()) {
-            console.log('📊 [useProgress] Demo mode - skipping save');
             return;
         }
 
@@ -134,12 +124,9 @@ export function useProgress() {
             throw new Error('Please log in to save your progress');
         }
 
-        console.log('💾 [useProgress] Saving session to Supabase...');
-
         try {
             const supabaseStore = getProgressStore();
             await supabaseStore.saveSession(user.id, session);
-            console.log('✅ [useProgress] Saved to Supabase');
 
             // Refresh the data
             await fetchProgress();

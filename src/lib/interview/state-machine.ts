@@ -65,7 +65,6 @@ export class InterviewStateMachine {
                 break;
         }
 
-        console.log(`State Transition: ${previous} -> ${event} -> ${this.state}`);
         return this.state;
     }
 

@@ -28,8 +28,6 @@ export class HybridRetriever {
 
         await this.vectorStore.load();
         this.initialized = true;
-
-        console.log(`Retriever initialized with ${this.vectorStore.size()} chunks`);
     }
 
     /**

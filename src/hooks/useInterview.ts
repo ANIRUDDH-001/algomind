@@ -95,7 +95,6 @@ export function useInterview() {
 
         const timeSinceLastResult = Date.now() - lastResultTime;
         if (timeSinceLastResult >= AUTO_SUBMIT_DELAY) {
-            console.log('Auto-submitting due to silence...');
             submitUserResponse(transcript, currentProblemRef.current);
         } else {
             const timer = setTimeout(() => {
@@ -128,13 +127,10 @@ export function useInterview() {
 
         setIsProcessing(true);
         try {
-            console.log('🤖 [AI] Generating introduction response...');
             const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
-            console.log('✅ [AI] Generated response:', responseText.substring(0, 100) + '...');
             const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
 
             addMessage(aiMsg);
-            console.log('🎙️ [AI] Starting to speak...');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -149,7 +145,6 @@ export function useInterview() {
     const submitUserResponse = async (userText: string, problemContext: any) => {
         if (!userText.trim()) return;
 
-        console.log('👤 [USER] Spoke:', userText);
 
         // Don't disable intent, just stop listening momentarily for processing
         stopListening();
@@ -158,7 +153,6 @@ export function useInterview() {
         addMessage(userMsg);
         resetTranscript();
 
-        console.log('🔄 [STATE] Processing user response...');
         setIsProcessing(true);
         stateMachine.current.transition('USER_FINISHED_SPEAKING');
         setState(stateMachine.current.getState());
@@ -177,13 +171,10 @@ export function useInterview() {
         });
 
         try {
-            console.log('🤖 [AI] Generating response to user...');
             const responseText = await callChatApi(prompt, generateSystemPrompt(), problemContext);
-            console.log('✅ [AI] Generated response:', responseText.substring(0, 100) + '...');
             const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
 
             addMessage(aiMsg);
-            console.log('🎙️ [AI] Starting to speak...');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -193,7 +184,6 @@ export function useInterview() {
             addMessage({ role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date() });
         } finally {
             setIsProcessing(false);
-            console.log('✅ [STATE] Processing complete');
         }
     };
 
@@ -238,7 +228,6 @@ export function useInterview() {
         // CRITICAL: Always stop mic immediately when AI is speaking OR processing
         if (isSpeaking || isProcessing) {
             if (isListening) {
-                console.log('🛑 [MIC] Stopping - AI is speaking or processing');
                 stopListening();
             }
             // Reset the resume flag when AI starts speaking/processing
@@ -258,7 +247,6 @@ export function useInterview() {
                     // CRITICAL: Reset transcript before resuming to prevent carryover
                     // from speech captured during AI processing phase
                     resetTranscript();
-                    console.log('🎤 [MIC] Resuming after AI finished (transcript cleared)');
                     startListening();
                 }
             }, 1500);
@@ -266,17 +254,6 @@ export function useInterview() {
         }
     }, [isSpeaking, isProcessing, startListening, stopListening, state, isMicEnabled, resetTranscript]);
 
-    // State Logging for Debugging
-    useEffect(() => {
-        console.log('📊 [STATE] Interview state:', {
-            interviewState: state,
-            isSpeaking,
-            isListening,
-            isProcessing,
-            isMicEnabled,
-            messagesCount: messages.length
-        });
-    }, [state, isSpeaking, isListening, isProcessing, isMicEnabled, messages.length]);
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
     useEffect(() => {
@@ -287,7 +264,6 @@ export function useInterview() {
         const checkSilence = setInterval(() => {
             const timeSinceLastResult = Date.now() - lastResultTime;
             if (timeSinceLastResult >= SILENCE_TIMEOUT && !transcript && !interimTranscript) {
-                console.log('7s silence detected. Auto-stopping mic.');
                 setIsMicEnabled(false); // Disable intent, stops cycling
             }
         }, 1000);

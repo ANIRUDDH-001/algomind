@@ -37,7 +37,6 @@ export class SupabaseProgressStore {
 
         try {
             // Insert interview session - let Supabase generate UUID
-            console.log('💾 [SupabaseProgressStore] Step 1: Inserting interview session...');
             const { data: sessionData, error: sessionError } = await this.supabase
                 .from('interview_sessions')
                 .insert({
@@ -64,15 +63,10 @@ export class SupabaseProgressStore {
                 throw sessionError;
             }
 
-            console.log('✅ [SupabaseProgressStore] Session created with ID:', sessionData.id);
-
             // Convert skills to DB format using type-safe mapping
-            console.log('💾 [SupabaseProgressStore] Step 2: Converting skills to DB format...');
             const dbSkills = skillsToDbFormat(session.skills);
-            console.log('💾 [SupabaseProgressStore] DB Skills:', dbSkills);
 
             // Insert assessment
-            console.log('💾 [SupabaseProgressStore] Step 3: Inserting assessment...');
             const { data: assessmentData, error: assessmentError } = await this.supabase
                 .from('assessments')
                 .insert({
@@ -99,8 +93,6 @@ export class SupabaseProgressStore {
                 throw assessmentError;
             }
 
-            console.log('✅ [SupabaseProgressStore] Assessment created with ID:', assessmentData.id);
-            console.log('🎉 [SupabaseProgressStore] Save complete!');
         } catch (error: any) {
             console.error('❌ [SupabaseProgressStore] Save failed:', {
                 name: error?.name,
@@ -119,8 +111,6 @@ export class SupabaseProgressStore {
             console.warn('⚠️ Supabase not configured');
             return null;
         }
-
-        console.log('📊 [SupabaseProgressStore] Loading progress for user:', userId);
 
         try {
             // Build dynamic select for skill columns
@@ -155,8 +145,6 @@ export class SupabaseProgressStore {
                 });
                 return null;
             }
-
-            console.log(`📊 [SupabaseProgressStore] Found ${sessions?.length || 0} sessions`);
 
             if (!sessions || sessions.length === 0) {
                 return {
@@ -208,8 +196,6 @@ export class SupabaseProgressStore {
 
             // Calculate trends
             const trends: SkillTrend[] = this.calculateTrends(transformedSessions);
-
-            console.log('✅ [SupabaseProgressStore] Progress loaded successfully');
 
             return {
                 userId,

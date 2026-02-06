@@ -40,8 +40,6 @@ export class CognitiveAnalyzer {
 
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
-                console.log(`Assessment attempt ${attempt}/${this.maxRetries}...`);
-
                 const rawResponse = await this.callAI(prompt);
                 const parsedData = this.parseResponse(rawResponse);
 
@@ -62,8 +60,6 @@ export class CognitiveAnalyzer {
                     };
                 });
 
-                console.log(`Assessment completed successfully on attempt ${attempt}`);
-
                 return {
                     sessionId,
                     timestamp: new Date(),
@@ -80,7 +76,6 @@ export class CognitiveAnalyzer {
                 if (attempt < this.maxRetries) {
                     // Wait before retrying (exponential backoff)
                     const delay = this.retryDelayMs * Math.pow(2, attempt - 1);
-                    console.log(`Waiting ${delay}ms before retry...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
@@ -147,7 +142,6 @@ export class CognitiveAnalyzer {
                 throw new Error("Invalid response format: 'skills' object is empty");
             }
 
-            console.log(`Successfully parsed assessment with ${skillCount} skills`);
             return parsed;
 
         } catch (e) {

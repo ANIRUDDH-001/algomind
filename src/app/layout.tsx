@@ -75,16 +75,13 @@ export default function RootLayout({
             <Toaster />
           </ErrorBoundary>
         </AuthProvider>
-        {/* Register Service Worker for PWA */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('✅ [PWA] Service Worker registered:', registration.scope);
-                  }).catch(function(err) {
-                    console.log('❌ [PWA] Service Worker registration failed:', err);
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    // SW registration failed silently
                   });
                 });
               }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PDFReport } from './PDFReport';
 import { UserProgress } from '@/types/assessment';
@@ -13,6 +13,8 @@ interface ExportReportButtonProps {
 
 export function ExportReportButton({ progress }: ExportReportButtonProps) {
     const [isClient, setIsClient] = useState(false);
+    const [hasClicked, setHasClicked] = useState(false);
+    const buttonRef = useRef<HTMLAnchorElement>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -32,20 +34,25 @@ export function ExportReportButton({ progress }: ExportReportButtonProps) {
             document={<PDFReport progress={progress} />}
             fileName={`algomind-report-${progress.userId}-${new Date().getTime()}.pdf`}
         >
-            {({ blob, url, loading, error }) => (
-                <Button
-                    variant="outline"
-                    disabled={loading}
-                    className="border-slate-800 bg-slate-900/50 hover:bg-slate-800 text-slate-300 h-11 px-6 font-bold shadow-lg transition-all active:scale-95"
-                >
-                    {loading ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                        <FileDown className="w-4 h-4 mr-2" />
-                    )}
-                    {loading ? 'Generating...' : 'Export Report'}
-                </Button>
-            )}
+            {({ blob, url, loading, error }) => {
+                // Only show loading state after user has clicked
+                const showLoading = hasClicked && loading;
+                return (
+                    <Button
+                        variant="outline"
+                        disabled={showLoading}
+                        onClick={() => setHasClicked(true)}
+                        className="border-slate-800 bg-slate-900/50 hover:bg-slate-800 text-slate-300 h-11 px-6 font-bold shadow-lg transition-all active:scale-95"
+                    >
+                        {showLoading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <FileDown className="w-4 h-4 mr-2" />
+                        )}
+                        {showLoading ? 'Generating...' : 'Export Report'}
+                    </Button>
+                );
+            }}
         </PDFDownloadLink>
     );
 }

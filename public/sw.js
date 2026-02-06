@@ -10,17 +10,18 @@ const STATIC_ASSETS = [
     '/icon-512x512.png',
 ];
 
+// Helper: Check if URL scheme is cacheable (only http/https)
+function isCacheableUrl(url) {
+    return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('📦 [SW] Caching static assets');
-            return cache.addAll(STATIC_ASSETS.filter(url => {
-                // Only cache files that exist
-                return true;
-            }));
-        }).catch(err => {
-            console.log('📦 [SW] Cache failed, continuing:', err);
+            return cache.addAll(STATIC_ASSETS);
+        }).catch(() => {
+            // Silently continue if cache fails
         })
     );
     self.skipWaiting();
@@ -48,6 +49,9 @@ self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (request.method !== 'GET') return;
 
+    // Skip non-cacheable URLs (chrome-extension://, etc.)
+    if (!isCacheableUrl(url)) return;
+
     // Skip API routes and Supabase calls - always fetch fresh
     if (url.pathname.startsWith('/api/') ||
         url.hostname.includes('supabase')) {
@@ -59,11 +63,13 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(request)
                 .then((response) => {
-                    // Cache the page
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, clone);
-                    });
+                    // Cache the page (only if cacheable)
+                    if (isCacheableUrl(url)) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, clone);
+                        });
+                    }
                     return response;
                 })
                 .catch(() => {
@@ -83,10 +89,13 @@ self.addEventListener('fetch', (event) => {
                 if (cached) return cached;
 
                 return fetch(request).then((response) => {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, clone);
-                    });
+                    // Only cache http/https URLs
+                    if (isCacheableUrl(url)) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, clone);
+                        });
+                    }
                     return response;
                 });
             })

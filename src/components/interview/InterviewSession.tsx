@@ -105,7 +105,6 @@ export function InterviewSession({
     const handleStart = async () => {
         setHasStarted(true);
         startTimeRef.current = Date.now(); // Record start time
-        console.log('⏱️ [SESSION] Started at:', new Date().toISOString());
 
         // Start timer for limits
         limits.startTimer();
@@ -126,12 +125,9 @@ export function InterviewSession({
         }
 
         setError(null); // Clear any previous errors
-        console.log("🚀 Starting analysis flow...");
-        console.log("📝 Messages count:", messages.length);
 
         // Trigger Analysis
         const transcript = messages.map(m => ({ role: m.role, content: m.content }));
-        console.log("📋 Transcript prepared:", transcript.length, "entries");
 
         try {
             const assessment = await analyzeSession(
@@ -146,7 +142,6 @@ export function InterviewSession({
                 return;
             }
 
-            console.log("✅ Analysis successful, saving to progress store...");
             const store = new ProgressStore();
             const skillScores: any = {};
             Object.entries(assessment.skills).forEach(([id, s]) => {
@@ -157,9 +152,6 @@ export function InterviewSession({
 
             // Calculate actual session duration
             const actualDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            console.log('⏱️ [SESSION] Duration:', actualDuration, 'seconds');
-            console.log('📝 [SESSION] Transcript entries:', transcript.length);
-            console.log("💾 Saving session for user:", userId);
 
             // Skip saving for guest users
             if (!isGuest) {
@@ -174,9 +166,6 @@ export function InterviewSession({
                     overallScore: store.calculateWeightedScore(skillScores),
                     transcript: transcript
                 });
-                console.log("🎉 Session saved successfully!");
-            } else {
-                console.log("📝 Guest session - not saved to history");
             }
         } catch (err: any) {
             console.error("❌ Assessment error:", err);
