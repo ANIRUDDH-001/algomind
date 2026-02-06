@@ -35,7 +35,8 @@ export function SettingsPanel() {
             toast.success('Demo mode enabled');
         }
         setDemoMode(!demoMode);
-        setTimeout(() => window.location.reload(), 500);
+        setDemoMode(!demoMode);
+        router.refresh();
     };
 
     const handleResetOnboarding = () => {
@@ -74,7 +75,8 @@ export function SettingsPanel() {
             }
 
             toast.success('All data cleared successfully!');
-            setTimeout(() => window.location.reload(), 500);
+            toast.success('All data cleared successfully!');
+            router.refresh();
         } catch (error) {
             console.error('Failed to clear data:', error);
             toast.error('Failed to clear data. Please try again.');

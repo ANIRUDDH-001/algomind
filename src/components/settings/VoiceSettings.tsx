@@ -23,12 +23,47 @@ export function VoiceSettings() {
         const loadVoices = () => {
             if (typeof window !== 'undefined' && window.speechSynthesis) {
                 const allVoices = window.speechSynthesis.getVoices();
-                // Filter for English and Hindi voices
-                const filtered = allVoices.filter(v =>
-                    v.lang.startsWith('en') || v.lang.startsWith('hi')
-                ).sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
 
-                setVoices(filtered);
+                // Filter for US English, UK English, and Hindi (Indian English accent)
+                // User Goal: 5+ options, mixed US, UK, and 1 Hindi accent
+                const filtered = allVoices.filter(v =>
+                    v.lang === 'en-US' ||
+                    v.lang === 'en-GB' ||
+                    v.lang === 'hi-IN'
+                );
+
+                // Deduplicate voices (remove similar ones like "Microsoft David Desktop" vs "Microsoft David")
+                // Preference order: Google > Microsoft > System
+                const uniqueVoices = filtered.filter((v, index, self) =>
+                    index === self.findIndex((t) => (
+                        t.name === v.name
+                    ))
+                ).sort((a, b) => {
+                    // Sort order: US -> UK -> Hindi -> Others
+                    const getOrder = (lang: string) => {
+                        if (lang === 'en-US') return 1;
+                        if (lang === 'en-GB') return 2;
+                        if (lang === 'hi-IN') return 3;
+                        return 4;
+                    };
+                    return getOrder(a.lang) - getOrder(b.lang);
+                });
+
+                // If we don't have enough (less than 5), add other English variants as backup
+                if (uniqueVoices.length < 5) {
+                    const others = allVoices.filter(v =>
+                        v.lang.startsWith('en') &&
+                        !uniqueVoices.some(uv => uv.name === v.name)
+                    );
+                    // Add distinct ones only
+                    others.forEach(v => {
+                        if (uniqueVoices.length < 8 && !uniqueVoices.some(uv => uv.name === v.name)) {
+                            uniqueVoices.push(v);
+                        }
+                    });
+                }
+
+                setVoices(uniqueVoices);
             }
         };
 
@@ -58,7 +93,7 @@ export function VoiceSettings() {
                     const defaultVoice = voices.find(v => v.name.includes("Google US English") || v.lang === 'en-US');
                     if (defaultVoice) setSelectedVoice(defaultVoice.name);
                 }
-                setRate(prefs.voiceRate || 1.1);
+                setRate(prefs.voiceRate || 1.0);
             } catch (e) {
                 console.error("Failed to load voice preferences", e);
             } finally {

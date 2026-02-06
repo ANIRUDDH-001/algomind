@@ -16,7 +16,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const [isPaused, setIsPaused] = useState(false);
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
-    const [rate, setRate] = useState(options.rate || 1.1); // Slightly faster for natural feel
+    const [rate, setRate] = useState(options.rate || 1.0); // Standard speed
 
     // Queue of text chunks to speak
     const queueRef = useRef<string[]>([]);
