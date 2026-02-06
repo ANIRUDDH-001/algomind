@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { getProcesedVoices, findBestMatchingVoice } from '@/lib/voice/voice-utils';
+import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 import { getUserPreferences } from '@/lib/supabase/user-preferences';
 import { useAuth } from '@/components/auth/AuthProvider';
+
 
 interface VoiceOutputOptions {
     voice?: SpeechSynthesisVoice;
     rate?: number;
     pitch?: number;
-    volume?: number;
+    volume?: number;    
     onStart?: () => void;
     onEnd?: () => void;
     onPause?: () => void;
@@ -131,7 +133,10 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         console.log('🔊 [TTS] Starting speech:', text.substring(0, 50) + '...');
 
         // Clean text (remove markdown-ish artifacts if any)
-        const cleanText = text.replace(/[*_#`]/g, '');
+        let cleanText = text.replace(/[*_#`]/g, '');
+
+        // Preprocess for better pronunciation of DSA terms (O(N) -> "O of N", etc)
+        cleanText = preprocessForTTS(cleanText);
 
         window.speechSynthesis.cancel();
         queueRef.current = chunkTextForSpeech(cleanText);

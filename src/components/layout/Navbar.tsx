@@ -55,9 +55,9 @@ export function Navbar() {
                                 className="flex items-center gap-3 font-bold text-xl text-white hover:text-blue-400 transition-colors group"
                             >
                                 <img
-                                    src="/logo.svg"
+                                    src="/icon-192x192.png"
                                     alt="AlgoMind Logo"
-                                    className="w-8 h-8 group-hover:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                                    className="w-8 h-8 group-hover:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] rounded-lg"
                                 />
                                 <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">AlgoMind</span>
                             </button>
