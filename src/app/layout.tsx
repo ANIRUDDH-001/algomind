@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -17,11 +17,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#6366f1',
+};
+
 export const metadata: Metadata = {
   title: "AlgoMind - AI-Powered DSA Interview Practice",
   description: "Master Data Structures and Algorithms with AI-powered voice interviews, cognitive assessment, and personalized learning paths.",
   keywords: ["DSA", "interview", "practice", "AI", "coding", "algorithms", "data structures"],
   authors: [{ name: "AlgoMind Team" }],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AlgoMind",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: "AlgoMind - AI-Powered DSA Interview Practice",
     description: "Master DSA with AI voice interviews and cognitive assessment",
@@ -30,7 +47,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
-    apple: "/logo.svg",
+    apple: "/icon-192x192.png",
   },
 };
 
@@ -53,6 +70,22 @@ export default function RootLayout({
             <Toaster />
           </ErrorBoundary>
         </AuthProvider>
+        {/* Register Service Worker for PWA */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('✅ [PWA] Service Worker registered:', registration.scope);
+                  }).catch(function(err) {
+                    console.log('❌ [PWA] Service Worker registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
