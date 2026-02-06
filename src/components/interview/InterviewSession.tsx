@@ -250,16 +250,22 @@ export function InterviewSession({
         }
     }, [messages, hasStarted, limits.incrementTurn]);
 
-    // Demo Skill Badge logic: Trigger a badge on first user message as a "wow" factor
+    // Demo Skill Badge logic: Trigger a badge on user message if not already showing
     useEffect(() => {
         const lastMsg = messages[messages.length - 1];
         if (lastMsg && lastMsg.role === 'user' && !showBadge && messages.length > 2) {
             setLastBadgeSkill(messages.length > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
             setShowBadge(true);
+        }
+    }, [messages, showBadge]);
+
+    // Badge Auto-Hide Timer - Separate effect to prevent cancellation by message updates
+    useEffect(() => {
+        if (showBadge) {
             const timer = setTimeout(() => setShowBadge(false), 4000);
             return () => clearTimeout(timer);
         }
-    }, [messages]);
+    }, [showBadge]);
 
     if (result) {
         return <ReportCard assessment={result} onClose={resetAssessment} />;
@@ -749,7 +755,7 @@ export function InterviewSession({
             )}
 
             {/* Real-time Overlay for Badges */}
-            <div className="fixed top-6 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
+            <div className="fixed top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
 
