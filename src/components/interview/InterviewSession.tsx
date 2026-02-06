@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useInterview } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { useProgress } from '@/hooks/useProgress';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useInterviewLimits } from '@/hooks/useInterviewLimits';
+import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
+import { recordUserQuestion } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
@@ -13,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, LogIn } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
@@ -26,9 +29,19 @@ interface InterviewSessionProps {
     problem: Problem;
     initialTranscript?: { role: string; content: string }[];
     readOnly?: boolean;
+    isGuest?: boolean;
+    ragContext?: string;
+    remainingQuestions?: number;
 }
 
-export function InterviewSession({ problem, initialTranscript, readOnly = false }: InterviewSessionProps) {
+export function InterviewSession({
+    problem,
+    initialTranscript,
+    readOnly = false,
+    isGuest = false,
+    ragContext,
+    remainingQuestions
+}: InterviewSessionProps) {
     const router = useRouter();
     const { user } = useAuth();
     const {
@@ -45,16 +58,24 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
     const { addSession } = useProgress();
 
+    // Interview limits and guest trial hooks
+    const limits = useInterviewLimits();
+    const guestTrial = useGuestTrial(isGuest);
+
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
     const [lastBadgeSkill, setLastBadgeSkill] = useState<any>('pattern-recognition');
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('interview');
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
 
     // Track session start time for duration calculation
     const startTimeRef = React.useRef<number>(0);
     // Track if transcript has been loaded to prevent infinite loops
     const transcriptLoadedRef = React.useRef(false);
+    // Track if we've recorded this question for rate limiting
+    const questionRecordedRef = React.useRef(false);
 
     // Debugging and Reset on Problem Change
     console.log('[InterviewSession RENDER] Props:', {
@@ -94,11 +115,21 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
         }
     }, [readOnly, initialTranscript, loadTranscript]);
 
-    const handleStart = () => {
+    const handleStart = async () => {
         setHasStarted(true);
         startTimeRef.current = Date.now(); // Record start time
         console.log('⏱️ [SESSION] Started at:', new Date().toISOString());
-        startInterview(problem.title, problem.description);
+
+        // Start timer for limits
+        limits.startTimer();
+
+        // Record question for rate limiting (authenticated users only)
+        if (!isGuest && user?.id && !questionRecordedRef.current) {
+            questionRecordedRef.current = true;
+            await recordUserQuestion(user.id);
+        }
+
+        startInterview(problem.title, problem.description, ragContext);
     };
 
     const handleFinish = async () => {
@@ -128,21 +159,65 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
             console.log('📝 [SESSION] Transcript entries:', transcript.length);
             console.log("💾 Saving session for user:", userId);
 
-            await addSession({
-                sessionId: assessment.sessionId,
-                userId,
-                problemId: problem.id,
-                problemDifficulty: problem.difficulty,
-                timestamp: new Date(),
-                duration: actualDuration,
-                skills: skillScores,
-                overallScore: store.calculateWeightedScore(skillScores),
-                transcript: transcript
-            });
-
-            console.log("🎉 Session saved successfully!");
+            // Skip saving for guest users
+            if (!isGuest) {
+                await addSession({
+                    sessionId: assessment.sessionId,
+                    userId,
+                    problemId: problem.id,
+                    problemDifficulty: problem.difficulty,
+                    timestamp: new Date(),
+                    duration: actualDuration,
+                    skills: skillScores,
+                    overallScore: store.calculateWeightedScore(skillScores),
+                    transcript: transcript
+                });
+                console.log("🎉 Session saved successfully!");
+            } else {
+                console.log("📝 Guest session - not saved to history");
+            }
         }
+
+        // Stop timer
+        limits.stopTimer();
     };
+
+    // Guest trial turn tracking
+    useEffect(() => {
+        if (isGuest && hasStarted) {
+            // Count user messages as turns
+            const userTurns = messages.filter(m => m.role === 'user').length +
+                messages.filter(m => m.role === 'assistant').length;
+
+            // Record each new turn
+            const prevTurns = guestTrial.turnsUsed;
+            if (userTurns > prevTurns) {
+                for (let i = prevTurns; i < userTurns; i++) {
+                    guestTrial.recordTurn();
+                }
+            }
+
+            // Show login modal when trial is complete
+            if (guestTrial.isTrialComplete && !showLoginModal) {
+                setShowLoginModal(true);
+            }
+        }
+    }, [messages, isGuest, hasStarted, guestTrial, showLoginModal]);
+
+    // Auto-end on limits (time or turns)
+    useEffect(() => {
+        if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
+            setShowLimitModal(true);
+        }
+    }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
+
+    // Increment turn counter when user speaks
+    useEffect(() => {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg && lastMsg.role === 'user' && hasStarted) {
+            limits.incrementTurn();
+        }
+    }, [messages, hasStarted]);
 
     // Demo Skill Badge logic: Trigger a badge on first user message as a "wow" factor
     useEffect(() => {
@@ -261,6 +336,40 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                         </div>
 
                         <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
+                            {/* Top-left Timer Display */}
+                            <div className="absolute top-2 left-2 z-30 flex flex-col gap-1">
+                                {/* Timer */}
+                                <div className={cn(
+                                    "bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
+                                    limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
+                                        limits.timeRemaining <= 300 ? "border-yellow-500/50 text-yellow-400" :
+                                            "border-slate-700 text-slate-300"
+                                )}>
+                                    <Clock className="w-3 h-3" />
+                                    <span className="font-mono font-bold">{limits.formattedElapsed}</span>
+                                    <span className="text-slate-500">/</span>
+                                    <span className="font-mono text-slate-500">20:00</span>
+                                </div>
+                                {/* Guest Trial Badge */}
+                                {isGuest && (
+                                    <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
+                                        🌟 Trial Mode ({GUEST_TRIAL_LIMITS.MAX_TURNS - guestTrial.turnsUsed} turns left)
+                                    </div>
+                                )}
+                                {/* Turn Warning */}
+                                {limits.shouldShowTurnWarning && !isGuest && (
+                                    <div className="bg-orange-500/20 border border-orange-500/30 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        {limits.turnsRemaining} turns remaining
+                                    </div>
+                                )}
+                                {/* Remaining Questions (authenticated users) */}
+                                {!isGuest && remainingQuestions !== undefined && (
+                                    <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
+                                        {remainingQuestions}/5 questions today
+                                    </div>
+                                )}
+                            </div>
                             {/* Top-right Status Badge - moved from fixed position */}
                             <div className="absolute top-2 right-2 z-30">
                                 <div className="bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
@@ -458,6 +567,72 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                         message={`Mic Problem: ${voice.error}. Try clicking the mic button to restart.`}
                         onClose={() => { }}
                     />
+                </div>
+            )}
+
+            {/* Guest Trial Login Modal */}
+            {showLoginModal && (
+                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                        <div className="text-center space-y-4">
+                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                <LogIn className="w-8 h-8 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Trial Complete!</h3>
+                            <p className="text-slate-400 text-sm">
+                                You&apos;ve experienced AlgoMind&apos;s AI interview practice.
+                                Sign in to unlock unlimited sessions and track your progress.
+                            </p>
+                            <div className="flex flex-col gap-2 pt-2">
+                                <Button
+                                    onClick={() => router.push('/login')}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold"
+                                >
+                                    <LogIn className="w-4 h-4 mr-2" />
+                                    Sign In to Continue
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowLoginModal(false)}
+                                    className="w-full border-slate-700 text-slate-400 hover:text-white"
+                                >
+                                    Maybe Later
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Limit Reached Modal */}
+            {showLimitModal && (
+                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                        <div className="text-center space-y-4">
+                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center">
+                                <Clock className="w-8 h-8 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">
+                                {limits.isTimeUp ? 'Time&apos;s Up!' : 'Turn Limit Reached'}
+                            </h3>
+                            <p className="text-slate-400 text-sm">
+                                {limits.isTimeUp
+                                    ? 'Your 20-minute interview session has ended.'
+                                    : 'You\'ve reached the 20-turn limit for this session.'}
+                                {' '}Let&apos;s analyze your performance!
+                            </p>
+                            <Button
+                                onClick={() => {
+                                    setShowLimitModal(false);
+                                    handleFinish();
+                                }}
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold"
+                            >
+                                <Flag className="w-4 h-4 mr-2" />
+                                View My Assessment
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
 

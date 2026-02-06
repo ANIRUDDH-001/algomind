@@ -28,16 +28,24 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 const voices = window.speechSynthesis.getVoices();
                 setAvailableVoices(voices);
 
-                // Find preferred voice: Hindi-accented English (for better tone as requested)
-                // Search for Google Hindi, or Microsoft Hemant, etc.
+                // Priority 1: User's saved preference (if provided)
+                // Priority 2: English voices (to avoid Hindi number pronunciation)
+                // Priority 3: Hindi as fallback option
                 const preferred = voices.find(v =>
-                    (v.lang.startsWith('hi') || v.name.includes('Hindi')) &&
-                    (v.name.includes('Google') || v.name.includes('Natural'))
+                    v.name.includes("Google US English")
                 ) || voices.find(v =>
-                    v.lang.includes('hi') || v.name.includes('India')
+                    v.name.includes("Microsoft Zira") ||
+                    v.name.includes("Samantha") ||
+                    v.name.includes("Microsoft David")
                 ) || voices.find(v =>
-                    v.name.includes("Google US English") ||
-                    v.name.includes("Samantha")
+                    v.lang.startsWith('en-') && v.name.includes('Google')
+                ) || voices.find(v =>
+                    v.lang.startsWith('en-US')
+                ) || voices.find(v =>
+                    v.lang.startsWith('en-')
+                ) || voices.find(v =>
+                    // Hindi as last resort option
+                    v.lang.startsWith('hi') || v.name.includes('Hindi')
                 );
 
                 if (preferred && !currentVoice) {

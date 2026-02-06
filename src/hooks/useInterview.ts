@@ -108,8 +108,8 @@ export function useInterview() {
     }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing]);
 
     // Core Logic
-    const startInterview = async (problemTitle: string, problemContent: string) => {
-        currentProblemRef.current = { title: problemTitle, content: problemContent };
+    const startInterview = async (problemTitle: string, problemContent: string, ragContext?: string) => {
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
@@ -123,7 +123,7 @@ export function useInterview() {
             problemContent,
             transcript: '',
             conversationHistory: '',
-            ragContext: ''
+            ragContext: ragContext || ''
         });
 
         setIsProcessing(true);

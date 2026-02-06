@@ -23,9 +23,14 @@ export async function POST(req: NextRequest) {
 
         console.log(`🔮 [RAG] Loaded ${vectorStore.size()} chunks from vector store`);
 
-        // Perform RAG retrieval
+        // Perform RAG retrieval - use pre-embedded context if provided (for guests)
         let ragContext = '';
-        if (query) {
+        if (problemContext?.ragContext && problemContext.ragContext.length > 0) {
+            // Use pre-embedded RAG context (guest users with hardcoded problems)
+            ragContext = problemContext.ragContext;
+            console.log(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - saving API calls`);
+        } else if (query) {
+            // Perform live RAG retrieval (authenticated users)
             try {
                 const searchResults = await vectorStore.hybridSearch(query, 3);
 
