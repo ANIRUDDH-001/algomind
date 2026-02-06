@@ -34,8 +34,8 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
     try {
         // Use the database function
         const { data, error } = await supabase.rpc('check_user_rate_limit', {
-            target_user_id: userId,
-            daily_limit: DAILY_LIMIT
+            p_user_id: userId,
+            p_limit: DAILY_LIMIT
         });
 
         if (error) {
@@ -77,7 +77,7 @@ export async function recordUserQuestion(userId: string | null): Promise<void> {
 
     try {
         await supabase.rpc('record_user_question', {
-            target_user_id: userId
+            p_user_id: userId
         });
     } catch (error) {
         console.error('Failed to record question:', error);
