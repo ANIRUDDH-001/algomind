@@ -46,26 +46,44 @@ export default function KnowledgeAdminPage() {
         const supabase = getSupabase();
         if (!supabase) return;
 
-        // Load knowledge gaps
-        const { data: gapsData } = await supabase
-            .from('knowledge_gaps')
-            .select('*')
-            .in('status', ['new', 'in-progress'])
-            .order('priority', { ascending: false })
-            .order('upvotes', { ascending: false })
-            .limit(50);
+        try {
+            // Load knowledge gaps
+            const { data: gapsData, error: gapsError } = await supabase
+                .from('knowledge_gaps')
+                .select('*')
+                .in('status', ['new', 'in-progress'])
+                .order('priority', { ascending: false })
+                .order('upvotes', { ascending: false })
+                .limit(50);
 
-        // Load knowledge chunks
-        const { data: chunksData } = await supabase
-            .from('knowledge_chunks')
-            .select('*')
-            .eq('status', 'active')
-            .order('usage_count', { ascending: false })
-            .limit(50);
+            if (gapsError) {
+                console.error('❌ [ADMIN] Failed to load gaps:', gapsError);
+                // Don't crash - show empty state
+                setGaps([]);
+            } else {
+                setGaps(gapsData || []);
+            }
 
-        setGaps(gapsData || []);
-        setChunks(chunksData || []);
-        setLoading(false);
+            // Load knowledge chunks
+            const { data: chunksData, error: chunksError } = await supabase
+                .from('knowledge_chunks')
+                .select('*')
+                .eq('status', 'active')
+                .order('usage_count', { ascending: false })
+                .limit(50);
+
+            if (chunksError) {
+                console.error('❌ [ADMIN] Failed to load chunks:', chunksError);
+                setChunks([]);
+            } else {
+                setChunks(chunksData || []);
+            }
+
+        } catch (error) {
+            console.error('❌ [ADMIN] Unexpected error:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Loading state

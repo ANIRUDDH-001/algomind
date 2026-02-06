@@ -68,6 +68,22 @@ function LoginContent() {
                     <p className="text-slate-400">Sign in to track your DSA interview progress</p>
                 </div>
 
+                {/* Session Warning */}
+                <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-600/30 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <div className="text-yellow-500 text-xl mt-0.5">⚠️</div>
+                        <div>
+                            <h3 className="text-yellow-400 font-semibold mb-1">
+                                Single Session Active
+                            </h3>
+                            <p className="text-sm text-yellow-200/80">
+                                Logging in here will sign you out from other devices.
+                                This ensures your interview progress is saved correctly.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Not Configured Warning */}
                 {!isConfigured && (
                     <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">

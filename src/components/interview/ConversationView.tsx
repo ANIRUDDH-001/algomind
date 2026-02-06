@@ -52,6 +52,13 @@ export function ConversationView({ messages, isAISpeaking }: ConversationViewPro
                             ? "bg-blue-600/10 text-blue-100 rounded-tr-none"
                             : "bg-purple-600/10 text-purple-100 rounded-tl-none"
                     )}>
+                        {/* Speaker name */}
+                        <div className={cn(
+                            "text-[10px] font-bold uppercase tracking-wider mb-1",
+                            msg.role === 'user' ? "text-blue-400" : "text-purple-400"
+                        )}>
+                            {msg.role === 'user' ? 'You' : 'Kai'}
+                        </div>
                         {msg.content}
 
                         {/* Timestamp */}

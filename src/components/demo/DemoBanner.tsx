@@ -15,6 +15,17 @@ export function DemoBanner({ onClose }: DemoBannerProps) {
     useEffect(() => {
         // Only runs on client, after hydration
         setIsDemo(isDemoMode());
+
+        // Listen for demo mode changes from SettingsPanel
+        const handleDemoModeChange = (event: CustomEvent<{ enabled: boolean }>) => {
+            setIsDemo(event.detail.enabled);
+        };
+
+        window.addEventListener('demo-mode-changed', handleDemoModeChange as EventListener);
+
+        return () => {
+            window.removeEventListener('demo-mode-changed', handleDemoModeChange as EventListener);
+        };
     }, []);
 
     // During SSR and initial hydration, render nothing (matches server)

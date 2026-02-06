@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, LogIn } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, LogIn, Code } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
@@ -24,6 +24,10 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 import { ProgressStore } from '@/lib/assessment/progress-store';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
+import { CodeEditor } from './CodeEditor';
+import { MobileWarning } from './MobileWarning';
+import { isMobileDevice } from '@/lib/utils/device-detection';
+
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -69,6 +73,10 @@ export function InterviewSession({
     const [activeTab, setActiveTab] = useState('interview');
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
+    const [showCodeEditor, setShowCodeEditor] = useState(false);
+    const [userCode, setUserCode] = useState('');
+    const [codeLanguage, setCodeLanguage] = useState('python');
+    const [showMobileWarning, setShowMobileWarning] = useState(false);
 
     // Track session start time for duration calculation
     const startTimeRef = React.useRef<number>(0);
@@ -117,6 +125,21 @@ export function InterviewSession({
 
         startInterview(problem.title, problem.description, ragContext);
     };
+
+    const shareCodeWithAI = useCallback((code: string) => {
+        if (!code.trim()) return;
+
+        const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
+
+        // Use existing submitUserResponse function
+        submitUserResponse(codeMessage, {
+            title: problem.title,
+            content: problem.description
+        });
+
+        // Switch back to voice mode to hear Kai's feedback
+        setShowCodeEditor(false);
+    }, [codeLanguage, problem, submitUserResponse]);
 
     const handleFinish = async () => {
         if (messages.length < 2) {
@@ -298,12 +321,50 @@ export function InterviewSession({
     };
 
 
+    const CodeEditorToggle = () => (
+        <div className="flex gap-2 mb-2 px-6 lg:px-8 pt-4">
+            <button
+                onClick={() => setShowCodeEditor(false)}
+                className={cn(
+                    "flex-1 px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center",
+                    !showCodeEditor
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                )}
+            >
+                <Mic className="w-4 h-4 mr-2" />
+                Voice Mode
+            </button>
+            <button
+                onClick={() => {
+                    if (isMobileDevice()) {
+                        setShowMobileWarning(true);
+                    } else {
+                        setShowCodeEditor(true);
+                    }
+                }}
+                className={cn(
+                    "flex-1 px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center",
+                    showCodeEditor
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                )}
+            >
+                <Code className="w-4 h-4 mr-2" />
+                Code Editor
+            </button>
+        </div>
+    );
+
     const InteractionArea = ({ isMobile = false }) => (
         <Card className={cn(
             "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
             !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto min-h-[400px] shrink-0"
         )}>
             <CardContent className="p-0 flex-1 flex flex-col h-full">
+                {/* Mode Toggle (when interview started) */}
+                {hasStarted && !readOnly && !isMobile && <CodeEditorToggle />}
+
                 {!hasStarted ? (
                     <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
                         <Button
@@ -315,178 +376,202 @@ export function InterviewSession({
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex-1 relative flex flex-col items-center justify-center p-4 lg:p-10 h-full">
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-                            <MicPulse
-                                state={
-                                    voice.isListening ? 'listening' :
-                                        isProcessing ? 'processing' :
-                                            voice.isSpeaking ? 'speaking' :
-                                                'idle'
-                                }
-                            />
-                        </div>
-
-                        <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
-                            {/* Top-left Timer Display */}
-                            <div className="absolute top-2 left-2 z-30 flex flex-col gap-1">
-                                {/* Timer */}
-                                <div className={cn(
-                                    "bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
-                                    limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
-                                        limits.timeRemaining <= 300 ? "border-yellow-500/50 text-yellow-400" :
-                                            "border-slate-700 text-slate-300"
-                                )}>
-                                    <Clock className="w-3 h-3" />
-                                    <span className="font-mono font-bold">{limits.formattedElapsed}</span>
-                                    <span className="text-slate-500">/</span>
-                                    <span className="font-mono text-slate-500">20:00</span>
-                                </div>
-                                {/* Guest Trial Badge */}
-                                {isGuest && (
-                                    <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
-                                        🌟 Trial Mode ({GUEST_TRIAL_LIMITS.MAX_TURNS - guestTrial.turnsUsed} turns left)
-                                    </div>
-                                )}
-                                {/* Turn Warning */}
-                                {limits.shouldShowTurnWarning && !isGuest && (
-                                    <div className="bg-orange-500/20 border border-orange-500/30 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
-                                        <AlertTriangle className="w-3 h-3" />
-                                        {limits.turnsRemaining} turns remaining
-                                    </div>
-                                )}
-                                {/* Remaining Questions (authenticated users) */}
-                                {!isGuest && remainingQuestions !== undefined && (
-                                    <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
-                                        {remainingQuestions}/5 questions today
-                                    </div>
-                                )}
-                            </div>
-                            {/* Top-right Status Badge - moved from fixed position */}
-                            <div className="absolute top-2 right-2 z-30">
-                                <div className="bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        {voice.isSpeaking && (
-                                            <span className="flex items-center gap-1.5 text-purple-400">
-                                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-                                                AI Speaking
-                                            </span>
-                                        )}
-                                        {voice.isListening && !voice.isSpeaking && (
-                                            <span className="flex items-center gap-1.5 text-blue-400">
-                                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                                                Listening
-                                            </span>
-                                        )}
-                                        {isProcessing && !voice.isSpeaking && (
-                                            <span className="flex items-center gap-1.5 text-yellow-400">
-                                                <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                                                Processing
-                                            </span>
-                                        )}
-                                        {!voice.isSpeaking && !voice.isListening && !isProcessing && (
-                                            <span className="flex items-center gap-1.5 text-green-400">
-                                                <span className="w-2 h-2 bg-green-400 rounded-full" />
-                                                Ready
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Status Indicator */}
-                            <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
-                                <p className="text-xs font-bold text-white tracking-wide">
-                                    {voice.isListening ? "I'M LISTENING..." :
-                                        isProcessing ? "THINKING..." :
-                                            voice.isSpeaking ? "AI IS SPEAKING..." :
-                                                "READY FOR YOU"}
-                                </p>
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className={cn(
-                                        "w-1 h-1 rounded-full animate-pulse",
-                                        voice.isListening ? "bg-blue-500" : "bg-slate-600"
-                                    )} />
-                                    <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
-                                        {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Microphone / Interactions */}
-                            {!readOnly && (
-                                <div className="flex justify-center pb-6">
-                                    <MicrophoneButton
-                                        isListening={voice.isListening}
-                                        onClick={() => {
-                                            if (voice.isListening) {
-                                                voice.stopListening();
-                                            } else if (!isProcessing && !voice.isSpeaking) {
-                                                voice.startListening();
-                                            }
-                                        }}
-                                        disabled={isProcessing || voice.isSpeaking}
-                                        className={cn(
-                                            "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
-                                            voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
-                                        )}
+                    <>
+                        {/* Voice Interaction Mode */}
+                        {!showCodeEditor && (
+                            <div className="flex-1 relative flex flex-col items-center justify-center p-4 lg:p-10 h-full">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                                    <MicPulse
+                                        state={
+                                            voice.isListening ? 'listening' :
+                                                isProcessing ? 'processing' :
+                                                    voice.isSpeaking ? 'speaking' :
+                                                        'idle'
+                                        }
                                     />
                                 </div>
-                            )}
 
-                            {/* Read-Only Banner */}
-                            {readOnly && (
-                                <div className="flex justify-center pb-6">
-                                    <div className="bg-slate-800/80 px-4 py-2 rounded-full border border-slate-700 text-slate-400 text-sm font-medium flex items-center gap-2">
-                                        <BookOpen className="w-4 h-4" />
-                                        Session Completed (Read-Only)
+                                <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
+                                    {/* Top-left Timer Display */}
+                                    <div className="absolute top-2 left-2 z-30 flex flex-col gap-1">
+                                        {/* Timer */}
+                                        <div className={cn(
+                                            "bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
+                                            limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
+                                                limits.timeRemaining <= 300 ? "border-yellow-500/50 text-yellow-400" :
+                                                    "border-slate-700 text-slate-300"
+                                        )}>
+                                            <Clock className="w-3 h-3" />
+                                            <span className="font-mono font-bold">{limits.formattedElapsed}</span>
+                                            <span className="text-slate-500">/</span>
+                                            <span className="font-mono text-slate-500">20:00</span>
+                                        </div>
+                                        {/* Guest Trial Badge */}
+                                        {isGuest && (
+                                            <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
+                                                🌟 Trial Mode ({GUEST_TRIAL_LIMITS.MAX_TURNS - guestTrial.turnsUsed} turns left)
+                                            </div>
+                                        )}
+                                        {/* Turn Warning */}
+                                        {limits.shouldShowTurnWarning && !isGuest && (
+                                            <div className="bg-orange-500/20 border border-orange-500/30 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                {limits.turnsRemaining} turns remaining
+                                            </div>
+                                        )}
+                                        {/* Remaining Questions (authenticated users) */}
+                                        {!isGuest && remainingQuestions !== undefined && (
+                                            <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
+                                                {remainingQuestions}/5 questions today
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                    {/* Top-right Status Badge - moved from fixed position */}
+                                    <div className="absolute top-2 right-2 z-30">
+                                        <div className="bg-slate-800/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                {voice.isSpeaking && (
+                                                    <span className="flex items-center gap-1.5 text-purple-400">
+                                                        <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                                                        AI Speaking
+                                                    </span>
+                                                )}
+                                                {voice.isListening && !voice.isSpeaking && (
+                                                    <span className="flex items-center gap-1.5 text-blue-400">
+                                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                                                        Listening
+                                                    </span>
+                                                )}
+                                                {isProcessing && !voice.isSpeaking && (
+                                                    <span className="flex items-center gap-1.5 text-yellow-400">
+                                                        <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                                                        Processing
+                                                    </span>
+                                                )}
+                                                {!voice.isSpeaking && !voice.isListening && !isProcessing && (
+                                                    <span className="flex items-center gap-1.5 text-green-400">
+                                                        <span className="w-2 h-2 bg-green-400 rounded-full" />
+                                                        Ready
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            {/* Stop AI Speaking Button - High Visibility */}
-                            {voice.isSpeaking && (
-                                <div className="z-50 w-full flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                    <Button
-                                        size="lg"
-                                        onClick={voice.stopSpeaking}
-                                        className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-xl shadow-red-900/40 transition-all px-8 rounded-full"
-                                    >
-                                        <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
-                                    </Button>
-                                </div>
-                            )}
+                                    {/* Status Indicator */}
+                                    <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
+                                        <p className="text-xs font-bold text-white tracking-wide">
+                                            {voice.isListening ? "I'M LISTENING..." :
+                                                isProcessing ? "THINKING..." :
+                                                    voice.isSpeaking ? "AI IS SPEAKING..." :
+                                                        "READY FOR YOU"}
+                                        </p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <div className={cn(
+                                                "w-1 h-1 rounded-full animate-pulse",
+                                                voice.isListening ? "bg-blue-500" : "bg-slate-600"
+                                            )} />
+                                            <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
+                                                {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            {/* Transcript Area */}
-                            <div className="w-full space-y-3 px-1 lg:px-4 flex-1 min-h-0 flex flex-col">
-                                <div className="flex justify-between items-center px-1">
-                                    <label className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
-                                    {(voice.transcript || voice.interimTranscript) && (
-                                        <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
+                                    {/* Microphone / Interactions */}
+                                    {!readOnly && (
+                                        <div className="flex justify-center pb-6">
+                                            <MicrophoneButton
+                                                isListening={voice.isListening}
+                                                onClick={() => {
+                                                    if (voice.isListening) {
+                                                        voice.stopListening();
+                                                    } else if (!isProcessing && !voice.isSpeaking) {
+                                                        voice.startListening();
+                                                    }
+                                                }}
+                                                disabled={isProcessing || voice.isSpeaking}
+                                                className={cn(
+                                                    "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
+                                                    voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                                )}
+                                            />
+                                        </div>
                                     )}
-                                </div>
-                                <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden flex flex-col relative">
-                                    <div className="absolute inset-0 p-1">
-                                        <TranscriptViewer
-                                            transcript={voice.transcript}
-                                            interimTranscript={voice.interimTranscript}
-                                            isEditable={false}
-                                        />
+
+                                    {/* Read-Only Banner */}
+                                    {readOnly && (
+                                        <div className="flex justify-center pb-6">
+                                            <div className="bg-slate-800/80 px-4 py-2 rounded-full border border-slate-700 text-slate-400 text-sm font-medium flex items-center gap-2">
+                                                <BookOpen className="w-4 h-4" />
+                                                Session Completed (Read-Only)
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Stop AI Speaking Button - High Visibility */}
+                                    {voice.isSpeaking && (
+                                        <div className="z-50 w-full flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                            <Button
+                                                size="lg"
+                                                onClick={voice.stopSpeaking}
+                                                className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-xl shadow-red-900/40 transition-all px-8 rounded-full"
+                                            >
+                                                <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Transcript Area */}
+                                    <div className="w-full space-y-3 px-1 lg:px-4 flex-1 min-h-0 flex flex-col">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
+                                            {(voice.transcript || voice.interimTranscript) && (
+                                                <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden flex flex-col relative">
+                                            <div className="absolute inset-0 p-1">
+                                                <TranscriptViewer
+                                                    transcript={voice.transcript}
+                                                    interimTranscript={voice.interimTranscript}
+                                                    isEditable={false}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {voice.transcript && !voice.isListening && (
+                                            <Button
+                                                className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 lg:h-10 text-xs shadow-lg shadow-blue-900/20"
+                                                onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
+                                                disabled={isProcessing}
+                                            >
+                                                <Send className="w-3 h-3 mr-2" /> Send Message
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
-
-                                {voice.transcript && !voice.isListening && (
-                                    <Button
-                                        className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 lg:h-10 text-xs shadow-lg shadow-blue-900/20"
-                                        onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
-                                        disabled={isProcessing}
-                                    >
-                                        <Send className="w-3 h-3 mr-2" /> Send Message
-                                    </Button>
-                                )}
                             </div>
-                        </div>
-                    </div>
+                        )}
+
+                        {/* Code Editor Mode */}
+                        {showCodeEditor && (
+                            <div className="flex-1 flex flex-col gap-3 p-4 h-full">
+                                <CodeEditor
+                                    onCodeChange={setUserCode}
+                                    defaultLanguage={codeLanguage}
+                                    initialCode={userCode}
+                                />
+                                <Button
+                                    onClick={() => shareCodeWithAI(userCode)}
+                                    disabled={!userCode.trim() || isProcessing}
+                                    className="bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-900/20"
+                                >
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Share Code with Kai
+                                </Button>
+                            </div>
+                        )}
+                    </>
                 )}
             </CardContent>
         </Card>
@@ -551,6 +636,21 @@ export function InterviewSession({
 
     return (
         <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
+            {/* Mobile Warning Modal */}
+            {showMobileWarning && (
+                <MobileWarning
+                    onContinue={() => {
+                        setShowMobileWarning(false);
+                        // Force switch if they insist, but warning was shown
+                        // Note: Code editor is mostly unusable on mobile but we let them try
+                        setShowCodeEditor(true);
+                        // For mobile tab switching, we might handle differently if using Tabs
+                        // But for now let's just close warning
+                    }}
+                    onExit={() => setShowMobileWarning(false)}
+                />
+            )}
+
             {isAnalyzing && <AssessmentLoader />}
             {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
             {voice.error && (
@@ -666,7 +766,7 @@ export function InterviewSession({
 
                     // Only trigger if horizontal swipe is dominant (> 60px) and more horizontal than vertical
                     if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-                        const tabs = ['problem', 'interview', 'chat'];
+                        const tabs = ['problem', 'interview', 'code', 'chat'];
                         const currentIndex = tabs.indexOf(activeTab);
 
                         if (diffX > 0 && currentIndex > 0) {
@@ -695,6 +795,29 @@ export function InterviewSession({
                             </div>
                         </TabsContent>
 
+                        {/* CODE TAB */}
+                        <TabsContent value="code" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
+                            <div className="p-3 pb-6 min-h-full flex flex-col">
+                                <Card className="flex-1 bg-slate-900/30 border-slate-800/50 p-2">
+                                    <div className="h-full flex flex-col gap-3">
+                                        <CodeEditor
+                                            onCodeChange={setUserCode}
+                                            defaultLanguage={codeLanguage}
+                                            initialCode={userCode}
+                                        />
+                                        <Button
+                                            onClick={() => shareCodeWithAI(userCode)}
+                                            disabled={!userCode.trim() || isProcessing}
+                                            className="bg-green-600 hover:bg-green-500 text-white font-bold"
+                                        >
+                                            <Send className="w-4 h-4 mr-2" />
+                                            Share Code with Kai
+                                        </Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        </TabsContent>
+
                         {/* PROBLEM TAB */}
                         <TabsContent value="problem" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
                             <div className="p-3 pb-6 min-h-full">
@@ -710,10 +833,9 @@ export function InterviewSession({
                         </TabsContent>
                     </div>
 
-                    {/* Bottom Floating Tab Bar - Fixed Outside the scroll area */}
                     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
                         <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-1.5 ring-1 ring-white/10">
-                            <TabsList className="w-full h-12 bg-transparent grid grid-cols-3 gap-1">
+                            <TabsList className="w-full h-12 bg-transparent grid grid-cols-4 gap-1">
                                 <TabsTrigger value="problem" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <BookOpen className="w-4 h-4" />
                                     <span className="text-[10px] font-bold">Problem</span>
@@ -721,6 +843,19 @@ export function InterviewSession({
                                 <TabsTrigger value="interview" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <Mic className="w-4 h-4" />
                                     <span className="text-[10px] font-bold">Interview</span>
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="code"
+                                    onClick={(e) => {
+                                        if (isMobileDevice()) {
+                                            e.preventDefault();
+                                            setShowMobileWarning(true);
+                                        }
+                                    }}
+                                    className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300"
+                                >
+                                    <Code className="w-4 h-4" />
+                                    <span className="text-[10px] font-bold">Code</span>
                                 </TabsTrigger>
                                 <TabsTrigger value="chat" className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300">
                                     <MessageSquare className="w-4 h-4" />

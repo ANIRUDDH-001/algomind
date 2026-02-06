@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FlaskConical, RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 import { VoiceSettings } from './VoiceSettings';
 
@@ -34,8 +35,12 @@ export function SettingsPanel() {
             enableDemoMode();
             toast.success('Demo mode enabled');
         }
-        setDemoMode(!demoMode);
-        setDemoMode(!demoMode);
+        const newMode = !demoMode;
+        setDemoMode(newMode);
+
+        // Emit custom event for DemoBanner to react immediately
+        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: newMode } }));
+
         router.refresh();
     };
 
@@ -202,13 +207,23 @@ export function SettingsPanel() {
                                 <p className="text-sm text-slate-400">Load sample data for presentations</p>
                             </div>
                         </div>
-                        <Button
+                        {/* Toggle Switch */}
+                        <button
                             onClick={toggleDemoMode}
-                            variant={demoMode ? 'default' : 'outline'}
-                            className={demoMode ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                            className={cn(
+                                "relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+                                demoMode ? "bg-purple-600" : "bg-slate-700"
+                            )}
+                            role="switch"
+                            aria-checked={demoMode}
                         >
-                            {demoMode ? 'Enabled' : 'Enable'}
-                        </Button>
+                            <span
+                                className={cn(
+                                    "absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300",
+                                    demoMode ? "left-8" : "left-1"
+                                )}
+                            />
+                        </button>
                     </div>
 
                     {/* Reset Onboarding */}

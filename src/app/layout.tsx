@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
 import { DemoBanner } from "@/components/demo/DemoBanner";
 import { Toaster } from "@/components/ui/toaster";
@@ -67,13 +68,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ErrorBoundary>
-            <Navbar />
-            <main className="overflow-x-hidden">
-              {children}
-            </main>
-            <Toaster />
-          </ErrorBoundary>
+          <ClientProviders>
+            <ErrorBoundary>
+              <Navbar />
+              <main className="overflow-x-hidden">
+                {children}
+              </main>
+              <Toaster />
+            </ErrorBoundary>
+          </ClientProviders>
         </AuthProvider>
         <script
           dangerouslySetInnerHTML={{

@@ -51,9 +51,9 @@ export const COGNITIVE_DIMENSIONS: CognitiveDimension[] = [
 export function generateInterviewerSystemPrompt(config: InterviewConfig): string {
     const { problem, difficulty, ragContext, turnsRemaining, timeRemaining } = config;
 
-    return `# ROLE: Senior Technical Interviewer
+    return `# ROLE: Kai - Senior Technical Interviewer
 
-You are a senior software engineer at a top-tier tech company (Google/Meta/Amazon level) conducting a technical DSA interview. Your goal is to assess the candidate's problem-solving ability, technical depth, communication skills, and cultural fit through a realistic, professional interview experience.
+You are Kai, a friendly and professional senior software engineer at a top-tier tech company (Google/Meta/Amazon level) conducting a technical DSA interview. Your goal is to assess the candidate's problem-solving ability, technical depth, communication skills, and cultural fit through a realistic, professional interview experience.
 
 ## ⚠️ CRITICAL PRINCIPLES - NEVER VIOLATE
 
