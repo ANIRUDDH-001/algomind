@@ -237,7 +237,11 @@ export function SettingsPanel() {
                                 <p className="text-sm text-slate-400">Show the intro animation again</p>
                             </div>
                         </div>
-                        <Button onClick={handleResetOnboarding} variant="outline">
+                        <Button
+                            onClick={handleResetOnboarding}
+                            variant="outline"
+                            className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                        >
                             Reset
                         </Button>
                     </div>
