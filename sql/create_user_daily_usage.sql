@@ -43,7 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_user_daily_usage_date ON user_daily_usage(date);
 CREATE INDEX IF NOT EXISTS idx_user_daily_usage_user_date ON user_daily_usage(user_id, date);
 
 -- Helper function to check and increment daily usage
-CREATE OR REPLACE FUNCTION check_and_increment_usage(p_user_id UUID, p_limit INTEGER DEFAULT 5)
+-- Renamed to match TypeScript call: check_user_rate_limit
+CREATE OR REPLACE FUNCTION check_user_rate_limit(p_user_id UUID, p_limit INTEGER DEFAULT 5)
 RETURNS TABLE(allowed BOOLEAN, remaining INTEGER, is_admin BOOLEAN)
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -77,7 +78,7 @@ BEGIN
     
     -- Check if under limit
     IF v_current_usage < p_limit THEN
-        RETURN QUERY SELECT TRUE, p_limit - v_current_usage - 1, FALSE;
+        RETURN QUERY SELECT TRUE, p_limit - v_current_usage, FALSE;
     ELSE
         RETURN QUERY SELECT FALSE, 0, FALSE;
     END IF;
@@ -85,7 +86,8 @@ END;
 $$;
 
 -- Function to record a question
-CREATE OR REPLACE FUNCTION record_question(p_user_id UUID)
+-- Renamed to match TypeScript call: record_user_question
+CREATE OR REPLACE FUNCTION record_user_question(p_user_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -98,6 +100,23 @@ BEGIN
 END;
 $$;
 
+-- Simple RPC to check if current user is admin
+-- Drop first to avoid return type conflicts if it changed
+DROP FUNCTION IF EXISTS is_admin();
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM admin_users 
+        WHERE email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    );
+END;
+$$;
+
 COMMENT ON TABLE user_daily_usage IS 'Tracks daily question usage for rate limiting (5 questions/day per user)';
-COMMENT ON FUNCTION check_and_increment_usage IS 'Checks if user can ask more questions today, admins are exempt';
-COMMENT ON FUNCTION record_question IS 'Records a question usage for the user';
+COMMENT ON FUNCTION check_user_rate_limit(UUID, INTEGER) IS 'Checks if user can ask more questions today, admins are exempt';
+COMMENT ON FUNCTION record_user_question(UUID) IS 'Records a question usage for the user';
+COMMENT ON FUNCTION is_admin() IS 'Checks if the calling user is an admin';

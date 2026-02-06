@@ -78,14 +78,9 @@ export function InterviewSession({
     const questionRecordedRef = React.useRef(false);
 
     // Debugging and Reset on Problem Change
-    console.log('[InterviewSession RENDER] Props:', {
-        problemId: problem.id,
-        initialTranscriptLen: initialTranscript?.length,
-        readOnly
-    });
+    // Logs removed for production cleanliness
 
     useEffect(() => {
-        console.log('Rendering InterviewSession for problem:', problem.id, problem.title);
         // Reset local and hook state when problem changes
         setHasStarted(false);
         setError(null);
@@ -95,15 +90,7 @@ export function InterviewSession({
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
-        console.log('[InterviewSession] Checking transcript load:', {
-            readOnly,
-            hasInitialTranscript: !!initialTranscript,
-            transcriptLength: initialTranscript?.length,
-            alreadyLoaded: transcriptLoadedRef.current
-        });
-
         if (readOnly && initialTranscript && initialTranscript.length > 0 && !transcriptLoadedRef.current) {
-            console.log('📖 [SESSION] Loading read-only transcript:', initialTranscript.length, 'messages');
             const msgs = initialTranscript.map(t => ({
                 role: t.role as 'user' | 'assistant' | 'system',
                 content: t.content,

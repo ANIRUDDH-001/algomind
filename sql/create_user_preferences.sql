@@ -5,8 +5,9 @@
 CREATE TABLE IF NOT EXISTS user_preferences (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    voice_name TEXT DEFAULT 'Google US English',
-    voice_rate DECIMAL(3,2) DEFAULT 1.1,
+    preferred_voice_name TEXT DEFAULT 'Google US English',
+    preferred_voice_lang TEXT DEFAULT 'en-US',
+    voice_rate DECIMAL(3,2) DEFAULT 1.0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id)

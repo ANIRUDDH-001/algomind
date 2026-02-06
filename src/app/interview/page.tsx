@@ -19,13 +19,7 @@ function InterviewContent() {
     const isGuest = !user;
     const userId = user?.id || null;
 
-    console.log('[InterviewPage RENDER] State:', {
-        problemId,
-        sessionId,
-        historyCount: history.length,
-        hasHistory: history.length > 0,
-        isGuest
-    });
+    // console.log('[InterviewPage RENDER] State:', { ... });
 
     const [problem, setProblem] = useState<(Problem & { ragContext?: string }) | null>(null);
     const [loading, setLoading] = useState(true);
@@ -37,9 +31,7 @@ function InterviewContent() {
     const initialTranscript = session?.transcript;
 
     useEffect(() => {
-        console.log('[InterviewPage] History updated:', history.length, 'sessions');
-        console.log('[InterviewPage] SessionId:', sessionId);
-        console.log('[InterviewPage] Found session:', !!session);
+        // console.log('[InterviewPage] History updated:', history.length, 'sessions');
     }, [history, sessionId, session]);
 
     useEffect(() => {

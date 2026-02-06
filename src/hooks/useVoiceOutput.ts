@@ -52,7 +52,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                     const bestVoice = findBestMatchingVoice(processed, prefs.preferredVoiceName);
 
                     if (bestVoice && (!currentVoice || currentVoice.name !== bestVoice.name)) {
-                        console.log("🔊 [VoiceOutput] Applied voice:", bestVoice.name, "Rate:", prefs.voiceRate);
+                        // console.log("🔊 [VoiceOutput] Applied voice:", bestVoice.name, "Rate:", prefs.voiceRate);
                         setCurrentVoice(bestVoice);
                     }
                 } catch (e) {

@@ -45,18 +45,17 @@ export function useAdmin() {
                 return;
             }
 
-            // Check if user email is in admin_users table
-            const { data, error: dbError } = await supabase
-                .from('admin_users')
-                .select('email')
-                .eq('email', user.email)
-                .single();
+            // Check if user email is in admin_users table via RPC
+            // This avoids RLS issues and 406 errors with direct table access
+            const { data, error: dbError } = await supabase.rpc('is_admin');
 
-            if (dbError && dbError.code !== 'PGRST116') { // PGRST116 = no rows returned
+            if (dbError) {
                 console.warn('Admin check error:', dbError);
+                // Fallback (fails safe)
+                setIsAdmin(false);
+            } else {
+                setIsAdmin(!!data);
             }
-
-            setIsAdmin(!!data);
         } catch (err) {
             console.error('Failed to check admin status:', err);
             setError(err instanceof Error ? err.message : 'Unknown error');
