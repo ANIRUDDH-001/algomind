@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
+import { getProcesedVoices, findBestMatchingVoice } from '@/lib/voice/voice-utils';
+import { getUserPreferences } from '@/lib/supabase/user-preferences';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface VoiceOutputOptions {
     voice?: SpeechSynthesisVoice;
@@ -12,6 +15,7 @@ interface VoiceOutputOptions {
 }
 
 export function useVoiceOutput(options: VoiceOutputOptions = {}) {
+    const { user } = useAuth();
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -22,42 +26,50 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const queueRef = useRef<string[]>([]);
     const processingRef = useRef(false);
 
+    // Load voices and apply preferences
     useEffect(() => {
         if (typeof window !== 'undefined' && window.speechSynthesis) {
-            const updateVoices = () => {
-                const voices = window.speechSynthesis.getVoices();
-                setAvailableVoices(voices);
+            const updateVoicesAndPrefs = async () => {
+                // 1. Get raw voices
+                const rawVoices = window.speechSynthesis.getVoices();
 
-                // Priority 1: User's saved preference (if provided)
-                // Priority 2: English voices (to avoid Hindi number pronunciation)
-                // Priority 3: Hindi as fallback option
-                const preferred = voices.find(v =>
-                    v.name.includes("Google US English")
-                ) || voices.find(v =>
-                    v.name.includes("Microsoft Zira") ||
-                    v.name.includes("Samantha") ||
-                    v.name.includes("Microsoft David")
-                ) || voices.find(v =>
-                    v.lang.startsWith('en-') && v.name.includes('Google')
-                ) || voices.find(v =>
-                    v.lang.startsWith('en-US')
-                ) || voices.find(v =>
-                    v.lang.startsWith('en-')
-                ) || voices.find(v =>
-                    // Hindi as last resort option
-                    v.lang.startsWith('hi') || v.name.includes('Hindi')
-                );
+                // 2. Process/Deduplicate using shared logic
+                const processed = getProcesedVoices(rawVoices);
+                setAvailableVoices(processed);
 
-                if (preferred && !currentVoice) {
-                    console.log("Selected Voice:", preferred.name, preferred.lang);
-                    setCurrentVoice(preferred);
+                if (processed.length === 0) return;
+
+                // 3. Load User Preferences (Voice & Rate)
+                try {
+                    const prefs = await getUserPreferences(user?.id || null);
+
+                    // Apply Speed
+                    setRate(prefs.voiceRate || 1.0);
+
+                    // Apply Voice
+                    // If we have a preferred name, try to find it
+                    // Otherwise fall back to best default
+                    const bestVoice = findBestMatchingVoice(processed, prefs.preferredVoiceName);
+
+                    if (bestVoice && (!currentVoice || currentVoice.name !== bestVoice.name)) {
+                        console.log("🔊 [VoiceOutput] Applied voice:", bestVoice.name, "Rate:", prefs.voiceRate);
+                        setCurrentVoice(bestVoice);
+                    }
+                } catch (e) {
+                    console.warn("Failed to load voice preferences in interview:", e);
+                    // Fallback to best available
+                    const best = findBestMatchingVoice(processed, null);
+                    if (best) setCurrentVoice(best);
                 }
             };
 
-            updateVoices();
-            window.speechSynthesis.onvoiceschanged = updateVoices;
+            // Run immediately
+            updateVoicesAndPrefs();
+
+            // And on change
+            window.speechSynthesis.onvoiceschanged = updateVoicesAndPrefs;
         }
-    }, [currentVoice]);
+    }, [user, options.rate]); // Removed currentVoice dependency to avoid loops, relying on explicit check
 
     const speakChunk = useCallback((text: string) => {
         return new Promise<void>((resolve) => {
