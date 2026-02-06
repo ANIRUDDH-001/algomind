@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { enableDemoMode, disableDemoMode, isDemoMode } from '@/lib/demo/manager';
-import { resetOnboarding } from '@/lib/onboarding/manager';
+import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { VoiceSettings } from './VoiceSettings';
 
 export function SettingsPanel() {
     const [demoMode, setDemoMode] = useState(false);
+    const [introEnabled, setIntroEnabled] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     const { user, signOut, isConfigured } = useAuth();
@@ -25,6 +26,7 @@ export function SettingsPanel() {
     useEffect(() => {
         setMounted(true);
         setDemoMode(isDemoMode());
+        setIntroEnabled(shouldShowOnboarding());
     }, []);
 
     const toggleDemoMode = () => {
@@ -44,10 +46,15 @@ export function SettingsPanel() {
         router.refresh();
     };
 
-    const handleResetOnboarding = () => {
-        resetOnboarding();
-        toast.success('Onboarding reset! Redirecting...');
-        setTimeout(() => window.location.href = '/', 1000);
+    const toggleIntro = () => {
+        if (introEnabled) {
+            markOnboardingComplete();
+            toast.success('Intro animation disabled for next visit');
+        } else {
+            resetOnboarding();
+            toast.success('Intro animation enabled for next visit');
+        }
+        setIntroEnabled(!introEnabled);
     };
 
     const handleClearData = async () => {
@@ -226,24 +233,34 @@ export function SettingsPanel() {
                         </button>
                     </div>
 
-                    {/* Reset Onboarding */}
+                    {/* Intro Animation Toggle */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-blue-500/20">
                                 <RotateCcw className="w-5 h-5 text-blue-400" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-white">Reset Onboarding</h3>
-                                <p className="text-sm text-slate-400">Show the intro animation again</p>
+                                <h3 className="font-semibold text-white">Intro Animation</h3>
+                                <p className="text-sm text-slate-400">Show welcome animation on startup</p>
                             </div>
                         </div>
-                        <Button
-                            onClick={handleResetOnboarding}
-                            variant="outline"
-                            className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+                        {/* Toggle Switch */}
+                        <button
+                            onClick={toggleIntro}
+                            className={cn(
+                                "relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+                                introEnabled ? "bg-blue-600" : "bg-slate-700"
+                            )}
+                            role="switch"
+                            aria-checked={introEnabled}
                         >
-                            Reset
-                        </Button>
+                            <span
+                                className={cn(
+                                    "absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300",
+                                    introEnabled ? "left-8" : "left-1"
+                                )}
+                            />
+                        </button>
                     </div>
                 </CardContent>
             </Card>
