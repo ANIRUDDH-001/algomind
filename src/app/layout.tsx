@@ -45,9 +45,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
     shortcut: "/favicon.svg",
-    apple: "/icon-192x192.png",
+    apple: [
+      { url: "/icon-192x192.png", sizes: "192x192" },
+    ],
   },
 };
 
