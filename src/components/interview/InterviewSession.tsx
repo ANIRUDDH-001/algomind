@@ -251,7 +251,7 @@ export function InterviewSession({
 
     // --- Sub-components to avoid code duplication between Mobile/Desktop ---
 
-    const ProblemCardContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+    const renderProblemCardContent = (isMobile = false) => {
         const leetcodeUrl = problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`;
 
         return (
@@ -321,7 +321,7 @@ export function InterviewSession({
     };
 
 
-    const CodeEditorToggle = () => (
+    const renderCodeEditorToggle = () => (
         <div className="flex gap-2 mb-2 px-6 lg:px-8 pt-4">
             <button
                 onClick={() => setShowCodeEditor(false)}
@@ -356,14 +356,14 @@ export function InterviewSession({
         </div>
     );
 
-    const InteractionArea = ({ isMobile = false }) => (
+    const renderInteractionArea = (isMobile = false) => (
         <Card className={cn(
             "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
             !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto min-h-[400px] shrink-0"
         )}>
             <CardContent className="p-0 flex-1 flex flex-col h-full">
                 {/* Mode Toggle (when interview started) */}
-                {hasStarted && !readOnly && !isMobile && <CodeEditorToggle />}
+                {hasStarted && !readOnly && !isMobile && renderCodeEditorToggle()}
 
                 {!hasStarted ? (
                     <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
@@ -577,7 +577,7 @@ export function InterviewSession({
         </Card>
     );
 
-    const ControlsCard = () => (
+    const renderControlsCard = () => (
         <Card className="shrink-0 bg-slate-900/30 backdrop-blur-sm border-slate-800/50 p-2.5 lg:p-4">
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -612,7 +612,7 @@ export function InterviewSession({
         </Card>
     );
 
-    const HistoryArea = ({ isMobile = false }: { isMobile?: boolean }) => (
+    const renderHistoryArea = (isMobile = false) => (
         <div className={cn("flex flex-col", !isMobile ? "h-full" : "h-auto min-h-[60vh]")}>
             <div className="mb-2 flex justify-between items-center px-1">
                 <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Interview History</h2>
@@ -788,9 +788,9 @@ export function InterviewSession({
                         {/* INTERVIEW TAB */}
                         <TabsContent value="interview" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
                             <div className="p-3 pb-6 min-h-full">
-                                <InteractionArea isMobile={true} />
+                                {renderInteractionArea(true)}
                                 <div className="mt-4">
-                                    <ControlsCard />
+                                    {renderControlsCard()}
                                 </div>
                             </div>
                         </TabsContent>
@@ -821,14 +821,14 @@ export function InterviewSession({
                         {/* PROBLEM TAB */}
                         <TabsContent value="problem" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
                             <div className="p-3 pb-6 min-h-full">
-                                <ProblemCardContent isMobile={true} />
+                                {renderProblemCardContent(true)}
                             </div>
                         </TabsContent>
 
                         {/* CHAT TAB */}
                         <TabsContent value="chat" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
                             <div className="p-2 pb-6 min-h-full">
-                                <HistoryArea isMobile={true} />
+                                {renderHistoryArea(true)}
                             </div>
                         </TabsContent>
                     </div>
@@ -875,9 +875,9 @@ export function InterviewSession({
                     <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-problem">
                         <div className="flex flex-col gap-4 h-full p-2">
                             <div className="flex-1 min-h-0 overflow-hidden">
-                                <ProblemCardContent />
+                                {renderProblemCardContent()}
                             </div>
-                            <ControlsCard />
+                            {renderControlsCard()}
                         </div>
                     </ResizablePanel>
 
@@ -886,7 +886,7 @@ export function InterviewSession({
                     {/* Center Panel: Interaction */}
                     <ResizablePanel defaultSize="50" minSize="30" id="panel-interaction">
                         <div className="h-full p-2">
-                            <InteractionArea />
+                            {renderInteractionArea()}
                         </div>
                     </ResizablePanel>
 
@@ -895,7 +895,7 @@ export function InterviewSession({
                     {/* Right Panel: History */}
                     <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-history">
                         <div className="h-full p-2">
-                            <HistoryArea />
+                            {renderHistoryArea()}
                         </div>
                     </ResizablePanel>
 

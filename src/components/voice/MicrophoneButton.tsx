@@ -40,13 +40,8 @@ export function MicrophoneButton({
                             onClick={onClick}
                             disabled={disabled}
                         >
-                            {/* Pulse animation ring when listening */}
-                            {isListening && (
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-20 duration-1000" />
-                            )}
-
                             {isListening ? (
-                                <Mic className="h-8 w-8 text-white animate-pulse" />
+                                <Mic className="h-8 w-8 text-white" />
                             ) : (
                                 <MicOff className={cn("h-8 w-8", error ? "text-red-500" : "text-gray-500")} />
                             )}
@@ -62,11 +57,6 @@ export function MicrophoneButton({
             <Badge variant={isListening ? "default" : "secondary"} className={cn(isListening ? "bg-blue-100 text-blue-800 hover:bg-blue-200" : "")}>
                 {isListening ? "Listening..." : "Click to Speak"}
             </Badge>
-
-            {/* Helper text */}
-            <span className="text-xs text-muted-foreground hidden sm:inline-block">
-                (Space to toggle)
-            </span>
         </div>
     );
 }
