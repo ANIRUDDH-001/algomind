@@ -162,10 +162,7 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
     // --- Sub-components to avoid code duplication between Mobile/Desktop ---
 
     const ProblemCardContent = ({ isMobile = false }: { isMobile?: boolean }) => {
-        // Debug: Log the external_url on render
         const leetcodeUrl = problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`;
-        console.log('🔗 [LINK DEBUG] Problem external_url:', problem.external_url);
-        console.log('🔗 [LINK DEBUG] Final leetcode URL:', leetcodeUrl);
 
         return (
             <Card className={cn(
@@ -191,13 +188,8 @@ export function InterviewSession({ problem, initialTranscript, readOnly = false 
                             href={leetcodeUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => {
-                                console.log('🔗 [LINK DEBUG] Link clicked!');
-                                console.log('🔗 [LINK DEBUG] href:', leetcodeUrl);
-                                console.log('🔗 [LINK DEBUG] event:', e);
-                                // Don't prevent default - let the link open
-                            }}
                             className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg text-[11px] font-bold text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:from-blue-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-blue-500/10"
+
                         >
                             🔗 Practice on LeetCode
                         </a>

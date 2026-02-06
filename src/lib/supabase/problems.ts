@@ -46,14 +46,12 @@ export async function getRandomProblem(
             return null;
         }
 
-        console.log('🎲 [RANDOM] Got random problem ID:', randomProblem.id);
+
 
         // Now fetch the full problem with all columns including external_url
         const fullProblem = await getProblemById(randomProblem.id);
 
-        if (fullProblem) {
-            console.log('🎲 [RANDOM] Full problem external_url:', fullProblem.external_url);
-        }
+
 
         return fullProblem;
     } catch (error) {
