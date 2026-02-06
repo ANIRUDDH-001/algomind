@@ -55,7 +55,7 @@ export function InterviewSession({
         voice
     } = useInterview();
 
-    const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
+    const { analyzeSession, isAnalyzing, result, error: assessmentError, reset: resetAssessment } = useAssessment();
     const { addSession } = useProgress();
 
     // Interview limits and guest trial hooks
@@ -125,12 +125,27 @@ export function InterviewSession({
             return;
         }
 
-        console.log("Starting analysis flow...");
+        setError(null); // Clear any previous errors
+        console.log("🚀 Starting analysis flow...");
+        console.log("📝 Messages count:", messages.length);
+
         // Trigger Analysis
         const transcript = messages.map(m => ({ role: m.role, content: m.content }));
-        const assessment = await analyzeSession(`sess-${Date.now()}`, { title: problem.title, description: problem.description, difficulty: problem.difficulty }, transcript);
+        console.log("📋 Transcript prepared:", transcript.length, "entries");
 
-        if (assessment) {
+        try {
+            const assessment = await analyzeSession(
+                `sess-${Date.now()}`,
+                { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
+                transcript
+            );
+
+            if (!assessment) {
+                console.error("❌ Analysis returned null - check assessmentError state");
+                setError("Assessment failed. Please try again or check the console for details.");
+                return;
+            }
+
             console.log("✅ Analysis successful, saving to progress store...");
             const store = new ProgressStore();
             const skillScores: any = {};
@@ -163,6 +178,9 @@ export function InterviewSession({
             } else {
                 console.log("📝 Guest session - not saved to history");
             }
+        } catch (err: any) {
+            console.error("❌ Assessment error:", err);
+            setError(err.message || "Failed to analyze interview. Please try again.");
         }
 
         // Stop timer

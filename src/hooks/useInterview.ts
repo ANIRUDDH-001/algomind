@@ -218,15 +218,20 @@ export function useInterview() {
 
     // INTELLIGENT MIC SYNC: Stop listening when AI speaks, Resume when done
     // Controlled by isMicEnabled
+    // Use a ref to track if we've already attempted to resume in this "AI finished" cycle
+    const micResumeAttemptedRef = useRef(false);
+
     useEffect(() => {
         if ((state as string) === 'idle') {
             if (isListening) stopListening();
+            micResumeAttemptedRef.current = false;
             return;
         }
 
         // If User Manually Disabled Mic -> Ensure Stopped
         if (!isMicEnabled) {
             if (isListening) stopListening();
+            micResumeAttemptedRef.current = false;
             return;
         }
 
@@ -236,11 +241,16 @@ export function useInterview() {
                 console.log('🛑 [MIC] Stopping - AI is speaking or processing');
                 stopListening();
             }
+            // Reset the resume flag when AI starts speaking/processing
+            micResumeAttemptedRef.current = false;
             return; // Don't proceed to start logic
         }
 
         // Mic is Enabled (Intent) AND AI is not speaking/processing: Resume Mic
-        if (!isListening) {
+        // CRITICAL: Only attempt once per "AI finished" cycle to prevent loop
+        if (!isListening && !micResumeAttemptedRef.current) {
+            micResumeAttemptedRef.current = true; // Mark that we're attempting
+
             // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
             const timer = setTimeout(() => {
                 // Double-check conditions haven't changed during timeout
@@ -254,7 +264,7 @@ export function useInterview() {
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isListening, isProcessing, startListening, stopListening, state, isMicEnabled]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, state, isMicEnabled, resetTranscript]);
 
     // State Logging for Debugging
     useEffect(() => {
