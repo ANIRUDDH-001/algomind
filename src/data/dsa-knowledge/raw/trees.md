@@ -1,51 +1,137 @@
-# Trees & Graphs
+# Trees
 
-## Binary Trees
-A hierarchical structure where each node has at most two children.
+## Tree Traversals
 
-### Traversal Algorithms (DFS)
-- **Pre-order:** Root -> Left -> Right
-- **In-order:** Left -> Root -> Right (Sorted for BST)
-- **Post-order:** Left -> Right -> Root
+### Depth-First Traversals
 
-### Breadth First Search (BFS)
-Level-order traversal using a Queue.
+#### Inorder (Left-Root-Right)
+BST property: Returns sorted order.
 
-**Algorithm:**
-- Push root to queue.
-- While queue not empty:
-  - Dequeue node, process it.
-  - Enqueue left child.
-  - Enqueue right child.
+```python
+def inorder(root):
+    if not root:
+        return []
+    return inorder(root.left) + [root.val] + inorder(root.right)
 
-**Examples:**
-- Level Order Traversal
-- Right Side View
-- Zigzag Level Order Traversal
+# Iterative version
+def inorder_iterative(root):
+    stack = []
+    result = []
+    current = root
+    
+    while current or stack:
+        while current:
+            stack.append(current)
+            current = current.left
+        
+        current = stack.pop()
+        result.append(current.val)
+        current = current.right
+    
+    return result
+```
+
+#### Preorder (Root-Left-Right)
+Use case: Copying tree, prefix expression, serialization.
+
+```python
+def preorder(root):
+    if not root:
+        return []
+    return [root.val] + preorder(root.left) + preorder(root.right)
+```
+
+#### Postorder (Left-Right-Root)
+Use case: Deleting tree, postfix expression, calculating heights.
+
+```python
+def postorder(root):
+    if not root:
+        return []
+    return postorder(root.left) + postorder(root.right) + [root.val]
+```
+
+### Breadth-First (Level-Order)
+
+```python
+from collections import deque
+
+def levelorder(root):
+    if not root:
+        return []
+    
+    result = []
+    queue = deque([root])
+    
+    while queue:
+        level_size = len(queue)
+        level = []
+        
+        for _ in range(level_size):
+            node = queue.popleft()
+            level.append(node.val)
+            
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        
+        result.append(level)
+    
+    return result
+```
+
+Use case: Level-by-level processing, shortest path in tree, right side view.
 
 ## Binary Search Tree (BST)
-A binary tree where left child < root < right child.
-- Search/Insert/Delete: O(log n) average.
 
-## Graphs
-Nodes connected by edges. Can be directed/undirected, weighted/unweighted.
+BST Property: For every node, all values in left subtree < node.val < all values in right subtree.
 
-### Depth First Search (DFS)
-Explore as deep as possible before backtracking.
-- Use Stack or Recursion.
-- Keep `visited` set to avoid cycles.
+### Search: O(log n) average, O(n) worst
+```python
+def search_bst(root, target):
+    if not root:
+        return None
+    
+    if target == root.val:
+        return root
+    elif target < root.val:
+        return search_bst(root.left, target)
+    else:
+        return search_bst(root.right, target)
+```
 
-**Use Cases:**
-- Finding connected components
-- Topological Sort
-- Cycle detection
+### Insert: O(log n) average
+```python
+def insert_bst(root, val):
+    if not root:
+        return TreeNode(val)
+    
+    if val < root.val:
+        root.left = insert_bst(root.left, val)
+    else:
+        root.right = insert_bst(root.right, val)
+    
+    return root
+```
 
-### Breadth First Search (BFS)
-Explore neighbors first.
-- Use Queue.
-- Finds Shortest Path in unweighted graph.
+### Validate BST
+```python
+def is_valid_bst(root, min_val=float('-inf'), max_val=float('inf')):
+    if not root:
+        return True
+    
+    if root.val <= min_val or root.val >= max_val:
+        return False
+    
+    return (is_valid_bst(root.left, min_val, root.val) and
+            is_valid_bst(root.right, root.val, max_val))
+```
 
-**Use Cases:**
-- Shortest Path in Binary Matrix
-- Level of check
-- Social Network Connections
+## Complexity Analysis
+
+All traversals:
+- Time: O(n) - visit each node once
+- Space: O(h) for call stack (h = height)
+- Worst case: O(n) for skewed tree
+- Best case: O(log n) for balanced tree

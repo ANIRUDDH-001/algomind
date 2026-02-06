@@ -89,11 +89,11 @@ export const CHAT_MODELS: ModelConfig[] = [
 // Embedding Models
 export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
     {
-        id: "text-embedding-004",
+        id: "gemini-embedding-001",
         provider: 'gemini',
         rpm: 1500,
         dimensions: 768,
-        description: "Gemini text embedding - 768 dimensions"
+        description: "Gemini embedding - 768 dimensions (supports MRL scaling)"
     },
 ];
 

@@ -30,7 +30,7 @@ if (!GEMINI_API_KEY || GEMINI_API_KEY.startsWith('your_')) {
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 // --- Types ---
 interface KnowledgeChunk {
