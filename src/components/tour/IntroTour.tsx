@@ -51,21 +51,59 @@ export function IntroTour() {
         }
     };
 
-    // Update rect when step changes or window events occur
+    // Smart Polling & Resize Logic
     useEffect(() => {
-        if (isOpen && currentStep) {
-            // Immediate update
-            updateTargetRect();
+        if (!isOpen || !currentStep) return;
 
-            // Retry a few times for dynamic content
-            const timers = [
-                setTimeout(updateTargetRect, 200),
-                setTimeout(updateTargetRect, 500),
-                setTimeout(updateTargetRect, 1000)
-            ];
+        let pollingInterval: NodeJS.Timeout;
+        let stopPollingTimeout: NodeJS.Timeout;
+        let resizeObserver: ResizeObserver;
 
-            return () => timers.forEach(clearTimeout);
-        }
+        const cleanup = () => {
+            clearInterval(pollingInterval);
+            clearTimeout(stopPollingTimeout);
+            if (resizeObserver) resizeObserver.disconnect();
+        };
+
+        const checkTarget = () => {
+            if (currentStep.type === 'modal' || !currentStep.target) {
+                setTargetRect(null);
+                cleanup();
+                return;
+            }
+
+            const el = document.querySelector(currentStep.target);
+            if (el) {
+                // Found it!
+                setTargetRect(el.getBoundingClientRect());
+                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                // Start observing for size changes (Live Adaptation)
+                if (resizeObserver) resizeObserver.disconnect();
+                resizeObserver = new ResizeObserver(() => {
+                    setTargetRect(el.getBoundingClientRect());
+                });
+                resizeObserver.observe(el);
+
+                // Stop polling once found and observed
+                clearInterval(pollingInterval);
+            }
+        };
+
+        // 1. Immediate check
+        checkTarget();
+
+        // 2. Poll every 100ms for up to 10 seconds
+        pollingInterval = setInterval(checkTarget, 100);
+
+        // 3. Safety Timeout (10s) - Stop polling to save resources if never found
+        stopPollingTimeout = setTimeout(() => {
+            clearInterval(pollingInterval);
+            // If still not found, we could show a fallback message or just keep the overlay
+            // identifying that the target is missing.
+        }, 10000);
+
+        return cleanup;
     }, [isOpen, currentStep]);
 
     // Keyboard navigation

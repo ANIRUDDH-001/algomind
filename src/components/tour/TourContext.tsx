@@ -35,14 +35,18 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         const hasSkippedTour = localStorage.getItem('algomind_tour_skipped');
         const isNewUser = !hasCompletedTour && !hasSkippedTour;
 
+        // Robust Auto-Start Logic
         if (isNewUser && user) {
             setIsFirstVisit(true);
-            // Delay auto-start slightly for better UX
+
+            // Delay auto-start slightly for better UX and to ensure UI is ready
             const timer = setTimeout(() => {
                 setIsOpen(true);
                 setCurrentStepIndex(0); // Start at Welcome Modal
-            }, 1500);
+            }, 2000); // Increased to 2s to be safe
             return () => clearTimeout(timer);
+        } else if (!user) {
+            // User not yet loaded or guest, skipping auto-start
         }
     }, [loading, user]);
 
