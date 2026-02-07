@@ -184,6 +184,16 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         interimTranscript,
         startListening,
         stopListening,
+        abortListening: useCallback(() => {
+            shouldListenRef.current = false;
+            if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+            if (recognitionRef.current) {
+                try { recognitionRef.current.abort(); } catch (e) { }
+            }
+            setIsListening(false);
+            setTranscript('');
+            setInterimTranscript('');
+        }, []),
         resetTranscript,
         isSupported,
         error,

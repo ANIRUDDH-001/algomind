@@ -33,6 +33,7 @@ export function useInterview() {
         interimTranscript,
         startListening,
         stopListening,
+        abortListening,
         resetTranscript,
         error: voiceError,
         lastResultTime
@@ -228,7 +229,8 @@ export function useInterview() {
         // CRITICAL: Always stop mic immediately when AI is speaking OR processing
         if (isSpeaking || isProcessing) {
             if (isListening) {
-                stopListening();
+                // Use abort to immediately cut off stream and discard partial inputs (prevent echo)
+                abortListening();
             }
             // Reset the resume flag when AI starts speaking/processing
             micResumeAttemptedRef.current = false;

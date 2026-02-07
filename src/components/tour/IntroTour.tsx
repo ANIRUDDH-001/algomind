@@ -68,6 +68,27 @@ export function IntroTour() {
         }
     }, [isOpen, currentStep]);
 
+    // Keyboard navigation
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                skipTour();
+            }
+            if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                nextStep();
+            }
+            if (e.key === 'ArrowLeft') {
+                prevStep();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, nextStep, prevStep, skipTour]);
+
     if (!isMounted || !isOpen || !currentStep) return null;
 
     // Portal for rendering outside normal flow
@@ -128,35 +149,27 @@ export function IntroTour() {
         // --- 2. Spotlight Step ---
         return (
             <div className="fixed inset-0 z-[100] pointer-events-none">
-                {/* Spotlight Overlay */}
-                <div className="absolute inset-0 bg-transparent">
-                    {targetRect ? (
-                        <>
-                            {/* Top */}
-                            <div className="absolute top-0 left-0 right-0 bg-slate-950/80 backdrop-blur-[2px] transition-all duration-300 pointer-events-auto" style={{ height: targetRect.top - 4 }} />
-                            {/* Bottom */}
-                            <div className="absolute left-0 right-0 bottom-0 bg-slate-950/80 backdrop-blur-[2px] transition-all duration-300 pointer-events-auto" style={{ top: targetRect.bottom + 4 }} />
-                            {/* Left */}
-                            <div className="absolute left-0 top-0 bottom-0 bg-slate-950/80 backdrop-blur-[2px] transition-all duration-300 pointer-events-auto" style={{ width: targetRect.left - 4, top: targetRect.top - 4, bottom: window.innerHeight - (targetRect.bottom + 4) }} />
-                            {/* Right */}
-                            <div className="absolute right-0 top-0 bottom-0 bg-slate-950/80 backdrop-blur-[2px] transition-all duration-300 pointer-events-auto" style={{ left: targetRect.right + 4, top: targetRect.top - 4, bottom: window.innerHeight - (targetRect.bottom + 4) }} />
-
-                            {/* Spotlight Frame */}
-                            <div
-                                className="absolute rounded-lg border-2 border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-300 pointer-events-none"
-                                style={{
-                                    top: targetRect.top - 4,
-                                    left: targetRect.left - 4,
-                                    width: targetRect.width + 8,
-                                    height: targetRect.height + 8,
-                                }}
-                            />
-                        </>
-                    ) : (
-                        // Fallback full overlay if target not found yet
-                        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm pointer-events-auto" />
-                    )}
-                </div>
+                {/* Spotlight Overlay via Box-Shadow */}
+                {targetRect ? (
+                    <div
+                        className={cn(
+                            "absolute transition-all duration-300 ease-in-out pointer-events-none",
+                            currentStep.spotlightShape === 'circle' ? "rounded-full" : "rounded-xl",
+                            "border-[3px] border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)]"
+                        )}
+                        style={{
+                            top: targetRect.top - 8,
+                            left: targetRect.left - 8,
+                            width: targetRect.width + 16,
+                            height: targetRect.height + 16,
+                            // The Box Shadow Trick: Creates the dark overlay with a cutout
+                            boxShadow: `0 0 0 9999px ${isMobile ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.75)'}`,
+                        }}
+                    />
+                ) : (
+                    // Fallback full overlay if target not found yet
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm pointer-events-auto" />
+                )}
 
                 {/* Tooltip */}
                 <AnimatePresence mode="wait">

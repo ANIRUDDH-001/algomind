@@ -35,7 +35,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         const hasSkippedTour = localStorage.getItem('algomind_tour_skipped');
         const isNewUser = !hasCompletedTour && !hasSkippedTour;
 
-        if (isNewUser) {
+        if (isNewUser && user) {
             setIsFirstVisit(true);
             // Delay auto-start slightly for better UX
             const timer = setTimeout(() => {
@@ -44,28 +44,32 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [loading]);
+    }, [loading, user]);
 
-    const executeAction = useCallback(async (action: TourStep['action'], params: any) => {
-        if (!action) return;
-
-        if (action === 'navigate' && params?.path) {
-            let url = params.path;
-            if (params.query) {
-                const queryString = new URLSearchParams(params.query).toString();
-                url += `?${queryString}`;
+    const executeAction = useCallback(async (action: TourStep['action']) => {
+        if (typeof action === 'function') {
+            try {
+                await action({ router });
+            } catch (error) {
+                console.error('Tour action failed:', error);
             }
-            router.push(url);
-
-            // Wait for navigation
-            // Simple delay, but in production ideally we'd wait for pathname change
-            await new Promise(resolve => setTimeout(resolve, 800));
-        }
-
-        if (action === 'wait') {
-            await new Promise(resolve => setTimeout(resolve, params?.duration || 500));
         }
     }, [router]);
+
+    const getNextValidStepIndex = useCallback((currentIndex: number, direction: 'next' | 'prev'): number => {
+        let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+
+        // Loop until we find a valid step or hit the bounds
+        while (nextIndex >= 0 && nextIndex < TOUR_STEPS.length) {
+            const step = TOUR_STEPS[nextIndex];
+            if (!step.shouldShow || step.shouldShow(user)) {
+                return nextIndex;
+            }
+            nextIndex = direction === 'next' ? nextIndex + 1 : nextIndex - 1;
+        }
+
+        return nextIndex; // Return out of bounds index (stops tour)
+    }, [user]);
 
     const handleStepChange = useCallback(async (index: number) => {
         const step = TOUR_STEPS[index];
@@ -76,14 +80,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
         // Execute pre-action if any (e.g. navigate before showing step)
         if (step.action) {
-            await executeAction(step.action, step.actionParams);
+            await executeAction(step.action);
         }
 
         setCurrentStepIndex(index);
     }, [executeAction]);
 
     const nextStep = useCallback(() => {
-        const nextIndex = currentStepIndex + 1;
+        const nextIndex = getNextValidStepIndex(currentStepIndex, 'next');
         if (nextIndex < TOUR_STEPS.length) {
             handleStepChange(nextIndex);
         } else {
@@ -91,14 +95,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('algomind_tour_completed', 'true');
             setIsOpen(false);
         }
-    }, [currentStepIndex, handleStepChange]);
+    }, [currentStepIndex, handleStepChange, getNextValidStepIndex]);
 
     const prevStep = useCallback(() => {
-        const prevIndex = currentStepIndex - 1;
+        const prevIndex = getNextValidStepIndex(currentStepIndex, 'prev');
         if (prevIndex >= 0) {
             handleStepChange(prevIndex);
         }
-    }, [currentStepIndex, handleStepChange]);
+    }, [currentStepIndex, handleStepChange, getNextValidStepIndex]);
 
     const skipTour = useCallback(() => {
         localStorage.setItem('algomind_tour_skipped', 'true');
@@ -107,8 +111,15 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
     const startTour = useCallback(() => {
         setIsOpen(true);
-        handleStepChange(0); // Start from beginning
-    }, [handleStepChange]);
+        // Find first valid step
+        let firstIndex = 0;
+        while (firstIndex < TOUR_STEPS.length) {
+            const step = TOUR_STEPS[firstIndex];
+            if (!step.shouldShow || step.shouldShow(user)) break;
+            firstIndex++;
+        }
+        handleStepChange(firstIndex);
+    }, [handleStepChange, user]);
 
     // Listen for custom start event (from settings)
     useEffect(() => {
