@@ -65,43 +65,71 @@ export function IntroTour() {
             if (resizeObserver) resizeObserver.disconnect();
         };
 
+        let currentEl: Element | null = null;
+
         const checkTarget = () => {
             if (currentStep.type === 'modal' || !currentStep.target) {
                 setTargetRect(null);
-                cleanup();
+                currentEl = null;
+                if (resizeObserver) resizeObserver.disconnect();
                 return;
             }
 
             const el = document.querySelector(currentStep.target);
-            if (el) {
-                // Found it!
+
+            // Case 1: Element found and is different from what we're tracking
+            if (el && el !== currentEl) {
+                currentEl = el;
                 setTargetRect(el.getBoundingClientRect());
                 el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
-                // Start observing for size changes (Live Adaptation)
+                // Re-attach observer to new element
                 if (resizeObserver) resizeObserver.disconnect();
                 resizeObserver = new ResizeObserver(() => {
-                    setTargetRect(el.getBoundingClientRect());
+                    if (el.isConnected) {
+                        setTargetRect(el.getBoundingClientRect());
+                    }
                 });
                 resizeObserver.observe(el);
-
-                // Stop polling once found and observed
-                clearInterval(pollingInterval);
+            }
+            // Case 2: Element found and same as tracking -> Check if it moved/detached
+            else if (el && el === currentEl) {
+                if (!el.isConnected) {
+                    // Detached! Reset.
+                    currentEl = null;
+                    setTargetRect(null);
+                } else {
+                    // Still there, update rect just in case (e.g. scroll/layout shift not caught by resize)
+                    // Optional: only do this if really needed, ResizeObserver covers size. 
+                    // Scroll listener covers scroll.
+                    // But if it was hidden via display:none, rect might be 0.
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width === 0 && rect.height === 0) {
+                        setTargetRect(null);
+                    } else {
+                        setTargetRect(rect);
+                    }
+                }
+            }
+            // Case 3: Element not found
+            else if (!el) {
+                currentEl = null;
+                setTargetRect(null);
+                if (resizeObserver) resizeObserver.disconnect();
             }
         };
 
         // 1. Immediate check
         checkTarget();
 
-        // 2. Poll every 100ms for up to 10 seconds
-        pollingInterval = setInterval(checkTarget, 100);
+        // 2. Continuous Poll (every 200ms) - WE DO NOT STOP POLLING
+        // This ensures if the element is replaced (React re-render), we find the new one.
+        pollingInterval = setInterval(checkTarget, 200);
 
-        // 3. Safety Timeout (10s) - Stop polling to save resources if never found
+        // 3. Safety Timeout (30s) - Only stop if step takes too long, to save memory
         stopPollingTimeout = setTimeout(() => {
             clearInterval(pollingInterval);
-            // If still not found, we could show a fallback message or just keep the overlay
-            // identifying that the target is missing.
-        }, 10000);
+        }, 30000);
 
         return cleanup;
     }, [isOpen, currentStep]);
@@ -235,7 +263,7 @@ export function IntroTour() {
                                     currentStep.position === 'right' ? targetRect.right + 20 :
                                         targetRect.left + (targetRect.width / 2) - 160
                             )),
-                        } : undefined}
+                        } : { top: -9999, left: -9999 }} // Hide if no valid rect target found yet
                     >
                         <div className={cn(
                             "bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden",
@@ -289,7 +317,7 @@ export function IntroTour() {
                         </div>
                     </motion.div>
                 </AnimatePresence>
-            </div>
+            </div >
         );
     };
 
