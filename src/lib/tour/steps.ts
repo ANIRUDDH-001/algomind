@@ -179,35 +179,22 @@ export const TOUR_STEPS: TourStep[] = [
         }
     },
 
-    // STEP 10: Settings - Demo Mode
+    // STEP 10: Settings - Intro Button (Now implicit "Start Demo")
     {
         id: 10,
         type: 'spotlight',
         route: '/settings',
-        target: '[data-tour="demo-mode"]',
-        title: '🎭 Demo Mode',
-        content: 'Try AlgoMind risk-free with pre-filled data. Toggle ON → Visit Dashboard to explore!',
+        target: '[data-tour="intro-button"]',
+        title: '🔄 Restart Demo & Tour',
+        content: 'Want to experience it again? Click "Start Interactive Demo" to reload sample data and guide.',
         spotlightShape: 'rectangle',
         position: 'top',
         shouldShow: (user) => !!user
     },
 
-    // STEP 11: Settings - Intro Button
+    // STEP 11: Final - Celebration
     {
         id: 11,
-        type: 'spotlight',
-        route: '/settings',
-        target: '[data-tour="intro-button"]',
-        title: '🔄 Restart Tour',
-        content: 'Forgot something? Click "Intro" to replay the complete guide or share it with teammates.',
-        spotlightShape: 'rectangle',
-        position: 'top',
-        shouldShow: (user) => !!user
-    },
-
-    // STEP 12: Final - Celebration
-    {
-        id: 12,
         type: 'modal',
         title: "🎉 You're All Set!",
         content: "You've mastered AlgoMind basics. Ready to ace your DSA interviews?",

@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { enableDemoMode, disableDemoMode, isDemoMode } from '@/lib/demo/manager';
+import { isDemoMode } from '@/lib/demo/manager';
 import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FlaskConical, RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play } from 'lucide-react';
+import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { VoiceSettings } from './VoiceSettings';
 
 export function SettingsPanel() {
-    const [demoMode, setDemoMode] = useState(false);
     const [introEnabled, setIntroEnabled] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
@@ -25,26 +24,8 @@ export function SettingsPanel() {
 
     useEffect(() => {
         setMounted(true);
-        setDemoMode(isDemoMode());
         setIntroEnabled(shouldShowOnboarding());
     }, []);
-
-    const toggleDemoMode = () => {
-        if (demoMode) {
-            disableDemoMode();
-            toast.success('Demo mode disabled');
-        } else {
-            enableDemoMode();
-            toast.success('Demo mode enabled');
-        }
-        const newMode = !demoMode;
-        setDemoMode(newMode);
-
-        // Emit custom event for DemoBanner to react immediately
-        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: newMode } }));
-
-        router.refresh();
-    };
 
     const toggleIntro = () => {
         if (introEnabled) {
@@ -203,53 +184,24 @@ export function SettingsPanel() {
                     <CardDescription>Configure AlgoMind options</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Demo Mode */}
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700" data-tour="demo-mode">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-purple-500/20">
-                                <FlaskConical className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-white">Demo Mode</h3>
-                                <p className="text-sm text-slate-400">Load sample data for presentations</p>
-                            </div>
-                        </div>
-                        {/* Toggle Switch */}
-                        <button
-                            onClick={toggleDemoMode}
-                            className={cn(
-                                "relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50",
-                                demoMode ? "bg-purple-600" : "bg-slate-700"
-                            )}
-                            role="switch"
-                            aria-checked={demoMode}
-                        >
-                            <span
-                                className={cn(
-                                    "absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300",
-                                    demoMode ? "left-8" : "left-1"
-                                )}
-                            />
-                        </button>
-                    </div>
-
+                    {/* Combined Demo & Tour Control */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700" data-tour="intro-button">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-blue-500/20">
                                 <Play className="w-5 h-5 text-blue-400" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-white">Intro Tour</h3>
-                                <p className="text-sm text-slate-400">Restart the guided tour</p>
+                                <h3 className="font-semibold text-white">Interactive Demo</h3>
+                                <p className="text-sm text-slate-400">Experience AlgoMind with sample data and tour</p>
                             </div>
                         </div>
-                        {/* Start Tour Button */}
+                        {/* Start Demo Tour Button */}
                         <Button
                             onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
-                            variant="outline"
-                            className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                            variant="default" // Changed to default for more prominence
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20"
                         >
-                            Start Tour
+                            Start Demo Tour
                         </Button>
                     </div>
                 </CardContent>

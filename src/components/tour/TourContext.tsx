@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { TOUR_STEPS, TourStep } from '@/lib/tour/steps';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { enableDemoMode } from '@/lib/demo/manager';
 
 interface TourContextType {
     isOpen: boolean;
@@ -114,6 +115,10 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const startTour = useCallback(() => {
+        // Auto-enable Demo Mode
+        enableDemoMode();
+        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
+
         setIsOpen(true);
         // Find first valid step
         let firstIndex = 0;
