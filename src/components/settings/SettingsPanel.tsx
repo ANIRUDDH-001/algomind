@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isDemoMode } from '@/lib/demo/manager';
+import { isDemoMode, enableDemoMode, disableDemoMode } from '@/lib/demo/manager';
 import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play } from 'lucide-react';
+import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ import { VoiceSettings } from './VoiceSettings';
 
 export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
+    const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     const { user, signOut, isConfigured } = useAuth();
@@ -25,9 +26,20 @@ export function SettingsPanel() {
     useEffect(() => {
         setMounted(true);
         setIntroEnabled(shouldShowOnboarding());
+        setDemoMode(isDemoMode());
+
+        const handleDemoChange = (e: CustomEvent<{ enabled: boolean }>) => {
+            setDemoMode(e.detail.enabled);
+        };
+
+        window.addEventListener('demo-mode-changed', handleDemoChange as EventListener);
+        return () => {
+            window.removeEventListener('demo-mode-changed', handleDemoChange as EventListener);
+        };
     }, []);
 
     const toggleIntro = () => {
+        // ... (existing toggleIntro logic)
         if (introEnabled) {
             markOnboardingComplete();
             toast.success('Intro animation disabled for next visit');
@@ -36,6 +48,22 @@ export function SettingsPanel() {
             toast.success('Intro animation enabled for next visit');
         }
         setIntroEnabled(!introEnabled);
+    };
+
+    const handleExitDemo = () => {
+        disableDemoMode();
+        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
+        toast.success('Demo mode disabled');
+        router.refresh();
+    };
+
+    const handleStartDemoTour = () => {
+        // Event listener in TourContext checks this
+        if (!demoMode) {
+            enableDemoMode();
+            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
+        }
+        window.dispatchEvent(new CustomEvent('start-tour'));
     };
 
     const handleClearData = async () => {
@@ -48,6 +76,8 @@ export function SettingsPanel() {
         try {
             // Clear localStorage
             localStorage.clear();
+            // Force disable demo mode in state/UI too
+            disableDemoMode();
 
             // If authenticated and Supabase is configured, clear database
             if (user && isConfigured) {
@@ -68,7 +98,6 @@ export function SettingsPanel() {
             }
 
             toast.success('All data cleared successfully!');
-            toast.success('All data cleared successfully!');
             router.refresh();
         } catch (error) {
             console.error('Failed to clear data:', error);
@@ -79,6 +108,8 @@ export function SettingsPanel() {
     };
 
     const handleSignOut = async () => {
+        disableDemoMode(); // Ensure demo mode is off on logout
+        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
         await signOut();
         toast.success('Signed out successfully');
         router.push('/');
@@ -188,21 +219,42 @@ export function SettingsPanel() {
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700" data-tour="intro-button">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-blue-500/20">
-                                <Play className="w-5 h-5 text-blue-400" />
+                                {demoMode ? (
+                                    <FlaskConical className="w-5 h-5 text-purple-400" />
+                                ) : (
+                                    <Play className="w-5 h-5 text-blue-400" />
+                                )}
                             </div>
                             <div>
-                                <h3 className="font-semibold text-white">Interactive Demo</h3>
-                                <p className="text-sm text-slate-400">Experience AlgoMind with sample data and tour</p>
+                                <h3 className="font-semibold text-white">
+                                    {demoMode ? 'Demo Mode Active' : 'Interactive Demo'}
+                                </h3>
+                                <p className="text-sm text-slate-400">
+                                    {demoMode
+                                        ? 'Sample data loaded. Exit to clear.'
+                                        : 'Experience AlgoMind with sample data and tour'}
+                                </p>
                             </div>
                         </div>
-                        {/* Start Demo Tour Button */}
-                        <Button
-                            onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
-                            variant="default" // Changed to default for more prominence
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20"
-                        >
-                            Start Demo Tour
-                        </Button>
+
+                        {/* Dynamic Button: Start Tour OR Exit Demo */}
+                        {demoMode ? (
+                            <Button
+                                onClick={handleExitDemo}
+                                variant="destructive"
+                                className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-900/50"
+                            >
+                                Exit Demo Mode
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleStartDemoTour}
+                                variant="default"
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20"
+                            >
+                                Start Demo Tour
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>

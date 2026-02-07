@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { TOUR_STEPS, TourStep } from '@/lib/tour/steps';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { enableDemoMode, disableDemoMode } from '@/lib/demo/manager';
+import { enableDemoMode, disableDemoMode, isDemoMode } from '@/lib/demo/manager';
 
 interface TourContextType {
     isOpen: boolean;
@@ -32,22 +32,28 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (loading) return;
 
+        // 1. Resume Tour if Demo Mode is active (Persistence)
+        if (isDemoMode()) {
+            setIsOpen(true);
+            // Optionally find where they left off or default to 0
+        }
+
         const hasCompletedTour = localStorage.getItem('algomind_tour_completed');
         const hasSkippedTour = localStorage.getItem('algomind_tour_skipped');
         const isNewUser = !hasCompletedTour && !hasSkippedTour;
 
-        // Robust Auto-Start Logic
-        if (isNewUser && user) {
+        // 2. Auto-Start for New Users
+        if (isNewUser && user && !isDemoMode()) {
             setIsFirstVisit(true);
 
             // Delay auto-start slightly for better UX and to ensure UI is ready
             const timer = setTimeout(() => {
-                setIsOpen(true);
-                setCurrentStepIndex(0); // Start at Welcome Modal
+                // Check demo mode again just in case
+                if (!isDemoMode()) {
+                    startTour(); // Use startTour to ensure consistent state
+                }
             }, 2000); // Increased to 2s to be safe
             return () => clearTimeout(timer);
-        } else if (!user) {
-            // User not yet loaded or guest, skipping auto-start
         }
     }, [loading, user]);
 
