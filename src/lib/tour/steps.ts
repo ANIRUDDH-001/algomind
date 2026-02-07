@@ -43,17 +43,17 @@ export const TOUR_STEPS: TourStep[] = [
         }
     },
 
-    // STEP 2: Dashboard Overview - Cognitive Profile
+    // STEP 2: Dashboard - Performance Overview
     {
         id: 2,
         type: 'spotlight',
         route: '/dashboard',
         tab: 'overview',
-        target: '[data-tour="cognitive-profile"]',
-        title: 'Cognitive Profile',
-        content: 'Visualize your strengths and weaknesses across key algorithmic concepts.',
+        target: '[data-tour="performance-insights"]',
+        title: 'Performance Overview',
+        content: 'Track your practice stats, strengths, and cognitive profile all in one place.',
         spotlightShape: 'rectangle',
-        position: 'right', // Adjusted to right as per user guide
+        position: 'bottom',
         shouldShow: (user) => !!user,
         action: async ({ router }) => {
             if (window.location.pathname !== '/dashboard') {
@@ -69,23 +69,9 @@ export const TOUR_STEPS: TourStep[] = [
         }
     },
 
-    // STEP 3: Dashboard Overview - Performance Insights
+    // STEP 3: Dashboard - Journey Progress
     {
         id: 3,
-        type: 'spotlight',
-        route: '/dashboard',
-        tab: 'overview',
-        target: '[data-tour="performance-insights"]',
-        title: 'Performance Insights',
-        content: 'Track your practice time, problems solved, and average score improvement.',
-        spotlightShape: 'rectangle',
-        position: 'left',
-        shouldShow: (user) => !!user
-    },
-
-    // STEP 4: Dashboard Overview - Journey Progress
-    {
-        id: 4,
         type: 'spotlight',
         route: '/dashboard',
         tab: 'overview',
@@ -97,9 +83,9 @@ export const TOUR_STEPS: TourStep[] = [
         shouldShow: (user) => !!user
     },
 
-    // STEP 5: Dashboard Overview - Export Report
+    // STEP 4: Dashboard - Export Report
     {
-        id: 5,
+        id: 4,
         type: 'spotlight',
         route: '/dashboard',
         tab: 'overview',
@@ -111,112 +97,77 @@ export const TOUR_STEPS: TourStep[] = [
         shouldShow: (user) => !!user
     },
 
-    // STEP 6: Dashboard - Skills Tab
+    // STEP 5: Dashboard - Skills Tab (Points to Tab Button)
+    {
+        id: 5,
+        type: 'spotlight',
+        route: '/dashboard',
+        target: '[data-tour="tab-skills"]',
+        title: 'Specific Skills',
+        content: 'Check the "Skills" tab to deep dive into trends and mastery levels.',
+        spotlightShape: 'rounded',
+        position: 'bottom',
+        shouldShow: (user) => !!user,
+        action: async ({ router }) => {
+            // Just point to the tab, don't necessarily navigate inside it yet
+            // optimizing for visibility of the target
+        }
+    },
+
+    // STEP 6: Dashboard - History Tab (Points to Tab Button)
     {
         id: 6,
         type: 'spotlight',
         route: '/dashboard',
-        tab: 'skills',
-        target: '[data-tour="skills-grid"]',
-        title: 'Specific Skills',
-        content: 'Deep dive into each skill area to see detailed trends and mastery levels.',
-        spotlightShape: 'rectangle',
-        position: 'top',
-        shouldShow: (user) => !!user,
-        action: async ({ router }) => {
-            router.push('/dashboard?tab=skills');
-            await wait(500);
-        }
+        target: '[data-tour="tab-history"]',
+        title: 'Session History',
+        content: 'Access the "History" tab to review past interviews and transcripts.',
+        spotlightShape: 'rounded',
+        position: 'bottom',
+        shouldShow: (user) => !!user
     },
 
-    // STEP 7: Dashboard - History Tab
+    // STEP 7: Dashboard - Insights Tab (Points to Tab Button)
     {
         id: 7,
         type: 'spotlight',
         route: '/dashboard',
-        tab: 'history',
-        target: '[data-tour="history-list"]',
-        title: 'Session History',
-        content: 'Review past interviews, transcriptions, and code solutions.',
-        spotlightShape: 'rectangle',
-        position: 'top',
-        shouldShow: (user) => !!user,
-        action: async ({ router }) => {
-            router.push('/dashboard?tab=history');
-            await wait(500);
-        }
+        target: '[data-tour="tab-insights"]',
+        title: 'AI Insights',
+        content: 'See personalized recommendations in the "Insights" tab.',
+        spotlightShape: 'rounded',
+        position: 'bottom',
+        shouldShow: (user) => !!user
     },
 
-    // STEP 8: Dashboard - Insights Tab
+    // STEP 8: Practice - Full Interview Experience
     {
         id: 8,
         type: 'spotlight',
-        route: '/dashboard',
-        tab: 'insights',
-        target: '[data-tour="recommendations"]',
-        title: 'AI Insights',
-        content: 'Get personalized recommendations on what to practice next based on your performance.',
+        route: '/interview',
+        target: '[data-tour="chat-panel"]',
+        title: 'The Interview Interface',
+        content: 'This is your workspace. Switch between Voice Mode and Code Editor manually using the controls here. Kai will guide you!',
         spotlightShape: 'rectangle',
-        position: 'top',
-        shouldShow: (user) => !!user,
-        action: async ({ router }) => {
-            router.push('/dashboard?tab=insights');
-            await wait(500);
-        }
-    },
-
-    // STEP 9: Practice - Interview Modes
-    {
-        id: 9,
-        type: 'spotlight',
-        route: '/practice',
-        target: '[data-tour="mode-toggle"], [data-tour="begin-button"]',
-        title: 'Two Interview Modes',
-        content: 'Switch between Voice Mode (speak your solution) and Code Mode (write and run code).',
-        spotlightShape: 'rectangle',
-        position: 'bottom',
+        position: 'center',
         action: async ({ router }) => {
             if (!window.location.pathname.startsWith('/interview') && !window.location.pathname.startsWith('/practice')) {
                 router.push('/interview');
-                await wait(1000);
+                await wait(1500);
             }
         }
     },
 
-    // STEP 10: Practice - Meet Kai
+    // STEP 9: Settings - Voice Capabilities
     {
-        id: 10,
-        type: 'spotlight',
-        route: '/interview',
-        target: '[data-tour="chat-panel"]',
-        title: 'Meet Kai',
-        content: 'Your AI interviewer Kai will guide you through the problem. Speak naturally!',
-        spotlightShape: 'rectangle',
-        position: 'left'
-    },
-
-    // STEP 11: Practice - Language Selection
-    {
-        id: 11,
-        type: 'spotlight',
-        route: '/interview',
-        target: '[data-tour="language-select"]',
-        title: 'Language Selection',
-        content: 'Choose your preferred programming language for the coding implementation.',
-        spotlightShape: 'rectangle',
-        position: 'bottom'
-    },
-
-    // STEP 12: Settings - Voice Capabilities
-    {
-        id: 12,
+        id: 9,
         type: 'spotlight',
         route: '/settings',
         target: '[data-tour="voice-capabilities"]',
         title: '🔊 Customize AI Voice',
         content: "Choose Kai's voice and adjust the speaking speed (0.5x - 2.0x).",
         spotlightShape: 'rectangle',
-        position: 'top', // User guide said top or rectangle
+        position: 'top',
         shouldShow: (user) => !!user,
         action: async ({ router }) => {
             if (window.location.pathname !== '/settings') {
@@ -226,9 +177,9 @@ export const TOUR_STEPS: TourStep[] = [
         }
     },
 
-    // STEP 13: Settings - Demo Mode
+    // STEP 10: Settings - Demo Mode
     {
-        id: 13,
+        id: 10,
         type: 'spotlight',
         route: '/settings',
         target: '[data-tour="demo-mode"]',
@@ -239,9 +190,9 @@ export const TOUR_STEPS: TourStep[] = [
         shouldShow: (user) => !!user
     },
 
-    // STEP 14: Settings - Intro Button
+    // STEP 11: Settings - Intro Button
     {
-        id: 14,
+        id: 11,
         type: 'spotlight',
         route: '/settings',
         target: '[data-tour="intro-button"]',
@@ -252,9 +203,9 @@ export const TOUR_STEPS: TourStep[] = [
         shouldShow: (user) => !!user
     },
 
-    // STEP 15: Final - Celebration
+    // STEP 12: Final - Celebration
     {
-        id: 15,
+        id: 12,
         type: 'modal',
         title: "🎉 You're All Set!",
         content: "You've mastered AlgoMind basics. Ready to ace your DSA interviews?",
