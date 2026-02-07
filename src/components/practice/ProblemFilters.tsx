@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 
 // Curated list options
 export const CURATED_LISTS = [
@@ -11,16 +11,43 @@ export const CURATED_LISTS = [
     { value: 'striver-a-z', label: '📚 Striver A-Z' },
 ];
 
+export const TOPICS = [
+    { value: '', label: 'All Topics' },
+    { value: 'array', label: 'Array' },
+    { value: 'string', label: 'String' },
+    { value: 'hash-table', label: 'Hash Table' },
+    { value: 'dynamic-programming', label: 'Dynamic Programming' },
+    { value: 'math', label: 'Math' },
+    { value: 'sorting', label: 'Sorting' },
+    { value: 'greedy', label: 'Greedy' },
+    { value: 'depth-first-search', label: 'Depth-First Search' },
+    { value: 'binary-search', label: 'Binary Search' },
+    { value: 'matrix', label: 'Matrix' },
+    { value: 'tree', label: 'Tree' },
+    { value: 'heap', label: 'Heap' },
+    { value: 'graph', label: 'Graph' },
+    { value: 'two-pointers', label: 'Two Pointers' },
+    { value: 'binary-tree', label: 'Binary Tree' },
+    { value: 'backtracking', label: 'Backtracking' },
+    { value: 'stack', label: 'Stack' },
+    { value: 'linked-list', label: 'Linked List' },
+    { value: 'sliding-window', label: 'Sliding Window' },
+];
+
 interface ProblemFiltersProps {
     onFilterChange: (filters: {
         difficulty: 'all' | 'easy' | 'medium' | 'hard';
         curatedList: string;
         attempted: 'all' | 'attempted' | 'not-attempted';
+        searchQuery: string;
+        topic: string;
     }) => void;
     currentFilters: {
         difficulty: 'all' | 'easy' | 'medium' | 'hard';
         curatedList: string;
         attempted: 'all' | 'attempted' | 'not-attempted';
+        searchQuery: string;
+        topic: string;
     };
 }
 
@@ -37,54 +64,92 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
         onFilterChange({ ...currentFilters, attempted: newAttempted });
     };
 
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onFilterChange({ ...currentFilters, searchQuery: e.target.value });
+    };
+
+    const handleTopicChange = (newTopic: string) => {
+        onFilterChange({ ...currentFilters, topic: newTopic });
+    };
+
     // Shared select styles - dark background with proper text color
     const selectStyles = "appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors";
 
     return (
-        <div className="flex flex-wrap gap-3 mb-6">
-            {/* Curated List Dropdown */}
-            <div className="relative">
-                <select
-                    value={currentFilters.curatedList}
-                    onChange={(e) => handleCuratedListChange(e.target.value)}
-                    className={selectStyles}
-                >
-                    {CURATED_LISTS.map((list) => (
-                        <option key={list.value} value={list.value} className="bg-slate-800 text-white">
-                            {list.label}
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <div className="flex flex-col gap-4 mb-6">
+            {/* Search Bar */}
+            <div className="relative w-full md:max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                    type="text"
+                    placeholder="Search problems (e.g., 'Two Sum')"
+                    value={currentFilters.searchQuery}
+                    onChange={handleSearchChange}
+                    className="w-full bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg pl-10 pr-4 py-2.5 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                />
             </div>
 
-            {/* Difficulty Dropdown */}
-            <div className="relative">
-                <select
-                    value={currentFilters.difficulty}
-                    onChange={(e) => handleDifficultyChange(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
-                    className={selectStyles}
-                >
-                    <option value="all" className="bg-slate-800 text-white">All Levels</option>
-                    <option value="easy" className="bg-slate-800 text-white">🟢 Easy</option>
-                    <option value="medium" className="bg-slate-800 text-white">🟡 Medium</option>
-                    <option value="hard" className="bg-slate-800 text-white">🔴 Hard</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
+            <div className="flex flex-wrap gap-3">
+                {/* Topic Dropdown */}
+                <div className="relative">
+                    <select
+                        value={currentFilters.topic}
+                        onChange={(e) => handleTopicChange(e.target.value)}
+                        className={selectStyles}
+                    >
+                        {TOPICS.map((topic) => (
+                            <option key={topic.value} value={topic.value} className="bg-slate-800 text-white">
+                                {topic.label}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
 
-            {/* Attempted Status Dropdown */}
-            <div className="relative">
-                <select
-                    value={currentFilters.attempted}
-                    onChange={(e) => handleAttemptedChange(e.target.value as 'all' | 'attempted' | 'not-attempted')}
-                    className={selectStyles}
-                >
-                    <option value="all" className="bg-slate-800 text-white">All Status</option>
-                    <option value="attempted" className="bg-slate-800 text-white">✓ Attempted</option>
-                    <option value="not-attempted" className="bg-slate-800 text-white">New Problems</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                {/* Curated List Dropdown */}
+                <div className="relative">
+                    <select
+                        value={currentFilters.curatedList}
+                        onChange={(e) => handleCuratedListChange(e.target.value)}
+                        className={selectStyles}
+                    >
+                        {CURATED_LISTS.map((list) => (
+                            <option key={list.value} value={list.value} className="bg-slate-800 text-white">
+                                {list.label}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Difficulty Dropdown */}
+                <div className="relative">
+                    <select
+                        value={currentFilters.difficulty}
+                        onChange={(e) => handleDifficultyChange(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
+                        className={selectStyles}
+                    >
+                        <option value="all" className="bg-slate-800 text-white">All Levels</option>
+                        <option value="easy" className="bg-slate-800 text-white">🟢 Easy</option>
+                        <option value="medium" className="bg-slate-800 text-white">🟡 Medium</option>
+                        <option value="hard" className="bg-slate-800 text-white">🔴 Hard</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Attempted Status Dropdown */}
+                <div className="relative">
+                    <select
+                        value={currentFilters.attempted}
+                        onChange={(e) => handleAttemptedChange(e.target.value as 'all' | 'attempted' | 'not-attempted')}
+                        className={selectStyles}
+                    >
+                        <option value="all" className="bg-slate-800 text-white">All Status</option>
+                        <option value="attempted" className="bg-slate-800 text-white">✓ Attempted</option>
+                        <option value="not-attempted" className="bg-slate-800 text-white">New Problems</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
             </div>
         </div>
     );

@@ -27,6 +27,8 @@ import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
 import { MobileWarning } from './MobileWarning';
 import { isMobileDevice } from '@/lib/utils/device-detection';
+import { saveInterviewSession } from '@/app/actions/save-session';
+import { toast } from 'sonner';
 
 
 interface InterviewSessionProps {
@@ -141,6 +143,54 @@ export function InterviewSession({
 
         startInterview(problem.title, problem.description, ragContext);
     };
+
+    // --- SESSION PERSISTENCE ---
+    const handleSaveSession = useCallback(async (result: any) => {
+        if (!user || !user.id || !problem || isGuest) return;
+
+        try {
+            toast.loading('Saving interview session...', { id: 'save-session' });
+
+            // Convert history to serializable format
+            const transcript = messages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            }));
+
+            // Calculate approximate duration
+            const duration = startTimeRef.current
+                ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                : 0;
+
+            const { success, error } = await saveInterviewSession(
+                user.id,
+                problem.id,
+                problem.title,
+                transcript,
+                duration,
+                result
+            );
+
+            if (success) {
+                toast.success('Interview saved to history!', { id: 'save-session' });
+            } else {
+                toast.error('Failed to save session to history', { id: 'save-session' });
+                console.error('Save failed:', error);
+            }
+        } catch (e) {
+            console.error('Save exception:', e);
+            toast.error('Error saving session', { id: 'save-session' });
+        }
+    }, [user, problem, isGuest, messages]);
+
+    // Trigger save when assessment is complete
+    useEffect(() => {
+        if (state === 'completed' && result && !isGuest && !readOnly) {
+            handleSaveSession(result);
+        }
+    }, [state, result, isGuest, readOnly, handleSaveSession]);
+
 
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;

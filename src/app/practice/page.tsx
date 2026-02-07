@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemsPaginated, getRandomProblem, type Problem } from '@/lib/supabase/problems';
-import { ProblemFilters, CURATED_LISTS } from '@/components/practice/ProblemFilters';
+import { ProblemFilters, CURATED_LISTS, TOPICS } from '@/components/practice/ProblemFilters';
 import { ProblemCard } from '@/components/practice/ProblemCard';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -31,6 +31,8 @@ export default function PracticePage() {
         difficulty: 'all' as 'all' | 'easy' | 'medium' | 'hard',
         curatedList: '',
         attempted: 'all' as 'all' | 'attempted' | 'not-attempted',
+        searchQuery: '',
+        topic: '',
     });
 
     // Load problems when filters or page changes
@@ -39,12 +41,14 @@ export default function PracticePage() {
         const result = await getProblemsPaginated(currentPage, PROBLEMS_PER_PAGE, {
             difficulty: filters.difficulty !== 'all' ? filters.difficulty : undefined,
             curatedList: filters.curatedList || undefined,
+            searchQuery: filters.searchQuery || undefined,
+            topic: filters.topic || undefined,
         });
         setProblems(result.problems);
         setTotalPages(result.totalPages);
         setTotalCount(result.totalCount);
         setLoading(false);
-    }, [currentPage, filters.difficulty, filters.curatedList]);
+    }, [currentPage, filters.difficulty, filters.curatedList, filters.searchQuery, filters.topic]);
 
     useEffect(() => {
         loadProblems();
@@ -80,7 +84,12 @@ export default function PracticePage() {
     // Reset to page 1 when filters change
     const handleFilterChange = (newFilters: typeof filters) => {
         setFilters(newFilters);
-        if (newFilters.difficulty !== filters.difficulty || newFilters.curatedList !== filters.curatedList) {
+        if (
+            newFilters.difficulty !== filters.difficulty ||
+            newFilters.curatedList !== filters.curatedList ||
+            newFilters.searchQuery !== filters.searchQuery ||
+            newFilters.topic !== filters.topic
+        ) {
             setCurrentPage(1);
         }
     };
@@ -139,6 +148,8 @@ export default function PracticePage() {
                             </h1>
                             <p className="text-slate-400">
                                 {totalCount} problem{totalCount !== 1 ? 's' : ''}
+                                {filters.searchQuery && ` matching "${filters.searchQuery}"`}
+                                {filters.topic && ` in ${TOPICS.find(t => t.value === filters.topic)?.label}`}
                                 {filters.curatedList && ` in ${currentListLabel}`}
                                 {filters.difficulty !== 'all' && ` • ${filters.difficulty}`}
                             </p>
@@ -172,7 +183,7 @@ export default function PracticePage() {
                                 Try changing your filters or add more problems to the database
                             </p>
                             <Button
-                                onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '', attempted: 'all' })}
+                                onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '', attempted: 'all', searchQuery: '', topic: '' })}
                                 variant="outline"
                                 className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
                             >

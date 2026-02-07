@@ -127,6 +127,8 @@ export async function getProblemsPaginated(
     filters?: {
         difficulty?: 'easy' | 'medium' | 'hard';
         curatedList?: string;
+        searchQuery?: string;
+        topic?: string;
     }
 ): Promise<PaginatedProblemsResult> {
     const supabase = getSupabase();
@@ -147,6 +149,16 @@ export async function getProblemsPaginated(
         // Apply difficulty filter
         if (filters?.difficulty) {
             query = query.eq('difficulty', filters.difficulty);
+        }
+
+        // Apply search query
+        if (filters?.searchQuery) {
+            query = query.ilike('title', `%${filters.searchQuery}%`);
+        }
+
+        // Apply topic filter
+        if (filters?.topic) {
+            query = query.contains('tags', [filters.topic]);
         }
 
         // Apply curated list filter
