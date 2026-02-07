@@ -32,6 +32,16 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (loading) return;
 
+        // CRITICAL: Force disable Demo/Tour if not logged in
+        if (!user) {
+            if (isDemoMode()) {
+                disableDemoMode();
+                window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
+            }
+            setIsOpen(false);
+            return;
+        }
+
         // 1. Resume Tour if Demo Mode is active (Persistence)
         if (isDemoMode()) {
             setIsOpen(true);

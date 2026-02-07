@@ -126,7 +126,8 @@ export const TOUR_STEPS: TourStep[] = [
         title: 'Session History',
         content: 'Access the "History" tab to review past interviews and transcripts.',
         spotlightShape: 'rounded',
-        position: 'bottom',
+        position: 'top',
+        mobilePosition: 'top',
         shouldShow: (user) => !!user,
         action: async ({ router }) => {
             router.push('/dashboard?tab=history');
@@ -143,7 +144,8 @@ export const TOUR_STEPS: TourStep[] = [
         title: 'AI Insights',
         content: 'See personalized recommendations in the "Insights" tab.',
         spotlightShape: 'rounded',
-        position: 'bottom',
+        position: 'top',
+        mobilePosition: 'top',
         shouldShow: (user) => !!user,
         action: async ({ router }) => {
             router.push('/dashboard?tab=insights');
@@ -160,7 +162,8 @@ export const TOUR_STEPS: TourStep[] = [
         title: 'The Interview Interface',
         content: 'This is your workspace. Switch between Voice Mode and Code Editor manually using the controls here. Kai will guide you!',
         spotlightShape: 'rectangle',
-        position: 'center',
+        position: 'top',
+        mobilePosition: 'top',
         action: async ({ router }) => {
             if (!window.location.pathname.startsWith('/interview') && !window.location.pathname.startsWith('/practice')) {
                 router.push('/interview');
