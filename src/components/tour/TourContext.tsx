@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { TOUR_STEPS, TourStep } from '@/lib/tour/steps';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { enableDemoMode } from '@/lib/demo/manager';
+import { enableDemoMode, disableDemoMode } from '@/lib/demo/manager';
 
 interface TourContextType {
     isOpen: boolean;
@@ -98,6 +98,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         } else {
             // End of tour
             localStorage.setItem('algomind_tour_completed', 'true');
+
+            // Auto-disable Demo Mode
+            disableDemoMode();
+            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
+
             setIsOpen(false);
         }
     }, [currentStepIndex, handleStepChange, getNextValidStepIndex]);
@@ -111,6 +116,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
     const skipTour = useCallback(() => {
         localStorage.setItem('algomind_tour_skipped', 'true');
+
+        // Auto-disable Demo Mode on skip too
+        disableDemoMode();
+        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
+
         setIsOpen(false);
     }, []);
 

@@ -208,8 +208,6 @@ export const TOUR_STEPS: TourStep[] = [
         title: "🎉 You're All Set!",
         content: "You've mastered AlgoMind basics. Ready to ace your DSA interviews?",
         action: async ({ router }) => {
-            disableDemoMode();
-            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
             router.push('/');
         }
     }

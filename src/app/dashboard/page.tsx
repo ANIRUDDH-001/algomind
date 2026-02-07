@@ -59,6 +59,14 @@ function DashboardContent() {
         fetchRecommendations();
     }, [progress]);
 
+    // Sync tab state with URL parameters
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam && ['overview', 'skills', 'history', 'insights'].includes(tabParam)) {
+            setActiveTab(tabParam as any);
+        }
+    }, [searchParams]);
+
     if (error) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
