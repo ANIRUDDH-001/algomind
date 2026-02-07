@@ -139,7 +139,7 @@ function DashboardContent() {
                         )}
 
                         {activeTab === 'skills' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tour="skills-grid">
                                 {Object.keys(SKILL_DEFINITIONS).map((skillId) => (
                                     <SkillTrendCard
                                         key={skillId}
@@ -157,7 +157,7 @@ function DashboardContent() {
                                     subtitle="Detailed list of all your practice sessions"
                                     isLoading={isLoading}
                                 >
-                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800" data-tour="history-list">
                                         {progress?.sessions.map((session) => (
                                             <div
                                                 key={session.sessionId}

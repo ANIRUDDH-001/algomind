@@ -21,7 +21,7 @@ export function RecommendationsPanel({ recommendations }: RecommendationsPanelPr
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full" data-tour="recommendations">
             {recommendations.map((rec) => (
                 <div
                     key={rec.skillId}

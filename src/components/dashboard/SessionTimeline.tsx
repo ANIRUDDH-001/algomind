@@ -27,7 +27,7 @@ export function SessionTimeline({ sessions, onSessionClick }: SessionTimelinePro
     const isMilestone = (index: number) => (sessions.length - index) % 5 === 0 && (sessions.length - index) !== 0;
 
     return (
-        <div className="relative group/timeline w-full bg-slate-900/10 rounded-3xl p-6 border border-slate-800/30 overflow-hidden shadow-inner">
+        <div className="relative group/timeline w-full bg-slate-900/10 rounded-3xl p-6 border border-slate-800/30 overflow-hidden shadow-inner" data-tour="journey-progress">
             <div className="flex items-center justify-between mb-8 px-2">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">

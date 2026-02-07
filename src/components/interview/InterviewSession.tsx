@@ -330,7 +330,7 @@ export function InterviewSession({
             <Card className={cn(
                 "bg-slate-900/30 backdrop-blur-sm border-slate-800/50 overflow-hidden flex flex-col shadow-2xl",
                 !isMobile ? "h-full" : "h-auto"
-            )}>
+            )} data-tour="problem-panel">
                 <CardHeader className="bg-slate-950/40 border-b border-slate-800/50 py-3 shrink-0">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export function InterviewSession({
         <Card className={cn(
             "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
             !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto min-h-[400px] shrink-0"
-        )}>
+        )} data-tour="chat-panel">
             <CardContent className="p-0 flex-1 flex flex-col h-full">
                 {/* Mode Toggle (when interview started) */}
                 {hasStarted && !readOnly && !isMobile && renderCodeEditorToggle()}

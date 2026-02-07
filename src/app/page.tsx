@@ -55,7 +55,7 @@ export default function HomePage() {
         </div>
 
         {/* Action Buttons - ALL SAME STYLE */}
-        <div className="flex flex-wrap gap-4 justify-center mb-20">
+        <div className="flex flex-wrap gap-4 justify-center mb-20" data-tour="home-actions">
           <Button
             onClick={() => router.push('/interview')}
             size="lg"
@@ -65,24 +65,26 @@ export default function HomePage() {
             Quick Practice
           </Button>
 
-          <Button
-            onClick={() => router.push('/practice')}
-            size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
-          >
-            <BookOpen className="w-5 h-5 mr-2" />
-            Browse Problems
-          </Button>
-
           {user && (
-            <Button
-              onClick={() => router.push('/dashboard')}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
-            >
-              <BarChart className="w-5 h-5 mr-2" />
-              View Dashboard
-            </Button>
+            <>
+              <Button
+                onClick={() => router.push('/practice')}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                Browse Problems
+              </Button>
+
+              <Button
+                onClick={() => router.push('/dashboard')}
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
+              >
+                <BarChart className="w-5 h-5 mr-2" />
+                View Dashboard
+              </Button>
+            </>
           )}
         </div>
 

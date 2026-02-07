@@ -151,7 +151,7 @@ export function VoiceSettings() {
     }
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card className="bg-slate-900/50 border-slate-800" data-tour="voice-capabilities">
             <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                     <Volume2 className="w-5 h-5" />
@@ -164,8 +164,8 @@ export function VoiceSettings() {
                 <div className="space-y-3">
                     <label className="text-sm font-medium text-slate-300">AI Voice</label>
                     <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                        <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-white">
-                            <SelectValue placeholder="Select a voice" />
+                        <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-white" disabled={voices.length === 0}>
+                            <SelectValue placeholder={voices.length === 0 ? "Loading voices..." : "Select a voice"} />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] bg-slate-900 border-slate-700 text-slate-200">
                             {voices.map((voice) => (
@@ -194,7 +194,7 @@ export function VoiceSettings() {
                         max={2.0}
                         step={0.1}
                         onValueChange={handleRateChange}
-                        className="py-4"
+                        className="py-4 [&_.bg-primary]:bg-indigo-600 [&_.bg-primary\/20]:bg-indigo-600/20 [&_.border-primary\/50]:border-indigo-600/50"
                     />
                     <div className="flex justify-between text-[10px] text-slate-500 px-1">
                         <span>Slow</span>

@@ -7,6 +7,8 @@ import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
 import { DemoBanner } from "@/components/demo/DemoBanner";
 import { Toaster } from "@/components/ui/toaster";
+import { TourProvider } from "@/components/tour/TourContext";
+import { IntroTour } from "@/components/tour/IntroTour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,11 +72,14 @@ export default function RootLayout({
         <AuthProvider>
           <ClientProviders>
             <ErrorBoundary>
-              <Navbar />
-              <main className="overflow-x-hidden">
-                {children}
-              </main>
-              <Toaster />
+              <TourProvider>
+                <Navbar />
+                <main className="overflow-x-hidden">
+                  {children}
+                </main>
+                <IntroTour />
+                <Toaster />
+              </TourProvider>
             </ErrorBoundary>
           </ClientProviders>
         </AuthProvider>

@@ -94,7 +94,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
         <div className="flex flex-col h-full">
             {/* Editor Header */}
             <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700 rounded-t-lg">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" data-tour="language-select">
                     <span className="text-sm text-slate-400">Language:</span>
                     <select
                         value={language}

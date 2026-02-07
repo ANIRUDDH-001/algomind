@@ -39,7 +39,7 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" data-tour="performance-insights">
                 <StatItem
                     icon={<Clock className="w-4 h-4 text-emerald-400" />}
                     label="Practice Time"
@@ -63,7 +63,7 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2" data-tour="cognitive-radar">
                 <div className="space-y-3">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3 h-3 text-amber-400" /> Top Strengths
