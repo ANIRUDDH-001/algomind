@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { TOUR_STEPS } from '@/lib/tour/steps';
 import { useTour } from './TourContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -11,6 +12,7 @@ import { isMobileDevice } from '@/lib/utils/device-detection';
 
 export function IntroTour() {
     const { isOpen, currentStep, nextStep, prevStep, skipTour, currentStepIndex } = useTour();
+    const steps = TOUR_STEPS;
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -268,7 +270,13 @@ export function IntroTour() {
                         className={cn(
                             "pointer-events-auto absolute",
                             isMobile
-                                ? "bottom-0 left-0 right-0 p-4" // Mobile Bottom Sheet
+                                ? cn(
+                                    "left-0 right-0 p-4",
+                                    // Default to bottom sheet, but allow override to top
+                                    currentStep.mobilePosition === 'top'
+                                        ? "top-20 rounded-b-3xl border-t-0 shadow-xl"
+                                        : "bottom-0 rounded-t-3xl border-b-0"
+                                )
                                 : "max-w-xs" // Desktop
                         )}
                         style={!isMobile && hasTarget ? {
@@ -292,9 +300,13 @@ export function IntroTour() {
                     >
                         <div className={cn(
                             "bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden",
-                            isMobile ? "rounded-t-3xl border-b-0 pb-8" : "rounded-2xl"
+                            isMobile
+                                ? cn(
+                                    currentStep.mobilePosition === 'top' ? "rounded-b-2xl border-t-0" : "rounded-t-3xl border-b-0 pb-8"
+                                )
+                                : "rounded-2xl"
                         )}>
-                            {isMobile && (
+                            {isMobile && currentStep.mobilePosition !== 'top' && (
                                 <div className="w-full flex justify-center pt-3 pb-1">
                                     <div className="w-12 h-1.5 bg-slate-700 rounded-full" />
                                 </div>
@@ -314,10 +326,10 @@ export function IntroTour() {
 
                                 <div className="flex items-center justify-between gap-4">
                                     <span className="text-xs font-medium text-slate-500">
-                                        Step {currentStepIndex} of {14}
+                                        Step {currentStepIndex + 1} of {steps.length}
                                     </span>
                                     <div className="flex gap-2">
-                                        {currentStepIndex > 1 && (
+                                        {currentStepIndex > 0 && (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
@@ -332,8 +344,8 @@ export function IntroTour() {
                                             onClick={nextStep}
                                             className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20"
                                         >
-                                            {currentStepIndex === 13 ? "Finish" : "Next"}
-                                            {currentStepIndex !== 13 && <ChevronRight className="w-4 h-4 ml-1" />}
+                                            {currentStepIndex === steps.length - 1 ? "Finish" : "Next"}
+                                            {currentStepIndex !== steps.length - 1 && <ChevronRight className="w-4 h-4 ml-1" />}
                                         </Button>
                                     </div>
                                 </div>

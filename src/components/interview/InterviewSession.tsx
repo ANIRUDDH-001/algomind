@@ -712,7 +712,7 @@ export function InterviewSession({
     // --- Main Render ---
 
     return (
-        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6">
+        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6" data-tour="interview-container">
             {/* Mobile Warning Modal */}
             {showMobileWarning && (
                 <MobileWarning

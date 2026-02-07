@@ -11,6 +11,7 @@ export interface TourStep {
     spotlightShape?: 'circle' | 'rectangle' | 'rounded';
     action?: (params: { router: any }) => Promise<void>;
     shouldShow?: (user: any) => boolean;
+    mobilePosition?: 'top' | 'bottom'; // Control mobile sheet position
 }
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -80,6 +81,7 @@ export const TOUR_STEPS: TourStep[] = [
         content: 'View your timeline of sessions and upcoming milestones.',
         spotlightShape: 'rectangle',
         position: 'top',
+        mobilePosition: 'top',
         shouldShow: (user) => !!user
     },
 
@@ -145,7 +147,7 @@ export const TOUR_STEPS: TourStep[] = [
         id: 8,
         type: 'spotlight',
         route: '/interview',
-        target: '[data-tour="chat-panel"]',
+        target: '[data-tour="interview-container"]',
         title: 'The Interview Interface',
         content: 'This is your workspace. Switch between Voice Mode and Code Editor manually using the controls here. Kai will guide you!',
         spotlightShape: 'rectangle',
