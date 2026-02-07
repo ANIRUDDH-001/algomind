@@ -13,7 +13,7 @@ interface RecommendationsPanelProps {
 
 export function RecommendationsPanel({ recommendations }: RecommendationsPanelProps) {
     if (recommendations.length === 0) return (
-        <div className="p-12 border border-dashed border-slate-800 rounded-3xl text-center bg-slate-900/20">
+        <div className="p-12 border border-dashed border-slate-800 rounded-3xl text-center bg-slate-900/20" data-tour="recommendations">
             <Dumbbell className="w-8 h-8 text-slate-600 mx-auto mb-4" />
             <h3 className="text-slate-400 font-bold mb-1">No specific recommendations yet</h3>
             <p className="text-slate-500 text-sm">Complete more sessions to get personalized problem suggestions!</p>

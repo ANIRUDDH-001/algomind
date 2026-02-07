@@ -170,7 +170,7 @@ export const TOUR_STEPS: TourStep[] = [
         id: 9,
         type: 'spotlight',
         route: '/practice',
-        target: '[data-tour="mode-toggle"]',
+        target: '[data-tour="mode-toggle"], [data-tour="begin-button"]',
         title: 'Two Interview Modes',
         content: 'Switch between Voice Mode (speak your solution) and Code Mode (write and run code).',
         spotlightShape: 'rectangle',

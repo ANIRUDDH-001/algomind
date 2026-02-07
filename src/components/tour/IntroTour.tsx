@@ -206,7 +206,7 @@ export function IntroTour() {
                     />
                 ) : (
                     // Fallback full overlay if target not found yet
-                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm pointer-events-auto" />
+                    <div className="absolute inset-0 bg-slate-950/80 pointer-events-auto" />
                 )}
 
                 {/* Tooltip */}
@@ -224,13 +224,17 @@ export function IntroTour() {
                                 : "max-w-xs" // Desktop
                         )}
                         style={!isMobile && targetRect ? {
-                            // Desktop Positioning
-                            top: currentStep.position === 'top' ? targetRect.top - 200 :
-                                currentStep.position === 'bottom' ? targetRect.bottom + 20 :
-                                    targetRect.top,
-                            left: currentStep.position === 'left' ? targetRect.left - 340 :
-                                currentStep.position === 'right' ? targetRect.right + 20 :
-                                    targetRect.left + (targetRect.width / 2) - 160,
+                            // Desktop Positioning with Clamping to prevent overflow
+                            top: Math.max(10, Math.min(window.innerHeight - 300,
+                                currentStep.position === 'top' ? targetRect.top - 200 :
+                                    currentStep.position === 'bottom' ? targetRect.bottom + 20 :
+                                        targetRect.top
+                            )),
+                            left: Math.max(10, Math.min(window.innerWidth - 350,
+                                currentStep.position === 'left' ? targetRect.left - 340 :
+                                    currentStep.position === 'right' ? targetRect.right + 20 :
+                                        targetRect.left + (targetRect.width / 2) - 160
+                            )),
                         } : undefined}
                     >
                         <div className={cn(

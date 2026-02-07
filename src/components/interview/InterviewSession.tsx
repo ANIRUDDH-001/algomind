@@ -443,6 +443,7 @@ export function InterviewSession({
                             size="lg"
                             className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
                             onClick={handleStart}
+                            data-tour="begin-button"
                         >
                             Begin Interview Experience
                         </Button>
