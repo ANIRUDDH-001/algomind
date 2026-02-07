@@ -139,11 +139,11 @@ export function SettingsPanel() {
                                         {user.email?.[0].toUpperCase()}
                                     </div>
                                 )}
-                                <div>
-                                    <p className="text-lg font-semibold text-white">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-lg font-semibold text-white truncate">
                                         {user.user_metadata?.full_name || 'AlgoMind User'}
                                     </p>
-                                    <p className="text-slate-400">{user.email}</p>
+                                    <p className="text-slate-400 truncate">{user.email}</p>
                                 </div>
                             </div>
 

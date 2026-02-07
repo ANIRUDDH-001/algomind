@@ -18,6 +18,7 @@ interface DashboardCardProps {
     className?: string;
     isLoading?: boolean;
     delay?: number;
+    'data-tour'?: string;
 }
 
 export function DashboardCard({

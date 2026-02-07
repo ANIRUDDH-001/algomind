@@ -394,7 +394,7 @@ export function InterviewSession({
 
 
     const renderCodeEditorToggle = () => (
-        <div className="flex gap-2 mb-2 px-6 lg:px-8 pt-4">
+        <div className="flex bg-slate-950/50 p-1 rounded-lg border border-slate-800/50 mb-4 self-center shrink-0" data-tour="mode-toggle">
             <button
                 onClick={() => setShowCodeEditor(false)}
                 className={cn(

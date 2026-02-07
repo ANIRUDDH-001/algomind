@@ -7,6 +7,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, AlertTriangle, Shield, Plus, TrendingUp, Database, ChevronDown, ChevronUp, Edit, Trash2 } from 'lucide-react';
+import { useSwipeable } from 'react-swipeable';
 
 interface KnowledgeGap {
     id: string;
@@ -36,6 +37,20 @@ export default function KnowledgeAdminPage() {
     const [gaps, setGaps] = useState<KnowledgeGap[]>([]);
     const [chunks, setChunks] = useState<KnowledgeChunk[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('gaps');
+
+    const tabs = ['gaps', 'chunks', 'add'];
+    const handlers = useSwipeable({
+        onSwipedLeft: () => {
+            const idx = tabs.indexOf(activeTab);
+            if (idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+        },
+        onSwipedRight: () => {
+            const idx = tabs.indexOf(activeTab);
+            if (idx > 0) setActiveTab(tabs[idx - 1]);
+        },
+        trackMouse: false
+    });
 
     useEffect(() => {
         if (!adminLoading && isAdmin) {
@@ -130,7 +145,7 @@ export default function KnowledgeAdminPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <div {...handlers} className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
@@ -194,7 +209,7 @@ export default function KnowledgeAdminPage() {
                 </div>
 
                 {/* Tabs */}
-                <Tabs defaultValue="gaps" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     {/* Scrollable Tabs List for Mobile */}
                     <div className="overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
                         <TabsList className="bg-slate-800/50 border border-slate-700 p-1 rounded-xl flex w-max md:w-full">

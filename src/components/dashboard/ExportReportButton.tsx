@@ -43,6 +43,7 @@ export function ExportReportButton({ progress }: ExportReportButtonProps) {
                         disabled={showLoading}
                         onClick={() => setHasClicked(true)}
                         className="border-slate-800 bg-slate-900/50 hover:bg-slate-800 text-slate-300 h-11 px-6 font-bold shadow-lg transition-all active:scale-95"
+                        data-id="export-report-btn"
                     >
                         {showLoading ? (
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

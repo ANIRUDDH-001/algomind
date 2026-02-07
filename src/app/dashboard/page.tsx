@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
+import { useSwipeable } from 'react-swipeable';
 
 function DashboardContent() {
     const router = useRouter();
@@ -74,12 +75,38 @@ function DashboardContent() {
     const latestSession = progress?.sessions[0];
     const previousSession = progress?.sessions[1];
 
+    // Update URL when tab changes
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab as any);
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+    };
+
+    // Swipe handlers
+    const tabs = ['overview', 'skills', 'history', 'insights'] as const;
+    const handlers = useSwipeable({
+        onSwipedLeft: () => {
+            const currentIndex = tabs.indexOf(activeTab);
+            if (currentIndex < tabs.length - 1) {
+                handleTabChange(tabs[currentIndex + 1]);
+            }
+        },
+        onSwipedRight: () => {
+            const currentIndex = tabs.indexOf(activeTab);
+            if (currentIndex > 0) {
+                handleTabChange(tabs[currentIndex - 1]);
+            }
+        },
+        trackMouse: false
+    });
+
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+        <div {...handlers} className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader progress={progress} />
 
-                <DashboardNav activeTab={activeTab} onTabChange={setActiveTab} />
+                <DashboardNav activeTab={activeTab} onTabChange={handleTabChange} />
 
                 {!isLoading && (!progress || progress.totalSessions === 0) ? (
                     <EmptyState
