@@ -1,3 +1,4 @@
+import { disableDemoMode } from '@/lib/demo/manager';
 
 export interface TourStep {
     id: number | string;
@@ -99,7 +100,7 @@ export const TOUR_STEPS: TourStep[] = [
         shouldShow: (user) => !!user
     },
 
-    // STEP 5: Dashboard - Skills Tab (Points to Tab Button)
+    // STEP 5: Dashboard - Skills Tab
     {
         id: 5,
         type: 'spotlight',
@@ -111,12 +112,12 @@ export const TOUR_STEPS: TourStep[] = [
         position: 'bottom',
         shouldShow: (user) => !!user,
         action: async ({ router }) => {
-            // Just point to the tab, don't necessarily navigate inside it yet
-            // optimizing for visibility of the target
+            router.push('/dashboard?tab=skills');
+            await wait(300);
         }
     },
 
-    // STEP 6: Dashboard - History Tab (Points to Tab Button)
+    // STEP 6: Dashboard - History Tab
     {
         id: 6,
         type: 'spotlight',
@@ -126,10 +127,14 @@ export const TOUR_STEPS: TourStep[] = [
         content: 'Access the "History" tab to review past interviews and transcripts.',
         spotlightShape: 'rounded',
         position: 'bottom',
-        shouldShow: (user) => !!user
+        shouldShow: (user) => !!user,
+        action: async ({ router }) => {
+            router.push('/dashboard?tab=history');
+            await wait(300);
+        }
     },
 
-    // STEP 7: Dashboard - Insights Tab (Points to Tab Button)
+    // STEP 7: Dashboard - Insights Tab
     {
         id: 7,
         type: 'spotlight',
@@ -139,7 +144,11 @@ export const TOUR_STEPS: TourStep[] = [
         content: 'See personalized recommendations in the "Insights" tab.',
         spotlightShape: 'rounded',
         position: 'bottom',
-        shouldShow: (user) => !!user
+        shouldShow: (user) => !!user,
+        action: async ({ router }) => {
+            router.push('/dashboard?tab=insights');
+            await wait(300);
+        }
     },
 
     // STEP 8: Practice - Full Interview Experience
@@ -199,6 +208,8 @@ export const TOUR_STEPS: TourStep[] = [
         title: "🎉 You're All Set!",
         content: "You've mastered AlgoMind basics. Ready to ace your DSA interviews?",
         action: async ({ router }) => {
+            disableDemoMode();
+            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
             router.push('/');
         }
     }
