@@ -32,7 +32,7 @@ AlgoMind follows a modern **Serverless/Edge Architecture** leveraging Next.js (A
 ```mermaid
 graph TD
     User[User Client] -->|HTTPS| Next[Next.js App Server]
-    User -->|Direct DB Access| Supabase[Supabase (PostgreSQL)]
+    User -->|Direct DB Access| Supabase["Supabase (PostgreSQL)"]
     
     subgraph "Frontend Layer"
         Next -->|Rendering| Pages[React Server Components]
@@ -41,8 +41,8 @@ graph TD
     
     subgraph "Data Layer"
         Supabase -->|Auth| GoTrue[GoTrue Auth]
-        Supabase -->|Data| Postgres[Postgres DB + pgvector]
-        Supabase -->|Storage| Storage[Bucket (Assets)]
+        Supabase -->|Data| Postgres["Postgres DB + pgvector"]
+        Supabase -->|Storage| Storage["Bucket (Assets)"]
     end
     
     subgraph "AI Services"
