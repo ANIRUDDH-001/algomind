@@ -1,20 +1,20 @@
 import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
 
 export interface ConversationTurn {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }
 
 export function generateAssessmentPrompt(
-    problem: { title: string; description: string; difficulty: string },
-    transcript: ConversationTurn[],
-    skillDefinitions: Record<CognitiveSkill, SkillDefinition>
+  problem: { title: string; description: string; difficulty: string },
+  transcript: ConversationTurn[],
+  skillDefinitions: Record<CognitiveSkill, SkillDefinition>
 ): string {
-    const formattedTranscript = transcript
-        .map(turn => `${turn.role.toUpperCase()}: ${turn.content}`)
-        .join('\n');
+  const formattedTranscript = transcript
+    .map(turn => `${turn.role.toUpperCase()}: ${turn.content}`)
+    .join('\n');
 
-    return `
+  return `
 You are an expert technical interviewer and cognitive scientist evaluating a candidate's DSA problem-solving session.
 
 PROBLEM STATEMENT:
@@ -52,7 +52,8 @@ OUTPUT FORMAT (JSON ONLY):
     ... (repeat for all 8 skills)
   },
   "overallFeedback": "High-level summary of performance",
-  "nextSteps": ["Actionable recommendation 1", "..."]
+  "nextSteps": ["Actionable recommendation 1", "..."],
+  "knowledgeGaps": ["Specific concept missed (e.g. 'Loop invariants')", "..."]
 }
 
 IMPORTANT:
@@ -60,5 +61,6 @@ IMPORTANT:
 - Quote EXACT phrases from the transcript as evidence.
 - Be constructively critical. Don't give 10/10 unless the performance is truly exemplary.
 - Consider problem difficulty. A "Hard" problem solved with minor gaps is better than an "Easy" problem solved perfectly but slowly.
+- **knowledgeGaps**: List 1-3 specific technical concepts the candidate lacked or struggled with. If none, leave empty.
 `;
 }

@@ -18,6 +18,7 @@ export interface AssessmentResult {
     skills: Record<CognitiveSkill, SkillScore>;
     overallFeedback: string;
     nextSteps: string[];
+    knowledgeGaps?: string[];
     modelUsed?: string;
 }
 
@@ -66,7 +67,8 @@ export class CognitiveAnalyzer {
                     problem,
                     skills: finalizedSkills,
                     overallFeedback: parsedData.overallFeedback || "No feedback generated.",
-                    nextSteps: parsedData.nextSteps || ["Review the session manually."]
+                    nextSteps: parsedData.nextSteps || ["Review the session manually."],
+                    knowledgeGaps: parsedData.knowledgeGaps || []
                 };
 
             } catch (error) {
@@ -104,6 +106,7 @@ export class CognitiveAnalyzer {
         return data.response; // returns the string content from AI
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private parseResponse(raw: string): any {
         // 1. Strip markdown fences more thoroughly
         let jsonString = raw

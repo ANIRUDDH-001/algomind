@@ -6,7 +6,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, AlertTriangle, Shield, Plus, TrendingUp, Database } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Shield, Plus, TrendingUp, Database, ChevronDown, ChevronUp, Edit, Trash2 } from 'lucide-react';
 
 interface KnowledgeGap {
     id: string;
@@ -26,6 +26,8 @@ interface KnowledgeChunk {
     usage_count: number;
     effectiveness_score: number;
     status: string;
+    keywords: string[];
+    created_at: string;
 }
 
 export default function KnowledgeAdminPage() {
@@ -140,6 +142,9 @@ export default function KnowledgeAdminPage() {
                         <h1 className="text-3xl font-bold text-white">
                             RAG Knowledge Management
                         </h1>
+                        <p className="text-slate-400 text-sm mt-1 mb-4 hidden md:block">
+                            Review AI-detected gaps and manage the knowledge base.
+                        </p>
                     </div>
                     <Button
                         variant="outline"
@@ -190,18 +195,21 @@ export default function KnowledgeAdminPage() {
 
                 {/* Tabs */}
                 <Tabs defaultValue="gaps" className="w-full">
-                    <TabsList className="mb-6 bg-slate-800/50 border border-slate-700 p-1 rounded-xl">
-                        <TabsTrigger value="gaps" className="rounded-lg data-[state=active]:bg-slate-700">
-                            Knowledge Gaps ({gaps.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="chunks" className="rounded-lg data-[state=active]:bg-slate-700">
-                            DB Chunks ({chunks.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="add" className="rounded-lg data-[state=active]:bg-slate-700">
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add Chunk
-                        </TabsTrigger>
-                    </TabsList>
+                    {/* Scrollable Tabs List for Mobile */}
+                    <div className="overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+                        <TabsList className="bg-slate-800/50 border border-slate-700 p-1 rounded-xl flex w-max md:w-full">
+                            <TabsTrigger value="gaps" className="rounded-lg data-[state=active]:bg-slate-700 px-4">
+                                Knowledge Gaps ({gaps.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="chunks" className="rounded-lg data-[state=active]:bg-slate-700 px-4">
+                                DB Chunks ({chunks.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="add" className="rounded-lg data-[state=active]:bg-slate-700 px-4">
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Chunk
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     {/* Tab 1: Knowledge Gaps */}
                     <TabsContent value="gaps">
@@ -290,15 +298,17 @@ export default function KnowledgeAdminPage() {
                         </div>
                     </TabsContent>
 
-                    {/* Tab 2: Active Chunks */}
+                    {/* Tab 2: Active Chunks (List View) */}
                     <TabsContent value="chunks">
-                        <div className="bg-slate-800/30 rounded-xl p-6 border border-slate-700">
-                            <h2 className="text-xl font-semibold text-white mb-2">
-                                Database Chunks
-                            </h2>
-                            <p className="text-slate-400 text-sm mb-6">
-                                Chunks stored in Supabase. Note: 31 chunks in embeddings.json are used for live RAG.
-                            </p>
+                        <div className="bg-slate-800/30 rounded-xl border border-slate-700 overflow-hidden">
+                            <div className="p-6 border-b border-slate-700">
+                                <h2 className="text-xl font-semibold text-white mb-1">
+                                    Database Chunks
+                                </h2>
+                                <p className="text-slate-400 text-sm">
+                                    Full knowledge base content.
+                                </p>
+                            </div>
 
                             {loading ? (
                                 <div className="text-slate-400 text-center py-8">Loading...</div>
@@ -311,29 +321,18 @@ export default function KnowledgeAdminPage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="divide-y divide-slate-800">
+                                    {/* Header Row */}
+                                    <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-slate-900/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        <div className="col-span-4 pl-2">Topic / Subtopic</div>
+                                        <div className="col-span-12 md:col-span-5">Content Preview</div>
+                                        <div className="col-span-2">Stats</div>
+                                        <div className="col-span-1 text-right">Action</div>
+                                    </div>
+
+                                    {/* List Rows */}
                                     {chunks.map((chunk) => (
-                                        <div
-                                            key={chunk.id}
-                                            className="bg-slate-900/50 rounded-lg p-4 border border-slate-700"
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <h3 className="text-white font-semibold mb-1">
-                                                        {chunk.topic} / {chunk.subtopic}
-                                                    </h3>
-                                                    <p className="text-sm text-slate-400 line-clamp-2 mb-2">
-                                                        {chunk.content.substring(0, 150)}...
-                                                    </p>
-                                                    <div className="flex gap-4 text-xs text-slate-500">
-                                                        <span>Used: {chunk.usage_count}×</span>
-                                                        <span>
-                                                            Effectiveness: {(chunk.effectiveness_score * 100).toFixed(0)}%
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <ChunkRow key={chunk.id} chunk={chunk} />
                                     ))}
                                 </div>
                             )}
@@ -346,6 +345,102 @@ export default function KnowledgeAdminPage() {
                     </TabsContent>
                 </Tabs>
             </div>
+        </div>
+    );
+}
+
+function ChunkRow({ chunk }: { chunk: KnowledgeChunk }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="group bg-slate-900/20 hover:bg-slate-800/50 transition-colors">
+            {/* Main Row Content */}
+            <div
+                className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 cursor-pointer items-center"
+                onClick={() => setExpanded(!expanded)}
+            >
+                {/* Mobile: Topic Header */}
+                <div className="col-span-12 md:col-span-4">
+                    <div className="flex justify-between items-center md:hidden mb-2">
+                        <span className="text-xs font-bold text-slate-500 uppercase">{chunk.topic}</span>
+                        {expanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                    </div>
+                    <div className="font-medium text-white group-hover:text-blue-400 transition-colors pl-2 border-l-2 border-transparent group-hover:border-blue-500">
+                        {chunk.subtopic}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono mt-1 pl-2 hidden md:block">
+                        {chunk.topic}
+                    </div>
+                </div>
+
+                <div className="col-span-12 md:col-span-5 text-sm text-slate-400">
+                    <div className={expanded ? '' : 'line-clamp-2'}>
+                        {chunk.content}
+                    </div>
+                </div>
+
+                <div className="col-span-6 md:col-span-2 text-xs text-slate-500 flex flex-row md:flex-col gap-4 md:gap-1 mt-2 md:mt-0">
+                    <div>Used: <span className="text-slate-300">{chunk.usage_count}</span></div>
+                    <div>Score: <span className="text-green-400">{(chunk.effectiveness_score * 100).toFixed(0)}%</span></div>
+                </div>
+
+                <div className="col-span-6 md:col-span-1 text-right hidden md:block">
+                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                </div>
+            </div>
+
+            {/* Expanded Content */}
+            {expanded && (
+                <div className="px-4 pb-4 md:pl-4 md:ml-0 border-t border-slate-800/50 bg-slate-900/50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Content</h4>
+                            <div className="text-sm text-slate-300 whitespace-pre-wrap font-mono bg-slate-950 p-4 rounded-lg border border-slate-800 shadow-inner max-h-96 overflow-y-auto">
+                                {chunk.content}
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-between">
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Metadata</h4>
+                                <div className="space-y-3 text-sm bg-slate-950 p-4 rounded-lg border border-slate-800">
+                                    <div className="flex justify-between border-b border-slate-800 pb-2">
+                                        <span className="text-slate-500">Created</span>
+                                        <span className="text-slate-300">{new Date(chunk.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-800 pb-2">
+                                        <span className="text-slate-500">Status</span>
+                                        <span className="text-green-400 font-bold capitalize flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                            {chunk.status}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-500 block mb-2">Keywords</span>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {chunk.keywords?.map((k, i) => (
+                                                <span key={i} className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-xs border border-slate-700 shadow-sm">
+                                                    {k}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-800/50">
+                                <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-800 gap-2">
+                                    <Edit className="w-3 h-3" /> Edit
+                                </Button>
+                                <Button variant="destructive" size="sm" className="bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 gap-2">
+                                    <Trash2 className="w-3 h-3" /> Archive
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

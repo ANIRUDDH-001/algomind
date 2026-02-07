@@ -52,7 +52,7 @@ export function Navbar() {
                             {/* Logo */}
                             <button
                                 onClick={() => router.push('/')}
-                                className="flex items-center gap-3 font-bold text-xl text-white hover:text-blue-400 transition-colors group"
+                                className="flex items-center gap-3 font-bold text-xl text-white hover:text-blue-400 transition-colors group shrink-0"
                             >
                                 <img
                                     src="/icon-192x192.png"
@@ -172,8 +172,8 @@ export function Navbar() {
 
                     {/* Auth not configured warning */}
                     {!isConfigured && (
-                        <div className="bg-yellow-500/10 border-t border-yellow-500/20 py-1 px-4 text-center">
-                            <p className="text-[10px] font-black uppercase text-yellow-500">
+                        <div className="bg-yellow-500/10 border-t border-yellow-500/20 py-1 px-4 text-center overflow-x-auto">
+                            <p className="text-[10px] font-black uppercase text-yellow-500 whitespace-nowrap">
                                 ⚠️ Guest Mode Active (Local Storage)
                             </p>
                         </div>
