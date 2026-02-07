@@ -124,6 +124,7 @@ function DashboardContent() {
                                             title="Cognitive Skill Profile"
                                             subtitle="Assessment based on your latest interactions"
                                             isLoading={isLoading}
+                                            data-tour="cognitive-profile"
                                         >
                                             <div className="flex flex-col items-center justify-center h-full py-4">
                                                 {latestSession ? (

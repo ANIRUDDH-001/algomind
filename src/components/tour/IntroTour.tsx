@@ -158,6 +158,14 @@ export function IntroTour() {
     if (!isMounted || !isOpen || !currentStep) return null;
 
     // Portal for rendering outside normal flow
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        if (isMobile) {
+            e.stopPropagation();
+            nextStep();
+        }
+    };
+
+    // Portal for rendering outside normal flow
     const renderContent = () => {
         // --- 1. Modal Step (Welcome / Completion) ---
         if (currentStep.type === 'modal') {
@@ -213,10 +221,20 @@ export function IntroTour() {
         }
 
         // --- 2. Spotlight Step ---
+        const hasTarget = !!targetRect;
+
         return (
-            <div className="fixed inset-0 z-[100] pointer-events-none">
+            <div
+                className={cn(
+                    "fixed inset-0 z-[100]",
+                    // On mobile, capture clicks everywhere (Tap to Next). 
+                    // On desktop, passthrough events so user can interact IF target found.
+                    isMobile ? "pointer-events-auto" : "pointer-events-none"
+                )}
+                onClick={handleBackdropClick}
+            >
                 {/* Spotlight Overlay via Box-Shadow */}
-                {targetRect ? (
+                {hasTarget ? (
                     <div
                         className={cn(
                             "absolute transition-all duration-300 ease-in-out pointer-events-none",
@@ -224,16 +242,17 @@ export function IntroTour() {
                             "border-[3px] border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)]"
                         )}
                         style={{
-                            top: targetRect.top - 8,
-                            left: targetRect.left - 8,
-                            width: targetRect.width + 16,
-                            height: targetRect.height + 16,
+                            top: targetRect!.top - 8,
+                            left: targetRect!.left - 8,
+                            width: targetRect!.width + 16,
+                            height: targetRect!.height + 16,
                             // The Box Shadow Trick: Creates the dark overlay with a cutout
                             boxShadow: `0 0 0 9999px ${isMobile ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.75)'}`,
                         }}
                     />
                 ) : (
                     // Fallback full overlay if target not found yet
+                    // Make this pointer-events-auto always to block page interaction when target missing
                     <div className="absolute inset-0 bg-slate-950/80 pointer-events-auto" />
                 )}
 
@@ -245,25 +264,31 @@ export function IntroTour() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.3 }}
+                        onClick={(e) => e.stopPropagation()} // Prevent tap-to-next when clicking tooltip itself
                         className={cn(
                             "pointer-events-auto absolute",
                             isMobile
                                 ? "bottom-0 left-0 right-0 p-4" // Mobile Bottom Sheet
                                 : "max-w-xs" // Desktop
                         )}
-                        style={!isMobile && targetRect ? {
+                        style={!isMobile && hasTarget ? {
                             // Desktop Positioning with Clamping to prevent overflow
                             top: Math.max(10, Math.min(window.innerHeight - 300,
-                                currentStep.position === 'top' ? targetRect.top - 200 :
-                                    currentStep.position === 'bottom' ? targetRect.bottom + 20 :
-                                        targetRect.top
+                                currentStep.position === 'top' ? targetRect!.top - 200 :
+                                    currentStep.position === 'bottom' ? targetRect!.bottom + 20 :
+                                        targetRect!.top
                             )),
                             left: Math.max(10, Math.min(window.innerWidth - 350,
-                                currentStep.position === 'left' ? targetRect.left - 340 :
-                                    currentStep.position === 'right' ? targetRect.right + 20 :
-                                        targetRect.left + (targetRect.width / 2) - 160
+                                currentStep.position === 'left' ? targetRect!.left - 340 :
+                                    currentStep.position === 'right' ? targetRect!.right + 20 :
+                                        targetRect!.left + (targetRect!.width / 2) - 160
                             )),
-                        } : { top: -9999, left: -9999 }} // Hide if no valid rect target found yet
+                        } : isMobile ? undefined : {
+                            // Centered Desktop Fallback if target missing
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)'
+                        }}
                     >
                         <div className={cn(
                             "bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden",
