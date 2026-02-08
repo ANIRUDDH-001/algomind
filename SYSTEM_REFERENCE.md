@@ -77,27 +77,27 @@ AlgoMind is a Next.js App Router web app for DSA interview practice with:
 ### 3.1 Auth/session flow
 ```mermaid
 flowchart TD
-  A[User clicks OAuth sign-in] --> B[Supabase OAuth]
-  B --> C[/auth/callback GET with code]
-  C --> D[exchangeCodeForSession]
-  D --> E[Redirect / or /dashboard]
-  E --> F[AuthProvider loads session]
-  F --> G[useSessionPersistence watches auth events and refreshes token]
+  A["User clicks OAuth sign-in"] --> B["Supabase OAuth"]
+  B --> C["GET auth callback with code (/auth/callback)"]
+  C --> D["exchangeCodeForSession"]
+  D --> E["Redirect to / or /dashboard"]
+  E --> F["AuthProvider loads session"]
+  F --> G["useSessionPersistence watches auth events and refreshes token"]
 ```
 
 ### 3.2 Interview flow
 ```mermaid
 flowchart TD
-  A[/interview page] --> B[Load problem + rate limit]
-  B --> C[InterviewSession + useInterview]
-  C --> D[Voice input transcript]
-  D --> E[POST /api/chat]
-  E --> F[Load vector store embeddings.json]
-  F --> G[Hybrid retrieval or pre-embedded guest context]
-  G --> H[Inject context into system prompt]
-  H --> I[Unified AI client chat]
-  I --> J[Return AI response]
-  J --> K[TTS speaks response]
+  A["/interview page"] --> B["Load problem + rate limit"]
+  B --> C["InterviewSession + useInterview"]
+  C --> D["Voice input transcript"]
+  D --> E["POST /api/chat"]
+  E --> F["Load vector store embeddings.json"]
+  F --> G["Hybrid retrieval or pre-embedded guest context"]
+  G --> H["Inject context into system prompt"]
+  H --> I["Unified AI client chat"]
+  I --> J["Return AI response"]
+  J --> K["TTS speaks response"]
   K --> D
 ```
 
