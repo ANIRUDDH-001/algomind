@@ -29,6 +29,7 @@ export interface EmbeddingModelConfig {
 }
 
 const GROQ_GPT_OSS_MODEL_ID = process.env.GROQ_GPT_OSS_MODEL_ID || "openai/gpt-oss-120b";
+const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "openai/gpt-oss-20b";
 const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-2.0-flash";
 
 // Chat Models Registry - ordered by preference
@@ -38,13 +39,13 @@ export const CHAT_MODELS: ModelConfig[] = [
         id: "llama-3.3-70b-versatile",
         provider: 'groq',
         tier: 1,
-        rpm: 13000, // Effective capacity provided by ops account setup
+        rpm: 30,
         tpm: 300000,
-        rpd: 14400, // Soft capped by provider
-        contextWindow: 128000,
+        rpd: 12000,
+        contextWindow: 100000,
         supportsEmbeddings: false,
         description: "Groq Llama 3.3 70B - Primary model for complex reasoning",
-        notes: "Provider baseline 1000 RPM; configured account capacity allows higher effective throughput"
+        notes: "Large model tier"
     },
 
     // Priority 2: Fast path for simple tasks
@@ -52,10 +53,10 @@ export const CHAT_MODELS: ModelConfig[] = [
         id: "llama-3.1-8b-instant",
         provider: 'groq',
         tier: 2,
-        rpm: 1000,
+        rpm: 30,
         tpm: 250000,
-        rpd: 14400,
-        contextWindow: 128000,
+        rpd: 6000,
+        contextWindow: 500000,
         supportsEmbeddings: false,
         description: "Groq Llama 3.1 8B Instant - Low-latency fallback"
     },
@@ -65,12 +66,25 @@ export const CHAT_MODELS: ModelConfig[] = [
         id: GROQ_GPT_OSS_MODEL_ID,
         provider: 'groq',
         tier: 3,
-        rpm: 1000,
+        rpm: 30,
         tpm: 250000,
-        rpd: 14400,
-        contextWindow: 131000,
+        rpd: 8000,
+        contextWindow: 200000,
         supportsEmbeddings: false,
         description: "Groq GPT-OSS 120B - Multi-step reasoning fallback"
+    },
+
+    // Priority 4: Medium-tier OSS fallback
+    {
+        id: GROQ_GPT_OSS_20B_MODEL_ID,
+        provider: 'groq',
+        tier: 4,
+        rpm: 30,
+        tpm: 250000,
+        rpd: 8000,
+        contextWindow: 200000,
+        supportsEmbeddings: false,
+        description: "Groq GPT-OSS 20B - Medium fallback for scale"
     },
 
     // Priority 6: Gemini free-tier high-context fallback

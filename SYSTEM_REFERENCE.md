@@ -1,6 +1,6 @@
 # AlgoMind System Reference (Canonical)
 
-Last verified: 2026-02-08 (updated after AI fallback changes)
+Last verified: 2026-02-08 (updated after Groq fallback limit changes)
 Source of truth: repository code under `src/*`, SQL under `sql/final/*`, scripts under `scripts/*`
 Scope: practical developer reference for structure, flows, APIs, data contracts, dependencies, and risks
 
@@ -8,7 +8,7 @@ Scope: practical developer reference for structure, flows, APIs, data contracts,
 
 AlgoMind is a Next.js App Router web app for DSA interview practice with:
 - voice interview interaction (browser speech APIs)
-- AI interviewer + AI assessment (Gemini with Groq fallback)
+- AI interviewer + AI assessment (Groq-first with Gemini fallback)
 - RAG grounding from local embeddings (plus optional DB-backed knowledge management)
 - Supabase auth + persistence (sessions, assessments, preferences, usage, knowledge ops)
 - dashboard analytics and PDF export
@@ -210,11 +210,21 @@ Files: `src/lib/ai/client.ts`, `src/lib/ai/providers.ts`, `src/lib/ai/rate-limit
   - `llama-3.3-70b-versatile`
   - `llama-3.1-8b-instant`
   - `openai/gpt-oss-120b` (configurable via env)
+  - `openai/gpt-oss-20b` (configurable via env)
 - Gemini (text + embeddings):
   - text: `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemma-3-27b-it`, and env-configured free-tier slot
   - embeddings: `gemini-embedding-001`
 - Local embeddings fallback:
   - `Xenova/all-MiniLM-L6-v2` via `@xenova/transformers`
+
+Groq fallback models and limits currently configured:
+
+| Model | Size Class | RPM | RPD | Max Context |
+| --- | --- | --: | --: | --: |
+| Llama 3.3 70B Versatile | Large | 30 | 12K | 100K |
+| Llama 3.1 8B Instant | Small / Fast | 30 | 6K | 500K |
+| GPT-OSS 120B | Very Large | 30 | 8K | 200K |
+| GPT-OSS 20B | Medium | 30 | 8K | 200K |
 
 Fallback strategy:
 - Selects available model by internal tier/rate limits.
@@ -315,6 +325,7 @@ Canonical DB definitions are in:
 
 ### Optional AI config
 - `GROQ_GPT_OSS_MODEL_ID`: override GPT-OSS Groq model id (default `openai/gpt-oss-120b`).
+- `GROQ_GPT_OSS_20B_MODEL_ID`: override GPT-OSS 20B Groq model id (default `openai/gpt-oss-20b`).
 - `GEMINI_FREE_TIER_MODEL_ID`: override Gemini free-tier text model id (default `gemini-2.0-flash` in code).
 
 ### Required for Supabase runtime
