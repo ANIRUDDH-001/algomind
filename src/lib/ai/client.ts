@@ -3,7 +3,7 @@
 
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 import Groq from "groq-sdk";
-import { CHAT_MODELS, EMBEDDING_MODELS, ModelConfig, ModelTier, Provider } from './providers';
+import { CHAT_MODELS, EMBEDDING_MODELS, ModelTier, Provider } from './providers';
 import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
 
 // Types
@@ -38,6 +38,7 @@ export class UnifiedAIClient {
     private groq: Groq | null = null;
     private rateLimiter: IntelligentRateLimiter;
     private geminiModels: Map<string, GenerativeModel> = new Map();
+    private localEmbedderPromise: Promise<unknown> | null = null;
 
     constructor() {
         this.rateLimiter = getRateLimiter();
@@ -97,10 +98,14 @@ export class UnifiedAIClient {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             this.rateLimiter.recordError(model.id, errorMessage);
 
-            // Check if this is a rate limit error and we should retry with next model
-            if (this.isRateLimitError(error)) {
-                console.warn(`Model ${model.id} rate limited, trying fallback...`);
-                return this.chat(messages, { ...options, preferredTier: (model.tier + 1) as ModelTier });
+            // Fall back to the next tier on any provider/model failure.
+            const nextTier = (model.tier + 1) as ModelTier;
+            const hasFallbackModel = CHAT_MODELS.some(m => m.tier >= nextTier);
+
+            if (hasFallbackModel) {
+                const reason = this.isRateLimitError(error) ? 'rate-limit' : 'error';
+                console.warn(`Model ${model.id} failed (${reason}), trying fallback tier ${nextTier}...`);
+                return this.chat(messages, { ...options, preferredTier: nextTier });
             }
 
             throw error;
@@ -188,31 +193,113 @@ export class UnifiedAIClient {
     }
 
     /**
-     * Generate embeddings using Gemini
+     * Generate embeddings using configured fallback order:
+     * 1) Gemini embedding model(s)
+     * 2) Local MiniLM fallback
      */
     async embed(texts: string | string[]): Promise<EmbeddingResult> {
+        const textArray = Array.isArray(texts) ? texts : [texts];
+        const errors: string[] = [];
+        const sortedModels = [...EMBEDDING_MODELS].sort((a, b) => a.tier - b.tier);
+
+        for (const embeddingModel of sortedModels) {
+            try {
+                let embeddings: number[][] = [];
+
+                if (embeddingModel.provider === 'gemini') {
+                    embeddings = await this.embedWithGemini(embeddingModel.id, textArray);
+                } else if (embeddingModel.provider === 'local') {
+                    embeddings = await this.embedWithLocalMiniLM(textArray);
+                } else {
+                    throw new Error(`Unsupported embedding provider: ${embeddingModel.provider}`);
+                }
+
+                return {
+                    embeddings,
+                    modelUsed: embeddingModel.id,
+                    dimensions: embeddingModel.dimensions,
+                };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                errors.push(`${embeddingModel.id}: ${message}`);
+                console.warn(`Embedding model ${embeddingModel.id} failed, trying next fallback...`);
+            }
+        }
+
+        throw new Error(`All embedding providers failed. ${errors.join(' | ')}`);
+    }
+
+    private async embedWithLocalMiniLM(texts: string[]): Promise<number[][]> {
+        const extractor = await this.getLocalEmbedder();
+        const vectors: number[][] = [];
+
+        for (const text of texts) {
+            const output = await extractor(text, { pooling: 'mean', normalize: true });
+            vectors.push(this.extractLocalVector(output));
+        }
+
+        return vectors;
+    }
+
+    private async getLocalEmbedder(): Promise<(input: string, options?: unknown) => Promise<unknown>> {
+        if (!this.localEmbedderPromise) {
+            this.localEmbedderPromise = (async () => {
+                const mod = await import('@xenova/transformers') as {
+                    pipeline?: (task: string, model: string) => Promise<(input: string, options?: unknown) => Promise<unknown>>;
+                };
+
+                if (!mod.pipeline) {
+                    throw new Error('@xenova/transformers pipeline export not found');
+                }
+
+                return mod.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            })();
+        }
+
+        return this.localEmbedderPromise as Promise<(input: string, options?: unknown) => Promise<unknown>>;
+    }
+
+    private extractLocalVector(output: unknown): number[] {
+        const maybeTensor = output as {
+            data?: ArrayLike<number>;
+            tolist?: () => unknown;
+        };
+
+        if (maybeTensor?.data && typeof maybeTensor.data.length === 'number') {
+            return Array.from(maybeTensor.data);
+        }
+
+        if (typeof maybeTensor?.tolist === 'function') {
+            const listed = maybeTensor.tolist();
+            if (Array.isArray(listed) && listed.length > 0 && Array.isArray(listed[0])) {
+                return (listed[0] as number[]).map(Number);
+            }
+            if (Array.isArray(listed)) {
+                return (listed as number[]).map(Number);
+            }
+        }
+
+        if (Array.isArray(output)) {
+            return (output as number[]).map(Number);
+        }
+
+        throw new Error('Unable to parse local embedding output');
+    }
+
+    private async embedWithGemini(modelId: string, texts: string[]): Promise<number[][]> {
         if (!this.gemini) {
             throw new Error('Gemini not configured. Set GEMINI_API_KEY for embeddings.');
         }
 
-        const textArray = Array.isArray(texts) ? texts : [texts];
-        const embeddingModel = EMBEDDING_MODELS[0]; // Use primary embedding model
-
-        const model = this.gemini.getGenerativeModel({ model: embeddingModel.id });
-
+        const model = this.gemini.getGenerativeModel({ model: modelId });
         const embeddings: number[][] = [];
 
-        // Process in batches to avoid rate limits
-        for (const text of textArray) {
+        for (const text of texts) {
             const result = await model.embedContent(text);
             embeddings.push(result.embedding.values);
         }
 
-        return {
-            embeddings,
-            modelUsed: embeddingModel.id,
-            dimensions: embeddingModel.dimensions,
-        };
+        return embeddings;
     }
 
     /**
