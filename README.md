@@ -4,6 +4,8 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
 
+![AlgoMind Dashboard Preview](public/dashboard-screenshot.png)
+
 AlgoMind is a cutting-edge technical interview preparation platform that simulates real-world coding interviews using voice-first AI. Built with a sophisticated **Multi-Model Architecture (Gemini 1.5 + Groq)** and **RAG (Retrieval-Augmented Generation)**, it delivers 99.9% uptime, sub-second latency, and context-aware feedback.
 
 Unlike standard coding platforms, AlgoMind evaluates candidates on **8 distinct cognitive dimensions**, providing a granular scientific analysis of their engineering potential.
