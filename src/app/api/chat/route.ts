@@ -63,15 +63,26 @@ export async function POST(req: NextRequest) {
             console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
         }
 
-        const result = await client.chat(messages, {
+        const result = await client.generateCompletion(messages, {
+            preferredProvider: 'groq',
+            category: 'speed', // Hints/Chat
+            maxTokens: 4096,
             systemPrompt: enhancedSystemPrompt,
-            temperature: 0.7,
-            maxTokens: 4096  // Higher limit for assessment JSON responses
+            estimatedTokens: 500
         });
 
-        console.log(`✨ [AI] Response generated using ${result.modelUsed}`);
+        if (!result.success) {
+            console.error(`❌ [AI] Generation failed. Attempted models: ${result.attemptedModels.join(', ')}`);
+            throw new Error(result.error || "Failed to generate response");
+        }
 
-        return NextResponse.json(result);
+        console.log(`✨ [AI] Response generated using ${result.modelUsed} (${result.provider})`);
+
+        return NextResponse.json({
+            response: result.response,
+            modelUsed: result.modelUsed,
+            provider: result.provider
+        });
 
     } catch (error: any) {
         console.error('❌ [Chat API] Error:', error);
