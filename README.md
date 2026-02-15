@@ -63,11 +63,14 @@ We go beyond "passing test cases". Use our proprietary scoring engine to measure
 *   **ORM**: Raw SQL + Supabase Client for maximum performance
 
 ### AI & Intelligence
-*   **Reasoning & Complex Tasks**:
-    *   [Groq](https://groq.com/): `llama-3.3-70b-versatile` (Primary), `llama-3.1-8b-instant` (Fast)
-    *   [Google Gemini](https://ai.google.dev/): `gemini-2.5-flash` (High Quality), `gemini-2.0-flash` (Free Tier)
-*   **Embeddings**: `gemini-embedding-001`
-*   **Fallbacks**: Includes `gemma-3-27b-it` and `openai/gpt-oss-120b` for maximum reliability.
+*   **Unified AI Client**: Standardized interface with intelligent routing and fallbacks.
+*   **Models (16 Total)**:
+    *   **Groq (Speed)**: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `qwen-2.5-32b`, and more.
+    *   **Gemini (Intelligence)**: `gemini-1.5-pro`, `gemini-2.0-flash`, `gemini-2.0-flash-lite-preview`.
+*   **Embeddings**: `gemini-embedding-001` with `Xenova/all-MiniLM-L6-v2` local fallback.
+*   **Resilience**:
+    *   **Fallback Strategy**: Primary Provider -> Same Provider Backup -> Secondary Provider.
+    *   **Rate Limiting**: `IntelligentRateLimiter` tracks RPM/TPM with 15% safety margin and exponential backoff.
 *   **Orchestration**: Custom "Antigravity Router" for failover and model selection
 
 ### DevOps & Tools
