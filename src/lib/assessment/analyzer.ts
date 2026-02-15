@@ -89,21 +89,26 @@ export class CognitiveAnalyzer {
     }
 
     private async callAI(prompt: string): Promise<string> {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [{ role: 'user', content: prompt }],
-                systemPrompt: "You are a professional assessment engine. Return only valid JSON."
-            })
-        });
+        // Use UnifiedAIClient directly instead of internal API fetch
+        const { getAIClient } = await import('@/lib/ai/client');
+        const client = getAIClient();
 
-        if (!response.ok) {
-            throw new Error(`AI API failed with status ${response.status}`);
+        const result = await client.generateCompletion(
+            [{ role: 'user', content: prompt }],
+            {
+                preferredProvider: 'gemini', // Deep analysis
+                category: 'intelligence',
+                systemPrompt: "You are a professional assessment engine. Return only valid JSON.",
+                maxTokens: 4096,
+                estimatedTokens: 2000
+            }
+        );
+
+        if (!result.success || !result.response) {
+            throw new Error(`AI Analysis failed: ${result.error}`);
         }
 
-        const data = await response.json();
-        return data.response; // returns the string content from AI
+        return result.response;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
