@@ -59,37 +59,42 @@ export const metadata: Metadata = {
   },
 };
 
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { TooltipProvider } from "@/components/ui/tooltip"; // Assuming TooltipProvider is needed based on the provided snippet
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ClientProviders>
-            <ErrorBoundary>
-              <TourProvider>
-                <Navbar />
-                <main className="overflow-x-hidden">
-                  {children}
-                </main>
-                <IntroTour />
-                <Toaster />
-              </TourProvider>
-            </ErrorBoundary>
-          </ClientProviders>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ClientProviders>
+              <ErrorBoundary>
+                <TourProvider>
+                  <Navbar />
+                  <main className="overflow-x-hidden">
+                    {children}
+                  </main>
+                  <IntroTour />
+                  <Toaster />
+                </TourProvider>
+              </ErrorBoundary>
+            </ClientProviders>
+          </AuthProvider>
+        </QueryProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    // SW registration failed silently
+                    console.error('ServiceWorker registration failed: ', err);
                   });
                 });
               }
@@ -97,6 +102,6 @@ export default function RootLayout({
           }}
         />
       </body>
-    </html>
+    </html >
   );
 }
