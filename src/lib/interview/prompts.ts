@@ -14,6 +14,8 @@ interface PromptContext {
     transcript: string; // The specific recent user input
     conversationHistory: string; // Full history
     ragContext: string; // Retrieved chunks
+    /** Optional context from an interrupted AI response. */
+    interruptionContext?: string;
 }
 
 /**
@@ -47,7 +49,7 @@ If the user mentions specific patterns (like Sliding Window or DFS), validate th
  * Maps internal state machine states to prompt phases.
  */
 export function generateTurnPrompt(context: PromptContext): string {
-    const { state, problemTitle, problemContent, ragContext, conversationHistory, transcript } = context;
+    const { state, problemTitle, problemContent, ragContext, conversationHistory, transcript, interruptionContext } = context;
 
     const baseContext = `
 Problem: ${problemTitle}
@@ -82,7 +84,12 @@ ${conversationHistory}
         conversationHistory
     );
 
-    return `${baseContext}\n${advancedPrompt}`;
+    // Append interruption context if present
+    const interruptionBlock = interruptionContext
+        ? `\n\n${interruptionContext}`
+        : '';
+
+    return `${baseContext}\n${advancedPrompt}${interruptionBlock}`;
 }
 
 /**

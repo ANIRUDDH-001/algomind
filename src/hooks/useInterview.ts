@@ -3,11 +3,29 @@ import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-mac
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useVoiceOutput } from '@/hooks/useVoiceOutput';
+import { buildInterruptionContext } from '@/lib/interview/interruption-context';
+import { trackInterruption } from '@/lib/analytics/interruption-analytics';
+
+/** Unique ID for stable message identification. */
+function generateMessageId(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
 
 export interface Message {
+    /** Stable unique identifier for this message. */
+    id: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: Date;
+    /** Message delivery status. */
+    status?: 'complete' | 'interrupted' | 'cancelled';
+    /** What the AI said before the user interrupted (subset of content). */
+    partialContent?: string;
+    /** Unix timestamp of when the interruption occurred. */
+    interruptedAt?: number;
 }
 
 const AUTO_SUBMIT_DELAY = 2500; // 2.5 seconds of silence = done speaking
@@ -129,7 +147,7 @@ export function useInterview() {
         setIsProcessing(true);
         try {
             const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
-            const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
+            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
             speak(responseText);
@@ -137,7 +155,7 @@ export function useInterview() {
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
         } catch (e) {
-            addMessage({ role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date() });
+            addMessage({ id: generateMessageId(), role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date(), status: 'complete' });
         } finally {
             setIsProcessing(false);
         }
@@ -150,7 +168,7 @@ export function useInterview() {
         // Don't disable intent, just stop listening momentarily for processing
         stopListening();
 
-        const userMsg: Message = { role: 'user', content: userText, timestamp: new Date() };
+        const userMsg: Message = { id: generateMessageId(), role: 'user', content: userText, timestamp: new Date(), status: 'complete' };
         addMessage(userMsg);
         resetTranscript();
 
@@ -162,18 +180,29 @@ export function useInterview() {
             .map(m => `${m.role.toUpperCase()}: ${m.content}`)
             .join('\n');
 
+        // Check for recent interrupted AI message → inject context
+        const lastInterrupted = conversationHistoryRef.current
+            .slice()
+            .reverse()
+            .find(m => m.role === 'assistant' && m.status === 'interrupted' && m.partialContent);
+
+        const interruptionCtx = lastInterrupted
+            ? buildInterruptionContext(lastInterrupted.partialContent!, lastInterrupted.interruptedAt ?? Date.now())
+            : undefined;
+
         const prompt = generateTurnPrompt({
             state: stateMachine.current.getState(),
             problemTitle: problemContext.title,
             problemContent: problemContext.content,
             transcript: userText,
             conversationHistory: methodHistory,
-            ragContext: "RETRIVE_VIA_API" // Flag for API to do its magic
+            ragContext: "RETRIVE_VIA_API", // Flag for API to do its magic
+            interruptionContext: interruptionCtx,
         });
 
         try {
             const responseText = await callChatApi(prompt, generateSystemPrompt(), problemContext);
-            const aiMsg: Message = { role: 'assistant', content: responseText, timestamp: new Date() };
+            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
             speak(responseText);
@@ -182,7 +211,7 @@ export function useInterview() {
             setState(stateMachine.current.getState());
         } catch (e) {
             console.error('❌ [ERROR] Failed to process user response:', e);
-            addMessage({ role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date() });
+            addMessage({ id: generateMessageId(), role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date(), status: 'complete' });
         } finally {
             setIsProcessing(false);
         }
@@ -288,6 +317,52 @@ export function useInterview() {
         setIsMicEnabled(prev => !prev);
     }, []);
 
+    // ── Session ID for analytics ─────────────────────────────────
+    const sessionIdRef = useRef<string>(generateMessageId());
+
+    // ── Handle interruption: capture partial content ─────────────
+    const handleInterruption = useCallback((spokenContent?: string) => {
+        setMessages(prev => {
+            // Find the last assistant message
+            const lastAiIdx = prev.length - 1;
+            if (lastAiIdx < 0 || prev[lastAiIdx].role !== 'assistant') return prev;
+
+            const lastAiMsg = prev[lastAiIdx];
+            if (lastAiMsg.status === 'interrupted') return prev; // already marked
+
+            const now = Date.now();
+            const partial = spokenContent || lastAiMsg.content;
+
+            // Track analytics
+            trackInterruption(
+                sessionIdRef.current,
+                partial.length,
+                lastAiMsg.content.length,
+            );
+
+            // Update the message in both state and ref
+            const updated: Message = {
+                ...lastAiMsg,
+                status: 'interrupted',
+                partialContent: partial,
+                interruptedAt: now,
+            };
+
+            const newMessages = [...prev];
+            newMessages[lastAiIdx] = updated;
+
+            // Keep conversationHistoryRef in sync
+            if (conversationHistoryRef.current.length > 0) {
+                const refIdx = conversationHistoryRef.current.length - 1;
+                if (conversationHistoryRef.current[refIdx].id === lastAiMsg.id) {
+                    conversationHistoryRef.current[refIdx] = updated;
+                }
+            }
+
+            return newMessages;
+        });
+    }, []);
+
     return {
         state,
         messages,
@@ -295,11 +370,16 @@ export function useInterview() {
         startInterview,
         resetInterview,
         submitUserResponse,
+        handleInterruption,
         autoSubmitEnabled,
         setAutoSubmitEnabled,
-        loadTranscript: (msgs: Message[]) => {
-            setMessages(msgs);
-            conversationHistoryRef.current = msgs;
+        loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {
+            const withIds = msgs.map(m => ({
+                ...m,
+                id: m.id || generateMessageId(),
+            })) as Message[];
+            setMessages(withIds);
+            conversationHistoryRef.current = withIds;
             setState('completed');
         },
         voice: {
@@ -318,3 +398,4 @@ export function useInterview() {
         }
     };
 }
+
