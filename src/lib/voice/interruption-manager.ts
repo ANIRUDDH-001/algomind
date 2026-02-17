@@ -5,6 +5,14 @@
  * This class is framework-agnostic (no React dependency) so it can be
  * unit-tested in isolation and consumed by hooks or other managers.
  *
+ * v2 additions:
+ * - Confidence-based VAD filtering (rejects frames < threshold)
+ * - Speech duration validation (filters "um"/"uh" filler words)
+ * - Consecutive frame counting (requires sustained speech, not noise spikes)
+ * - Manual override controls (Stop/Continue bypass debouncing)
+ * - Diagnostic event stream (circular buffer for admin debug panel)
+ * - Hot-updatable config via `setConfig()`
+ *
  * @example
  * ```ts
  * import { InterruptionManager } from '@/lib/voice/interruption-manager';
@@ -16,9 +24,12 @@
  *     console.log('User interrupted at', data.timestamp);
  * });
  *
- * // Wire to VAD callbacks
+ * // Wire to VAD per-frame callback for confidence filtering
+ * vadManager.onFrameProcessed((prob) => im.handleVADFrame(prob));
+ *
+ * // Wire to VAD speech callbacks (enhanced with confidence)
  * vadManager.onSpeechStart(() => {
- *     const decision = im.handleUserSpeechStart();
+ *     const decision = im.handleUserSpeechStartWithConfidence(0.95);
  *     if (decision === 'INTERRUPT_IMMEDIATELY') {
  *         voiceOutput.stop();
  *         sttInput.start();
@@ -31,10 +42,9 @@
  * voiceOutput.onStart = () => im.handleAIResponseStart();
  * voiceOutput.onEnd   = () => im.handleAIResponseComplete();
  *
- * // Wire to LLM abort
- * if (decision === 'INTERRUPT_IMMEDIATELY' && streamController) {
- *     im.cancelAIGeneration(streamController);
- * }
+ * // Manual controls (always work, bypass debouncing)
+ * stopButton.onclick = () => im.manualStop();
+ * continueButton.onclick = () => im.manualContinue();
  *
  * // Cleanup
  * im.reset();
@@ -47,6 +57,7 @@ import type {
     InterruptionManagerConfig,
     InterruptionEventData,
     InterruptionEventListener,
+    InterruptionReadiness,
 } from './types';
 import {
     InterruptionDecision,
@@ -64,6 +75,11 @@ const DEFAULT_CONFIG: InterruptionManagerConfig = {
     graceMs: 500,
     debounceMs: 1000,
     speechEndConfirmMs: 1000,
+    minConfidence: 0.8,
+    minSpeechDurationMs: 200,
+    consecutiveHighFrames: 3,
+    debugMode: false,
+    eventStreamMaxSize: 200,
 };
 
 const INITIAL_STATE: InterruptionState = {
@@ -72,6 +88,9 @@ const INITIAL_STATE: InterruptionState = {
     isAIThinking: false,
     canInterrupt: false,
     lastInterruptionTime: 0,
+    interruptionReadiness: 'blocked',
+    consecutiveFrameCount: 0,
+    currentSpeechStartTime: 0,
 };
 
 // ---------------------------------------------------------------------------
@@ -91,6 +110,9 @@ export class InterruptionManager {
 
     /** Event listeners keyed by event type. */
     private _listeners: Map<InterruptionEvent, Set<InterruptionEventListener>> = new Map();
+
+    /** Circular buffer of diagnostic events. */
+    private _eventStream: InterruptionEventData[] = [];
 
     // ── Constructor ─────────────────────────────────────────────────
 
@@ -127,8 +149,41 @@ export class InterruptionManager {
         }
         if (changed) {
             this._recalcCanInterrupt();
+            this._recalcReadiness();
             this._emit(InterruptionEvent.STATE_CHANGE);
         }
+    }
+
+    // ── VAD Frame Processing (NEW) ──────────────────────────────────
+
+    /**
+     * Process a single VAD frame's confidence score.
+     *
+     * Tracks consecutive high-confidence frames. If confidence is below
+     * `minConfidence`, the counter resets (filters noise spikes, coughs).
+     *
+     * Call this from `VADManager.onFrameProcessed()`.
+     *
+     * @returns `true` if the frame is above the confidence threshold.
+     */
+    handleVADFrame(confidence: number): boolean {
+        if (confidence >= this._config.minConfidence) {
+            this._state.consecutiveFrameCount++;
+            this._debugLog(
+                `frame #${this._state.consecutiveFrameCount} conf=${confidence.toFixed(3)} ≥ ${this._config.minConfidence}`,
+            );
+            return true;
+        }
+
+        // Below threshold → reset counter
+        if (this._state.consecutiveFrameCount > 0) {
+            this._debugLog(
+                `frame reset: conf=${confidence.toFixed(3)} < ${this._config.minConfidence} ` +
+                `(was ${this._state.consecutiveFrameCount} frames)`,
+            );
+            this._state.consecutiveFrameCount = 0;
+        }
+        return false;
     }
 
     // ── Interruption Decision Logic ─────────────────────────────────
@@ -144,48 +199,84 @@ export class InterruptionManager {
      * | AI speaking < graceMs             | WAIT                   |
      * | AI speaking ≥ graceMs             | INTERRUPT_IMMEDIATELY  |
      * | User last interrupted < debounceMs| IGNORE                 |
+     *
+     * @deprecated Use `handleUserSpeechStartWithConfidence()` for confidence-aware filtering.
      */
     handleUserSpeechStart(): InterruptionDecision {
-        this._state.isUserSpeaking = true;
+        return this._evaluateInterruption(undefined);
+    }
 
-        // --- Debounce guard ---
-        const now = Date.now();
-        if (
-            this._state.lastInterruptionTime > 0 &&
-            now - this._state.lastInterruptionTime < this._config.debounceMs
-        ) {
-            this._emit(InterruptionEvent.DEBOUNCE, InterruptionDecision.IGNORE);
+    /**
+     * Enhanced version of `handleUserSpeechStart` with confidence filtering.
+     *
+     * Validation chain:
+     * 1. Confidence check → reject if below threshold
+     * 2. Frame count check → reject if not enough consecutive frames
+     * 3. Grace period → wait if AI just started speaking
+     * 4. Debounce → ignore if user interrupted too recently
+     * 5. All pass → interrupt immediately
+     *
+     * @param confidence  VAD confidence score (0–1).
+     */
+    handleUserSpeechStartWithConfidence(confidence: number): InterruptionDecision {
+        // 1. Confidence check
+        if (confidence < this._config.minConfidence) {
+            this._debugLog(
+                `REJECT: confidence ${confidence.toFixed(3)} < ${this._config.minConfidence}`,
+            );
+            this._emit(InterruptionEvent.CONFIDENCE_REJECT, InterruptionDecision.IGNORE, {
+                confidence,
+                reason: `Confidence ${confidence.toFixed(2)} below threshold ${this._config.minConfidence}`,
+                source: 'vad',
+            });
             return InterruptionDecision.IGNORE;
         }
 
-        // --- Not speaking → normal input ---
-        if (!this._state.isAISpeaking) {
-            return InterruptionDecision.ALLOW_INPUT;
-        }
-
-        // --- AI speaking — check grace period ---
-        const speakingDuration = now - this._aiSpeechStartTime;
-        if (speakingDuration < this._config.graceMs) {
+        // 2. Frame count check
+        if (this._state.consecutiveFrameCount < this._config.consecutiveHighFrames) {
+            this._debugLog(
+                `WAIT: only ${this._state.consecutiveFrameCount}/${this._config.consecutiveHighFrames} frames`,
+            );
             return InterruptionDecision.WAIT;
         }
 
-        // --- Grace period elapsed → interrupt ---
-        this._state.lastInterruptionTime = now;
-        this._recalcCanInterrupt();
-        this._emit(InterruptionEvent.INTERRUPTION, InterruptionDecision.INTERRUPT_IMMEDIATELY);
-        return InterruptionDecision.INTERRUPT_IMMEDIATELY;
+        // Pass to standard evaluation
+        return this._evaluateInterruption(confidence);
     }
 
     /**
      * Called when VAD detects the user stopped speaking.
+     *
+     * Validates minimum speech duration. If the user spoke for less than
+     * `minSpeechDurationMs`, the interruption is rejected as a filler word.
      *
      * Starts a confirmation timer (`speechEndConfirmMs`). If the user
      * doesn't start speaking again within that window, emits
      * `RESUMPTION` so the consumer knows the user is truly done.
      */
     handleUserSpeechEnd(): void {
+        const now = Date.now();
+        const speechDuration = this._state.currentSpeechStartTime > 0
+            ? now - this._state.currentSpeechStartTime
+            : 0;
+
+        // Duration validation — reject filler words
+        if (speechDuration > 0 && speechDuration < this._config.minSpeechDurationMs) {
+            this._debugLog(
+                `DURATION_REJECT: ${speechDuration}ms < ${this._config.minSpeechDurationMs}ms`,
+            );
+            this._emit(InterruptionEvent.DURATION_REJECT, InterruptionDecision.IGNORE, {
+                speechDurationMs: speechDuration,
+                reason: `Speech duration ${speechDuration}ms below minimum ${this._config.minSpeechDurationMs}ms`,
+                source: 'vad',
+            });
+        }
+
         this._state.isUserSpeaking = false;
+        this._state.currentSpeechStartTime = 0;
+        this._state.consecutiveFrameCount = 0;
         this._recalcCanInterrupt();
+        this._recalcReadiness();
 
         // Clear any existing confirmation timer
         this._clearSpeechEndTimer();
@@ -209,7 +300,9 @@ export class InterruptionManager {
         this._aiSpeechStartTime = Date.now();
         this._state.isAISpeaking = true;
         this._recalcCanInterrupt();
+        this._recalcReadiness();
         this._emit(InterruptionEvent.STATE_CHANGE);
+        this._debugLog('AI started speaking');
     }
 
     /**
@@ -220,7 +313,43 @@ export class InterruptionManager {
         this._state.isAISpeaking = false;
         this._aiSpeechStartTime = 0;
         this._recalcCanInterrupt();
+        this._recalcReadiness();
         this._emit(InterruptionEvent.STATE_CHANGE);
+        this._debugLog('AI finished speaking');
+    }
+
+    // ── Manual Overrides (NEW) ──────────────────────────────────────
+
+    /**
+     * Manual stop: bypasses ALL debouncing and immediately cancels AI speech.
+     * Always works. Emits `MANUAL_STOP`.
+     */
+    async manualStop(): Promise<void> {
+        this._debugLog('MANUAL_STOP: bypassing all checks');
+
+        // Cancel TTS
+        await this.cancelAISpeech();
+
+        this._state.lastInterruptionTime = Date.now();
+        this._recalcReadiness();
+
+        this._emit(InterruptionEvent.MANUAL_STOP, InterruptionDecision.INTERRUPT_IMMEDIATELY, {
+            reason: 'User pressed Stop button',
+            source: 'manual',
+        });
+    }
+
+    /**
+     * Manual continue: signals that the AI should resume from an interrupted response.
+     * Emits `MANUAL_CONTINUE` for the consumer to handle.
+     */
+    manualContinue(): void {
+        this._debugLog('MANUAL_CONTINUE: user wants AI to continue');
+
+        this._emit(InterruptionEvent.MANUAL_CONTINUE, undefined, {
+            reason: 'User pressed Continue button',
+            source: 'manual',
+        });
     }
 
     // ── Cancellation ────────────────────────────────────────────────
@@ -244,6 +373,7 @@ export class InterruptionManager {
         this._state.isAISpeaking = false;
         this._aiSpeechStartTime = 0;
         this._recalcCanInterrupt();
+        this._recalcReadiness();
     }
 
     /**
@@ -262,6 +392,42 @@ export class InterruptionManager {
         }
         this._state.isAIThinking = false;
         this._recalcCanInterrupt();
+        this._recalcReadiness();
+    }
+
+    // ── Readiness & Diagnostics (NEW) ───────────────────────────────
+
+    /**
+     * Returns the current UI-facing readiness status.
+     */
+    getReadiness(): InterruptionReadiness {
+        return this._state.interruptionReadiness;
+    }
+
+    /**
+     * Returns the circular buffer of diagnostic events.
+     * Most recent events are at the end.
+     */
+    getEventStream(): readonly InterruptionEventData[] {
+        return this._eventStream;
+    }
+
+    /**
+     * Hot-update configuration at runtime. Useful for admin panel tuning.
+     * Recalculates derived state after applying the update.
+     */
+    setConfig(partial: Partial<InterruptionManagerConfig>): void {
+        this._config = { ...this._config, ...partial };
+        this._recalcCanInterrupt();
+        this._recalcReadiness();
+        this._debugLog(`config updated: ${JSON.stringify(partial)}`);
+    }
+
+    /**
+     * Read-only access to the current config (for UI display).
+     */
+    getConfig(): Readonly<InterruptionManagerConfig> {
+        return Object.freeze({ ...this._config });
     }
 
     // ── Debounce Helper ─────────────────────────────────────────────
@@ -307,6 +473,7 @@ export class InterruptionManager {
         this._clearSpeechEndTimer();
         this._state = { ...INITIAL_STATE };
         this._aiSpeechStartTime = 0;
+        this._eventStream = [];
     }
 
     /**
@@ -318,6 +485,62 @@ export class InterruptionManager {
 
     // ── Private helpers ─────────────────────────────────────────────
 
+    /**
+     * Shared interruption evaluation logic.
+     * Used by both `handleUserSpeechStart()` and `handleUserSpeechStartWithConfidence()`.
+     */
+    private _evaluateInterruption(confidence: number | undefined): InterruptionDecision {
+        this._state.isUserSpeaking = true;
+        this._state.currentSpeechStartTime = Date.now();
+
+        // --- Debounce guard ---
+        const now = Date.now();
+        if (
+            this._state.lastInterruptionTime > 0 &&
+            now - this._state.lastInterruptionTime < this._config.debounceMs
+        ) {
+            this._debugLog(
+                `DEBOUNCE: ${now - this._state.lastInterruptionTime}ms < ${this._config.debounceMs}ms`,
+            );
+            this._emit(InterruptionEvent.DEBOUNCE, InterruptionDecision.IGNORE, {
+                confidence,
+                reason: `Cooldown: ${now - this._state.lastInterruptionTime}ms since last interruption`,
+                source: confidence !== undefined ? 'vad' : undefined,
+            });
+            return InterruptionDecision.IGNORE;
+        }
+
+        // --- Not speaking → normal input ---
+        if (!this._state.isAISpeaking) {
+            this._debugLog('ALLOW_INPUT: AI not speaking');
+            return InterruptionDecision.ALLOW_INPUT;
+        }
+
+        // --- AI speaking — check grace period ---
+        const speakingDuration = now - this._aiSpeechStartTime;
+        if (speakingDuration < this._config.graceMs) {
+            this._debugLog(
+                `WAIT: AI speaking ${speakingDuration}ms < grace ${this._config.graceMs}ms`,
+            );
+            return InterruptionDecision.WAIT;
+        }
+
+        // --- Grace period elapsed → interrupt ---
+        this._state.lastInterruptionTime = now;
+        this._recalcCanInterrupt();
+        this._recalcReadiness();
+
+        this._debugLog(
+            `INTERRUPT: AI speaking ${speakingDuration}ms, conf=${confidence?.toFixed(3) ?? 'n/a'}`,
+        );
+        this._emit(InterruptionEvent.INTERRUPTION, InterruptionDecision.INTERRUPT_IMMEDIATELY, {
+            confidence,
+            speechDurationMs: speakingDuration,
+            source: confidence !== undefined ? 'vad' : undefined,
+        });
+        return InterruptionDecision.INTERRUPT_IMMEDIATELY;
+    }
+
     /** Recompute `canInterrupt` from other state fields. */
     private _recalcCanInterrupt(): void {
         this._state.canInterrupt =
@@ -326,14 +549,53 @@ export class InterruptionManager {
             Date.now() - this._aiSpeechStartTime >= this._config.graceMs;
     }
 
-    /** Emit an event to all registered listeners. */
-    private _emit(event: InterruptionEvent, decision?: InterruptionDecision): void {
+    /** Recompute the UI-facing readiness status. */
+    private _recalcReadiness(): void {
+        const now = Date.now();
+
+        if (!this._state.isAISpeaking) {
+            this._state.interruptionReadiness = 'blocked';
+            return;
+        }
+
+        // Grace period?
+        if (now - this._aiSpeechStartTime < this._config.graceMs) {
+            this._state.interruptionReadiness = 'grace_period';
+            return;
+        }
+
+        // Cooldown?
+        if (
+            this._state.lastInterruptionTime > 0 &&
+            now - this._state.lastInterruptionTime < this._config.debounceMs
+        ) {
+            this._state.interruptionReadiness = 'cooldown';
+            return;
+        }
+
+        this._state.interruptionReadiness = 'ready';
+    }
+
+    /** Emit an event to all registered listeners and push to event stream. */
+    private _emit(
+        event: InterruptionEvent,
+        decision?: InterruptionDecision,
+        extra?: Partial<Pick<InterruptionEventData, 'confidence' | 'speechDurationMs' | 'reason' | 'source'>>,
+    ): void {
         const data: InterruptionEventData = {
             timestamp: Date.now(),
             event,
             decision,
             state: { ...this._state },
+            ...extra,
         };
+
+        // Push to circular buffer
+        this._eventStream.push(data);
+        if (this._eventStream.length > this._config.eventStreamMaxSize) {
+            this._eventStream.shift();
+        }
+
         const listeners = this._listeners.get(event);
         if (listeners) {
             for (const fn of listeners) {
@@ -349,6 +611,24 @@ export class InterruptionManager {
         if (this._speechEndTimer !== null) {
             clearTimeout(this._speechEndTimer);
             this._speechEndTimer = null;
+        }
+    }
+
+    /** Log a debug message when debugMode is enabled. */
+    private _debugLog(msg: string): void {
+        if (!this._config.debugMode) return;
+        const ts = Date.now();
+        console.debug(`[IM ${ts}] ${msg}`);
+
+        // Also push a DIAGNOSTIC event to the stream (but don't fan-out to listeners)
+        this._eventStream.push({
+            timestamp: ts,
+            event: InterruptionEvent.DIAGNOSTIC,
+            state: { ...this._state },
+            reason: msg,
+        });
+        if (this._eventStream.length > this._config.eventStreamMaxSize) {
+            this._eventStream.shift();
         }
     }
 }
