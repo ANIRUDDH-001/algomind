@@ -23,9 +23,22 @@ function debugLog(...args: unknown[]) {
 // Props
 // ---------------------------------------------------------------------------
 
+interface ChunkProgress {
+    /** Current sentence being spoken (1-based) */
+    current: number;
+    /** Total sentences discovered so far */
+    total: number;
+    /** Whether the AI is still generating more sentences */
+    generating: boolean;
+}
+
 interface ConversationViewProps {
     messages: Message[];
     isAISpeaking: boolean;
+
+    // ── Chunk progress (optional) ────────────────────────────────
+    /** Sentence-level progress during chunked TTS playback. */
+    chunkProgress?: ChunkProgress;
 
     // ── VAD integration (all optional for backwards compat) ──────
     /** Whether VAD-based interruptions are enabled (feature flag). */
@@ -45,6 +58,7 @@ interface ConversationViewProps {
 export function ConversationView({
     messages,
     isAISpeaking,
+    chunkProgress,
     vadEnabled = false,
     onInterrupt,
     interruptedMessageIndices,
@@ -272,10 +286,20 @@ export function ConversationView({
                     <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 animate-pulse">
                         <Bot className="w-4 h-4 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 h-8 px-2">
-                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"></span>
+                    <div className="flex items-center gap-2 h-8 px-2">
+                        <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"></span>
+                        </div>
+                        {chunkProgress && (
+                            <span className="text-[10px] text-purple-400/70 whitespace-nowrap">
+                                {chunkProgress.generating
+                                    ? `Generating... (${chunkProgress.current}/${chunkProgress.total})`
+                                    : `Sentence ${chunkProgress.current} of ${chunkProgress.total}`
+                                }
+                            </span>
+                        )}
                     </div>
                 </div>
             )}

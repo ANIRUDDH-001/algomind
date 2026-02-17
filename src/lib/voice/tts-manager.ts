@@ -236,6 +236,49 @@ export class TTSManager {
         this._queue = [];
     }
 
+    /**
+     * Enqueue a single pre-chunked text for speech.
+     *
+     * Unlike `speak()`, this does NOT cancel current speech — it appends
+     * to the existing queue. If nothing is currently playing, it starts
+     * playback immediately.
+     *
+     * Designed for streaming use: call this repeatedly as sentence-level
+     * chunks arrive from the AI response stream.
+     */
+    enqueueChunk(text: string, options?: TTSOptions): void {
+        if (!text?.trim() || typeof window === 'undefined' || !window.speechSynthesis) {
+            return;
+        }
+
+        const cleanText = text.replace(/[*_#`]/g, '');
+        const processed = preprocessForTTS(cleanText);
+        if (!processed.trim()) return;
+
+        this._queue.push(processed);
+        this._totalChunks = this._totalChunks + 1;
+        this._cancelledFlag = false;
+
+        // If not currently processing, kick off the queue
+        if (!this._processing) {
+            const opts = { ...this._options, ...options };
+            this._currentChunkIndex = 0;
+            this._emit(TTSEvent.START);
+            this._processQueue(opts);
+        }
+    }
+
+    /**
+     * Cancel only pending (un-spoken) chunks without stopping the
+     * currently speaking utterance.
+     *
+     * Useful for interruption during streaming: let the current sentence
+     * finish naturally, but don't speak anything after it.
+     */
+    cancelPending(): void {
+        this._queue = [];
+    }
+
     /** Set default options for all future speak() calls. */
     setOptions(options: Partial<TTSOptions>): void {
         this._options = { ...this._options, ...options };
