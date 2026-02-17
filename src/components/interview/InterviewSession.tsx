@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { recordUserQuestion } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
@@ -57,6 +58,7 @@ export function InterviewSession({
         startInterview,
         resetInterview,
         submitUserResponse,
+        handleInterruption,
         loadTranscript,
         voice
     } = useInterview();
@@ -67,6 +69,9 @@ export function InterviewSession({
     // Interview limits and guest trial hooks
     const limits = useInterviewLimits();
     const guestTrial = useGuestTrial(isGuest);
+
+    // VAD feature flag
+    const [vadEnabled] = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
 
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
@@ -704,6 +709,14 @@ export function InterviewSession({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
+                    vadEnabled={vadEnabled}
+                    onInterrupt={() => {
+                        voice.stopSpeaking();
+                        handleInterruption();
+                    }}
+                    onContinuePreviousResponse={() => {
+                        submitUserResponse('Please continue your previous response.', { title: problem.title, content: problem.description, ragContext });
+                    }}
                 />
             </div>
         </div>
