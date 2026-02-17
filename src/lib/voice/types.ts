@@ -157,6 +157,9 @@ export interface VADManagerInterface {
 // Interruption Management
 // ---------------------------------------------------------------------------
 
+/** UI-facing readiness status for the interruption system. */
+export type InterruptionReadiness = 'blocked' | 'grace_period' | 'cooldown' | 'ready';
+
 /** Snapshot of the conversation-flow state tracked by InterruptionManager. */
 export interface InterruptionState {
     /** True while TTS is actively speaking. */
@@ -169,6 +172,12 @@ export interface InterruptionState {
     canInterrupt: boolean;
     /** Unix timestamp (ms) of the last successful interruption. */
     lastInterruptionTime: number;
+    /** UI-facing readiness indicator. */
+    interruptionReadiness: InterruptionReadiness;
+    /** Consecutive VAD frames above confidence threshold. */
+    consecutiveFrameCount: number;
+    /** Timestamp when current speech segment began (0 if not speaking). */
+    currentSpeechStartTime: number;
 }
 
 /**
@@ -198,6 +207,16 @@ export enum InterruptionEvent {
     DEBOUNCE = 'debounce',
     /** State changed (generic). */
     STATE_CHANGE = 'state_change',
+    /** VAD event rejected due to low confidence. */
+    CONFIDENCE_REJECT = 'confidence_reject',
+    /** Speech segment too short (filler word). */
+    DURATION_REJECT = 'duration_reject',
+    /** User pressed the manual Stop button. */
+    MANUAL_STOP = 'manual_stop',
+    /** User pressed the manual Continue button. */
+    MANUAL_CONTINUE = 'manual_continue',
+    /** Debug/diagnostic log entry. */
+    DIAGNOSTIC = 'diagnostic',
 }
 
 /** Payload carried with an InterruptionEvent. */
@@ -210,6 +229,14 @@ export interface InterruptionEventData {
     decision?: InterruptionDecision;
     /** Snapshot of state at event time. */
     state: InterruptionState;
+    /** VAD confidence value that triggered or was rejected. */
+    confidence?: number;
+    /** How long the user spoke (ms) before the event. */
+    speechDurationMs?: number;
+    /** Human-readable reason for rejection/action. */
+    reason?: string;
+    /** What triggered the event. */
+    source?: 'vad' | 'manual';
 }
 
 /** Listener signature for InterruptionManager events. */
@@ -241,4 +268,37 @@ export interface InterruptionManagerConfig {
      * @default 1000
      */
     speechEndConfirmMs: number;
+
+    /**
+     * VAD confidence threshold (0–1). Frames below this are discarded.
+     * Filters out background noise, coughs, and non-speech sounds.
+     * @default 0.8
+     */
+    minConfidence: number;
+
+    /**
+     * Speech segments shorter than this (ms) are treated as filler
+     * words ("um", "uh") and ignored.
+     * @default 200
+     */
+    minSpeechDurationMs: number;
+
+    /**
+     * Number of consecutive VAD frames above `minConfidence` required
+     * before speech is considered intentional. Filters brief noise spikes.
+     * @default 3
+     */
+    consecutiveHighFrames: number;
+
+    /**
+     * Enable verbose console logging for all decisions.
+     * @default false
+     */
+    debugMode: boolean;
+
+    /**
+     * Maximum events kept in the circular diagnostic buffer.
+     * @default 200
+     */
+    eventStreamMaxSize: number;
 }
