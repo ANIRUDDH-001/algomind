@@ -4,6 +4,10 @@
 
 import { CHAT_MODELS, ModelConfig, ModelTier, Provider } from './providers';
 import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
+import { IntentClassifier, getIntentClassifier } from './intent-classifier';
+import { getModelTelemetry } from '../analytics/model-telemetry';
+import { getResponseCache } from './response-cache';
+import type { GenerateResponseOptions, AIResponse } from './types';
 
 // Types
 export interface Message {
@@ -53,7 +57,7 @@ export class UnifiedAIClient {
      * Generate completion with automatic fallback based on provider rules
      */
     async generateCompletion(
-        messages: Message[], 
+        messages: Message[],
         options: CompletionOptions = {}
     ): Promise<CompletionResult> {
         const { preferredProvider = 'groq', maxTokens = 2048, estimatedTokens = 0 } = options;
@@ -62,7 +66,7 @@ export class UnifiedAIClient {
         // FALLBACK RULES:
         // 1. Groq fails -> Try other Groq models ONLY (never Gemini)
         // 2. Gemini fails -> Can try Groq models
-        
+
         let primaryProvider = preferredProvider;
         if (primaryProvider === 'local') primaryProvider = 'groq'; // 'local' not supported for chat yet, default to groq
 
@@ -72,9 +76,9 @@ export class UnifiedAIClient {
 
         // 1. Try Primary Provider
         const primaryResult = await this.tryProvider(
-            primaryProvider, 
-            messages, 
-            options, 
+            primaryProvider,
+            messages,
+            options,
             attemptedModels
         );
 
@@ -86,12 +90,12 @@ export class UnifiedAIClient {
         if (primaryProvider === 'gemini') {
             console.warn(`[UnifiedAIClient] Gemini failed, falling back to Groq...`);
             const fallbackResult = await this.tryProvider(
-                'groq', 
-                messages, 
-                options, 
+                'groq',
+                messages,
+                options,
                 attemptedModels
             );
-            
+
             if (fallbackResult.success) {
                 return fallbackResult;
             }
@@ -115,7 +119,7 @@ export class UnifiedAIClient {
     ): Promise<CompletionResult> {
         // Get models for this provider
         const models = CHAT_MODELS.filter(m => m.provider === provider);
-        
+
         // Sort by tier (lower is better/higher priority)
         models.sort((a, b) => a.tier - b.tier);
 
@@ -132,9 +136,9 @@ export class UnifiedAIClient {
             if (result.success) {
                 // Record Success
                 // Estimate tokens from response length if not provided (4 chars ~= 1 token)
-                const tokensUsed = (result.response?.length || 0) / 4; 
+                const tokensUsed = (result.response?.length || 0) / 4;
                 this.rateLimiter.recordRequest(model.id, tokensUsed);
-                
+
                 return {
                     success: true,
                     modelUsed: model.id,
@@ -156,7 +160,7 @@ export class UnifiedAIClient {
      * Execute specific model call via Fetch
      */
     async callModel(
-        model: ModelConfig, 
+        model: ModelConfig,
         messages: Message[],
         options: CompletionOptions
     ): Promise<{ success: boolean; response?: string; error?: string }> {
@@ -176,7 +180,7 @@ export class UnifiedAIClient {
      * Call Groq API
      */
     private async callGroq(
-        modelId: string, 
+        modelId: string,
         messages: Message[],
         options: CompletionOptions
     ) {
@@ -184,7 +188,7 @@ export class UnifiedAIClient {
 
         const systemPrompt = options.systemPrompt;
         const apiMessages = [...messages];
-        
+
         // Prepend system prompt if exists and not already in messages
         if (systemPrompt && apiMessages[0]?.role !== 'system') {
             apiMessages.unshift({ role: 'system', content: systemPrompt });
@@ -213,9 +217,9 @@ export class UnifiedAIClient {
 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
-        
+
         if (!content) return { success: false, error: "Empty response from Groq" };
-        
+
         return { success: true, response: content };
     }
 
@@ -223,7 +227,7 @@ export class UnifiedAIClient {
      * Call Gemini API
      */
     private async callGemini(
-        modelId: string, 
+        modelId: string,
         messages: Message[],
         options: CompletionOptions
     ) {
@@ -231,7 +235,7 @@ export class UnifiedAIClient {
         if (!apiKey) return { success: false, error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY" };
 
         const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`;
-        
+
         // Convert messages to Gemini format
         // System prompt is separate in v1beta
         const contents = messages
@@ -241,10 +245,10 @@ export class UnifiedAIClient {
                 parts: [{ text: m.content }]
             }));
 
-        const systemInstruction = options.systemPrompt 
+        const systemInstruction = options.systemPrompt
             ? { parts: [{ text: options.systemPrompt }] }
-            : (messages.find(m => m.role === 'system') 
-                ? { parts: [{ text: messages.find(m => m.role === 'system')!.content }] } 
+            : (messages.find(m => m.role === 'system')
+                ? { parts: [{ text: messages.find(m => m.role === 'system')!.content }] }
                 : undefined);
 
         const body: any = {
@@ -272,7 +276,7 @@ export class UnifiedAIClient {
 
         const data = await response.json();
         const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        
+
         if (!content) return { success: false, error: "Empty response from Gemini" };
 
         return { success: true, response: content };
@@ -310,6 +314,193 @@ export class UnifiedAIClient {
         };
     }
 
+    // --- Smart Routing (Intent-Classified) ---
+
+    /**
+     * Check if smart routing is enabled via env var.
+     * The feature-flags module is 'use client', so we check the env var directly
+     * for server-side code.
+     */
+    private isSmartRoutingEnabled(): boolean {
+        const envVal = process.env.NEXT_PUBLIC_FF_ENABLE_SMART_ROUTING;
+        return envVal === 'true' || envVal === '1';
+    }
+
+    /**
+     * Generate a response with intelligent model routing.
+     *
+     * When `preferredModel` is `'auto'` (default when smart routing is enabled),
+     * the last user message is classified and routed to the optimal provider.
+     *
+     * Backward-compatible: callers can still pass `'groq'` or `'gemini'` to
+     * force a specific provider.
+     */
+    async generateResponse(
+        messages: Message[],
+        options: GenerateResponseOptions = {}
+    ): Promise<AIResponse> {
+        const totalStart = performance.now();
+
+        // Resolve preferred model
+        let preferredModel = options.preferredModel ?? 'auto';
+
+        // If smart routing is disabled, 'auto' falls back to legacy behavior (groq-first)
+        if (preferredModel === 'auto' && !this.isSmartRoutingEnabled()) {
+            preferredModel = 'groq';
+        }
+
+        // ── Response Cache check (before any AI call) ─────────────────
+        const cacheEnabled = process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true'
+            || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1';
+
+        if (cacheEnabled) {
+            const cache = getResponseCache();
+            const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+            const cacheQuery = lastUserMsg?.content ?? '';
+            const cached = cache.get(cacheQuery);
+
+            if (cached) {
+                const totalTimeMs = performance.now() - totalStart;
+                console.log(
+                    `⚡ [Cache HIT] "${cacheQuery.slice(0, 50)}" → ${cached.model} ` +
+                    `(hits: ${cached.hitCount}, saved ~${cached.avgLatency.toFixed(0)}ms)`
+                );
+                return {
+                    response: cached.response,
+                    success: true,
+                    modelUsed: cached.model,
+                    attemptedModels: [],
+                    routing: {
+                        classification: {
+                            complexity: 'simple' as const,
+                            category: 'greeting' as const,
+                            confidence: 1.0,
+                            suggestedModel: cached.model,
+                            reasoning: 'response_cache_hit',
+                        },
+                        routedTo: cached.model,
+                        classificationTimeMs: 0,
+                        totalTimeMs,
+                        smartRoutingUsed: false,
+                    },
+                };
+            }
+        }
+
+        // Direct provider override (no classification needed)
+        if (preferredModel !== 'auto') {
+            const result = await this.generateCompletion(messages, {
+                preferredProvider: preferredModel as Provider,
+                maxTokens: options.maxTokens,
+                temperature: options.temperature,
+                systemPrompt: options.systemPrompt,
+                estimatedTokens: options.estimatedTokens,
+                category: options.category,
+            });
+
+            return {
+                ...result,
+                routing: undefined, // No smart routing metadata
+            };
+        }
+
+        // --- Smart Routing: classify and route ---
+        const classifier = getIntentClassifier();
+        const telemetry = getModelTelemetry();
+
+        // Extract last user message for classification
+        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+        const query = lastUserMsg?.content ?? '';
+
+        // Classify intent
+        const classifyStart = performance.now();
+        const classification = await classifier.classify(query);
+        const classificationTimeMs = performance.now() - classifyStart;
+
+        const routedTo = classification.suggestedModel;
+
+        console.log(
+            `🧠 [SmartRouting] "${query.slice(0, 60)}${query.length > 60 ? '...' : ''}" → ` +
+            `${classification.complexity}/${classification.category} → ${routedTo} ` +
+            `(conf: ${classification.confidence.toFixed(2)}, ${classificationTimeMs.toFixed(1)}ms)`
+        );
+
+        // Streaming optimization: simple queries skip streaming for lower latency
+        const shouldStream = classification.complexity !== 'simple' && !!options.streamCallback;
+
+        // Try routed provider first
+        let result = await this.generateCompletion(messages, {
+            preferredProvider: routedTo as Provider,
+            maxTokens: options.maxTokens,
+            temperature: options.temperature,
+            systemPrompt: options.systemPrompt,
+            estimatedTokens: options.estimatedTokens,
+            category: options.category,
+        });
+
+        // Fallback: if routed provider failed, try the alternate
+        if (!result.success) {
+            const fallbackProvider = routedTo === 'groq' ? 'gemini' : 'groq';
+            console.warn(
+                `⚠️ [SmartRouting] ${routedTo} failed, falling back to ${fallbackProvider}`
+            );
+            result = await this.generateCompletion(messages, {
+                preferredProvider: fallbackProvider as Provider,
+                maxTokens: options.maxTokens,
+                temperature: options.temperature,
+                systemPrompt: options.systemPrompt,
+                estimatedTokens: options.estimatedTokens,
+                category: options.category,
+            });
+        }
+
+        const totalTimeMs = performance.now() - totalStart;
+
+        // Record telemetry
+        telemetry.recordDecision({
+            timestamp: Date.now(),
+            query,
+            complexity: classification.complexity,
+            category: classification.category,
+            confidence: classification.confidence,
+            routedTo,
+            actualModel: result.modelUsed || 'unknown',
+            smartRouting: true,
+            classificationTimeMs,
+            totalTimeMs,
+            success: result.success,
+        });
+
+        return {
+            ...result,
+            routing: {
+                classification,
+                routedTo,
+                classificationTimeMs,
+                totalTimeMs,
+                smartRoutingUsed: true,
+            },
+        };
+    }
+
+    /**
+     * Store a successful AI response in cache (if cache is enabled).
+     * Called externally after streaming completes or response is finalized.
+     */
+    storeInCache(
+        query: string,
+        response: string,
+        model: 'groq' | 'gemini',
+        latencyMs: number
+    ): void {
+        const cacheEnabled = process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true'
+            || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1';
+        if (!cacheEnabled) return;
+
+        const cache = getResponseCache();
+        cache.set(query, response, model, latencyMs);
+    }
+
     // --- Health Check & Admin Methods ---
 
     /**
@@ -318,13 +509,13 @@ export class UnifiedAIClient {
      */
     async checkAllModels(): Promise<Record<string, { available: boolean; latency?: number; error?: string }>> {
         const results: Record<string, { available: boolean; latency?: number; error?: string }> = {};
-        
+
         // We will test one model per provider to be efficient, OR all models if requested.
         // The user request implies "Health check returns 14 models", so we should check all relevant IDs 
         // OR return status for all based on a representative check.
         // To be safe and accurate for the "14 models" requirement, we will mark them based on provider availability 
         // to avoid spamming 14 API calls per health check.
-        
+
         // 1. Check Groq Availability
         let groqAvailable = false;
         let groqLatency = 0;
@@ -346,19 +537,19 @@ export class UnifiedAIClient {
             geminiLatency = Date.now() - start;
             geminiAvailable = true;
         } catch (e) {
-             console.warn("Gemini Health Check Failed:", e);
+            console.warn("Gemini Health Check Failed:", e);
         }
 
         // 3. Map status to all models
         for (const model of CHAT_MODELS) {
             if (model.provider === 'groq') {
-                results[model.id] = { 
-                    available: groqAvailable, 
+                results[model.id] = {
+                    available: groqAvailable,
                     latency: groqAvailable ? groqLatency : undefined,
                     error: groqAvailable ? undefined : "Provider Unreachable"
                 };
             } else if (model.provider === 'gemini') {
-                results[model.id] = { 
+                results[model.id] = {
                     available: geminiAvailable,
                     latency: geminiAvailable ? geminiLatency : undefined,
                     error: geminiAvailable ? undefined : "Provider Unreachable"
@@ -382,7 +573,7 @@ export class UnifiedAIClient {
             remaining: this.rateLimiter.getRemainingCapacity()
         };
     }
-    
+
     // Kept for legacy compatibility if called directly
     getRateLimitStatus() {
         return this.getRateLimiterStatus();
@@ -394,7 +585,7 @@ export class UnifiedAIClient {
 
     async embed(texts: string | string[]): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
         const textArray = Array.isArray(texts) ? texts : [texts];
-        
+
         const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
         // 1. Try Gemini Embeddings (Preferred)
@@ -417,13 +608,13 @@ export class UnifiedAIClient {
             // Lazy load transformer to avoid cold start impact
             const localEmbedder = await this.getLocalEmbedder();
             const vectors: number[][] = [];
-            
+
             for (const text of textArray) {
-               const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
-               vectors.push(this.extractLocalVector(output));
+                const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
+                vectors.push(this.extractLocalVector(output));
             }
 
-             return {
+            return {
                 embeddings: vectors,
                 modelUsed: "Xenova/all-MiniLM-L6-v2",
                 dimensions: 384
@@ -434,19 +625,19 @@ export class UnifiedAIClient {
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-         const url = `${this.GEMINI_API_BASE}/embedding-001:embedContent?key=${apiKey}`;
-         const response = await fetch(url, {
+        const url = `${this.GEMINI_API_BASE}/embedding-001:embedContent?key=${apiKey}`;
+        const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "models/embedding-001",
                 content: { parts: [{ text }] }
             })
-         });
+        });
 
-         if (!response.ok) throw new Error(`Gemini Embed Error: ${response.status}`);
-         const data = await response.json();
-         return data.embedding.values;
+        if (!response.ok) throw new Error(`Gemini Embed Error: ${response.status}`);
+        const data = await response.json();
+        return data.embedding.values;
     }
 
     private localEmbedderPromise: Promise<any> | null = null;

@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
             console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
         }
 
-        const result = await client.generateCompletion(messages, {
-            preferredProvider: 'groq',
+        const result = await client.generateResponse(messages, {
+            preferredModel: 'auto',
             category: 'speed', // Hints/Chat
             maxTokens: 4096,
             systemPrompt: enhancedSystemPrompt,
@@ -77,11 +77,26 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`✨ [AI] Response generated using ${result.modelUsed} (${result.provider})`);
+        if (result.routing?.smartRoutingUsed) {
+            console.log(
+                `🧠 [AI] Smart routing: ${result.routing.classification.complexity} → ` +
+                `${result.routing.routedTo} (${result.routing.classificationTimeMs.toFixed(1)}ms classify, ` +
+                `${result.routing.totalTimeMs.toFixed(0)}ms total)`
+            );
+        }
 
         return NextResponse.json({
             response: result.response,
             modelUsed: result.modelUsed,
-            provider: result.provider
+            provider: result.provider,
+            ...(result.routing ? {
+                routing: {
+                    complexity: result.routing.classification.complexity,
+                    category: result.routing.classification.category,
+                    suggestedModel: result.routing.routedTo,
+                    classificationTimeMs: Math.round(result.routing.classificationTimeMs),
+                }
+            } : {}),
         });
 
     } catch (error: any) {

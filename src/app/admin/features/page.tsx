@@ -21,6 +21,11 @@ const FLAG_META: Record<FeatureFlagName, { label: string; description: string; c
         description: 'Stream AI response tokens directly to TTS for faster perceived response time instead of waiting for the full response.',
         category: 'AI',
     },
+    ENABLE_RESPONSE_CACHE: {
+        label: 'Response Cache',
+        description: 'Cache AI responses for common interview questions. Pre-warms top 20 questions on app start for instant retrieval.',
+        category: 'AI',
+    },
 };
 
 /* ---------- reusable toggle row ---------- */
@@ -44,8 +49,8 @@ function FlagToggle({ name }: { name: FeatureFlagName }) {
                 aria-checked={enabled}
                 onClick={() => setEnabled(!enabled)}
                 className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${enabled
-                        ? 'bg-blue-600 border-blue-500'
-                        : 'bg-slate-700 border-slate-600'
+                    ? 'bg-blue-600 border-blue-500'
+                    : 'bg-slate-700 border-slate-600'
                     }`}
             >
                 <span
