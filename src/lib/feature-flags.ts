@@ -13,6 +13,7 @@ export const FEATURE_FLAGS = {
     ENABLE_VAD_INTERRUPTIONS: false,   // User can interrupt AI mid-speech
     ENABLE_SMART_ROUTING: false,       // Route between STT providers by quality
     ENABLE_CHUNKED_RESPONSES: false,   // Stream AI response chunks to TTS
+    ENABLE_RESPONSE_CACHE: false,      // Cache AI responses for common queries
 } as const;
 
 export type FeatureFlagName = keyof typeof FEATURE_FLAGS;
