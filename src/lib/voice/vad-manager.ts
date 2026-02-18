@@ -166,10 +166,23 @@ class VADManager implements VADManagerInterface {
         try {
             this._assertBrowserSupport();
 
-            // Load scripts from /public/vad/ (instant — no bundler compilation)
-            await loadVADScripts(this._config.baseAssetPath);
+            // Test Hook: Force VAD failure for integration testing
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (typeof window !== 'undefined' && (window as any).__FORCE_VAD_FAILURE__) {
+                console.log('PAGE LOG: Forcing VAD failure now');
+                throw new Error('Forced VAD failure for testing');
+            }
 
-            const MicVAD = getMicVADConstructor();
+            // Allow dependency injection for tests (Playwright)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let MicVAD = (window as any).mockMicVAD;
+
+            if (!MicVAD) {
+                // Load scripts from /public/vad/ (instant — no bundler compilation)
+                await loadVADScripts(this._config.baseAssetPath);
+                MicVAD = getMicVADConstructor();
+            }
+
             if (!MicVAD) {
                 throw new Error(
                     'MicVAD not found after loading scripts. ' +

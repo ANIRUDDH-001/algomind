@@ -28,6 +28,7 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
         // Normalize name: "Google US English" -> "googleusenglish"
         const cleanName = voice.name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+
         // If we already have a voice with this "clean name", usually keep the shorter one
         // (often non-network/local versions have simpler names or are preferred)
         // BUT, sometimes "Google US English" is better than "English United States".
@@ -81,8 +82,8 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
         distinctVoices = Array.from(finalSet);
     }
 
-    // Fallback: If < 2 voices, give everything we filtered
-    if (distinctVoices.length < 2 && filtered.length > 0) {
+    // Fallback: If 0 distinct voices found (but strict filtering passed), return raw filtered list
+    if (distinctVoices.length === 0 && filtered.length > 0) {
         return filtered.slice(0, 5);
     }
 

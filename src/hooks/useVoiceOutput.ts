@@ -86,7 +86,10 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             utterance.pitch = options.pitch || 1.0;
             utterance.volume = options.volume || 1.0;
 
-            utterance.onend = () => resolve();
+            utterance.onend = () => {
+                console.log('[VoiceOutput] onend called. Resolving promise.');
+                resolve();
+            };
             utterance.onerror = (e) => {
                 // Ignore standard interruption/cancellation errors that occur when stopping or skipping
                 if (e.error !== 'interrupted' && e.error !== 'canceled') {
@@ -106,41 +109,46 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
         if (options.onStart) options.onStart();
 
-        // Small delay to ensure browser audio context is ready after state changes
-        await new Promise(r => setTimeout(r, 50));
+        try {
+            // Small delay to ensure browser audio context is ready
+            await new Promise(r => setTimeout(r, 50));
 
-        while (queueRef.current.length > 0) {
-            if (isPaused) {
-                await new Promise(r => setTimeout(r, 100));
-                continue;
-            }
+            while (queueRef.current.length > 0) {
+                if (isPaused) {
+                    await new Promise(r => setTimeout(r, 100));
+                    continue;
+                }
 
-            const chunk = queueRef.current.shift();
-            if (chunk) {
-                await speakChunk(chunk);
+                const chunk = queueRef.current.shift();
+                if (chunk) {
+                    await speakChunk(chunk);
+                }
             }
+        } finally {
+            setIsSpeaking(false);
+            processingRef.current = false;
+            if (options.onEnd) options.onEnd();
         }
-
-        setIsSpeaking(false);
-        processingRef.current = false;
-        if (options.onEnd) options.onEnd();
-
     }, [speakChunk, isPaused, options]);
 
     const speak = useCallback((text: string) => {
         if (!text) return;
 
-        // Clean text (remove markdown-ish artifacts if any)
+        // Clean text (remove markdown-ish artifacts)
         let cleanText = text.replace(/[*_#`]/g, '');
-
-        // Preprocess for better pronunciation of DSA terms (O(N) -> "O of N", etc)
         cleanText = preprocessForTTS(cleanText);
 
+        console.log('[VoiceOutput] Adding to queue:', cleanText);
+
+        // Append to queue instead of replacing if we want natural flow,
+        // but for Kai usually we want to replace current response
         window.speechSynthesis.cancel();
         queueRef.current = chunkTextForSpeech(cleanText);
 
-        processingRef.current = false;
-        processQueue();
+        // If not already processing, start the loop
+        if (!processingRef.current) {
+            processQueue();
+        }
     }, [processQueue]);
 
     const pause = useCallback(() => {

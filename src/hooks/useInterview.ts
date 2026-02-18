@@ -57,6 +57,9 @@ export function useInterview() {
         lastResultTime
     } = useVoiceInput();
 
+    // Voice Hooks
+    const voiceOutputOptions = useRef({}).current; // Or useMemo(() => ({}), [])
+
     const {
         speak,
         pause: pauseSpeaking,
@@ -64,12 +67,42 @@ export function useInterview() {
         stop: stopSpeaking,
         isSpeaking,
         isPaused
-    } = useVoiceOutput();
+    } = useVoiceOutput(voiceOutputOptions);
 
-    // Helper to call API
+    // Helper to call API with Retry Logic
+    const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, backoff = 1000): Promise<any> => {
+        try {
+            const response = await fetch(url, options);
+
+            // Retry on 429 (Too Many Requests) or 5xx (Server Errors)
+            if (response.status === 429 || response.status >= 500) {
+                if (retries > 0) {
+                    console.log(`[Retry] Request failed with ${response.status}. Retrying in ${backoff}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                }
+            }
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({ error: 'Failed to fetch chat response' }));
+                throw new Error(err.error || `Request failed with status ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            // Retry on Network Errors (fetch throws)
+            if (retries > 0) {
+                console.log(`[Retry] Network error. Retrying in ${backoff}ms...`, error);
+                await new Promise(resolve => setTimeout(resolve, backoff));
+                return fetchWithRetry(url, options, retries - 1, backoff * 2);
+            }
+            throw error;
+        }
+    };
+
     const callChatApi = async (prompt: string, systemPrompt: string, problemContext: any) => {
         try {
-            const response = await fetch('/api/chat', {
+            const data = await fetchWithRetry('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -84,12 +117,6 @@ export function useInterview() {
                 })
             });
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Failed to fetch chat response');
-            }
-
-            const data = await response.json();
             return data.response; // string
         } catch (error) {
             console.error('API Call Failed:', error);
@@ -235,6 +262,16 @@ export function useInterview() {
             stopListening();
         };
     }, [stopSpeaking, stopListening]);
+
+    // Test Hook: Expose trigger for Playwright
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
+                submitUserResponse(message, currentProblemRef.current || { title: 'Test', content: 'Test' });
+            };
+        }
+    }, [submitUserResponse]);
 
     // INTELLIGENT MIC SYNC: Stop listening when AI speaks, Resume when done
     // Controlled by isMicEnabled
