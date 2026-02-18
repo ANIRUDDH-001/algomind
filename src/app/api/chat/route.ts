@@ -4,7 +4,19 @@ import { getVectorStore } from '@/lib/rag/vectorStore';
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+
+        let body: any = {};
+        try {
+            const text = await req.text();
+            if (text && text.trim()) {
+                body = JSON.parse(text);
+            }
+        } catch (parseError) {
+            return NextResponse.json(
+                { error: 'Invalid JSON body' },
+                { status: 400 }
+            );
+        }
         const { messages, systemPrompt, problemContext } = body;
 
         if (!messages || !Array.isArray(messages)) {

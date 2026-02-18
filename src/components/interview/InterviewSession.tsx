@@ -538,7 +538,7 @@ export function InterviewSession({
 
                                     {/* Status Indicator */}
                                     <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
-                                        <p className="text-xs font-bold text-white tracking-wide">
+                                        <p className="text-xs font-bold text-white tracking-wide" data-testid="interview-status-main">
                                             {(optimisticListening ?? voice.isListening) ? "I'M LISTENING..." :
                                                 isProcessing ? "THINKING..." :
                                                     voice.isSpeaking ? "AI IS SPEAKING..." :
@@ -549,7 +549,7 @@ export function InterviewSession({
                                                 "w-1 h-1 rounded-full animate-pulse",
                                                 (optimisticListening ?? voice.isListening) ? "bg-blue-500" : "bg-slate-600"
                                             )} />
-                                            <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black">
+                                            <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black" data-testid="mic-status-indicator">
                                                 {(optimisticListening ?? voice.isListening) ? "Auto-Submit Active" : "Waiting for mic"}
                                             </p>
                                         </div>
@@ -610,7 +610,7 @@ export function InterviewSession({
                                                 <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden flex flex-col relative">
+                                        <div className="flex-1 min-h-[100px] bg-slate-950/30 rounded-xl border border-slate-800/40 backdrop-blur-sm overflow-hidden flex flex-col relative" data-testid="transcript-area">
                                             <div className="absolute inset-0 p-1">
                                                 <TranscriptViewer
                                                     transcript={voice.transcript}
@@ -717,6 +717,10 @@ export function InterviewSession({
                     onContinuePreviousResponse={() => {
                         submitUserResponse('Please continue your previous response.', { title: problem.title, content: problem.description, ragContext });
                     }}
+                    onVadError={(err) => {
+                        console.log('PAGE LOG: InterviewSession received VAD error:', err.message);
+                        setError(`VAD Initialization Failed: ${err.message}`);
+                    }}
                 />
             </div>
         </div>
@@ -725,7 +729,12 @@ export function InterviewSession({
     // --- Main Render ---
 
     return (
-        <div className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6" data-tour="interview-container">
+        <div
+            className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6"
+            data-tour="interview-container"
+            aria-label="Interview"
+            data-testid="interview-panel"
+        >
             {/* Mobile Warning Modal */}
             {showMobileWarning && (
                 <MobileWarning
@@ -742,7 +751,13 @@ export function InterviewSession({
             )}
 
             {isAnalyzing && <AssessmentLoader />}
-            {error && <ErrorBanner message={error} onClose={() => setError(null)} />}
+            {error && (
+                <ErrorBanner
+                    message={error}
+                    onClose={() => setError(null)}
+                    data-testid={error.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
+                />
+            )}
             {voice.error && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
                     <ErrorBanner
@@ -976,7 +991,7 @@ export function InterviewSession({
 
                     {/* Center Panel: Interaction */}
                     <ResizablePanel defaultSize="50" minSize="30" id="panel-interaction">
-                        <div className="h-full p-2">
+                        <div className="h-full p-2" data-testid="panel-interaction">
                             {renderInteractionArea()}
                         </div>
                     </ResizablePanel>

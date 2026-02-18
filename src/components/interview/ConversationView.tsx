@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Bot, User, RotateCcw } from 'lucide-react';
 import { InterruptionIndicator } from './InterruptionIndicator';
+import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
+import { InterruptionManager } from '@/lib/voice/interruption-manager';
 
 // ---------------------------------------------------------------------------
 // Debug helper (dev mode only)
@@ -49,6 +51,8 @@ interface ConversationViewProps {
     interruptedMessageIndices?: Set<number>;
     /** Called when user wants the AI to continue its interrupted response. */
     onContinuePreviousResponse?: () => void;
+    /** Called when VAD initialization fails. */
+    onVadError?: (error: Error) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,14 +67,13 @@ export function ConversationView({
     onInterrupt,
     interruptedMessageIndices,
     onContinuePreviousResponse,
+    onVadError,
 }: ConversationViewProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // ── VAD state (only used when vadEnabled) ────────────────────
     const [isInterrupting, setIsInterrupting] = useState(false);
-    const interruptionManagerRef = useRef<import('@/lib/voice/interruption-manager').InterruptionManager | null>(null);
-    const vadHookResultRef = useRef<{ startListening: () => Promise<void>; stopListening: () => void } | null>(null);
-    const cleanupFnsRef = useRef<Array<() => void>>([]);
+    const interruptionManagerRef = useRef<InterruptionManager | null>(null);
 
     // ── Auto-scroll to bottom ────────────────────────────────────
     useEffect(() => {
@@ -79,8 +82,44 @@ export function ConversationView({
         }
     }, [messages]);
 
-    // ── VAD + InterruptionManager setup ──────────────────────────
-    //    All code is behind `if (vadEnabled)` — zero cost when off.
+    // ── VAD Hook Integration ─────────────────────────────────────
+    // We use the hook unconditionally, but it respects `enabled: vadEnabled`
+    // and won't load heavy assets unless enabled.
+    const {
+        isListening: isVadListening,
+        error: vadError,
+        startListening: startVad,
+        stopListening: stopVad,
+    } = useVoiceActivityDetection({
+        enabled: vadEnabled,
+        autoStart: vadEnabled, // Auto-start if enabled
+        onSpeechStart: () => {
+            if (vadEnabled && interruptionManagerRef.current) {
+                // We only have basic VAD here (no confidence yet in hook output from this event?)
+                // But InterruptionManager handles simple 'speech start'
+                const decision = interruptionManagerRef.current.handleUserSpeechStart();
+                // logic is inside InterruptionManager listener usually, but here we trigger it
+            }
+        },
+        onSpeechEnd: () => {
+            if (vadEnabled && interruptionManagerRef.current) {
+                interruptionManagerRef.current.handleUserSpeechEnd();
+            }
+        },
+        onError: (err) => {
+            if (onVadError) onVadError(err);
+        }
+    });
+
+    // ── VAD Error Handling ─────────────────────────────────────
+    useEffect(() => {
+        if (vadError && onVadError) {
+            onVadError(vadError);
+        }
+    }, [vadError, onVadError]);
+
+
+    // ── InterruptionManager setup ──────────────────────────
     const handleInterruption = useCallback(() => {
         if (!vadEnabled) return;
 
@@ -99,69 +138,40 @@ export function ConversationView({
 
     useEffect(() => {
         if (!vadEnabled) {
-            // Cleanup if flag was turned off mid-session
+            // Cleanup
             if (interruptionManagerRef.current) {
-                debugLog('VAD disabled — cleaning up');
                 interruptionManagerRef.current.reset();
                 interruptionManagerRef.current.removeAllListeners();
                 interruptionManagerRef.current = null;
             }
-            cleanupFnsRef.current.forEach(fn => fn());
-            cleanupFnsRef.current = [];
             setIsInterrupting(false);
             return;
         }
 
-        let cancelled = false;
+        // Initialize InterruptionManager
+        const manager = new InterruptionManager({
+            graceMs: 500,
+            debounceMs: 1500,
+            speechEndConfirmMs: 300,
+        });
+        interruptionManagerRef.current = manager;
 
-        async function initVAD() {
-            try {
-                // Dynamically import so the library doesn't affect non-VAD builds
-                const [
-                    { InterruptionManager },
-                    { useVoiceActivityDetection },
-                ] = await Promise.all([
-                    import('@/lib/voice/interruption-manager'),
-                    import('@/hooks/useVoiceActivityDetection'),
-                ]);
+        // Listen for SHOULD_INTERRUPT events
+        const unsub = manager.on('interruption', () => {
+            handleInterruption();
+        });
 
-                if (cancelled) return;
-
-                // Create InterruptionManager
-                const manager = new InterruptionManager({
-                    graceMs: 500,
-                    debounceMs: 1500,
-                    speechEndConfirmMs: 300,
-                });
-                interruptionManagerRef.current = manager;
-
-                // Listen for SHOULD_INTERRUPT events
-                const unsub = manager.on('interruption', () => {
-                    handleInterruption();
-                });
-                cleanupFnsRef.current.push(unsub);
-
-                debugLog('VAD + InterruptionManager initialised');
-            } catch (err) {
-                console.warn('[ConversationView] VAD init failed — graceful degradation:', err);
-                // Graceful degradation — component still works without VAD
-            }
-        }
-
-        initVAD();
+        debugLog('InterruptionManager initialised');
 
         return () => {
-            cancelled = true;
-            cleanupFnsRef.current.forEach(fn => fn());
-            cleanupFnsRef.current = [];
+            unsub();
             if (interruptionManagerRef.current) {
                 interruptionManagerRef.current.reset();
                 interruptionManagerRef.current.removeAllListeners();
                 interruptionManagerRef.current = null;
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [vadEnabled]);
+    }, [vadEnabled, handleInterruption]);
 
     // ── Sync isAISpeaking → InterruptionManager ──────────────────
     useEffect(() => {
@@ -191,6 +201,7 @@ export function ConversationView({
         <div
             ref={scrollRef}
             className="h-full overflow-y-auto p-4 space-y-4 bg-slate-950/20 scrollbar-thin scrollbar-thumb-slate-800"
+            data-testid="conversation-view"
         >
             {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">

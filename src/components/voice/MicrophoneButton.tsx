@@ -31,6 +31,7 @@ export function MicrophoneButton({
                         <Button
                             variant={isListening ? "default" : "outline"}
                             size="icon"
+                            data-testid="mic-button"
                             className={cn(
                                 "h-16 w-16 rounded-full transition-all duration-200 shadow-lg relative",
                                 isListening

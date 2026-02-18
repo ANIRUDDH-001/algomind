@@ -5,7 +5,7 @@
  *   npx vitest run src/lib/ai/__tests__/intent-classifier.test.ts
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     IntentClassifier,
     levenshtein,
@@ -337,5 +337,102 @@ describe('IntentClassifier', () => {
         expect(stats.size).toBe(2);
         expect(stats.keys).toContain('hi');
         expect(stats.keys).toContain('hello');
+    });
+
+    // ── LLM Classification (Mocked) ─────────────────────────────────
+
+    describe('LLM classification', () => {
+        beforeEach(() => {
+            // Enable LLM pass
+            classifier = new IntentClassifier({
+                enableLLMPass: true,
+                llmTimeoutMs: 1000,
+                confidenceThreshold: 0.7,
+            });
+
+            // Mock fetch
+            global.fetch = vi.fn();
+            process.env.GROQ_API_KEY = 'mock-key';
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+            delete process.env.GROQ_API_KEY;
+        });
+
+        test('parses valid LLM response correctly', async () => {
+            const mockResponse = {
+                complexity: 'complex',
+                category: 'technical',
+                confidence: 0.9,
+                reasoning: 'Detailed question about algorithms',
+            };
+
+            (global.fetch as any).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    choices: [{
+                        message: {
+                            content: '```json\n' + JSON.stringify(mockResponse) + '\n```'
+                        }
+                    }]
+                })
+            });
+
+            // Query that fails regex (no match) so it falls through to LLM
+            const result = await classifier.classify('explain the intricate details of quantum computing algorithms');
+
+            expect(result.complexity).toBe('complex');
+            expect(result.category).toBe('technical');
+            expect(result.reasoning).toContain('llm:Detailed question');
+            expect(global.fetch).toHaveBeenCalledOnce();
+        });
+
+        test('falls back to default on fetch error', async () => {
+            (global.fetch as any).mockRejectedValue(new Error('Network error'));
+
+            const result = await classifier.classify('complex question unique 12345');
+
+            // Should fallback to Gemini default
+            expect(result.suggestedModel).toBe('gemini');
+            expect(result.reasoning).toContain('defaulting to Gemini');
+        });
+
+        test('corrects malformed JSON from LLM', async () => {
+            // LLM returns bad JSON
+            (global.fetch as any).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    choices: [{
+                        message: { content: 'This is not JSON' }
+                    }]
+                })
+            });
+
+            const result = await classifier.classify('complex question unique 67890');
+            expect(result.suggestedModel).toBe('gemini');
+        });
+
+        test('validates schema of LLM response', async () => {
+            // Missing fields
+            (global.fetch as any).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    choices: [{
+                        message: { content: JSON.stringify({ complexity: 'simple' }) } // missing category/confidence
+                    }]
+                })
+            });
+
+            const result = await classifier.classify('complex question unique 13579');
+            expect(result.suggestedModel).toBe('gemini');
+        });
+
+        test('skips LLM if no API key', async () => {
+            delete process.env.GROQ_API_KEY;
+            const result = await classifier.classify('complex question unique 24680');
+            expect(global.fetch).not.toHaveBeenCalled();
+            expect(result.suggestedModel).toBe('gemini');
+        });
     });
 });
