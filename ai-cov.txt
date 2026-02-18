@@ -1,0 +1,10 @@
+client.ts | stmts=0 branch=0 fn=0 lines=0
+common-questions.ts | stmts=0 branch=0 fn=0 lines=0
+index.ts | stmts=0 branch=0 fn=0 lines=0
+intent-classifier.ts | stmts=71.03 branch=64.44 fn=73.68 lines=70.16
+patterns.ts | stmts=100 branch=100 fn=100 lines=100
+providers.ts | stmts=0 branch=0 fn=0 lines=0
+rate-limiter.ts | stmts=0 branch=0 fn=0 lines=0
+response-cache.ts | stmts=96.46 branch=85.24 fn=100 lines=98.16
+response-chunker.ts | stmts=96.11 branch=92.64 fn=100 lines=96.77
+interruption-manager.ts | stmts=94.87 branch=83.33 fn=100 lines=94.77

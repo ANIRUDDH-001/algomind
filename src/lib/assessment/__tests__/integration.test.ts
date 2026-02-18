@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { CognitiveAnalyzer } from '../analyzer';
 import { ProgressStore } from '../progress-store';
 
@@ -46,6 +47,6 @@ describe('Cognitive Assessment Integration', () => {
 
         // Note: In Node environment, localStorage might need a mock.
         // This is a placeholder for the integration logic verification.
-        expect(store.calculateWeightedScore(session.skills)).toBe(8);// approx
+        expect(store.calculateWeightedScore(session.skills)).toBe(7.8);
     });
 });

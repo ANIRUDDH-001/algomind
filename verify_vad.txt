@@ -1,0 +1,141 @@
+﻿
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [chromium] ÔÇ║ src\__tests__\integration\error-recovery.test.tsx:15:9 ÔÇ║ Error Recovery & Resilience ÔÇ║ VAD Initialization Failure (Fallback to Manual)
+[1A[2K[chromium] ÔÇ║ src\__tests__\integration\error-recovery.test.tsx:15:9 ÔÇ║ Error Recovery & Resilience ÔÇ║ VAD Initialization Failure (Fallback to Manual)
+PAGE LOG: PAGE LOG: Init script running
+
+[1A[2KPAGE LOG: PAGE LOG: Flags set in init script
+
+[1A[2KPAGE LOG: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+
+[1A[2KPAGE LOG: [HMR] connected
+
+[1A[2KPAGE LOG: [VAD-CV] VAD + InterruptionManager initialised
+
+[1A[2KPAGE LOG: ­ƒöÉ [SESSION] Auth event: INITIAL_SESSION
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: [VAD-CV] AI started speaking ÔåÆ handleAIResponseStart
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: [Fast Refresh] rebuilding
+
+[1A[2KPAGE LOG: [Fast Refresh] done in 113ms
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2KPAGE LOG: You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+[1A[2K  1) [chromium] ÔÇ║ src\__tests__\integration\error-recovery.test.tsx:15:9 ÔÇ║ Error Recovery & Resilience ÔÇ║ VAD Initialization Failure (Fallback to Manual) 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('vad-error-banner')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByTestId('vad-error-banner')[22m
+
+
+      68 |
+      69 |         // 5. Verify fallback UI appeared
+    > 70 |         await expect(page.getByTestId(TEST_IDS.VAD_ERROR_BANNER)).toBeVisible({ timeout: 10000 });
+         |                                                                   ^
+      71 |
+      72 |         // 6. Verify mic button still available
+      73 |         await expect(page.getByTestId(TEST_IDS.MIC_BUTTON)).toBeEnabled({ timeout: 5000 });
+        at D:\algomind\src\__tests__\integration\error-recovery.test.tsx:70:67
+
+    Error Context: test-results\error-recovery-Error-Recov-65743-Failure-Fallback-to-Manual--chromium\error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] ÔÇ║ src\__tests__\integration\error-recovery.test.tsx:15:9 ÔÇ║ Error Recovery & Resilience ÔÇ║ VAD Initialization Failure (Fallback to Manual) 
+
+[36m  Serving HTML report at http://localhost:64879. Press Ctrl+C to quit.[39m
