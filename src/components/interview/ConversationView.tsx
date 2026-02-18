@@ -2,10 +2,13 @@ import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Message } from '@/hooks/useInterview';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import { Bot, User, RotateCcw } from 'lucide-react';
+import { Bot, User, RotateCcw, AlertTriangle } from 'lucide-react';
 import { InterruptionIndicator } from './InterruptionIndicator';
 import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
 import { InterruptionManager } from '@/lib/voice/interruption-manager';
+import { useFeatureFlag, useFeatureFlagWithSupport } from '@/hooks/useFeatureFlag';
+import { voiceAnalytics } from '@/lib/analytics/voice-analytics';
+import { Badge } from '@/components/ui/badge';
 
 // ---------------------------------------------------------------------------
 // Debug helper (dev mode only)
@@ -63,7 +66,7 @@ export function ConversationView({
     messages,
     isAISpeaking,
     chunkProgress,
-    vadEnabled = false,
+    vadEnabled: propVadEnabled = false,
     onInterrupt,
     interruptedMessageIndices,
     onContinuePreviousResponse,
@@ -83,33 +86,49 @@ export function ConversationView({
     }, [messages]);
 
     // ── VAD Hook Integration ─────────────────────────────────────
-    // We use the hook unconditionally, but it respects `enabled: vadEnabled`
-    // and won't load heavy assets unless enabled.
+    // Feature flags integration
+    // We combine the prop (from parent/settings) with the global feature flag
+    const { enabled: isVadFlagEnabled, supported: isVadSupported } = useFeatureFlagWithSupport('ENABLE_VAD_INTERRUPTIONS');
+
+    // Effective VAD enabled state: Must be enabled globally AND supported AND enabled via prop (if applicable)
+    // Note: If propVadEnabled is generally true/false based on user preference in parent, we might want to respect it.
+    // For now, let's assume if the flag is disabled, VAD is dead.
+    const isVadEnabled = isVadFlagEnabled && propVadEnabled;
+
+    // VAD Hook
     const {
         isListening: isVadListening,
         error: vadError,
         startListening: startVad,
         stopListening: stopVad,
     } = useVoiceActivityDetection({
-        enabled: vadEnabled,
-        autoStart: vadEnabled, // Auto-start if enabled
+        enabled: isVadEnabled,
+        autoStart: isVadEnabled,
         onSpeechStart: () => {
-            if (vadEnabled && interruptionManagerRef.current) {
-                // We only have basic VAD here (no confidence yet in hook output from this event?)
-                // But InterruptionManager handles simple 'speech start'
+            if (isVadEnabled && interruptionManagerRef.current) {
                 const decision = interruptionManagerRef.current.handleUserSpeechStart();
-                // logic is inside InterruptionManager listener usually, but here we trigger it
             }
         },
         onSpeechEnd: () => {
-            if (vadEnabled && interruptionManagerRef.current) {
+            if (isVadEnabled && interruptionManagerRef.current) {
                 interruptionManagerRef.current.handleUserSpeechEnd();
             }
         },
         onError: (err) => {
+            voiceAnalytics.track('vad_error', { error: err.message });
             if (onVadError) onVadError(err);
         }
     });
+
+    // ── Analytics: Track VAD Init ──────────────────────────────
+    useEffect(() => {
+        if (isVadEnabled) {
+            voiceAnalytics.track('vad_init', {
+                browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+                supported: isVadSupported
+            });
+        }
+    }, [isVadEnabled, isVadSupported]);
 
     // ── VAD Error Handling ─────────────────────────────────────
     useEffect(() => {
@@ -118,12 +137,15 @@ export function ConversationView({
         }
     }, [vadError, onVadError]);
 
-
     // ── InterruptionManager setup ──────────────────────────
     const handleInterruption = useCallback(() => {
-        if (!vadEnabled) return;
+        if (!isVadEnabled) return;
 
         debugLog('User interrupted AI speech');
+        voiceAnalytics.track('interruption', {
+            timestamp: Date.now()
+        });
+
         setIsInterrupting(true);
 
         // Cancel TTS via the InterruptionManager
@@ -134,10 +156,10 @@ export function ConversationView({
 
         // Reset interrupting state after a short delay
         setTimeout(() => setIsInterrupting(false), 2000);
-    }, [vadEnabled, onInterrupt]);
+    }, [isVadEnabled, onInterrupt]);
 
     useEffect(() => {
-        if (!vadEnabled) {
+        if (!isVadEnabled) {
             // Cleanup
             if (interruptionManagerRef.current) {
                 interruptionManagerRef.current.reset();
@@ -171,11 +193,11 @@ export function ConversationView({
                 interruptionManagerRef.current = null;
             }
         };
-    }, [vadEnabled, handleInterruption]);
+    }, [isVadEnabled, handleInterruption]);
 
     // ── Sync isAISpeaking → InterruptionManager ──────────────────
     useEffect(() => {
-        if (!vadEnabled || !interruptionManagerRef.current) return;
+        if (!isVadEnabled || !interruptionManagerRef.current) return;
 
         if (isAISpeaking) {
             debugLog('AI started speaking → handleAIResponseStart');
@@ -185,12 +207,12 @@ export function ConversationView({
             interruptionManagerRef.current.handleAIResponseComplete();
             setIsInterrupting(false);
         }
-    }, [isAISpeaking, vadEnabled]);
+    }, [isAISpeaking, isVadEnabled]);
 
     // ── Check if last message was interrupted (for continue button) ──
     const lastMessage = messages[messages.length - 1];
     const showContinueButton =
-        vadEnabled &&
+        isVadEnabled &&
         !isAISpeaking &&
         lastMessage?.role === 'assistant' &&
         lastMessage?.status === 'interrupted' &&
@@ -203,6 +225,29 @@ export function ConversationView({
             className="h-full overflow-y-auto p-4 space-y-4 bg-slate-950/20 scrollbar-thin scrollbar-thumb-slate-800"
             data-testid="conversation-view"
         >
+            {/* Browser Support Warning */}
+            {propVadEnabled && !isVadSupported && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                        <h4 className="text-sm font-medium text-amber-500">Voice Interruption Unavailable</h4>
+                        <p className="text-xs text-amber-500/80 mt-1">
+                            Your browser doesn&apos;t support the features needed for voice activity detection.
+                            Please use the manual controls.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* VAD Active Indicator (Debug/Info) */}
+            {isVadEnabled && isVadListening && (
+                <div className="flex justify-center mb-2">
+                    <Badge variant="outline" className="text-[10px] text-green-500 border-green-900/30 bg-green-900/10">
+                        🎤 VAD Active
+                    </Badge>
+                </div>
+            )}
+
             {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50">
                     <Bot className="w-12 h-12 mb-2" />
@@ -227,7 +272,7 @@ export function ConversationView({
                             "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                             msg.role === 'user' ? "bg-blue-600" : "bg-purple-600",
                             // Fade out AI avatar during interruption
-                            vadEnabled && isInterrupting && msg.role === 'assistant' && index === messages.length - 1
+                            isVadEnabled && isInterrupting && msg.role === 'assistant' && index === messages.length - 1
                                 ? "opacity-40 transition-opacity duration-500"
                                 : ""
                         )}>
@@ -256,7 +301,7 @@ export function ConversationView({
                             {msg.content}
 
                             {/* Interrupted badge + partial heard indicator */}
-                            {vadEnabled && isInterruptedMsg && (
+                            {isVadEnabled && isInterruptedMsg && (
                                 <div className="flex items-center gap-2 mt-2">
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
                                         ⚡ Interrupted
@@ -316,7 +361,7 @@ export function ConversationView({
             )}
 
             {/* VAD Interruption Indicator */}
-            {vadEnabled && isInterrupting && (
+            {isVadEnabled && isInterrupting && (
                 <div className="flex justify-center">
                     <InterruptionIndicator isInterrupting={isInterrupting} />
                 </div>

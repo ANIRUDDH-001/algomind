@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
 import { getGuestProblem } from '@/lib/guest/guest-problems';
 import { checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
+import { VoiceOnboarding } from '@/components/interview/VoiceOnboarding';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -152,6 +153,7 @@ function InterviewContent() {
 
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
+            <VoiceOnboarding />
             <InterviewSession
                 problem={problem}
                 initialTranscript={initialTranscript}
