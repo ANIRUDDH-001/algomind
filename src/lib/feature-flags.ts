@@ -1,24 +1,102 @@
-'use client';
-
 /**
- * Feature Flag System — localStorage + env-var override.
- *
- * Usage:
- *   import { getFlag, setFlag, FEATURE_FLAGS } from '@/lib/feature-flags';
- *   const enabled = getFlag('ENABLE_VAD_INTERRUPTIONS');
+ * Feature Flags for Voice Interview System
+ * Use these to control rollout and disable features if issues arise
  */
 
-// ─── Flag Definitions ──────────────────────────────────────────────
 export const FEATURE_FLAGS = {
-    ENABLE_VAD_INTERRUPTIONS: false,   // User can interrupt AI mid-speech
-    ENABLE_SMART_ROUTING: false,       // Route between STT providers by quality
-    ENABLE_CHUNKED_RESPONSES: false,   // Stream AI response chunks to TTS
-    ENABLE_RESPONSE_CACHE: false,      // Cache AI responses for common queries
+    // Voice Activity Detection - Natural interruptions
+    ENABLE_VAD_INTERRUPTIONS: {
+        storageKey: 'feature_ENABLE_VAD_INTERRUPTIONS',
+        defaultValue: false, // START DISABLED in production
+        description: 'Enable Voice Activity Detection for natural interruptions',
+        requiresBrowserSupport: true,
+    },
+
+    // Smart Routing - Groq vs Gemini
+    ENABLE_SMART_ROUTING: {
+        storageKey: 'feature_ENABLE_SMART_ROUTING',
+        defaultValue: true, // ENABLE by default (improves latency)
+        description: 'Route simple queries to Groq, complex to Gemini',
+        requiresBrowserSupport: false,
+    },
+
+    // Response Chunking - Streaming TTS
+    ENABLE_CHUNKED_RESPONSES: {
+        storageKey: 'feature_ENABLE_CHUNKED_RESPONSES',
+        defaultValue: true, // ENABLE by default (better perceived latency)
+        description: 'Stream responses sentence-by-sentence for faster TTS',
+        requiresBrowserSupport: false,
+    },
+
+    // Response Caching
+    ENABLE_RESPONSE_CACHE: {
+        storageKey: 'feature_ENABLE_RESPONSE_CACHE',
+        defaultValue: true, // ENABLE by default (improves repeat queries)
+        description: 'Cache common interview responses for instant retrieval',
+        requiresBrowserSupport: false,
+    },
+
+    // Hinglish Support
+    ENABLE_HINGLISH_SUPPORT: {
+        storageKey: 'feature_ENABLE_HINGLISH_SUPPORT',
+        defaultValue: true, // ENABLE by default (user preference)
+        description: 'Allow interviews in Hinglish (Hindi + English mix)',
+        requiresBrowserSupport: false,
+    },
 } as const;
 
-export type FeatureFlagName = keyof typeof FEATURE_FLAGS;
+export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
 
-const STORAGE_KEY = 'algomind_feature_flags';
+/**
+ * Get feature flag value from localStorage with fallback to default
+ */
+export function getFeatureFlag(flag: FeatureFlagKey): boolean {
+    if (typeof window === 'undefined') {
+        return FEATURE_FLAGS[flag].defaultValue;
+    }
+
+    const stored = localStorage.getItem(FEATURE_FLAGS[flag].storageKey);
+    if (stored === null) {
+        return FEATURE_FLAGS[flag].defaultValue;
+    }
+
+    return stored === 'true';
+}
+
+/**
+ * Set feature flag value in localStorage
+ */
+export function setFeatureFlag(flag: FeatureFlagKey, value: boolean): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(FEATURE_FLAGS[flag].storageKey, value.toString());
+    // Dispatch event for hook updates
+    window.dispatchEvent(new StorageEvent('storage', {
+        key: FEATURE_FLAGS[flag].storageKey, // Ensure this matches what we look for
+        newValue: value.toString(),
+        storageArea: localStorage,
+    }));
+}
+
+/**
+ * Check if browser supports a feature that requires browser APIs
+ */
+export function checkBrowserSupport(flag: FeatureFlagKey): boolean {
+    if (!FEATURE_FLAGS[flag].requiresBrowserSupport) {
+        return true;
+    }
+
+    // Check for VAD support (AudioContext + MediaStream)
+    if (flag === 'ENABLE_VAD_INTERRUPTIONS') {
+        return !!(
+            typeof window !== 'undefined' &&
+            (window.AudioContext || (window as any).webkitAudioContext) &&
+            navigator.mediaDevices &&
+            navigator.mediaDevices.getUserMedia
+        );
+    }
+
+    return true;
+}
 
 // ─── A/B Assignment (sticky per device) ────────────────────────────
 const AB_STORAGE_KEY = 'algomind_ab_group';
@@ -38,64 +116,28 @@ export function isInTreatmentGroup(): boolean {
     return getABGroup() < 50;
 }
 
-// ─── Core helpers ──────────────────────────────────────────────────
-
-function readOverrides(): Partial<Record<FeatureFlagName, boolean>> {
-    if (typeof window === 'undefined') return {};
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : {};
-    } catch {
-        return {};
-    }
-}
-
-function writeOverrides(overrides: Partial<Record<FeatureFlagName, boolean>>): void {
+/**
+ * Reset a flag to its compiled default (remove override).
+ */
+export function resetFlag(flag: FeatureFlagKey): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-    // Dispatch a storage event so other tabs / useFeatureFlag hooks react
-    window.dispatchEvent(new Event('featureflagschange'));
+    localStorage.removeItem(FEATURE_FLAGS[flag].storageKey);
+    // Dispatch event to update hooks
+    window.dispatchEvent(new StorageEvent('storage', {
+        key: FEATURE_FLAGS[flag].storageKey,
+        newValue: null,
+        storageArea: localStorage,
+    }));
 }
 
 /**
- * Read the effective value of a feature flag.
- * Priority: env override > localStorage override > default.
+ * Get all feature flags with their current values and support status
  */
-export function getFlag(name: FeatureFlagName): boolean {
-    // 1. Env override (compile-time via NEXT_PUBLIC_FF_*)
-    const envKey = `NEXT_PUBLIC_FF_${name}`;
-    const envVal = (typeof process !== 'undefined' && process.env)
-        ? process.env[envKey]
-        : undefined;
-    if (envVal !== undefined) return envVal === 'true' || envVal === '1';
-
-    // 2. localStorage override
-    const overrides = readOverrides();
-    if (name in overrides) return overrides[name]!;
-
-    // 3. Default
-    return FEATURE_FLAGS[name];
-}
-
-/** Set a flag override in localStorage. */
-export function setFlag(name: FeatureFlagName, value: boolean): void {
-    const overrides = readOverrides();
-    overrides[name] = value;
-    writeOverrides(overrides);
-}
-
-/** Reset a flag to its compiled default (remove override). */
-export function resetFlag(name: FeatureFlagName): void {
-    const overrides = readOverrides();
-    delete overrides[name];
-    writeOverrides(overrides);
-}
-
-/** Get all flags with their current effective values. */
-export function getAllFlags(): Record<FeatureFlagName, boolean> {
-    const result: Record<string, boolean> = {};
-    for (const name of Object.keys(FEATURE_FLAGS) as FeatureFlagName[]) {
-        result[name] = getFlag(name);
-    }
-    return result as Record<FeatureFlagName, boolean>;
+export function getAllFeatureFlags() {
+    return Object.entries(FEATURE_FLAGS).map(([key, config]) => ({
+        key: key as FeatureFlagKey,
+        ...config,
+        currentValue: getFeatureFlag(key as FeatureFlagKey),
+        browserSupported: checkBrowserSupport(key as FeatureFlagKey),
+    }));
 }
