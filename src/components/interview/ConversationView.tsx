@@ -106,7 +106,16 @@ export function ConversationView({
         autoStart: isVadEnabled,
         onSpeechStart: () => {
             if (isVadEnabled && interruptionManagerRef.current) {
+                // IMPORTANT: The InterruptionManager determines if we should actually interrupt.
+                // It checks confidence, grace periods, etc.
                 const decision = interruptionManagerRef.current.handleUserSpeechStart();
+
+                if (decision === 'INTERRUPT_IMMEDIATELY') {
+                    debugLog('InterruptionManager decided to INTERRUPT');
+                    handleInterruption();
+                } else {
+                    debugLog('InterruptionManager decided to WAIT/IGNORE', decision);
+                }
             }
         },
         onSpeechEnd: () => {
