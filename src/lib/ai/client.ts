@@ -597,53 +597,77 @@ export class UnifiedAIClient {
             if (apiKey) {
                 // Parallelize calls
                 const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, apiKey)));
-                return {
-                    embeddings: results,
-                    modelUsed: "gemini-embedding-001",
-                    dimensions: 768
-                };
-            }
-        } catch (e) {
-            console.warn("Gemini embedding failed, falling back to local:", e);
-        }
 
-        // 2. Fallback to Local MiniLM
-        try {
-            // Lazy load transformer to avoid cold start impact
-            const localEmbedder = await this.getLocalEmbedder();
-            const vectors: number[][] = [];
-
-            if (localEmbedder) {
-                for (const text of textArray) {
-                    const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
-                    vectors.push(this.extractLocalVector(output));
+                // Validate results
+                if (results.every(r => r.length > 0)) {
+                    return {
+                        embeddings: results,
+                        modelUsed: "gemini-embedding-001",
+                        dimensions: results[0].length
+                    };
                 }
             }
-
-            return {
-                embeddings: vectors,
-                modelUsed: "Xenova/all-MiniLM-L6-v2",
-                dimensions: 384
-            };
         } catch (e) {
-            throw new Error(`All embedding providers failed: ${e}`);
+            console.warn("⚠️ Gemini embedding failed:", e instanceof Error ? e.message : e);
         }
+
+        // 2. Fallback to Local MiniLM (ONLY in DEVELOPMENT)
+        // In production (Vercel), Xenova often fails due to missing ONNX shared libraries (.so files).
+        const isDev = process.env.NODE_ENV === 'development';
+        if (isDev) {
+            try {
+                // Lazy load transformer to avoid cold start impact
+                const localEmbedder = await this.getLocalEmbedder();
+                const vectors: number[][] = [];
+
+                if (localEmbedder) {
+                    for (const text of textArray) {
+                        const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
+                        vectors.push(this.extractLocalVector(output));
+                    }
+                }
+
+                if (vectors.length > 0) {
+                    return {
+                        embeddings: vectors,
+                        modelUsed: "Xenova/all-MiniLM-L6-v2",
+                        dimensions: 384
+                    };
+                }
+            } catch (e) {
+                console.warn("⚠️ Local embedding failed:", e instanceof Error ? e.message : e);
+            }
+        } else {
+            console.warn("⏭️ Skipping local Xenova embedding in non-dev environment to prevent ONNX crashes.");
+        }
+
+        // 3. Last Resort: Return Empty Embeddings (Avoid throwing to prevent 500s)
+        console.warn("❌ All embedding providers failed. Returning zero-vectors to prevent API crash.");
+        return {
+            embeddings: textArray.map(() => new Array(768).fill(0)),
+            modelUsed: "none",
+            dimensions: 768
+        };
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-        const url = `${this.GEMINI_API_BASE}/embedding-001:embedContent?key=${apiKey}`;
+        // Use v1beta for embedding-001
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                model: "models/embedding-001",
                 content: { parts: [{ text }] }
             })
         });
 
-        if (!response.ok) throw new Error(`Gemini Embed Error: ${response.status}`);
+        if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`Gemini embed API error (${response.status}): ${errBody.substring(0, 100)}`);
+        }
+
         const data = await response.json();
-        return data.embedding.values;
+        return data.embedding?.values || [];
     }
 
     private localEmbedderPromise: Promise<any> | null = null;

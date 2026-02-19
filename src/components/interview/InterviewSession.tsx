@@ -32,6 +32,7 @@ import { MobileWarning } from './MobileWarning';
 import { isMobileDevice } from '@/lib/utils/device-detection';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
+import { GuestRegisterModal } from './GuestRegisterModal';
 
 
 interface InterviewSessionProps {
@@ -768,39 +769,11 @@ export function InterviewSession({
                 </div>
             )}
 
-            {/* Guest Trial Login Modal */}
-            {showLoginModal && (
-                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                        <div className="text-center space-y-4">
-                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <LogIn className="w-8 h-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Trial Complete!</h3>
-                            <p className="text-slate-400 text-sm">
-                                You&apos;ve experienced AlgoMind&apos;s AI interview practice.
-                                Sign in to unlock unlimited sessions and track your progress.
-                            </p>
-                            <div className="flex flex-col gap-2 pt-2">
-                                <Button
-                                    onClick={() => router.push('/login')}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold"
-                                >
-                                    <LogIn className="w-4 h-4 mr-2" />
-                                    Sign In to Continue
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowLoginModal(false)}
-                                    className="w-full border-slate-700 text-slate-400 hover:text-white"
-                                >
-                                    Maybe Later
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Guest Trial Register Modal */}
+            <GuestRegisterModal
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+            />
 
             {/* Limit Reached Modal */}
             {showLimitModal && (
