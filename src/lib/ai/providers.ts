@@ -69,9 +69,9 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Gemma 2 9B IT"
     },
-    // Note: llama-4-scout and llama-4-maverick are not yet public Groq IDs...
+    // Note: llama-4-scout and llama-4-maverick are now verified IDs
     {
-        id: "llama-4-scout",
+        id: "meta-llama/llama-4-scout-17b-16e-instruct",
         provider: 'groq',
         tier: 4,
         rpm: 25.5,
@@ -79,10 +79,10 @@ export const CHAT_MODELS: ModelConfig[] = [
         tpm: 5000,
         contextWindow: 128000,
         supportsEmbeddings: false,
-        description: "Groq Llama 4 Scout (Placeholder)"
+        description: "Groq Llama 4 Scout"
     },
     {
-        id: "llama-4-maverick",
+        id: "meta-llama/llama-4-maverick-17b-128e-instruct",
         provider: 'groq',
         tier: 4,
         rpm: 25.5,
@@ -90,10 +90,10 @@ export const CHAT_MODELS: ModelConfig[] = [
         tpm: 5000,
         contextWindow: 128000,
         supportsEmbeddings: false,
-        description: "Groq Llama 4 Maverick (Placeholder)"
+        description: "Groq Llama 4 Maverick"
     },
     {
-        id: "openai/gpt-oss-120b", // gpt-oss-120b
+        id: "openai/gpt-oss-120b",
         provider: 'groq',
         tier: 5,
         rpm: 25.5,
@@ -104,7 +104,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq GPT-OSS 120B"
     },
     {
-        id: "openai/gpt-oss-20b", // gpt-oss-20b
+        id: "openai/gpt-oss-20b",
         provider: 'groq',
         tier: 6,
         rpm: 25.5,
@@ -113,6 +113,28 @@ export const CHAT_MODELS: ModelConfig[] = [
         contextWindow: 200000,
         supportsEmbeddings: false,
         description: "Groq GPT-OSS 20B"
+    },
+    {
+        id: "openai/gpt-oss-safeguard-20b", // Safety guard model
+        provider: 'groq',
+        tier: 99, // Safety tier
+        rpm: 100,
+        rpd: 1000,
+        tpm: 5000,
+        contextWindow: 8192,
+        supportsEmbeddings: false,
+        description: "Safety GPT OSS 20B"
+    },
+    {
+        id: "moonshotai/kimi-k2-instruct-0905",
+        provider: 'groq',
+        tier: 5,
+        rpm: 25.5,
+        rpd: 850,
+        tpm: 5000,
+        contextWindow: 200000, // Assuming large context for Kimi
+        supportsEmbeddings: false,
+        description: "Kimi K2 Instruct"
     },
 
     // --- GEMINI MODELS ---

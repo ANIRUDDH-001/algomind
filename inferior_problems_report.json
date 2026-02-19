@@ -1,0 +1,899 @@
+[
+  {
+    "id": "palindrome-number",
+    "title": "Palindrome Number",
+    "issues": [
+      "Short Description (193 chars)"
+    ],
+    "description_snippet": "Given an integer x, return true if x is a palindro..."
+  },
+  {
+    "id": "lfu-cache",
+    "title": "LFU Cache",
+    "issues": [
+      "Short Description (174 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Design and implement a data structure for a Least ..."
+  },
+  {
+    "id": "implement-queue-using-stacks",
+    "title": "Implement Queue using Stacks",
+    "issues": [
+      "Generic/Textbook Title",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Implement a first in first out (FIFO) queue using ..."
+  },
+  {
+    "id": "implement-stack-using-queues",
+    "title": "Implement Stack using Queues",
+    "issues": [
+      "Generic/Textbook Title",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Implement a last-in-first-out (LIFO) stack using o..."
+  },
+  {
+    "id": "permutation-in-string",
+    "title": "Permutation in String",
+    "issues": [
+      "Short Description (129 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given two strings s1 and s2, return true if s2 con..."
+  },
+  {
+    "id": "range-sum-query-immutable",
+    "title": "Range Sum Query - Immutable",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums, handle multiple queri..."
+  },
+  {
+    "id": "sum-of-two-integers",
+    "title": "Sum of Two Integers",
+    "issues": [
+      "Short Description (140 chars)"
+    ],
+    "description_snippet": "Given two integers a and b, return the sum of the ..."
+  },
+  {
+    "id": "merge-sorted-array",
+    "title": "Merge Sorted Array",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "You are given two integer arrays nums1 and nums2, ..."
+  },
+  {
+    "id": "k-th-smallest-in-lexicographical-order",
+    "title": "K-th Smallest in Lexicographical Order",
+    "issues": [
+      "Short Description (137 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given two integers n and k, return the kth lexicog..."
+  },
+  {
+    "id": "count-subarrays-with-fixed-bounds",
+    "title": "Count Subarrays With Fixed Bounds",
+    "issues": [
+      "Short Description (169 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Return the number of subarrays where the min eleme..."
+  },
+  {
+    "id": "search-in-2d-matrix-iii",
+    "title": "Search a 2D Matrix III",
+    "issues": [
+      "Short Description (55 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Search in a matrix where each row and column is so..."
+  },
+  {
+    "id": "kth-largest-in-stream",
+    "title": "Kth Largest Element in a Data Stream",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Design a class that continuously receives integer ..."
+  },
+  {
+    "id": "is-graph-bipartite",
+    "title": "Is Graph Bipartite?",
+    "issues": [
+      "Short Description (49 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Check if the graph is bipartite using 2-coloring...."
+  },
+  {
+    "id": "maximum-product-subarray",
+    "title": "Maximum Product Subarray",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums, find the contiguous s..."
+  },
+  {
+    "id": "container-with-most-water",
+    "title": "Container With Most Water",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "You are given an integer array height of length n...."
+  },
+  {
+    "id": "trapping-rain-water",
+    "title": "Trapping Rain Water",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given n non-negative integers representing an elev..."
+  },
+  {
+    "id": "word-ladder",
+    "title": "Word Ladder",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "A transformation sequence from word beginWord to w..."
+  },
+  {
+    "id": "top-k-frequent-elements",
+    "title": "Top K Frequent Elements",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums and an integer k, retu..."
+  },
+  {
+    "id": "valid-sudoku",
+    "title": "Valid Sudoku",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Determine if a 9 x 9 Sudoku board is valid. Only t..."
+  },
+  {
+    "id": "valid-palindrome",
+    "title": "Valid Palindrome",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "A phrase is a palindrome if, after converting all ..."
+  },
+  {
+    "id": "two-sum-ii",
+    "title": "Two Sum II - Input Array Is Sorted",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a 1-indexed array of integers numbers that i..."
+  },
+  {
+    "id": "evaluate-reverse-polish-notation",
+    "title": "Evaluate Reverse Polish Notation",
+    "issues": [
+      "Short Description (171 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Evaluate the value of an arithmetic expression in ..."
+  },
+  {
+    "id": "daily-temperatures",
+    "title": "Daily Temperatures",
+    "issues": [
+      "Short Description (164 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers temperatures, return an..."
+  },
+  {
+    "id": "diameter-of-binary-tree",
+    "title": "Diameter of Binary Tree",
+    "issues": [
+      "Short Description (152 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "The diameter of a binary tree is the length of the..."
+  },
+  {
+    "id": "subtree-of-another-tree",
+    "title": "Subtree of Another Tree",
+    "issues": [
+      "Short Description (82 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Check if there is a subtree of root with the same ..."
+  },
+  {
+    "id": "lowest-common-ancestor-of-a-binary-search-tree",
+    "title": "Lowest Common Ancestor of a BST",
+    "issues": [
+      "Short Description (79 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find the lowest common ancestor (LCA) node of two ..."
+  },
+  {
+    "id": "binary-search",
+    "title": "Binary Search",
+    "issues": [
+      "Short Description (62 chars)",
+      "Missing Constraints",
+      "Generic/Textbook Title",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array sorted in ascending order, search f..."
+  },
+  {
+    "id": "kth-largest-element-in-a-stream",
+    "title": "Kth Largest Element in a Stream",
+    "issues": [
+      "Short Description (59 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Design a class to find the kth largest element in ..."
+  },
+  {
+    "id": "last-stone-weight",
+    "title": "Last Stone Weight",
+    "issues": [
+      "Short Description (50 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Combine the two heaviest stones until one remains...."
+  },
+  {
+    "id": "k-closest-points-to-origin",
+    "title": "K Closest Points to Origin",
+    "issues": [
+      "Short Description (60 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find the k closest points to (0,0) using Euclidean..."
+  },
+  {
+    "id": "rearrange-string-k-distance-apart",
+    "title": "Rearrange String k Distance Apart",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a string s and an integer k, rearrange the c..."
+  },
+  {
+    "id": "reverse-string",
+    "title": "Reverse String",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Write a function that reverses a string. The input..."
+  },
+  {
+    "id": "number-of-digit-one",
+    "title": "Number of Digit One",
+    "issues": [
+      "Short Description (151 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer n, count the total number of digi..."
+  },
+  {
+    "id": "minimum-swaps-to-make-sequence-increasing",
+    "title": "Minimum Swaps to Make Sequence Increasing",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers, find the minimum numbe..."
+  },
+  {
+    "id": "construct-binary-tree-from-inorder-and-postorder-traversal",
+    "title": "Construct Binary Tree from Inorder and Postorder Traversal",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given the inorder and postorder traversal of a bin..."
+  },
+  {
+    "id": "concatenated-words",
+    "title": "Concatenated Words",
+    "issues": [
+      "Short Description (53 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Words formed by at least two other words in the li..."
+  },
+  {
+    "id": "integer-to-english-words",
+    "title": "Integer to English Words",
+    "issues": [
+      "Short Description (111 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Convert a non-negative integer num to its English ..."
+  },
+  {
+    "id": "remove-duplicates",
+    "title": "Remove Duplicates from Sorted Array",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums sorted in non-decreasi..."
+  },
+  {
+    "id": "find-all-paths-in-a-graph",
+    "title": "Find All Paths in a Graph",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a directed graph and two nodes, find all sim..."
+  },
+  {
+    "id": "maximum-sum-of-subarray-with-given-size",
+    "title": "Maximum Sum of Subarray with Given Size",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and a given size, find ..."
+  },
+  {
+    "id": "climbing-stairs",
+    "title": "Climbing Stairs",
+    "issues": [
+      "Short Description (193 chars)"
+    ],
+    "description_snippet": "You are climbing a staircase. It takes n steps to ..."
+  },
+  {
+    "id": "spiral-matrix",
+    "title": "Spiral Matrix",
+    "issues": [
+      "Short Description (186 chars)"
+    ],
+    "description_snippet": "Given an m x n matrix, return all elements of the ..."
+  },
+  {
+    "id": "sorted-array-to-bst",
+    "title": "Convert Sorted Array to Binary Search Tree",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums where the elements are..."
+  },
+  {
+    "id": "majority-element",
+    "title": "Majority Element",
+    "issues": [
+      "Short Description (50 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find the element that appears more than n/2 times...."
+  },
+  {
+    "id": "kth-largest",
+    "title": "Kth Largest Element in an Array",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array nums and an integer k, retu..."
+  },
+  {
+    "id": "longest-palindrome",
+    "title": "Longest Palindromic Substring",
+    "issues": [
+      "Short Description (155 chars)"
+    ],
+    "description_snippet": "Given a string s, return the longest palindromic s..."
+  },
+  {
+    "id": "minimum-cost-to-make-all-elements-equal",
+    "title": "Minimum Cost to Make All Elements Equal",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and a target value, fin..."
+  },
+  {
+    "id": "palindrome-partitioning",
+    "title": "Palindrome Partitioning",
+    "issues": [
+      "Short Description (89 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a string s, partition s such that every subs..."
+  },
+  {
+    "id": "find-the-kth-missing-positive-integer",
+    "title": "Find the Kth Missing Positive Integer",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, find ..."
+  },
+  {
+    "id": "find-all-anagrams-in-a-string",
+    "title": "Find All Anagrams in a String",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a string and a pattern, find all anagrams of..."
+  },
+  {
+    "id": "sort-colors",
+    "title": "Sort Colors",
+    "issues": [
+      "Short Description (64 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Sort an array with 0s (red), 1s (white), and 2s (b..."
+  },
+  {
+    "id": "subarray-sum-equals-k",
+    "title": "Subarray Sum Equals K",
+    "issues": [
+      "Short Description (65 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find the total number of contiguous subarrays whos..."
+  },
+  {
+    "id": "copy-random-list",
+    "title": "Copy List with Random Pointer",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "A linked list of length n is given such that each ..."
+  },
+  {
+    "id": "flatten-tree",
+    "title": "Flatten Binary Tree to Linked List",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given the root of a binary tree, flatten the tree ..."
+  },
+  {
+    "id": "binary-tree-zigzag",
+    "title": "Binary Tree Zigzag Level Order Traversal",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given the root of a binary tree, return the zigzag..."
+  },
+  {
+    "id": "find-duplicate",
+    "title": "Find the Duplicate Number",
+    "issues": [
+      "Short Description (96 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find the repeated number in an array of n + 1 inte..."
+  },
+  {
+    "id": "maximal-square",
+    "title": "Maximal Square",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an m x n binary matrix filled with 0's and 1..."
+  },
+  {
+    "id": "island-perimeter",
+    "title": "Island Perimeter",
+    "issues": [
+      "Short Description (66 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Calculate the perimeter of the island represented ..."
+  },
+  {
+    "id": "find-the-longest-increasing-subsequence-with-at-most-k-deletions",
+    "title": "Find the Longest Increasing Subsequence with at Most K Deletions",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, find ..."
+  },
+  {
+    "id": "find-the-maximum-subarray-sum-after-at-most-k-operations",
+    "title": "Find the Maximum Subarray Sum after at Most K Operations",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, find ..."
+  },
+  {
+    "id": "hamming-distance",
+    "title": "Hamming Distance",
+    "issues": [
+      "Short Description (47 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Number of bit differences between two integers...."
+  },
+  {
+    "id": "find-the-minimum-window-that-contains-all-elements-of-another-array",
+    "title": "Find the Minimum Window that Contains All Elements of Another Array",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given two arrays, find the minimum window in the f..."
+  },
+  {
+    "id": "find-the-maximum-product-of-three-numbers-in-an-array",
+    "title": "Find the Maximum Product of Three Numbers in an Array",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers, find the maximum produ..."
+  },
+  {
+    "id": "design-tic-tac-toe",
+    "title": "Design Tic-Tac-Toe",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Assume the following rules are for the tic-tac-toe..."
+  },
+  {
+    "id": "meeting-rooms",
+    "title": "Meeting Rooms",
+    "issues": [
+      "Short Description (44 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Check if a person could attend all meetings...."
+  },
+  {
+    "id": "shift-2d-grid",
+    "title": "Shift 2D Grid",
+    "issues": [
+      "Short Description (40 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Shift elements of an m x n grid k times...."
+  },
+  {
+    "id": "count-and-say",
+    "title": "Count and Say",
+    "issues": [
+      "Short Description (52 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Generate the nth term in the count-and-say sequenc..."
+  },
+  {
+    "id": "max-consecutive-ones",
+    "title": "Max Consecutive Ones",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a binary array, find the maximum number of c..."
+  },
+  {
+    "id": "remove-element",
+    "title": "Remove Element",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and a target value, rem..."
+  },
+  {
+    "id": "minimum-path-sum",
+    "title": "Minimum Path Sum",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a m x n grid filled with non-negative number..."
+  },
+  {
+    "id": "longest-substring-without-repeating-characters",
+    "title": "Longest Substring Without Repeating Characters",
+    "issues": [
+      "Short Description (133 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a string s, find the length of the longest s..."
+  },
+  {
+    "id": "longest-repeating-character-replacement",
+    "title": "Longest Repeating Character Replacement",
+    "issues": [
+      "Short Description (195 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Return the length of the longest substring contain..."
+  },
+  {
+    "id": "generate-parentheses",
+    "title": "Generate Parentheses",
+    "issues": [
+      "Short Description (134 chars)"
+    ],
+    "description_snippet": "Given n pairs of parentheses, write a function to ..."
+  },
+  {
+    "id": "min-stack",
+    "title": "Min Stack",
+    "issues": [
+      "Short Description (181 chars)",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Design a stack that supports push, pop, top, and r..."
+  },
+  {
+    "id": "invert-binary-tree",
+    "title": "Invert Binary Tree",
+    "issues": [
+      "Short Description (174 chars)"
+    ],
+    "description_snippet": "Given the root of a binary tree, invert the tree, ..."
+  },
+  {
+    "id": "koko-eating-bananas",
+    "title": "Koko Eating Bananas",
+    "issues": [
+      "Short Description (79 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Return the minimum integer k such that Koko can ea..."
+  },
+  {
+    "id": "implement-trie-prefix-tree",
+    "title": "Implement Trie (Prefix Tree)",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "A trie (pronounced as \"try\") or prefix tree is a t..."
+  },
+  {
+    "id": "serialize-and-deserialize-binary-tree",
+    "title": "Serialize and Deserialize Binary Tree",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Serialization is the process of converting a data ..."
+  },
+  {
+    "id": "maximal-rectangle",
+    "title": "Maximal Rectangle",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a rows x cols binary matrix filled with 0's ..."
+  },
+  {
+    "id": "search-a-2d-matrix-ii",
+    "title": "Search a 2D Matrix II",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Write an efficient algorithm that searches for a v..."
+  },
+  {
+    "id": "find-median-from-data-stream",
+    "title": "Find Median from Data Stream",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "The median is the middle value in an ordered integ..."
+  },
+  {
+    "id": "sudoku-solver",
+    "title": "Sudoku Solver",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Write a program to solve a Sudoku puzzle by fillin..."
+  },
+  {
+    "id": "basic-calculator",
+    "title": "Basic Calculator",
+    "issues": [
+      "Generic/Textbook Title"
+    ],
+    "description_snippet": "Given a string s representing a valid expression, ..."
+  },
+  {
+    "id": "subarray-product-less-than-k",
+    "title": "Subarray Product Less Than K",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "minimum-window-substring-contains-all-anagrams",
+    "title": "Minimum Window Substring Contains All Anagrams",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a string s and a string p, return the length..."
+  },
+  {
+    "id": "construct-target-array-using-powers-of-two",
+    "title": "Construct Target Array Using Powers of Two",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a target array, return whether it is possibl..."
+  },
+  {
+    "id": "find-kth-smallest-pair-distance",
+    "title": "Find Kth Smallest Pair Distance",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "minimize-moves-to-equal-array-elements",
+    "title": "Minimize Moves to Equal Array Elements",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer x, retur..."
+  },
+  {
+    "id": "kth-missing-positive-integer",
+    "title": "Kth Missing Positive Integer",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "lru-cache",
+    "title": "LRU Cache",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Design a data structure that follows the constrain..."
+  },
+  {
+    "id": "find-all-good-indices",
+    "title": "Find All Good Indices",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "minimum-operations-to-make-arrays-equal",
+    "title": "Minimum Operations to Make Arrays Equal",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given two arrays of integers, return the minimum n..."
+  },
+  {
+    "id": "longest-increasing-subsequence-with-at-most-k-deletions",
+    "title": "Longest Increasing Subsequence with at Most K Deletions",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "all-paths-source-target",
+    "title": "All Paths From Source to Target",
+    "issues": [
+      "Short Description (48 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Find all paths from node 0 to node n-1 in a DAG...."
+  },
+  {
+    "id": "first-missing-positive",
+    "title": "First Missing Positive",
+    "issues": [
+      "Short Description (55 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Smallest missing positive integer in an unsorted a..."
+  },
+  {
+    "id": "construct-tree-preorder-inorder",
+    "title": "Construct Binary Tree from Preorder and Inorder Traversal",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given two integer arrays preorder and inorder wher..."
+  },
+  {
+    "id": "find-peak-element",
+    "title": "Find Peak Element",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "A peak element is an element that is strictly grea..."
+  },
+  {
+    "id": "search-insert-position",
+    "title": "Search Insert Position",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given a sorted array of distinct integers and a ta..."
+  },
+  {
+    "id": "maximum-average-subarray",
+    "title": "Maximum Average Subarray",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "number-of-subarrays-with-bounded-maximum",
+    "title": "Number of Subarrays with Bounded Maximum",
+    "issues": [
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an array of integers and an integer k, retur..."
+  },
+  {
+    "id": "split-array-largest-sum",
+    "title": "Split Array Largest Sum",
+    "issues": [
+      "Short Description (40 chars)",
+      "Missing Constraints",
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Minimize the largest sum of k subarrays...."
+  },
+  {
+    "id": "maximum-sum-non-adjacent",
+    "title": "Maximum Sum of Non-Adjacent Elements",
+    "issues": [
+      "Few Examples (< 2)"
+    ],
+    "description_snippet": "Given an integer array, select a subset of element..."
+  }
+]

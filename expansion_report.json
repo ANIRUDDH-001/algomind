@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-02-19T10:41:09.241Z",
+  "total_added": 1,
+  "model_status": {
+    "llama-3.3-70b-versatile": {
+      "exhausted": false,
+      "failed": false
+    },
+    "qwen/qwen3-32b": {
+      "exhausted": false,
+      "failed": false
+    },
+    "mistral-saba-24b": {
+      "exhausted": false,
+      "failed": true,
+      "reason": "Model doesn't exist or decommissioned"
+    },
+    "openai/gpt-oss-120b": {
+      "exhausted": false,
+      "failed": false
+    },
+    "gemini-2.5-flash": {
+      "exhausted": false,
+      "failed": false
+    },
+    "gemini-2.5-pro": {
+      "exhausted": true,
+      "failed": false,
+      "reason": "429 Rate Limit"
+    },
+    "gemini-2.0-flash": {
+      "exhausted": true,
+      "failed": false,
+      "reason": "429 Rate Limit"
+    },
+    "gemini-3-pro-preview": {
+      "exhausted": true,
+      "failed": false,
+      "reason": "429 Rate Limit"
+    },
+    "gemma-3-27b-it": {
+      "exhausted": false,
+      "failed": false
+    }
+  },
+  "details": [
+    {
+      "title": "Substring with Concatenation of All Words",
+      "status": "REJECTED_BY_AI",
+      "reason": "The description is mostly clear, but the third hint 'Handle overlapping windows by adjusting the window size dynamically.' is potentially misleading. The standard optimal solution for this problem (LeetCode 30) typically uses a fixed-size sliding window (equal to the total length of all words) that shifts, often requiring multiple starting points for the window. It does not generally involve dynamically adjusting the window size in the way this hint suggests. Additionally, for completeness, the constraints could explicitly specify the character set for 's' and 'words' and clarify that `words.length` must be at least 1.",
+      "model": "gemini-2.5-flash"
+    },
+    {
+      "title": "Data Stream as Disjoint Intervals",
+      "status": "INSERTED_VERIFIED",
+      "model": "gemini-2.5-flash"
+    }
+  ]
+}
