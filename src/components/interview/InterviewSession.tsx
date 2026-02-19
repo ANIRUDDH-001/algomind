@@ -51,6 +51,10 @@ export function InterviewSession({
 }: InterviewSessionProps) {
     const router = useRouter();
     const { user } = useAuth();
+
+    // VAD feature flag
+    const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
+
     const {
         state,
         messages,
@@ -59,9 +63,11 @@ export function InterviewSession({
         resetInterview,
         submitUserResponse,
         handleInterruption,
+        autoSubmitEnabled,
+        setAutoSubmitEnabled,
         loadTranscript,
         voice
-    } = useInterview();
+    } = useInterview({ vadEnabled });
 
     const { analyzeSession, isAnalyzing, result, error: assessmentError, reset: resetAssessment } = useAssessment();
     const { addSession } = useProgress();
@@ -69,9 +75,6 @@ export function InterviewSession({
     // Interview limits and guest trial hooks
     const limits = useInterviewLimits();
     const guestTrial = useGuestTrial(isGuest);
-
-    // VAD feature flag
-    const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
 
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);

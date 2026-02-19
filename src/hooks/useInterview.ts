@@ -30,7 +30,7 @@ export interface Message {
 
 const AUTO_SUBMIT_DELAY = 2500; // 2.5 seconds of silence = done speaking
 
-export function useInterview() {
+export function useInterview(options: { vadEnabled?: boolean } = {}) {
     // State
     const [messages, setMessages] = useState<Message[]>([]);
     const [state, setState] = useState<InterviewState>('idle');
@@ -292,10 +292,13 @@ export function useInterview() {
             return;
         }
 
-        // CRITICAL: Always stop mic immediately when AI is speaking OR processing
-        if (isSpeaking || isProcessing) {
+        // CRITICAL: Stop mic when AI is processing (waiting for API)
+        // OR when AI is speaking AND VAD is disabled (to prevent echo)
+        const shouldStopForSpeaking = isSpeaking && !options.vadEnabled;
+
+        if (shouldStopForSpeaking || isProcessing) {
             if (isListening) {
-                // Use abort to immediately cut off stream and discard partial inputs (prevent echo)
+                // Use abort to immediately cut off stream and discard partial inputs
                 abortListening();
             }
             // Reset the resume flag when AI starts speaking/processing
@@ -303,24 +306,26 @@ export function useInterview() {
             return; // Don't proceed to start logic
         }
 
-        // Mic is Enabled (Intent) AND AI is not speaking/processing: Resume Mic
+        // Mic is Enabled (Intent) AND (AI is silent OR VAD is enabled): Resume Mic
         // CRITICAL: Only attempt once per "AI finished" cycle to prevent loop
         if (!isListening && !micResumeAttemptedRef.current) {
             micResumeAttemptedRef.current = true; // Mark that we're attempting
 
             // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
+            // If VAD is enabled, we might want a shorter delay or no delay, but 
+            // for now sticking to safe defaults to prevent immediate echo of previous output
             const timer = setTimeout(() => {
                 // Double-check conditions haven't changed during timeout
-                if (isMicEnabled && !isSpeaking && !isProcessing) {
+                const stillShouldStop = (isSpeaking && !options.vadEnabled) || isProcessing;
+                if (isMicEnabled && !stillShouldStop) {
                     // CRITICAL: Reset transcript before resuming to prevent carryover
-                    // from speech captured during AI processing phase
                     resetTranscript();
                     startListening();
                 }
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isProcessing, startListening, stopListening, state, isMicEnabled, resetTranscript]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
 
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
