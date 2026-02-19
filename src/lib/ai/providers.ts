@@ -59,18 +59,17 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq Llama 3.1 8B"
     },
     {
-        id: "qwen-2.5-32b", // Mapped from qwen3-32b (Qwen 2.5 is current on Groq, assuming user meant acceptable equivalent or future)
+        id: "gemma2-9b-it",
         provider: 'groq',
         tier: 3,
-        rpm: 51,
-        rpd: 850,
-        tpm: 5000,
-        contextWindow: 32000,
+        rpm: 30,
+        rpd: 14400,
+        tpm: 15000,
+        contextWindow: 8192,
         supportsEmbeddings: false,
-        description: "Groq Qwen 32B"
+        description: "Gemma 2 9B IT"
     },
-    // Note: llama-4-scout and llama-4-maverick are not yet public Groq IDs. 
-    // Keeping them for forward compatibility or placeholders as requested.
+    // Note: llama-4-scout and llama-4-maverick are not yet public Groq IDs...
     {
         id: "llama-4-scout",
         provider: 'groq',
@@ -118,40 +117,37 @@ export const CHAT_MODELS: ModelConfig[] = [
 
     // --- GEMINI MODELS ---
     {
-        id: "gemini-1.5-pro", // Mapped from gemini-2.5-pro/3-pro (using available pro model for now, adjusting limits)
+        id: "gemini-1.5-pro", // Mapped from gemini-2.5-pro/3-pro
         provider: 'gemini',
         tier: 10,
-        rpm: 12.75, // 15 * 0.85
-        rpd: 1275, // 1500 * 0.85
-        tpm: 30000,
+        rpm: 2, // Low RPM for Pro
+        rpd: 50,
+        tpm: 32000,
         contextWindow: 2000000,
         supportsEmbeddings: false,
-        description: "Gemini 1.5 Pro (Targeting 2.5/3 Pro slots)"
+        description: "Gemini 1.5 Pro"
     },
-    // Note: gemini-2.5-pro, gemini-3-pro, gemini-2-flash, etc. are likely future/preview IDs.
-    // I will add them as requested to match the user's config exactly, 
-    // assuming the library/API might support them or they are aliases.
     {
-        id: "gemini-2.0-flash",
+        id: "gemini-1.5-flash", // Stable high-volume model
         provider: 'gemini',
         tier: 11,
-        rpm: 12.75,
-        rpd: 1275,
-        tpm: 30000,
+        rpm: 15,
+        rpd: 1500,
+        tpm: 1000000,
+        contextWindow: 1000000,
+        supportsEmbeddings: true,
+        description: "Gemini 1.5 Flash"
+    },
+    {
+        id: "gemini-2.0-flash", // Newer Experimental
+        provider: 'gemini',
+        tier: 11,
+        rpm: 10,
+        rpd: 1500,
+        tpm: 1000000,
         contextWindow: 1000000,
         supportsEmbeddings: true,
         description: "Gemini 2.0 Flash"
-    },
-    {
-        id: "gemini-2.0-flash-lite-preview-02-05", // Mapped closest for 'gemini-2.5-flash-lite' or similar if needed, keeping user ID
-        provider: 'gemini',
-        tier: 12,
-        rpm: 8.5,
-        rpd: 17, // Extremely low RPD from prompt? 
-        tpm: 30000,
-        contextWindow: 1000000,
-        supportsEmbeddings: false,
-        description: "Gemini Flash Lite"
     },
     // Adding the specific IDs requested even if they seem futuristic, 
     // to ensure the RateLimiter has the exact data structure requested.
