@@ -138,6 +138,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     },
 
     // --- GEMINI MODELS ---
+    // Verified Gemini models — always cross-check with https://ai.google.dev/models
     {
         id: "gemini-1.5-pro", // Mapped from gemini-2.5-pro/3-pro
         provider: 'gemini',
@@ -171,14 +172,10 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: true,
         description: "Gemini 2.0 Flash"
     },
-    // Adding the specific IDs requested even if they seem futuristic, 
-    // to ensure the RateLimiter has the exact data structure requested.
+    // Preview - may need verification
     { id: "gemini-2.5-pro", provider: 'gemini', tier: 10, rpm: 12.75, rpd: 1275, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2.5 Pro" },
-    { id: "gemini-3-pro", provider: 'gemini', tier: 10, rpm: 12.75, rpd: 1275, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 3 Pro" },
-    { id: "gemini-2-flash", provider: 'gemini', tier: 11, rpm: 12.75, rpd: 1275, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2 Flash" },
+    // Preview - may need verification
     { id: "gemini-2.5-flash", provider: 'gemini', tier: 12, rpm: 4.25, rpd: 17, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2.5 Flash" },
-    { id: "gemini-3-flash", provider: 'gemini', tier: 12, rpm: 4.25, rpd: 17, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 3 Flash" },
-    { id: "gemini-2.5-flash-lite", provider: 'gemini', tier: 13, rpm: 8.5, rpd: 17, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2.5 Flash Lite" },
 ];
 
 // Embedding Models
@@ -201,7 +198,7 @@ export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
         tpm: Number.MAX_SAFE_INTEGER,
         rpd: Number.MAX_SAFE_INTEGER,
         dimensions: 384,
-        description: "Local all-MiniLM-L6-v2 fallback via @xenova/transformers"
+        description: "HuggingFace all-MiniLM-L6-v2 (local fallback, dev only) via @huggingface/transformers"
     },
 ];
 

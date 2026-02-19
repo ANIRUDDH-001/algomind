@@ -1,4 +1,8 @@
 import { disableDemoMode } from '@/lib/demo/manager';
+import { User } from '@supabase/supabase-js';
+// Mock type for router since importing from next/navigation in non-component file can be tricky or just use any with explanation
+// Actually we can define a minimal interface
+interface Router { push: (url: string) => void; }
 
 export interface TourStep {
     id: number | string;
@@ -10,8 +14,8 @@ export interface TourStep {
     content?: string;
     position?: 'top' | 'bottom' | 'left' | 'right' | 'center';
     spotlightShape?: 'circle' | 'rectangle' | 'rounded';
-    action?: (params: { router: any }) => Promise<void>;
-    shouldShow?: (user: any) => boolean;
+    action?: (params: { router: Router }) => Promise<void>;
+    shouldShow?: (user: User | null) => boolean;
     mobilePosition?: 'top' | 'bottom'; // Control mobile sheet position
 }
 

@@ -78,7 +78,7 @@ async function runTests() {
     console.log("TEST 3: Rate Limiter Tracking");
     const statsBefore = client.getRateLimitStatus().usage;
     // We expect some usage from Test 1 & 2
-    const totalRequests = Object.values(statsBefore).reduce((sum, s) => sum + s.minuteCount, 0);
+    const totalRequests = Object.values(statsBefore).reduce((sum, s) => sum + parseInt(s.rpm), 0);
     if (totalRequests > 0) {
         console.log(`✅ Passed: Rate limiter tracked ${totalRequests} requests so far.`);
     } else {

@@ -355,8 +355,12 @@ export class UnifiedAIClient {
         }
 
         // ── Response Cache check (before any AI call) ─────────────────
-        const cacheEnabled = process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true'
-            || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1';
+        const isProduction = process.env.NODE_ENV === 'production';
+        const forceEnable = process.env.CACHE_BACKEND === 'memory'; // Escape hatch
+        const cacheEnabled = (
+            (process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true' || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1') &&
+            (!isProduction || forceEnable)
+        );
 
         if (cacheEnabled) {
             const cache = getResponseCache();
@@ -497,8 +501,12 @@ export class UnifiedAIClient {
         model: 'groq' | 'gemini',
         latencyMs: number
     ): void {
-        const cacheEnabled = process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true'
-            || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1';
+        const isProduction = process.env.NODE_ENV === 'production';
+        const forceEnable = process.env.CACHE_BACKEND === 'memory';
+        const cacheEnabled = (
+            (process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === 'true' || process.env.NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE === '1') &&
+            (!isProduction || forceEnable)
+        );
         if (!cacheEnabled) return;
 
         const cache = getResponseCache();
@@ -511,57 +519,144 @@ export class UnifiedAIClient {
      * Comprehensive health check for all models
      * Fails fast (timeout 3s) and returns detailed status
      */
-    async checkAllModels(): Promise<Record<string, { available: boolean; latency?: number; error?: string }>> {
-        const results: Record<string, { available: boolean; latency?: number; error?: string }> = {};
+    /**
+     * Comprehensive health check for all models
+     * Fails fast (timeout 3s) and returns detailed status
+     */
+    async checkAllModels(): Promise<Record<string, {
+        available: boolean;
+        latency?: number;
+        error?: string;
+        method: 'direct_check' | 'provider_representative_check' | 'heuristic';
+        status: 'available' | 'unavailable' | 'unknown';
+    }>> {
+        const results: Record<string, {
+            available: boolean;
+            latency?: number;
+            error?: string;
+            method: 'direct_check' | 'provider_representative_check' | 'heuristic';
+            status: 'available' | 'unavailable' | 'unknown';
+        }> = {};
 
-        // We will test one model per provider to be efficient, OR all models if requested.
-        // The user request implies "Health check returns 14 models", so we should check all relevant IDs 
-        // OR return status for all based on a representative check.
-        // To be safe and accurate for the "14 models" requirement, we will mark them based on provider availability 
-        // to avoid spamming 14 API calls per health check.
+        // We will test one model per provider to be efficient.
+        const GROQ_PING_MODEL = "llama-3.1-8b-instant";
+        const GEMINI_PING_MODEL = "gemini-2.0-flash";
 
-        // 1. Check Groq Availability
-        let groqAvailable = false;
-        let groqLatency = 0;
+        // 1. Check Groq Availability (Representative)
+        let groqResult: { available: boolean; latency: number; error?: string } = { available: false, latency: 0, error: "Provider Unreachable" };
         try {
             const start = Date.now();
-            await this.callGroq("llama-3.1-8b-instant", [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
-            groqLatency = Date.now() - start;
-            groqAvailable = true;
-        } catch (e) {
-            console.warn("Groq Health Check Failed:", e);
+            await this.callGroq(GROQ_PING_MODEL, [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
+            groqResult = { available: true, latency: Date.now() - start, error: undefined };
+        } catch (e: unknown) {
+            groqResult.error = e instanceof Error ? e.message : String(e) || "Provider Unreachable";
         }
 
-        // 2. Check Gemini Availability
-        let geminiAvailable = false;
-        let geminiLatency = 0;
+        // 2. Check Gemini Availability (Representative)
+        let geminiResult: { available: boolean; latency: number; error?: string } = { available: false, latency: 0, error: "Provider Unreachable" };
         try {
             const start = Date.now();
-            await this.callGemini("gemini-2.0-flash", [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
-            geminiLatency = Date.now() - start;
-            geminiAvailable = true;
-        } catch (e) {
-            console.warn("Gemini Health Check Failed:", e);
+            await this.callGemini(GEMINI_PING_MODEL, [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
+            geminiResult = { available: true, latency: Date.now() - start, error: undefined };
+        } catch (e: unknown) {
+            geminiResult.error = e instanceof Error ? e.message : String(e) || "Provider Unreachable";
         }
 
-        // 3. Map status to all models
+        // 3. Map status to all models with honest reporting
         for (const model of CHAT_MODELS) {
-            if (model.provider === 'groq') {
+            // A. Handle Preview / Unverified Models (e.g. Gemini 2.5)
+            if (model.id.includes('2.5')) {
                 results[model.id] = {
-                    available: groqAvailable,
-                    latency: groqAvailable ? groqLatency : undefined,
-                    error: groqAvailable ? undefined : "Provider Unreachable"
+                    available: false,
+                    status: 'unknown',
+                    method: 'heuristic',
+                    error: 'Preview model - availability not verified',
+                    latency: undefined
                 };
-            } else if (model.provider === 'gemini') {
+                continue;
+            }
+
+            // B. Handle Groq Models
+            if (model.provider === 'groq') {
+                const isPingModel = model.id === GROQ_PING_MODEL;
                 results[model.id] = {
-                    available: geminiAvailable,
-                    latency: geminiAvailable ? geminiLatency : undefined,
-                    error: geminiAvailable ? undefined : "Provider Unreachable"
+                    available: groqResult.available,
+                    latency: groqResult.available ? groqResult.latency : undefined,
+                    error: groqResult.available ? undefined : groqResult.error,
+                    method: isPingModel ? 'direct_check' : 'provider_representative_check',
+                    status: groqResult.available ? 'available' : 'unavailable'
+                };
+            }
+            // C. Handle Gemini Models
+            else if (model.provider === 'gemini') {
+                const isPingModel = model.id === GEMINI_PING_MODEL;
+                results[model.id] = {
+                    available: geminiResult.available,
+                    latency: geminiResult.available ? geminiResult.latency : undefined,
+                    error: geminiResult.available ? undefined : geminiResult.error,
+                    method: isPingModel ? 'direct_check' : 'provider_representative_check',
+                    status: geminiResult.available ? 'available' : 'unavailable'
                 };
             }
         }
 
         return results;
+    }
+
+    /**
+     * Check a SPECIFIC model on demand (Admin feature)
+     * Real API call with 3s timeout
+     */
+    async checkSpecificModel(modelId: string): Promise<{
+        available: boolean;
+        latency?: number;
+        error?: string;
+        method: 'direct_check';
+        status: 'available' | 'unavailable';
+    }> {
+        const model = CHAT_MODELS.find(m => m.id === modelId);
+        if (!model) {
+            return {
+                available: false,
+                error: `Model ID ${modelId} not found in configuration`,
+                method: 'direct_check',
+                status: 'unavailable'
+            };
+        }
+
+        try {
+            const start = Date.now();
+
+            // Create a promise that rejects after 3 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Health check timeout (3s)")), 3000);
+            });
+
+            // Call the model
+            const callPromise = this.callModel(model, [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
+
+            // Race against timeout
+            const result = await Promise.race([callPromise, timeoutPromise]) as CompletionResult;
+
+            if (!result.success) {
+                throw new Error(result.error || "Unknown error");
+            }
+
+            return {
+                available: true,
+                latency: Date.now() - start,
+                method: 'direct_check',
+                status: 'available'
+            };
+
+        } catch (error: unknown) {
+            return {
+                available: false,
+                error: error instanceof Error ? error.message : String(error),
+                method: 'direct_check',
+                status: 'unavailable'
+            };
+        }
     }
 
     /**
@@ -621,8 +716,9 @@ export class UnifiedAIClient {
                 const vectors: number[][] = [];
 
                 if (localEmbedder) {
+                    const embedderFn = localEmbedder as (text: string, options?: unknown) => Promise<unknown>;
                     for (const text of textArray) {
-                        const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
+                        const output = await embedderFn(text, { pooling: 'mean', normalize: true });
                         vectors.push(this.extractLocalVector(output));
                     }
                 }
@@ -641,13 +737,9 @@ export class UnifiedAIClient {
             console.warn("⏭️ Skipping local Xenova embedding in non-dev environment to prevent ONNX crashes.");
         }
 
-        // 3. Last Resort: Return Empty Embeddings (Avoid throwing to prevent 500s)
-        console.warn("❌ All embedding providers failed. Returning zero-vectors to prevent API crash.");
-        return {
-            embeddings: textArray.map(() => new Array(768).fill(0)),
-            modelUsed: "none",
-            dimensions: 768
-        };
+        // 3. Last Resort: Fail Loudly
+        console.error('❌ [Embed] All providers failed (Gemini + local). RAG will be skipped.');
+        throw new Error('All embedding providers failed. RAG context unavailable.');
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
@@ -670,24 +762,24 @@ export class UnifiedAIClient {
         return data.embedding?.values || [];
     }
 
-    private localEmbedderPromise: Promise<any> | null = null;
+    private localEmbedderPromise: Promise<unknown> | null = null;
 
     private async getLocalEmbedder() {
         if (!this.localEmbedderPromise) {
             this.localEmbedderPromise = (async () => {
-                const { pipeline } = await import('@xenova/transformers'); // Dynamic import
+                const { pipeline } = await import('@huggingface/transformers'); // Dynamic import
                 return pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
             })();
         }
         return this.localEmbedderPromise;
     }
 
-    private extractLocalVector(output: any): number[] {
+    private extractLocalVector(output: unknown): number[] {
         // Simplified extraction logic compatible with various Xenova output shapes
-        if (output && typeof output === 'object' && 'data' in output) return Array.from(output.data);
+        if (output && typeof output === 'object' && 'data' in output) return Array.from((output as { data: Float32Array | number[] }).data);
         if (Array.isArray(output)) {
             if (Array.isArray(output[0])) return output[0]; // Nested array
-            return output; // Flat array
+            return output as number[]; // Flat array
         }
         return [];
     }

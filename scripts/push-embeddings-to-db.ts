@@ -80,8 +80,8 @@ async function main() {
                 process.stdout.write('.');
                 successCount++;
             }
-        } catch (err: any) {
-            console.error(`❌ Exception for ${chunk.title}:`, err.message);
+        } catch (err: unknown) {
+            console.error(`❌ Exception for ${chunk.title}:`, (err as any).message);
             errorCount++;
         }
     }

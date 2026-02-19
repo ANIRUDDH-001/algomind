@@ -22,16 +22,16 @@ export function generateMockProgress(count: number, userId: string = 'demo-user'
         timestamp.setDate(timestamp.getDate() + i);
         timestamp.setHours(10 + (i % 8), 15 * (i % 4));
 
-        const skills: any = {};
+        const skills: Record<CognitiveSkill, number> = {} as any; // initialized empty, filled below
         Object.entries(skillStartingPoints).forEach(([skill, base]) => {
             // Gradual improvement logic with some randomness
             const progress = (i / count) * 4; // up to +4 points over time
             const random = (Math.random() - 0.5) * 1.5; // variance
-            skills[skill] = Math.max(1, Math.min(10, Math.round(base + progress + random)));
+            skills[skill as CognitiveSkill] = Math.max(1, Math.min(10, Math.round(base + progress + random)));
         });
 
         // Weighted average approx
-        const overallScore = Object.values(skills as any).reduce((a: any, b: any) => a + b, 0) as number / 8;
+        const overallScore = Object.values(skills).reduce((a, b) => a + b, 0) / 8;
 
         sessions.push({
             sessionId: `mock-${i}`,
@@ -40,7 +40,7 @@ export function generateMockProgress(count: number, userId: string = 'demo-user'
             problemDifficulty: ['easy', 'medium', 'hard'][i % 3] as any,
             timestamp,
             duration: 600 + (Math.random() * 600),
-            skills: skills as Record<CognitiveSkill, number>,
+            skills: skills,
             overallScore: Math.round(overallScore * 10) / 10
         });
     }

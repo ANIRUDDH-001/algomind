@@ -78,7 +78,7 @@ export class RecommendationEngine {
                 skillId: id,
                 title: `Boost your ${id.replace(/-/g, ' ')}`,
                 description: `Your average score of ${score.toFixed(1)} suggests room for growth here. Practice these ${targetDifficulty} problems to improve.`,
-                suggestedProblems: suggestions.map((p: any) => ({
+                suggestedProblems: suggestions.map((p: { id: string; title: string; difficulty: string; external_url?: string }) => ({
                     id: p.id,
                     title: p.title,
                     difficulty: p.difficulty,
@@ -104,7 +104,7 @@ export class RecommendationEngine {
                     skillId: trend.skill,
                     title: `Reverse Declining Trend`,
                     description: `You've shown a slight dip in ${trend.skill.replace(/-/g, ' ')} across recent sessions. Let's get back on track.`,
-                    suggestedProblems: (trendProblems || []).map((p: any) => ({
+                    suggestedProblems: (trendProblems || []).map((p: { id: string; title: string; difficulty: string; external_url?: string }) => ({
                         id: p.id,
                         title: p.title,
                         difficulty: p.difficulty,

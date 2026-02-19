@@ -47,6 +47,7 @@ export function useInterviewLimits(): InterviewLimits {
                 clearInterval(timerRef.current);
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isRunning]);
 
     const startTimer = useCallback(() => {

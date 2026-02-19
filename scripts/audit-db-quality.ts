@@ -15,7 +15,22 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemi
 
 const BATCH_SIZE = 5; // Verifying 5 problems at once for efficiency
 
-async function verifyProblemsBatch(problems: any[]): Promise<any[]> {
+interface Problem {
+    id: string;
+    title: string;
+    description: string;
+    difficulty: string;
+    examples: unknown[];
+    hints: string[] | null;
+}
+
+interface ValidationResult {
+    id: string;
+    valid: boolean;
+    reason?: string;
+}
+
+async function verifyProblemsBatch(problems: Problem[]): Promise<ValidationResult[]> {
     console.log(`🔍 Verifying batch of ${problems.length} problems with Gemini...`);
 
     const prompt = `You are a Senior Software Engineer and DSA expert.
@@ -65,7 +80,7 @@ Return ONLY a JSON array of objects in this exact order:
             throw new Error(`Gemini API Error (${response.status}): ${err}`);
         }
 
-        const data: any = await response.json();
+        const data = await response.json() as { candidates: { content: { parts: { text: string }[] } }[] };
         const text = data.candidates[0].content.parts[0].text;
         return JSON.parse(text);
     } catch (e) {
@@ -89,7 +104,13 @@ async function runFullAudit() {
 
     let deletedCount = 0;
     let verifiedCount = 0;
-    const report: any[] = [];
+    interface ReportItem {
+        title: string;
+        status: 'VERIFIED' | 'DELETED';
+        reason?: string;
+    }
+
+    const report: ReportItem[] = [];
 
     // Process in batches
     for (let i = 0; i < problems.length; i += BATCH_SIZE) {

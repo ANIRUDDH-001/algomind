@@ -14,7 +14,7 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
     if (!allVoices || allVoices.length === 0) return [];
 
     // 1. Filter for target languages
-    let filtered = allVoices.filter(v =>
+    const filtered = allVoices.filter(v =>
         TARGET_LOCALES.includes(v.lang) ||
         v.lang.startsWith('en') ||
         v.lang.startsWith('hi') // Hindi

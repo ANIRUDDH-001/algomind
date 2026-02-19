@@ -17,6 +17,24 @@ export function IntroTour() {
     const [isMounted, setIsMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
+    const updateTargetRect = React.useCallback(() => {
+        if (!currentStep || currentStep.type === 'modal' || !currentStep.target) {
+            setTargetRect(null);
+            return;
+        }
+
+        // Try to find the element
+        const el = document.querySelector(currentStep.target);
+        if (el) {
+            setTargetRect(el.getBoundingClientRect());
+            // Ensure element is in view
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        } else {
+            // Check if we should wait for it (retry handled by effect below)
+            setTargetRect(null);
+        }
+    }, [currentStep]);
+
     useEffect(() => {
         setIsMounted(true);
         setIsMobile(isMobileDevice());
@@ -33,25 +51,7 @@ export function IntroTour() {
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('scroll', updateTargetRect, true);
         };
-    }, []);
-
-    const updateTargetRect = () => {
-        if (!currentStep || currentStep.type === 'modal' || !currentStep.target) {
-            setTargetRect(null);
-            return;
-        }
-
-        // Try to find the element
-        const el = document.querySelector(currentStep.target);
-        if (el) {
-            setTargetRect(el.getBoundingClientRect());
-            // Ensure element is in view
-            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        } else {
-            // Check if we should wait for it (retry handled by effect below)
-            setTargetRect(null);
-        }
-    };
+    }, [updateTargetRect]);
 
     // Smart Polling & Resize Logic
     useEffect(() => {
