@@ -18,11 +18,11 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models
 
 // Models configuration - ONLY HIGH TIER (2026 Standards)
 const GROQ_MODELS = [
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "openai/gpt-oss-120b",
-    "moonshotai/kimi-k2-instruct-0905",
-    "llama-3.3-70b-versatile"
+    { id: "meta-llama/llama-4-maverick-17b-128e-instruct", jsonMode: false },
+    { id: "meta-llama/llama-4-scout-17b-16e-instruct", jsonMode: false },
+    { id: "openai/gpt-oss-120b", jsonMode: true },
+    { id: "moonshotai/kimi-k2-instruct-0905", jsonMode: false },
+    { id: "llama-3.3-70b-versatile", jsonMode: true }
 ];
 
 const GEMINI_MODELS = [
@@ -33,9 +33,16 @@ const GEMINI_MODELS = [
     "gemini-3-pro-preview"
 ];
 
+// Scaling Config
+const BATCH_SIZE = 10;
+const CONCURRENCY = 3; // Number of parallel batch processes
+
 // Tracking model status
 const modelStatus: Record<string, { exhausted: boolean; failed: boolean; reason?: string }> = {};
-[...GROQ_MODELS, ...GEMINI_MODELS].forEach(m => {
+GROQ_MODELS.forEach(m => {
+    modelStatus[m.id] = { exhausted: false, failed: false };
+});
+GEMINI_MODELS.forEach(m => {
     modelStatus[m] = { exhausted: false, failed: false };
 });
 
@@ -120,8 +127,9 @@ Return ONLY a JSON array of objects in this exact order:
                 const results = JSON.parse(text);
                 return { results, success: true };
             } catch (jsonErr) {
-                console.warn(`⚠️ JSON Parse Error with ${currentModel}. Retrying with next model...`);
-                // Don't exhaust model on parsing error, just skip for this batch
+                console.warn(`⚠️ JSON Parse Error with ${currentModel}. Marking as failed for this session...`);
+                modelStatus[currentModel].failed = true;
+                modelStatus[currentModel].reason = "JSON Parse Error";
                 modelIndex++;
                 continue;
             }
@@ -137,7 +145,9 @@ async function generateProblemsBatchWithFallback(existingTitles: Set<string>, co
     let modelIndex = startModelIndex;
 
     while (modelIndex < GROQ_MODELS.length) {
-        const currentModel = GROQ_MODELS[modelIndex];
+        const currentModelConfig = GROQ_MODELS[modelIndex];
+        const currentModel = currentModelConfig.id;
+
         if (modelStatus[currentModel].exhausted || modelStatus[currentModel].failed) {
             modelIndex++;
             continue;
@@ -156,41 +166,45 @@ DO NOT generate any of the following problems:
 ${Array.from(existingTitles).slice(0, 50).join(', ')}
 
 STRICT QUALITY GUIDELINES (To avoid rejection):
-1. TITLES: Must be specific and descriptive (e.g., "Koko Eating Bananas" NOT "Binary Search"). Avoid generic textbook names.
-2. DESCRIPTION: Must be 4-6 sentences, unambiguous, and explain the scenario clearly.
-3. CONSTRAINTS: MANDATORY and precise (e.g., 1 <= n <= 10^5). DO NOT OMIT.
+1. TITLES: Must be specific and descriptive (e.g., "Koko Eating Bananas" NOT "Binary Search"). 
+2. DESCRIPTION: Must be 4-6 sentences, unambiguous. Explain why it is a classic problem.
+3. CONSTRAINTS: MANDATORY and precise (e.g., 1 <= n <= 10^5).
 4. EXAMPLES: Must be logically correct with clear step-by-step explanations.
-5. NO HALLUCINATIONS: Ensure the problem logic is sound and solvable.
-6. **MANDATORY TAGS**: You MUST include the source list name as a tag (e.g., "Blind 75", "NeetCode 150", "Striver A-Z", "Grind 75").
+5. **MANDATORY TAGS**: You MUST include the source list name as a tag (e.g., "Blind 75").
 
 Format each problem as a JSON object within a JSON array. 
 Schema:
 {
   "id": "kebab-case-id",
-  "title": "Problem Title", // Descriptive title
+  "title": "Problem Title", 
   "difficulty": "easy" | "medium" | "hard",
-  "description": "DETAILED 4-6 sentence multi-paragraph description. Explain objective, input, and logic with a narrative. Include 'Constraints:' section at the end.",
-  "tags": ["Blind 75", "Array", "Two Pointers"], // MUST include Source List Name
-  "hints": ["Hint 1", "Hint 2", "Hint 3"],
-  "examples": [{ "input": "...", "output": "...", "explanation": "Detailed step-by-step logic." }],
+  "description": "...",
+  "tags": ["Blind 75", ...],
+  "hints": ["..."],
+  "examples": [{ "input": "...", "output": "...", "explanation": "..." }],
   "external_url": "https://leetcode.com/problems/..."
 }
 
-CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If description < 200 chars or constraints missing, it will be rejected.`;
+CRITICAL: Return ONLY the JSON array. Skip conversation.`;
 
         try {
+            const body: any = {
+                model: currentModel,
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.8
+            };
+
+            if (currentModelConfig.jsonMode) {
+                body.response_format = { type: "json_object" };
+            }
+
             const response = await fetch(GROQ_URL, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${groqApiKey}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: currentModel,
-                    messages: [{ role: "user", content: prompt }],
-                    temperature: 0.8,
-                    response_format: { type: "json_object" }
-                })
+                body: JSON.stringify(body)
             });
 
             if (response.status === 429) {
@@ -203,38 +217,11 @@ CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If 
 
             if (!response.ok) {
                 const err = await response.text();
-                console.error(`Groq Error (${response.status}): ${err}`);
-
-                // Handle JSON validation failure (common with some models in strict mode)
+                // Handle JSON validation failure (for those we still tried with jsonMode: true)
                 if (response.status === 400 && err.includes("json_validate_failed")) {
-                    console.warn(`⚠️ JSON Mode failed for ${currentModel}. Retrying without strict JSON mode...`);
-                    try {
-                        const retryResponse = await fetch(GROQ_URL, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${groqApiKey}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                model: currentModel,
-                                messages: [{ role: "user", content: prompt }],
-                                temperature: 0.8
-                                // Removed response_format
-                            })
-                        });
-
-                        if (retryResponse.ok) {
-                            const data: any = await retryResponse.json();
-                            let content = data.choices[0].message.content;
-                            // Cleanup markdown if present
-                            content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
-                            const parsed = JSON.parse(content);
-                            const batch = Array.isArray(parsed) ? parsed : (parsed.problems || parsed.results || []);
-                            return { batch, lastModelIndex: modelIndex };
-                        }
-                    } catch (retryErr) {
-                        console.error("Retry failed:", retryErr);
-                    }
+                    console.warn(`⚠️ JSON Mode failed for ${currentModel}. Disabling for this session...`);
+                    currentModelConfig.jsonMode = false;
+                    continue; // Retry same model without jsonMode
                 }
 
                 if (err.includes("not_found") || err.includes("decommissioned") || err.includes("unknown_model")) {
@@ -246,11 +233,24 @@ CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If 
             }
 
             const data: any = await response.json();
-            const content = data.choices[0].message.content;
-            const parsed = JSON.parse(content);
-            const batch = Array.isArray(parsed) ? parsed : (parsed.problems || parsed.results || []);
+            let content = data.choices[0].message.content.trim();
 
-            return { batch, lastModelIndex: modelIndex };
+            // Cleanup markdown if present (common when jsonMode is false)
+            if (content.startsWith("```")) {
+                content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+            }
+
+            try {
+                const parsed = JSON.parse(content);
+                const batch = Array.isArray(parsed) ? parsed : (parsed.problems || parsed.results || []);
+                return { batch, lastModelIndex: modelIndex };
+            } catch (jsonErr) {
+                console.warn(`⚠️ JSON Parse Error with ${currentModel}. Marking as failed for this session...`);
+                modelStatus[currentModel].failed = true;
+                modelStatus[currentModel].reason = "JSON Parse Error";
+                modelIndex++;
+                continue;
+            }
         } catch (e) {
             console.error(`Generation failed with ${currentModel}:`, e instanceof Error ? e.message : e);
             modelIndex++;
@@ -290,75 +290,70 @@ async function main() {
         const currentDbCount = existingTitles.size + totalAdded;
         const slotsLeft = TARGET_TOTAL - currentDbCount;
 
-        console.log(`\n--- Batch Start (Progress: ${currentDbCount}/${TARGET_TOTAL} | Needed: ${slotsLeft}) ---`);
+        console.log(`\n--- Parallel Batch Processing (Progress: ${currentDbCount}/${TARGET_TOTAL} | Needed: ${slotsLeft}) ---`);
 
         // Rate Limit Buffer
         if (totalAdded > 0) {
-            console.log("Sleeping 20s for rate-limit buffer...");
-            await new Promise(r => setTimeout(r, 20000));
+            console.log("Sleeping 10s for rate-limit buffer...");
+            await new Promise(r => setTimeout(r, 10000));
         }
 
-        // 1. Generate Batch (Ask for 5 at a time to be safe)
-        const batchSize = Math.min(5, slotsLeft);
-        const { batch, lastModelIndex: nextGroqIndex } = await generateProblemsBatchWithFallback(existingTitles, batchSize, currentGroqIndex);
-        currentGroqIndex = nextGroqIndex;
+        // Reset Groq Index to try all available models in each batch cycle
+        currentGroqIndex = 0;
 
-        if (batch.length === 0) {
-            if (currentGroqIndex >= GROQ_MODELS.length) {
-                console.error("🛑 All Groq models exhausted. Session stopped.");
-                break;
-            }
-            continue;
-        }
+        // Define a function for a single batch processing unit
+        const processBatch = async () => {
+            const batchSize = BATCH_SIZE;
+            const { batch, lastModelIndex: nextGroqIndex } = await generateProblemsBatchWithFallback(existingTitles, batchSize, currentGroqIndex);
+            currentGroqIndex = nextGroqIndex;
 
-        // 2. Filter Unique
-        const uniqueBatch = batch.filter((p: any) => !existingTitles.has(p.title));
+            if (batch.length === 0) return 0;
 
-        if (uniqueBatch.length > 0) {
+            // 2. Filter Unique
+            const uniqueBatch = batch.filter((p: any) => !existingTitles.has(p.title));
+            if (uniqueBatch.length === 0) return 0;
+
             // 3. Verify Batch
-            // Simplified: Verification now auto-selects the best model every time.
             const { results: verificationResults, success } = await verifyProblemsBatchWithFallback(uniqueBatch);
-
-            if (!success || verificationResults.length === 0) {
-                // If it failed and returned success=false, it means ALL models are exhausted/failed.
-                // We should check if we should abort or just continue with next batch of generation.
-                // If all verifiers are dead, we MUST stop.
-                const allVerifiersDead = GEMINI_MODELS.every(m => modelStatus[m].exhausted || modelStatus[m].failed);
-                if (allVerifiersDead) {
-                    console.error("🛑 All Gemini verifiers exhausted/failed. Session stopped.");
-                    break;
-                }
-                continue;
-            }
+            if (!success || verificationResults.length === 0) return 0;
 
             // 4. Ingest Verified
-            // 4. Ingest Verified
+            let addedInThisBatch = 0;
             for (const item of verificationResults) {
                 if (item.valid) {
                     const finalProblem = item.sanitized_problem || uniqueBatch.find((p: any) => p.title === item.title);
-
-                    if (!finalProblem) continue;
-
-                    // Final check for duplicates before insert (race condition safety)
-                    if (existingTitles.has(finalProblem.title)) {
-                        console.log(`⚠️ Skip Duplicate (Race): ${finalProblem.title}`);
-                        continue;
-                    }
+                    if (!finalProblem || existingTitles.has(finalProblem.title)) continue;
 
                     const { error } = await supabase.from('problems').upsert([finalProblem]);
-
-                    if (error) {
-                        console.error(`❌ DB Insert Error: ${error.message}`);
-                    } else {
+                    if (!error) {
                         console.log(`✅ Admitted & Inserted: ${finalProblem.title}`);
                         existingTitles.add(finalProblem.title);
                         totalAdded++;
+                        addedInThisBatch++;
                         report.push(finalProblem.title);
                     }
                 } else {
                     console.log(`🚫 Rejected ${item.title}: ${item.reason}`);
                 }
             }
+            return addedInThisBatch;
+        };
+
+        // Run batches in parallel
+        const parallelPromises = [];
+        for (let i = 0; i < CONCURRENCY; i++) {
+            if ((existingTitles.size + totalAdded) >= TARGET_TOTAL) break;
+            parallelPromises.push(processBatch());
+        }
+
+        await Promise.all(parallelPromises);
+
+        const allGroqDead = GROQ_MODELS.every(m => modelStatus[m.id].exhausted || modelStatus[m.id].failed);
+        const allGeminiDead = GEMINI_MODELS.every(m => modelStatus[m].exhausted || modelStatus[m].failed);
+
+        if (allGroqDead || allGeminiDead) {
+            console.error(`🛑 API Exhaustion: Groq(${allGroqDead}) Gemini(${allGeminiDead}). Stopping session.`);
+            break;
         }
     }
 

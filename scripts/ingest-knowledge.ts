@@ -6,6 +6,7 @@ import path from 'path';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
 
 // Load environment variables from .env.local
 const envPath = path.resolve(__dirname, '..', '.env.local');
@@ -20,13 +21,18 @@ if (fs.existsSync(envPath)) {
 const RAW_DIR = path.join(__dirname, '..', 'src', 'data', 'dsa-knowledge', 'raw');
 const OUTPUT_DIR = path.join(__dirname, '..', 'src', 'data', 'dsa-knowledge', 'embeddings');
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 console.log('Configured API Key:', GEMINI_API_KEY ? `${GEMINI_API_KEY.substring(0, 8)}...` : 'NOT SET');
 
 if (!GEMINI_API_KEY || GEMINI_API_KEY.startsWith('your_')) {
     console.error('❌ GEMINI_API_KEY is not set or is still using the placeholder in .env.local');
-    console.error('Please open .env.local and paste your valid API key (starting with AIza...).');
     process.exit(1);
+}
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️  Supabase credentials not found. DB ingestion will be skipped.');
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -44,6 +50,7 @@ interface KnowledgeChunk {
     patterns: string[];
     timeComplexity?: string;
     spaceComplexity?: string;
+    source?: 'file' | 'db';
 }
 
 interface EmbeddedChunk extends KnowledgeChunk {
@@ -99,6 +106,7 @@ function chunkText(text: string, title: string, topic: string): KnowledgeChunk[]
             patterns,
             timeComplexity: lower.match(/O\([^)]+\)/)?.[0],
             spaceComplexity: lower.match(/space\s+complexity[:\s]+(O\([^)]+\))/i)?.[1],
+            source: 'file'
         });
     }
     return chunks;
@@ -116,45 +124,99 @@ async function getEmbedding(text: string): Promise<number[]> {
 
 // --- Main ---
 async function main() {
-    console.log('🚀 Starting Knowledge Ingestion (Standalone Mode)...');
-
-    if (!fs.existsSync(RAW_DIR)) {
-        console.error(`Raw directory not found: ${RAW_DIR}`);
-        process.exit(1);
-    }
-
-    const files = fs.readdirSync(RAW_DIR).filter(f => f.endsWith('.md'));
-    console.log(`Found ${files.length} markdown files.`);
+    console.log('🚀 Starting Knowledge Ingestion (Hybrid: Files + DB)...');
 
     const embeddedChunks: EmbeddedChunk[] = [];
     let totalProcessed = 0;
 
-    for (const file of files) {
-        console.log(`Processing ${file}...`);
-        const content = fs.readFileSync(path.join(RAW_DIR, file), 'utf-8');
-        const topic = file.replace('.md', '').toUpperCase(); // Use filename as topic
-        const titleLine = content.split('\n')[0].replace('# ', ''); // First line as main title
+    // 1. Process Local Files
+    if (fs.existsSync(RAW_DIR)) {
+        const files = fs.readdirSync(RAW_DIR).filter(f => f.endsWith('.md'));
+        console.log(`\n📂 Found ${files.length} local markdown files.`);
 
-        const chunks = chunkText(content, titleLine, topic);
-        console.log(`=> Found ${chunks.length} chunks. Generating embeddings...`);
+        for (const file of files) {
+            console.log(`Processing file: ${file}...`);
+            const content = fs.readFileSync(path.join(RAW_DIR, file), 'utf-8');
+            const topic = file.replace('.md', '').toUpperCase(); // Use filename as topic
+            const titleLine = content.split('\n')[0].replace('# ', ''); // First line as main title
 
-        for (const chunk of chunks) {
-            process.stdout.write('.');
-            try {
-                const embedding = await getEmbedding(chunk.content);
-                embeddedChunks.push({
-                    ...chunk,
-                    embedding,
-                    embeddingModel: 'text-embedding-004'
-                });
-                // Rate limit pause just in case
-                await new Promise(r => setTimeout(r, 500));
-            } catch (e) {
-                process.stdout.write('X');
+            const chunks = chunkText(content, titleLine, topic);
+
+            for (const chunk of chunks) {
+                process.stdout.write('.');
+                try {
+                    const embedding = await getEmbedding(chunk.content);
+                    embeddedChunks.push({
+                        ...chunk,
+                        embedding,
+                        embeddingModel: 'text-embedding-004'
+                    });
+                    await new Promise(r => setTimeout(r, 500)); // Rate limit
+                } catch (e) {
+                    process.stdout.write('X');
+                }
             }
+            console.log(' Done.');
+            totalProcessed += chunks.length;
         }
-        console.log(' Done.');
-        totalProcessed += chunks.length;
+    } else {
+        console.warn(`Raw directory not found: ${RAW_DIR}`);
+    }
+
+    // 2. Process Supabase DB Records
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        console.log(`\n🗄️  Connecting to Supabase...`);
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+        const { data: dbChunks, error } = await supabase
+            .from('knowledge_chunks') // Query legacy table or dsa_knowledge? Script logic says knowledge_chunks per admin page
+            .select('*')
+            .eq('status', 'active');
+
+        if (error) {
+            console.error('❌ Failed to fetch from Supabase:', error.message);
+        } else if (dbChunks && dbChunks.length > 0) {
+            console.log(`Found ${dbChunks.length} active chunks in DB.`);
+
+            for (const item of dbChunks) {
+                process.stdout.write('+');
+
+                // If ID collisions are a concern, handle appropriately. DB IDs are UUIDs, File IDs are MD5s.
+                // Assuming no collisions for now.
+
+                // Check if we need to generate embedding (if stored in DB, we could reuse, but for now re-gen to be safe)
+                // Optionally update DB with embedding if missing?
+
+                try {
+                    const embedding = await getEmbedding(item.content);
+
+                    embeddedChunks.push({
+                        id: item.id,
+                        topic: item.topic.toUpperCase(),
+                        subtopic: item.subtopic,
+                        title: `${item.topic}: ${item.subtopic}`,
+                        content: item.content,
+                        keywords: item.keywords || extractKeywords(item.content),
+                        difficulty: item.difficulty || 'medium',
+                        patterns: [], // DB doesn't have patterns col yet usually
+                        source: 'db',
+                        embedding,
+                        embeddingModel: 'text-embedding-004'
+                    });
+
+                    // Optional: Update DB with embedding if you want to support pgvector later
+                    // await supabase.from('knowledge_chunks').update({ embedding }).eq('id', item.id);
+
+                    await new Promise(r => setTimeout(r, 500));
+                } catch (e) {
+                    process.stdout.write('X');
+                }
+            }
+            console.log(' Done.');
+            totalProcessed += dbChunks.length;
+        } else {
+            console.log('No active chunks found in DB.');
+        }
     }
 
     // Save to disk
@@ -166,7 +228,7 @@ async function main() {
     fs.writeFileSync(outputPath, JSON.stringify(embeddedChunks, null, 2));
 
     console.log('\n✨ Ingestion Complete!');
-    console.log(`Total Chunks: ${embeddedChunks.length}/${totalProcessed}`);
+    console.log(`Total Chunks: ${embeddedChunks.length}`);
     console.log(`Saved to ${outputPath}`);
 }
 
