@@ -27,10 +27,10 @@ const GROQ_MODELS = [
 
 const GEMINI_MODELS = [
     "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "gemma-3-27b-it", // Prioritized fall-back per user request
     "gemini-2.0-flash",
-    "gemini-3-pro-preview",
-    "gemma-3-27b-it"
+    "gemini-2.5-pro",
+    "gemini-3-pro-preview"
 ];
 
 // Tracking model status
@@ -51,16 +51,22 @@ async function verifyProblemsBatchWithFallback(problems: any[], startModelIndex:
 
         console.log(`🔍 Verifying ${problems.length} problems with ${currentModel}...`);
 
-        const prompt = `You are a Senior Software Engineer and DSA expert. 
-Review the following DSA problems for logical correctness, completeness, and clarity.
-Standard: Must have a clear description, correct constraints, relevant examples with explanations, and helpful hints.
+        const prompt = `You are a Lead Tech Interviewer and Algo Expert. 
+Review the following DSA problems for absolute logical correctness, completeness, and clarity.
+Standard: Must have a detailed 4-6 sentence description, correct constraints (e.g., n <= 10^5), relevant examples with step-by-step explanations, and high-quality hints.
+
+CRITICAL: REJECT any problem that has:
+- Misleading or ambiguous descriptions
+- Incorrect example outputs
+- Weak or missing constraints
+- Generic or textbook titles (e.g. "Binary Search")
 
 Problems:
 ${problems.map((p, i) => `--- PROBLEM ${i + 1} ---\n${JSON.stringify(p, null, 2)}`).join('\n\n')}
 
 Return ONLY a JSON array of objects in this exact order:
 [
-  { "title": "...", "valid": boolean, "reason": "Explanation", "sanitized_problem": { ... } },
+  { "title": "...", "valid": boolean, "reason": "Explanation if rejected", "sanitized_problem": { ... } },
   ...
 ]`;
 
@@ -117,7 +123,13 @@ async function generateProblemsBatchWithFallback(existingTitles: Set<string>, co
 
         console.log(`🚀 Attempting generation with ${currentModel}...`);
 
-        const prompt = `Generate ${count} unique, high-quality Data Structures and Algorithms problems.
+        const prompt = `Generate ${count} distinct, high-quality DSA problems specifically from these curated lists: 
+- Blind 75
+- NeetCode 150
+- Striver's A-Z DSA Sheet
+- Grind 75
+
+Ensure a balanced mix of Easy, Medium, and Hard difficulties.
 DO NOT generate any of the following problems:
 ${Array.from(existingTitles).slice(0, 50).join(', ')}
 
@@ -185,11 +197,11 @@ CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If 
 }
 
 async function main() {
-    console.log('--- Resuming Large-Scale Orchestrated Generation (Target: 250) ---');
+    console.log('--- Expanding Problem Bank (Target: 250 NEW Problems from Curated Lists) ---');
 
     const { data: existing } = await supabase.from('problems').select('title');
     const existingTitles = new Set(existing?.map(p => p.title) || []);
-    console.log(`Baseline: ${existingTitles.size} existing problems.`);
+    console.log(`Baseline: ${existingTitles.size} existing problems. Goal: Reach ~${existingTitles.size + 250} total.`);
 
     const totalToGenerate = 250;
     let totalAdded = 0;

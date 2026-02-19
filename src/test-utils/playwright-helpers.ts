@@ -146,6 +146,29 @@ export async function waitForInterviewReady(page: Page) {
     }
 }
 
+// NEW: Helper to dismiss the onboarding modal if it appears
+export async function dismissOnboardingModal(page: Page) {
+    try {
+        // Look for the modal header
+        const modalHeader = page.getByRole('heading', { name: "Welcome to Voice Interviews!" });
+
+        // Wait up to 5000ms for it to appear
+        await modalHeader.waitFor({ state: 'visible', timeout: 5000 });
+        console.log('[Test] Onboarding modal found. Dismissing...');
+
+        // Click the "Got it, let's start!" button
+        const startButton = page.getByRole('button', { name: "Got it, let's start!" });
+        await startButton.click();
+
+        // Wait for modal to disappear
+        await modalHeader.waitFor({ state: 'hidden', timeout: 5000 });
+        console.log('[Test] Onboarding modal dismissed.');
+    } catch (e) {
+        // If timeout or not found, just continue (it might not be there)
+        console.log('[Test] Onboarding modal not found or already dismissed. Continuing...');
+    }
+}
+
 // Mock API responses for testing
 // ---------------------------------------------------------------------------
 // Mock Helpers
