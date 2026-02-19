@@ -9,6 +9,35 @@ interface VoiceInputOptions {
     onError?: (error: string) => void;
 }
 
+// Web Speech API Types (to avoid 'any')
+interface SpeechRecognitionEvent extends Event {
+    resultIndex: number;
+    results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+    message: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    grammars: SpeechGrammarList;
+    onstart: (event: Event) => void;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: SpeechRecognitionErrorEvent) => void;
+    onend: (event: Event) => void;
+    start(): void;
+    stop(): void;
+    abort(): void;
+}
+
+interface SpeechGrammarList {
+    addFromString(grammar: string, weight?: number): void;
+}
+
 export function useVoiceInput(options: VoiceInputOptions = {}) {
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
@@ -17,7 +46,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
     const [isSupported, setIsSupported] = useState(true);
     const [lastResultTime, setLastResultTime] = useState<number>(0);
 
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const shouldListenRef = useRef(false);
     const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -29,12 +58,22 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         onError
     } = options;
 
+    const onTranscriptRef = useRef(onTranscript);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onTranscriptRef.current = onTranscript;
+        onErrorRef.current = onError;
+    }, [onTranscript, onError]);
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                setIsSupported(false);
-                setError('Browser not supported. Please use Chrome, Edge, or Safari.');
+                setTimeout(() => {
+                    setIsSupported(false);
+                    setError('Browser not supported. Please use Chrome, Edge, or Safari.');
+                }, 0);
             }
         }
 
@@ -48,6 +87,18 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         };
     }, []);
 
+    const stopListening = useCallback(() => {
+        shouldListenRef.current = false;
+        if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+
+        if (recognitionRef.current) {
+            try {
+                recognitionRef.current.stop();
+            } catch { } // Ignore errors
+        }
+        setIsListening(false);
+    }, []);
+
     const startListening = useCallback(() => {
         if (!isSupported) return;
         if (isListening) return; // Prevent double start
@@ -55,7 +106,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         try {
             // Stop existing if any
             if (recognitionRef.current) {
-                try { recognitionRef.current.stop(); } catch (e) { }
+                try { recognitionRef.current.stop(); } catch { }
             }
 
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -74,7 +125,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                     const grammar = '#JSGF V1.0; grammar dsa; public <dsa> = ' + DSA_VOCABULARY.join(' | ') + ' ;';
                     speechRecognitionList.addFromString(grammar, 1);
                     recognition.grammars = speechRecognitionList;
-                } catch (e) {
+                } catch {
                     // Ignore grammar errors
                 }
             }
@@ -92,23 +143,24 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 }, 60000);
             };
 
-            recognition.onresult = (event: any) => {
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
                 let finalTrans = '';
                 let interimTrans = '';
                 setLastResultTime(Date.now());
 
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTrans += event.results[i][0].transcript;
+                const results = event.results as unknown as SpeechRecognitionResultList;
+                for (let i = event.resultIndex; i < results.length; ++i) {
+                    if (results[i].isFinal) {
+                        finalTrans += results[i][0].transcript;
                     } else {
-                        interimTrans += event.results[i][0].transcript;
+                        interimTrans += results[i][0].transcript;
                     }
                 }
 
                 if (finalTrans) {
                     setTranscript(prev => {
                         const newTranscript = prev ? `${prev} ${finalTrans}` : finalTrans;
-                        if (onTranscript) onTranscript(newTranscript, true);
+                        if (onTranscriptRef.current) onTranscriptRef.current(newTranscript, true);
                         return newTranscript;
                     });
                     setInterimTranscript('');
@@ -116,11 +168,11 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
                 if (interimTrans) {
                     setInterimTranscript(interimTrans);
-                    if (onTranscript) onTranscript(interimTrans, false);
+                    if (onTranscriptRef.current) onTranscriptRef.current(interimTrans, false);
                 }
             };
 
-            recognition.onerror = (event: any) => {
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
                 if (event.error === 'no-speech') return;
 
                 let errorMessage = `Error: ${event.error}`;
@@ -137,7 +189,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 }
 
                 setError(errorMessage);
-                if (onError) onError(errorMessage);
+                if (onErrorRef.current) onErrorRef.current(errorMessage);
                 setIsListening(false);
             };
 
@@ -154,24 +206,12 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
             recognition.start();
             shouldListenRef.current = true;
-        } catch (e) {
+        } catch {
             setError('Failed to start microphone.');
             setIsListening(false);
         }
-    }, [isSupported, language, continuous, interimResults, onTranscript, onError, isListening]);
+    }, [isSupported, language, continuous, interimResults, isListening, stopListening]);
 
-    const stopListening = useCallback(() => {
-        shouldListenRef.current = false;
-        if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
-
-        if (recognitionRef.current) {
-            try {
-                recognitionRef.current.stop();
-            } catch (e) { }
-            // Don't null it immediately, let onend handle state cleanup
-        }
-        setIsListening(false);
-    }, []);
 
     const resetTranscript = useCallback(() => {
         setTranscript('');
@@ -188,7 +228,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             shouldListenRef.current = false;
             if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
             if (recognitionRef.current) {
-                try { recognitionRef.current.abort(); } catch (e) { }
+                try { recognitionRef.current.abort(); } catch { }
             }
             setIsListening(false);
             setTranscript('');

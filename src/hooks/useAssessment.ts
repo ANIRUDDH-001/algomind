@@ -25,8 +25,8 @@ export function useAssessment() {
             const assessment = await analyzer.analyze(sessionId, problem, transcript);
             setResult(assessment);
             return assessment;
-        } catch (err: any) {
-            const msg = err.message || "Failed to analyze interview.";
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Failed to analyze interview.";
             setError(msg);
             return null;
         } finally {

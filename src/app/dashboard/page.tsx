@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useProgress } from '@/hooks/useProgress';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -29,8 +29,8 @@ function DashboardContent() {
     const { progress, isLoading, error } = useProgress();
 
     // Initialize tab from URL or default to overview
-    const initialTab = (searchParams.get('tab') as any) || 'overview';
-    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>(initialTab);
+    const initialTab = (searchParams.get('tab') as string) || 'overview';
+    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>(initialTab as any);
     const [showPrevious, setShowPrevious] = useState(false);
 
     // Handler for clicking on a session in history or timeline
@@ -41,51 +41,29 @@ function DashboardContent() {
 
     // State for asynchronous recommendations
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-    const [isRecLoading, setIsRecLoading] = useState(false);
-
     useEffect(() => {
         async function fetchRecommendations() {
             if (!progress) return;
-            setIsRecLoading(true);
             try {
                 const results = await new RecommendationEngine().analyze(progress);
                 setRecommendations(results);
             } catch (err) {
                 console.error('Failed to fetch recommendations:', err);
-            } finally {
-                setIsRecLoading(false);
             }
         }
         fetchRecommendations();
     }, [progress]);
-
     // Sync tab state with URL parameters
     useEffect(() => {
         const tabParam = searchParams.get('tab');
         if (tabParam && ['overview', 'skills', 'history', 'insights'].includes(tabParam)) {
-            setActiveTab(tabParam as any);
+            setActiveTab(tabParam as 'overview' | 'skills' | 'history' | 'insights');
         }
     }, [searchParams]);
 
-    if (error) {
-        return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
-                <div className="max-w-md space-y-4">
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                        <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
-                        <p className="text-slate-500 text-sm mt-2">{error}</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const latestSession = progress?.sessions[0];
-    const previousSession = progress?.sessions[1];
-
     // Update URL when tab changes
     const handleTabChange = (tab: string) => {
-        setActiveTab(tab as any);
+        setActiveTab(tab as 'overview' | 'skills' | 'history' | 'insights');
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
         window.history.pushState({}, '', url.toString());
@@ -108,6 +86,23 @@ function DashboardContent() {
         },
         trackMouse: false
     });
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+                <div className="max-w-md space-y-4">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                        <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
+                        <p className="text-slate-500 text-sm mt-2">{error}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const latestSession = progress?.sessions[0];
+    const previousSession = progress?.sessions[1];
+
 
     return (
         <div {...handlers} className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
@@ -179,7 +174,7 @@ function DashboardContent() {
                                 {Object.keys(SKILL_DEFINITIONS).map((skillId) => (
                                     <SkillTrendCard
                                         key={skillId}
-                                        skill={skillId as any}
+                                        skill={skillId as any} // keep any for skillId as it's a key in SKILL_DEFINITIONS
                                         sessions={progress?.sessions || []}
                                     />
                                 ))}

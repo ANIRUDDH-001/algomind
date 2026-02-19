@@ -30,7 +30,16 @@ export interface Message {
 
 const AUTO_SUBMIT_DELAY = 2500; // 2.5 seconds of silence = done speaking
 
-export function useInterview(options: { vadEnabled?: boolean } = {}) {
+interface ProblemContext {
+    title: string;
+    content: string;
+    ragContext?: string;
+}
+
+export function useInterview(options: {
+    vadEnabled?: boolean;
+    onUserMessage?: (msg: Message, messageCount: number) => void;
+} = {}) {
     // State
     const [messages, setMessages] = useState<Message[]>([]);
     const [state, setState] = useState<InterviewState>('idle');
@@ -38,7 +47,7 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
     const [autoSubmitEnabled, setAutoSubmitEnabled] = useState(true);
 
     // Problem Context helper ref
-    const currentProblemRef = useRef<any>(null);
+    const currentProblemRef = useRef<ProblemContext | null>(null);
 
     // Logic Refs
     const stateMachine = useRef(new InterviewStateMachine());
@@ -66,41 +75,41 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
         resume: resumeSpeaking,
         stop: stopSpeaking,
         isSpeaking,
-        isPaused
     } = useVoiceOutput(voiceOutputOptions);
 
-    // Helper to call API with Retry Logic
-    const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, backoff = 1000): Promise<any> => {
-        try {
-            const response = await fetch(url, options);
+    const fetchWithRetry = useCallback(async (url: string, fetchOptions: RequestInit, retries = 3, backoff = 1000): Promise<{ response: string } | any> => {
+        const runFetch = async (currentRetries: number, currentBackoff: number): Promise<any> => {
+            try {
+                const response = await fetch(url, fetchOptions);
 
-            // Retry on 429 (Too Many Requests) or 5xx (Server Errors)
-            if (response.status === 429 || response.status >= 500) {
-                if (retries > 0) {
-                    console.log(`[Retry] Request failed with ${response.status}. Retrying in ${backoff}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, backoff));
-                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                if (response.status === 429 || response.status >= 500) {
+                    if (currentRetries > 0) {
+                        console.log(`[Retry] Request failed with ${response.status}. Retrying in ${currentBackoff}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, currentBackoff));
+                        return runFetch(currentRetries - 1, currentBackoff * 2);
+                    }
                 }
-            }
 
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({ error: 'Failed to fetch chat response' }));
-                throw new Error(err.error || `Request failed with status ${response.status}`);
-            }
+                if (!response.ok) {
+                    const err = (await response.json().catch(() => ({ error: 'Failed to fetch chat response' }))) as { error?: string };
+                    throw new Error(err.error || `Request failed with status ${response.status}`);
+                }
 
-            return await response.json();
-        } catch (error) {
-            // Retry on Network Errors (fetch throws)
-            if (retries > 0) {
-                console.log(`[Retry] Network error. Retrying in ${backoff}ms...`, error);
-                await new Promise(resolve => setTimeout(resolve, backoff));
-                return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                return await response.json();
+            } catch (error) {
+                if (currentRetries > 0) {
+                    console.log(`[Retry] Network error. Retrying in ${currentBackoff}ms...`, error);
+                    await new Promise(resolve => setTimeout(resolve, currentBackoff));
+                    return runFetch(currentRetries - 1, currentBackoff * 2);
+                }
+                throw error;
             }
-            throw error;
-        }
-    };
+        };
 
-    const callChatApi = async (prompt: string, systemPrompt: string, problemContext: any) => {
+        return runFetch(retries, backoff);
+    }, []);
+
+    const callChatApi = useCallback(async (prompt: string, systemPrompt: string, problemContext: ProblemContext) => {
         try {
             const data = await fetchWithRetry('/api/chat', {
                 method: 'POST',
@@ -122,73 +131,14 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
             console.error('API Call Failed:', error);
             throw error;
         }
-    };
+    }, [fetchWithRetry]);
 
-    const addMessage = (msg: Message) => {
+    const addMessage = useCallback((msg: Message) => {
         setMessages(prev => [...prev, msg]);
         conversationHistoryRef.current.push(msg);
-    };
+    }, []);
 
-    // Mic Intent State
-    const [isMicEnabled, setIsMicEnabled] = useState(false);
-
-    // Initial Start: Enable Mic
-    // (Optional: If you want it to start automatically when interview starts)
-
-    // Auto-Submit Logic
-    useEffect(() => {
-        if (!autoSubmitEnabled || !isListening || !transcript || isProcessing) return;
-
-        const timeSinceLastResult = Date.now() - lastResultTime;
-        if (timeSinceLastResult >= AUTO_SUBMIT_DELAY) {
-            submitUserResponse(transcript, currentProblemRef.current);
-        } else {
-            const timer = setTimeout(() => {
-                if (isListening && transcript) {
-                    submitUserResponse(transcript, currentProblemRef.current);
-                }
-            }, AUTO_SUBMIT_DELAY - timeSinceLastResult);
-            return () => clearTimeout(timer);
-        }
-    }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing]);
-
-    // Core Logic
-    const startInterview = async (problemTitle: string, problemContent: string, ragContext?: string) => {
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext };
-        stateMachine.current.transition('START');
-        setState(stateMachine.current.getState());
-
-        // Auto-enable mic on start if desired
-        setIsMicEnabled(true);
-
-        const sysPrompt = generateSystemPrompt();
-        const introPrompt = generateTurnPrompt({
-            state: 'problem-intro',
-            problemTitle,
-            problemContent,
-            transcript: '',
-            conversationHistory: '',
-            ragContext: ragContext || ''
-        });
-
-        setIsProcessing(true);
-        try {
-            const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
-            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
-
-            addMessage(aiMsg);
-            speak(responseText);
-
-            stateMachine.current.transition('AI_FINISHED_SPEAKING');
-            setState(stateMachine.current.getState());
-        } catch (e) {
-            addMessage({ id: generateMessageId(), role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date(), status: 'complete' });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const submitUserResponse = async (userText: string, problemContext: any) => {
+    const submitUserResponse = useCallback(async (userText: string, problemContext: ProblemContext) => {
         if (!userText.trim()) return;
 
 
@@ -197,6 +147,11 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
 
         const userMsg: Message = { id: generateMessageId(), role: 'user', content: userText, timestamp: new Date(), status: 'complete' };
         addMessage(userMsg);
+
+        if (options.onUserMessage) {
+            // Pass the count INCLUDING the newly added message
+            options.onUserMessage(userMsg, conversationHistoryRef.current.length);
+        }
         resetTranscript();
 
         setIsProcessing(true);
@@ -242,7 +197,67 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
         } finally {
             setIsProcessing(false);
         }
-    };
+    }, [stopListening, addMessage, resetTranscript, callChatApi, speak, options]);
+
+    // Mic Intent State
+    const [isMicEnabled, setIsMicEnabled] = useState(false);
+
+    // Initial Start: Enable Mic
+    // (Optional: If you want it to start automatically when interview starts)
+
+    // Auto-Submit Logic
+    useEffect(() => {
+        if (!autoSubmitEnabled || !isListening || !transcript || isProcessing) return;
+
+        const timeSinceLastResult = Date.now() - lastResultTime;
+        if (timeSinceLastResult >= AUTO_SUBMIT_DELAY && currentProblemRef.current) {
+            submitUserResponse(transcript, currentProblemRef.current);
+        } else if (currentProblemRef.current) {
+            const timer = setTimeout(() => {
+                if (isListening && transcript && currentProblemRef.current) {
+                    submitUserResponse(transcript, currentProblemRef.current);
+                }
+            }, AUTO_SUBMIT_DELAY - timeSinceLastResult);
+            return () => clearTimeout(timer);
+        }
+    }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
+
+    // Core Logic
+    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string) => {
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext };
+        stateMachine.current.transition('START');
+        setState(stateMachine.current.getState());
+
+        // Auto-enable mic on start if desired
+        setIsMicEnabled(true);
+
+        const sysPrompt = generateSystemPrompt();
+        const introPrompt = generateTurnPrompt({
+            state: 'problem-intro',
+            problemTitle,
+            problemContent,
+            transcript: '',
+            conversationHistory: '',
+            ragContext: ragContext || ''
+        });
+
+        setIsProcessing(true);
+        try {
+            const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
+            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
+
+            addMessage(aiMsg);
+            speak(responseText);
+
+            stateMachine.current.transition('AI_FINISHED_SPEAKING');
+            setState(stateMachine.current.getState());
+        } catch {
+            addMessage({ id: generateMessageId(), role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date(), status: 'complete' });
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [callChatApi, addMessage, speak]);
+
 
     // Cleanup Audio on Unmount or Visibility Change
     useEffect(() => {
@@ -332,7 +347,7 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isProcessing, startListening, stopListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled, isListening]);
 
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds

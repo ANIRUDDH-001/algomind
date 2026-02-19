@@ -6,7 +6,7 @@ import { Bot, User, RotateCcw, AlertTriangle } from 'lucide-react';
 import { InterruptionIndicator } from './InterruptionIndicator';
 import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
 import { InterruptionManager } from '@/lib/voice/interruption-manager';
-import { useFeatureFlag, useFeatureFlagWithSupport } from '@/hooks/useFeatureFlag';
+import { useFeatureFlagWithSupport } from '@/hooks/useFeatureFlag';
 import { voiceAnalytics } from '@/lib/analytics/voice-analytics';
 import { Badge } from '@/components/ui/badge';
 
@@ -102,8 +102,6 @@ export function ConversationView({
     const {
         isListening: isVadListening,
         error: vadError,
-        startListening: startVad,
-        stopListening: stopVad,
     } = useVoiceActivityDetection({
         enabled: isVadEnabled,
         autoStart: isVadEnabled,
@@ -182,7 +180,7 @@ export function ConversationView({
                 interruptionManagerRef.current.removeAllListeners();
                 interruptionManagerRef.current = null;
             }
-            setIsInterrupting(false);
+            setTimeout(() => setIsInterrupting(false), 0);
             return;
         }
 
@@ -221,7 +219,7 @@ export function ConversationView({
         } else {
             debugLog('AI stopped speaking → handleAIResponseComplete');
             interruptionManagerRef.current.handleAIResponseComplete();
-            setIsInterrupting(false);
+            setTimeout(() => setIsInterrupting(false), 0);
         }
     }, [isAISpeaking, isVadEnabled]);
 
