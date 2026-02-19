@@ -87,9 +87,9 @@ export function VoiceOnboarding() {
                 </div>
             </div>
 
-            <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+            <div className="p-4 bg-secondary/50 rounded-lg border border-border">
                 <h4 className="text-sm font-bold mb-2 text-foreground">Tips for Best Experience:</h4>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <ul className="text-sm text-foreground/90 space-y-1 list-disc list-inside">
                     <li>Use a quiet environment with minimal background noise</li>
                     <li>Speak clearly but naturally - no need to over-enunciate</li>
                     <li>Let the AI finish key points, but feel free to interrupt if needed</li>
