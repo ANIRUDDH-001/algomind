@@ -28,7 +28,7 @@ export async function GET() {
             rateLimits: {
                 remaining: rateLimits.remaining,
                 usage: Object.fromEntries(
-                    Object.entries(rateLimits.usage).map(([k, v]) => [k, { minute: v.minute, day: v.day }])
+                    Object.entries(rateLimits.usage).map(([k, v]) => [k, { minute: parseInt(v.rpm), day: parseInt(v.rpd) }])
                 ),
             },
         });

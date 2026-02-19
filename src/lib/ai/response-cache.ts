@@ -11,6 +11,7 @@
  * Gated by ENABLE_RESPONSE_CACHE feature flag.
  *
  * @module response-cache
+ * @deprecated In-memory only. Disable in serverless deployments. Enable only if Redis/persistent cache is added.
  */
 
 import { levenshtein } from './intent-classifier';

@@ -5,13 +5,13 @@
 interface VoiceEvent {
     type: 'vad_init' | 'vad_error' | 'interruption' | 'smart_routing' | 'cache_hit' | 'cache_miss' | 'interview_start' | 'interview_complete';
     timestamp: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 class VoiceAnalytics {
     private events: VoiceEvent[] = [];
 
-    track(type: VoiceEvent['type'], metadata?: Record<string, any>) {
+    track(type: VoiceEvent['type'], metadata?: Record<string, unknown>) {
         const event: VoiceEvent = {
             type,
             timestamp: Date.now(),

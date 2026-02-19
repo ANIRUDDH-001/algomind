@@ -79,19 +79,22 @@ export function InterviewSession({
     const guestTrial = useGuestTrial(isGuest);
 
     // --- 3. Interview Logic & Callbacks ---
+    const { incrementTurn } = limits;
+    const { recordTurn, isTrialComplete } = guestTrial;
+
     const handleUserMessage = useCallback((_msg: Message, messageCount: number) => {
         // 1. Guest trial turn tracking
         if (isGuest && hasStarted) {
-            guestTrial.recordTurn();
+            recordTurn();
             // Show login modal when trial is complete
-            if (guestTrial.isTrialComplete && !showLoginModal) {
+            if (isTrialComplete && !showLoginModal) {
                 setShowLoginModal(true);
             }
         }
 
         // 2. Increment turn counter
         if (hasStarted) {
-            limits.incrementTurn();
+            incrementTurn();
         }
 
         // 3. Demo Skill Badge logic: Trigger a badge on user message
@@ -99,7 +102,7 @@ export function InterviewSession({
             setLastBadgeSkill(messageCount > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
             setShowBadge(true);
         }
-    }, [isGuest, hasStarted, guestTrial, showLoginModal, limits, showBadge]);
+    }, [isGuest, hasStarted, recordTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge]);
 
     const {
         state,
@@ -145,12 +148,15 @@ export function InterviewSession({
 
     // Stop listening when AI speaks (prevent echo)
     // Stop listening when AI speaks (prevent echo) ONLY if VAD is disabled
+    // Stop listening when AI speaks (prevent echo)
+    // Stop listening when AI speaks (prevent echo) ONLY if VAD is disabled
+    const { isSpeaking, isListening, stopListening } = voice;
     useEffect(() => {
-        if (voice.isSpeaking && voice.isListening && !vadEnabled) {
-            voice.stopListening();
+        if (isSpeaking && isListening && !vadEnabled) {
+            stopListening();
             setTimeout(() => setOptimisticListening(false), 0);
         }
-    }, [voice, vadEnabled]);
+    }, [isSpeaking, isListening, stopListening, vadEnabled]);
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
@@ -294,9 +300,9 @@ export function InterviewSession({
                     transcript: transcript
                 });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("❌ Assessment error:", err);
-            setError(err.message || "Failed to analyze interview. Please try again.");
+            setError((err as any).message || "Failed to analyze interview. Please try again.");
         }
 
         // Stop timer
@@ -304,11 +310,12 @@ export function InterviewSession({
     };
 
     // Auto-end on limits (time or turns)
+    const { isTimeUp, isTurnsUp } = limits;
     useEffect(() => {
-        if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
+        if (hasStarted && !readOnly && (isTimeUp || isTurnsUp)) {
             setShowLimitModal(true);
         }
-    }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
+    }, [hasStarted, readOnly, isTimeUp, isTurnsUp]);
 
     // Badge Auto-Hide Timer - Separate effect to prevent cancellation by message updates
     useEffect(() => {

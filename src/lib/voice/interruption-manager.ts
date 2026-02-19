@@ -142,6 +142,7 @@ export class InterruptionManager {
         let changed = false;
         for (const key of Object.keys(partial) as (keyof InterruptionState)[]) {
             if (this._state[key] !== partial[key]) {
+                // TypeScript cannot infer that partial[key] matches this._state[key] when iterating
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (this._state as any)[key] = partial[key];
                 changed = true;

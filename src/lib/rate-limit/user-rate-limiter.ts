@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const DAILY_LIMIT = 5;
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
@@ -39,13 +40,14 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         });
 
         if (error) {
-            console.warn('Rate limit check failed, allowing:', error);
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+            console.error('❌ [Rate Limit] Check failed:', error);
+            // Fail closed - deny on error for verified users to prevent abuse
+            return { allowed: false, remaining: 0, isAdmin: false };
         }
 
         const result = data?.[0];
         if (!result) {
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+            return { allowed: false, remaining: 0, isAdmin: false };
         }
 
         return {
@@ -53,35 +55,60 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
             remaining: result.remaining,
             isAdmin: result.remaining >= 999
         };
-    } catch (error) {
-        console.error('Rate limit error:', error);
-        // Fail open - allow on error
-        return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+    } catch (error: unknown) {
+        console.error('❌ [Rate Limit] Unexpected error:', error);
+        // Fail closed
+        return { allowed: false, remaining: 0, isAdmin: false };
     }
 }
 
+
 /**
- * Record that user started a question
+ * Increment user usage count in DB
  */
-export async function recordUserQuestion(userId: string | null): Promise<void> {
+export async function incrementUserUsage(userId: string, supabaseClient?: SupabaseClient): Promise<void> {
     if (!userId || userId === 'guest-user') {
-        return; // Don't track guests
-    }
-
-    const supabase = getSupabase();
-
-    if (!supabase || !isSupabaseConfigured()) {
         recordLocalQuestion();
         return;
     }
 
+    const supabase = supabaseClient || getSupabase();
+
+    if (!supabase) {
+        console.warn('⚠️ [Rate Limit] No Supabase client available to increment usage');
+        return;
+    }
+
     try {
-        await supabase.rpc('record_user_question', {
+        const today = new Date().toISOString().split('T')[0];
+
+        // We use upsert to simplify the logic: 
+        // if row exists, we want to increment. 
+        // BUT standard REST upsert overrides the row. 
+        // So safest is to use RPC if available, or just insert and handle conflict if we don't have an atomic increment RPC.
+        // Given constraints, we will rely on strict rate limit checking which calls RPC.
+        // Use a simple upsert for now designed to just "ensure" a record exists, 
+        // but for accurate incrementing we should probably use an RPC or careful logic.
+        // Actually, the requirement says: "increment questions_used by 1 for today, or insert a new row with questions_used = 1"
+        // Let's use the `record_user_question` RPC if it exists (it was called in the original code! line 79)
+        // RPC: check_user_rate_limit was mentioned. 
+        // Wait, the original code had: await supabase.rpc('record_user_question', { p_user_id: userId });
+        // I should USE that if it works. 
+
+        const { error } = await supabase.rpc('record_user_question', {
             p_user_id: userId
         });
-    } catch (error) {
-        console.error('Failed to record question:', error);
-        // Fail silently
+
+        if (error) {
+            console.error('❌ [Rate Limit] Failed to record usage via RPC:', error);
+            // Fallback to manual upsert if RPC fails? 
+            // Ideally we trust the RPC. If it fails, we might just log it.
+        } else {
+            console.log(`✅ [Rate Limit] Increment success for ${userId}`);
+        }
+
+    } catch (error: unknown) {
+        console.error('❌ [Rate Limit] Error recording usage:', error);
     }
 }
 
@@ -120,7 +147,7 @@ function recordLocalQuestion(): void {
         const today = new Date().toISOString().split('T')[0];
         const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
 
-        let usage: LocalUsage = { date: today, count: 1 };
+        const usage: LocalUsage = { date: today, count: 1 };
 
         if (stored) {
             const existing: LocalUsage = JSON.parse(stored);
@@ -133,6 +160,14 @@ function recordLocalQuestion(): void {
     } catch {
         // Ignore storage errors
     }
+}
+
+/**
+ * @deprecated Use incrementUserUsage instead. kept for backward compatibility.
+ */
+export async function recordUserQuestion(userId: string | null): Promise<void> {
+    if (!userId) return;
+    return incrementUserUsage(userId);
 }
 
 // Export constants

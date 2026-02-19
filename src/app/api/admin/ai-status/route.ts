@@ -13,10 +13,14 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Check admin role via RPC (matches client-side useAdmin logic)
-        const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin');
+        // Check admin role via admin_users table (Source of Truth)
+        const { data: adminRecord } = await supabase
+            .from('admin_users')
+            .select('id')
+            .eq('email', user.email!)
+            .single();
 
-        if (rpcError || !isAdmin) {
+        if (!adminRecord) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

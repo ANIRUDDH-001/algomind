@@ -30,7 +30,9 @@ function DashboardContent() {
 
     // Initialize tab from URL or default to overview
     const initialTab = (searchParams.get('tab') as string) || 'overview';
-    const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'history' | 'insights'>(initialTab as any);
+    const validTabs = ['overview', 'skills', 'history', 'insights'] as const;
+    const defaultTab: typeof validTabs[number] = validTabs.includes(initialTab as any) ? (initialTab as any) : 'overview';
+    const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(defaultTab);
     const [showPrevious, setShowPrevious] = useState(false);
 
     // Handler for clicking on a session in history or timeline
@@ -174,7 +176,7 @@ function DashboardContent() {
                                 {Object.keys(SKILL_DEFINITIONS).map((skillId) => (
                                     <SkillTrendCard
                                         key={skillId}
-                                        skill={skillId as any} // keep any for skillId as it's a key in SKILL_DEFINITIONS
+                                        skill={skillId as keyof typeof SKILL_DEFINITIONS}
                                         sessions={progress?.sessions || []}
                                     />
                                 ))}

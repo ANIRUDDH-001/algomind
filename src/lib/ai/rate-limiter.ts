@@ -145,7 +145,7 @@ export class IntelligentRateLimiter {
     /**
      * Record a failure (updates cooldowns/deprecation)
      */
-    recordFailure(modelId: string, error: any): void {
+    recordFailure(modelId: string, error: unknown): void {
         const stats = this.usage.get(modelId);
         if (!stats) return;
 
@@ -177,7 +177,7 @@ export class IntelligentRateLimiter {
     }
 
     // Alias for compatibility if needed, or intended helper
-    recordError(modelId: string, error: any) {
+    recordError(modelId: string, error: unknown) {
         return this.recordFailure(modelId, error);
     }
 
@@ -208,7 +208,7 @@ export class IntelligentRateLimiter {
      * Get usage statistics for debugging/monitoring
      */
     getUsageStats() {
-        const result: Record<string, any> = {};
+        const result: Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }> = {};
         for (const [id, stats] of this.usage.entries()) {
             this.resetCountersIfNeeded(stats);
             result[id] = {

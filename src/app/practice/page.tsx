@@ -54,10 +54,6 @@ export default function PracticePage() {
         loadProblems();
     }, [loadProblems]);
 
-    useEffect(() => {
-        loadAttemptedProblems();
-    }, [user]);
-
     const loadAttemptedProblems = async () => {
         if (!user) return;
         try {
@@ -69,6 +65,10 @@ export default function PracticePage() {
             console.error('Failed to load attempted problems:', e);
         }
     };
+
+    useEffect(() => {
+        loadAttemptedProblems();
+    }, [user]);
 
     // Filter by attempted status (client-side since it's local data)
     const displayedProblems = useMemo(() => {
