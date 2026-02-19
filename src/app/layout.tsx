@@ -29,7 +29,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AlgoMind - AI-Powered DSA Interview Practice",
+  title: {
+    default: "AlgoMind - AI-Powered DSA Interview Practice",
+    template: "%s | AlgoMind",
+  },
   description: "Master Data Structures and Algorithms with AI-powered voice interviews, cognitive assessment, and personalized learning paths.",
   keywords: ["DSA", "interview", "practice", "AI", "coding", "algorithms", "data structures"],
   authors: [{ name: "AlgoMind Team" }],
