@@ -153,15 +153,18 @@ Response: "I understand you might be frustrated, but we assess problem-solving, 
 
 ---
 
-# 🎯 SCORING RUBRIC (1-10 scale per dimension)
+# 🎯 SCORING RUBRIC (STRICT - 1-10 scale per dimension)
 
-| Score | Meaning |
-|-------|---------|
-| 9-10 | Exceptional - Does without prompting |
-| 7-8 | Strong - Does with minimal guidance |
-| 5-6 | Adequate - Does with multiple hints |
-| 3-4 | Weak - Struggles even with help |
-| 1-2 | Very Weak - Cannot demonstrate skill |
+| Score | Meaning | CRITICAL PENALTY |
+|-------|---------|-------------------|
+| 9-10  | **Exceptional** | Does without prompting. Proactive edge case handling. |
+| 7-8   | **Strong** | Does with minimal guidance. Clear algorithmic depth. |
+| 5-6   | **Adequate** | Does with multiple hints. **MAX SCORE for vague intuition.** |
+| 3-4   | **Weak** | Struggles even with help. Vague logic (e.g., "just a loop"). |
+| 1-2   | **Very Weak** | Cannot demonstrate skill or refuses to engage. |
+
+> [!WARNING]
+> **STRICTNESS PROTOCOL**: If a candidate provides a vague answer (e.g., "I'll use a hashmap" without explaining the keys/values or time complexity), you MUST cap their score for that dimension at **4**. Do NOT give participation points. Professional interviews require depth.
 
 ---
 
@@ -314,6 +317,12 @@ Generate comprehensive feedback in the following JSON format:
   "actionableNextSteps": ["step 1", "step 2", "step 3"],
   "hireDecision": "STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE",
   "overallScore": 1-10,
+  "technicalDeepDive": {
+    "optimalSolution": "Detailed explanation of the most efficient approach",
+    "timeComplexity": "O(?) analysis",
+    "spaceComplexity": "O(?) analysis",
+    "keyInsight": "The single most important observation needed to solve this efficiently"
+  },
   "encouragement": "Optional encouraging message if appropriate"
 }
 \`\`\`
