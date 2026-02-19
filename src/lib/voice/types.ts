@@ -272,21 +272,21 @@ export interface InterruptionManagerConfig {
     /**
      * VAD confidence threshold (0–1). Frames below this are discarded.
      * Filters out background noise, coughs, and non-speech sounds.
-     * @default 0.8
+     * @default 0.85
      */
     minConfidence: number;
 
     /**
      * Speech segments shorter than this (ms) are treated as filler
      * words ("um", "uh") and ignored.
-     * @default 200
+     * @default 300
      */
     minSpeechDurationMs: number;
 
     /**
      * Number of consecutive VAD frames above `minConfidence` required
      * before speech is considered intentional. Filters brief noise spikes.
-     * @default 3
+     * @default 5
      */
     consecutiveHighFrames: number;
 

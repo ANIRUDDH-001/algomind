@@ -75,9 +75,9 @@ const DEFAULT_CONFIG: InterruptionManagerConfig = {
     graceMs: 500,
     debounceMs: 1000,
     speechEndConfirmMs: 1000,
-    minConfidence: 0.8,
-    minSpeechDurationMs: 200,
-    consecutiveHighFrames: 3,
+    minConfidence: 0.85,
+    minSpeechDurationMs: 300,
+    consecutiveHighFrames: 5,
     debugMode: false,
     eventStreamMaxSize: 200,
 };
