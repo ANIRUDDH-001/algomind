@@ -313,7 +313,7 @@ describe('VADManager.init() — full path', () => {
         // Mock window with optional MicVAD constructor
         const mockMicVADInstance = createMockMicVAD();
         const mockMicVADConstructor = {
-            new: vi.fn(async () => mockMicVADInstance),
+            new: vi.fn(async (options?: Any) => mockMicVADInstance),
         };
 
         (globalThis as Any).window = {
@@ -359,7 +359,7 @@ describe('VADManager.init() — full path', () => {
 
         await manager.init({ positiveSpeechThreshold: 0.95, minSpeechMs: 500 });
 
-        const opts = mockMicVADConstructor.new.mock.calls[0][0];
+        const opts = (mockMicVADConstructor.new.mock.calls[0] as Any[])[0];
         expect(opts.positiveSpeechThreshold).toBe(0.95);
         expect(opts.minSpeechMs).toBe(500);
         expect(opts.startOnLoad).toBe(false);
@@ -383,7 +383,7 @@ describe('VADManager.init() — full path', () => {
         await manager.init();
 
         // Simulate MicVAD firing onSpeechStart
-        capturedOnSpeechStart?.();
+        (capturedOnSpeechStart as Any)?.();
         expect(cb).toHaveBeenCalledOnce();
     });
 
@@ -405,7 +405,7 @@ describe('VADManager.init() — full path', () => {
         await manager.init();
 
         const audio = new Float32Array([0.5]);
-        capturedOnSpeechEnd?.(audio);
+        (capturedOnSpeechEnd as Any)?.(audio);
         expect(cb).toHaveBeenCalledWith(audio);
     });
 
@@ -425,7 +425,7 @@ describe('VADManager.init() — full path', () => {
         manager.onMisfire(cb);
 
         await manager.init();
-        capturedOnMisfire?.();
+        (capturedOnMisfire as Any)?.();
         expect(cb).toHaveBeenCalledOnce();
     });
 
@@ -445,7 +445,7 @@ describe('VADManager.init() — full path', () => {
         manager.onFrameProcessed(cb);
 
         await manager.init();
-        capturedOnFrame?.({ isSpeech: 0.92 });
+        (capturedOnFrame as Any)?.({ isSpeech: 0.92 });
         expect(cb).toHaveBeenCalledWith(0.92);
     });
 
@@ -465,7 +465,7 @@ describe('VADManager.init() — full path', () => {
 
         await manager.init();
         // Should not throw
-        capturedOnFrame?.({ isSpeech: 0.5 });
+        (capturedOnFrame as Any)?.({ isSpeech: 0.5 });
     });
 
     test('init() sets ERROR state when MicVAD not found', async () => {

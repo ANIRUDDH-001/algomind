@@ -56,6 +56,8 @@ interface ConversationViewProps {
     onContinuePreviousResponse?: () => void;
     /** Called when VAD initialization fails. */
     onVadError?: (error: Error) => void;
+    /** Called when the user starts speaking (even if AI is silent). Useful for waking up STT. */
+    onUserSpeaking?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +73,7 @@ export function ConversationView({
     interruptedMessageIndices,
     onContinuePreviousResponse,
     onVadError,
+    onUserSpeaking,
 }: ConversationViewProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +116,10 @@ export function ConversationView({
                 if (decision === 'INTERRUPT_IMMEDIATELY') {
                     debugLog('InterruptionManager decided to INTERRUPT');
                     handleInterruption();
+                } else if (decision === 'ALLOW_INPUT') {
+                    debugLog('InterruptionManager decided to ALLOW_INPUT (User speaking, AI silent)');
+                    // Ensure STT is awake!
+                    if (onUserSpeaking) onUserSpeaking();
                 } else {
                     debugLog('InterruptionManager decided to WAIT/IGNORE', decision);
                 }

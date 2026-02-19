@@ -117,14 +117,26 @@ export async function waitForInterviewReady(page: Page) {
     await expect(beginBtn).toBeVisible({ timeout: 10000 });
     await beginBtn.click();
 
+    // Check for onboarding modal or mic button
+    // The modal might appear, or we might go straight to interview
+    // Check for Onboarding Modal (it should appear for fresh users)
+    try {
+        const onboardingBtn = page.getByRole('button', { name: /got it, let's start!/i });
+        // Wait up to 5s for the modal
+        await onboardingBtn.waitFor({ state: 'visible', timeout: 8000 });
+        await onboardingBtn.click();
+        console.log('Dismissed onboarding modal');
+    } catch (e) {
+        console.log('Onboarding modal did not appear (or timed out), continuing...');
+    }
+
     // Wait for the interview interface to load (look for mic button)
     try {
-        // Use .last() to target desktop element (mobile is first)
-        await expect(page.getByTestId(TEST_IDS.MIC_BUTTON).last()).toBeVisible({ timeout: 10000 });
+        const micButton = page.getByTestId(TEST_IDS.MIC_BUTTON).last();
+        await micButton.waitFor({ state: 'visible', timeout: 15000 });
     } catch (e) {
-        // Fallback or retry logic if needed, but .first() should prevent strict mode
-        console.log('Readiness check timed out or failed, waiting extra time...');
-        await page.waitForTimeout(2000);
+        console.log('Readiness check (mic button) timed out or failed:', e);
+        throw e; // Re-throw to fail the test meaningfully
     }
 }
 

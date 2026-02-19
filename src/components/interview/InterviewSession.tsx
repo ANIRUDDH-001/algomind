@@ -713,7 +713,7 @@ export function InterviewSession({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
-                    vadEnabled={vadEnabled}
+                    vadEnabled={vadEnabled && hasStarted}
                     onInterrupt={() => {
                         voice.stopSpeaking();
                         handleInterruption();
@@ -724,6 +724,12 @@ export function InterviewSession({
                     onVadError={(err) => {
                         console.log('PAGE LOG: InterviewSession received VAD error:', err.message);
                         setError(`VAD Initialization Failed: ${err.message}`);
+                    }}
+                    onUserSpeaking={() => {
+                        if (!voice.isListening && !isProcessing && !voice.isSpeaking) {
+                            console.log('🎤 VAD woke up STT (onUserSpeaking)');
+                            voice.startListening();
+                        }
                     }}
                 />
             </div>

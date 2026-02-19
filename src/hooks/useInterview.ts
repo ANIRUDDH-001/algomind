@@ -303,7 +303,14 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
             }
             // Reset the resume flag when AI starts speaking/processing
             micResumeAttemptedRef.current = false;
+            micResumeAttemptedRef.current = false;
             return; // Don't proceed to start logic
+        }
+
+        // If already listening, reset the resume flag so we can restart if it drops later
+        if (isListening) {
+            micResumeAttemptedRef.current = false;
+            return;
         }
 
         // Mic is Enabled (Intent) AND (AI is silent OR VAD is enabled): Resume Mic
