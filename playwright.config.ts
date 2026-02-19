@@ -12,7 +12,7 @@ export default defineConfig({
         trace: 'on-first-retry',
         viewport: { width: 1280, height: 720 },
         permissions: ['microphone'], // Mock microphone permission
-        mockVAD: true, // Custom flag to indicate VAD mocking needed
+
     },
 
     projects: [

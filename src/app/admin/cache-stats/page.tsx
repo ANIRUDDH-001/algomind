@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getResponseCache, type CacheStats } from '@/lib/ai/response-cache';
-import { getFlag } from '@/lib/feature-flags';
+import { getFeatureFlag } from '@/lib/feature-flags';
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -34,7 +34,7 @@ export default function CacheStatsPage() {
     const [enabled, setEnabled] = useState(false);
 
     const refresh = useCallback(() => {
-        setEnabled(getFlag('ENABLE_RESPONSE_CACHE'));
+        setEnabled(getFeatureFlag('ENABLE_RESPONSE_CACHE'));
         try {
             const cache = getResponseCache();
             setStats(cache.getStats());
@@ -68,8 +68,8 @@ export default function CacheStatsPage() {
 
                 {/* Status */}
                 <div className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-widest ${enabled
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-red-500/10 border-red-500/30 text-red-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-red-500/10 border-red-500/30 text-red-400'
                     }`}>
                     {enabled ? '● Cache Enabled' : '○ Cache Disabled'}
                     {!enabled && (

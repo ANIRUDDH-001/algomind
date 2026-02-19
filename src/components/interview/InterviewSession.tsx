@@ -71,7 +71,7 @@ export function InterviewSession({
     const guestTrial = useGuestTrial(isGuest);
 
     // VAD feature flag
-    const [vadEnabled] = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
+    const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
 
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
