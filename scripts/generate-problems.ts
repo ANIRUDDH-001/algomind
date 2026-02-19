@@ -39,8 +39,8 @@ const modelStatus: Record<string, { exhausted: boolean; failed: boolean; reason?
     modelStatus[m] = { exhausted: false, failed: false };
 });
 
-async function verifyProblemsBatchWithFallback(problems: any[], startModelIndex: number = 0): Promise<{ results: any[]; lastModelIndex: number }> {
-    let modelIndex = startModelIndex;
+async function verifyProblemsBatchWithFallback(problems: any[]): Promise<{ results: any[]; success: boolean }> {
+    let modelIndex = 0;
 
     while (modelIndex < GEMINI_MODELS.length) {
         const currentModel = GEMINI_MODELS[modelIndex];
@@ -71,14 +71,22 @@ Return ONLY a JSON array of objects in this exact order:
 ]`;
 
         try {
+            const isGemma = currentModel.includes("gemma");
             const url = `${GEMINI_BASE_URL}${currentModel}:generateContent?key=${geminiApiKey}`;
+
+            const body: any = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+
+            // Gemma doesn't support native JSON mode, only Flash/Pro do
+            if (!isGemma) {
+                body.generationConfig = { response_mime_type: "application/json" };
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { response_mime_type: "application/json" }
-                })
+                body: JSON.stringify(body)
             });
 
             if (response.status === 429) {
@@ -91,24 +99,38 @@ Return ONLY a JSON array of objects in this exact order:
 
             if (!response.ok) {
                 const err = await response.text();
-                console.error(`Gemini Error (${response.status}): ${err}`);
-                if (err.includes("not found")) {
+                // console.error(`Gemini Error (${response.status}): ${err}`); // Reduce noise
+                if (err.includes("not found") || err.includes("not enabled")) {
                     modelStatus[currentModel].failed = true;
-                    modelStatus[currentModel].reason = "Model mapping error / doesn't exist";
+                    modelStatus[currentModel].reason = `API Error: ${response.status}`;
                 }
                 modelIndex++;
                 continue;
             }
 
             const data: any = await response.json();
-            const text = data.candidates[0].content.parts[0].text;
-            return { results: JSON.parse(text), lastModelIndex: modelIndex };
+            let text = data.candidates[0].content.parts[0].text.trim();
+
+            // Cleanup Markdown for Gemma/others if they send it
+            if (text.startsWith("```")) {
+                text = text.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+            }
+
+            try {
+                const results = JSON.parse(text);
+                return { results, success: true };
+            } catch (jsonErr) {
+                console.warn(`⚠️ JSON Parse Error with ${currentModel}. Retrying with next model...`);
+                // Don't exhaust model on parsing error, just skip for this batch
+                modelIndex++;
+                continue;
+            }
         } catch (e) {
-            console.error(`Gemini verification failed with ${currentModel}:`, e instanceof Error ? e.message : e);
+            console.error(`Verification failed with ${currentModel}:`, e instanceof Error ? e.message : e);
             modelIndex++;
         }
     }
-    return { results: [], lastModelIndex: modelIndex };
+    return { results: [], success: false };
 }
 
 async function generateProblemsBatchWithFallback(existingTitles: Set<string>, count: number = 5, startModelIndex: number = 0) {
@@ -123,7 +145,7 @@ async function generateProblemsBatchWithFallback(existingTitles: Set<string>, co
 
         console.log(`🚀 Attempting generation with ${currentModel}...`);
 
-        const prompt = `Generate ${count} distinct, high-quality DSA problems specifically from these curated lists: 
+        const prompt = `Generate ${count} distinct, HIGH-QUALITY, PRODUCTION-READY DSA problems specifically from these curated lists: 
 - Blind 75
 - NeetCode 150
 - Striver's A-Z DSA Sheet
@@ -133,20 +155,28 @@ Ensure a balanced mix of Easy, Medium, and Hard difficulties.
 DO NOT generate any of the following problems:
 ${Array.from(existingTitles).slice(0, 50).join(', ')}
 
+STRICT QUALITY GUIDELINES (To avoid rejection):
+1. TITLES: Must be specific and descriptive (e.g., "Koko Eating Bananas" NOT "Binary Search"). Avoid generic textbook names.
+2. DESCRIPTION: Must be 4-6 sentences, unambiguous, and explain the scenario clearly.
+3. CONSTRAINTS: MANDATORY and precise (e.g., 1 <= n <= 10^5). DO NOT OMIT.
+4. EXAMPLES: Must be logically correct with clear step-by-step explanations.
+5. NO HALLUCINATIONS: Ensure the problem logic is sound and solvable.
+6. **MANDATORY TAGS**: You MUST include the source list name as a tag (e.g., "Blind 75", "NeetCode 150", "Striver A-Z", "Grind 75").
+
 Format each problem as a JSON object within a JSON array. 
 Schema:
 {
   "id": "kebab-case-id",
-  "title": "Problem Title",
+  "title": "Problem Title", // Descriptive title
   "difficulty": "easy" | "medium" | "hard",
-  "description": "DETAILED 4-6 sentence multi-paragraph description. Must explain the objective, the input structure, and the logic clearly. Include a section for Constraints (e.g., n <= 10^5).",
-  "tags": ["Tag1", "Tag2"],
+  "description": "DETAILED 4-6 sentence multi-paragraph description. Explain objective, input, and logic with a narrative. Include 'Constraints:' section at the end.",
+  "tags": ["Blind 75", "Array", "Two Pointers"], // MUST include Source List Name
   "hints": ["Hint 1", "Hint 2", "Hint 3"],
-  "examples": [{ "input": "...", "output": "...", "explanation": "Detailed step-by-step why this output exists." }],
+  "examples": [{ "input": "...", "output": "...", "explanation": "Detailed step-by-step logic." }],
   "external_url": "https://leetcode.com/problems/..."
 }
 
-CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If the description is less than 150 characters, it will be rejected.`;
+CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If description < 200 chars or constraints missing, it will be rejected.`;
 
         try {
             const response = await fetch(GROQ_URL, {
@@ -174,6 +204,39 @@ CRITICAL: Return ONLY the JSON array. High detail required. No placeholders. If 
             if (!response.ok) {
                 const err = await response.text();
                 console.error(`Groq Error (${response.status}): ${err}`);
+
+                // Handle JSON validation failure (common with some models in strict mode)
+                if (response.status === 400 && err.includes("json_validate_failed")) {
+                    console.warn(`⚠️ JSON Mode failed for ${currentModel}. Retrying without strict JSON mode...`);
+                    try {
+                        const retryResponse = await fetch(GROQ_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${groqApiKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: currentModel,
+                                messages: [{ role: "user", content: prompt }],
+                                temperature: 0.8
+                                // Removed response_format
+                            })
+                        });
+
+                        if (retryResponse.ok) {
+                            const data: any = await retryResponse.json();
+                            let content = data.choices[0].message.content;
+                            // Cleanup markdown if present
+                            content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+                            const parsed = JSON.parse(content);
+                            const batch = Array.isArray(parsed) ? parsed : (parsed.problems || parsed.results || []);
+                            return { batch, lastModelIndex: modelIndex };
+                        }
+                    } catch (retryErr) {
+                        console.error("Retry failed:", retryErr);
+                    }
+                }
+
                 if (err.includes("not_found") || err.includes("decommissioned") || err.includes("unknown_model")) {
                     modelStatus[currentModel].failed = true;
                     modelStatus[currentModel].reason = "Model doesn't exist or decommissioned";
@@ -203,15 +266,41 @@ async function main() {
     const existingTitles = new Set(existing?.map(p => p.title) || []);
     console.log(`Baseline: ${existingTitles.size} existing problems. Goal: Reach ~${existingTitles.size + 250} total.`);
 
-    const totalToGenerate = 250;
+    const TARGET_TOTAL = 500;
+    const currentTotal = existingTitles.size; // e.g. 232
+    const remaining = TARGET_TOTAL - currentTotal; // e.g. 268
+
+    console.log(`\n📊 Status:`);
+    console.log(`- Current DB Count: ${currentTotal}`);
+    console.log(`- Goal: ${TARGET_TOTAL} Total Problems`);
+    console.log(`- Remaining to Generate: ${remaining}`);
+
+    if (remaining <= 0) {
+        console.log(`✅ Target of ${TARGET_TOTAL} problems already reached! Exiting.`);
+        return;
+    }
+
     let totalAdded = 0;
     let currentGroqIndex = 0;
-    let currentGeminiIndex = 0;
+    // let currentGeminiIndex = 0; // Deprecated, verification is stateless now
     const report: any[] = [];
 
-    while (totalAdded < totalToGenerate) {
-        // 1. Generate Batch
-        const { batch, lastModelIndex: nextGroqIndex } = await generateProblemsBatchWithFallback(existingTitles, 10, currentGroqIndex);
+    // Loop until we reach the target total
+    while ((existingTitles.size + totalAdded) < TARGET_TOTAL) {
+        const currentDbCount = existingTitles.size + totalAdded;
+        const slotsLeft = TARGET_TOTAL - currentDbCount;
+
+        console.log(`\n--- Batch Start (Progress: ${currentDbCount}/${TARGET_TOTAL} | Needed: ${slotsLeft}) ---`);
+
+        // Rate Limit Buffer
+        if (totalAdded > 0) {
+            console.log("Sleeping 20s for rate-limit buffer...");
+            await new Promise(r => setTimeout(r, 20000));
+        }
+
+        // 1. Generate Batch (Ask for 5 at a time to be safe)
+        const batchSize = Math.min(5, slotsLeft);
+        const { batch, lastModelIndex: nextGroqIndex } = await generateProblemsBatchWithFallback(existingTitles, batchSize, currentGroqIndex);
         currentGroqIndex = nextGroqIndex;
 
         if (batch.length === 0) {
@@ -227,45 +316,49 @@ async function main() {
 
         if (uniqueBatch.length > 0) {
             // 3. Verify Batch
-            const { results: verificationResults, lastModelIndex: nextGeminiIndex } = await verifyProblemsBatchWithFallback(uniqueBatch, currentGeminiIndex);
-            currentGeminiIndex = nextGeminiIndex;
+            // Simplified: Verification now auto-selects the best model every time.
+            const { results: verificationResults, success } = await verifyProblemsBatchWithFallback(uniqueBatch);
 
-            if (verificationResults.length === 0) {
-                if (currentGeminiIndex >= GEMINI_MODELS.length) {
-                    console.error("🛑 All Gemini models exhausted. Session stopped.");
+            if (!success || verificationResults.length === 0) {
+                // If it failed and returned success=false, it means ALL models are exhausted/failed.
+                // We should check if we should abort or just continue with next batch of generation.
+                // If all verifiers are dead, we MUST stop.
+                const allVerifiersDead = GEMINI_MODELS.every(m => modelStatus[m].exhausted || modelStatus[m].failed);
+                if (allVerifiersDead) {
+                    console.error("🛑 All Gemini verifiers exhausted/failed. Session stopped.");
                     break;
                 }
                 continue;
             }
 
             // 4. Ingest Verified
-            for (const v of verificationResults) {
-                if (v.valid) {
-                    const problem = v.sanitized_problem || uniqueBatch.find((p: any) => p.title === v.title);
-                    if (!problem) continue;
+            // 4. Ingest Verified
+            for (const item of verificationResults) {
+                if (item.valid) {
+                    const finalProblem = item.sanitized_problem || uniqueBatch.find((p: any) => p.title === item.title);
 
-                    const { error } = await supabase.from('problems').upsert([problem]);
-                    if (!error) {
-                        console.log(`✅ Admitted & Inserted: ${v.title}`);
-                        existingTitles.add(v.title);
-                        totalAdded++;
-                        report.push({ title: v.title, status: 'INSERTED_VERIFIED', model: GEMINI_MODELS[currentGeminiIndex] });
+                    if (!finalProblem) continue;
+
+                    // Final check for duplicates before insert (race condition safety)
+                    if (existingTitles.has(finalProblem.title)) {
+                        console.log(`⚠️ Skip Duplicate (Race): ${finalProblem.title}`);
+                        continue;
+                    }
+
+                    const { error } = await supabase.from('problems').upsert([finalProblem]);
+
+                    if (error) {
+                        console.error(`❌ DB Insert Error: ${error.message}`);
                     } else {
-                        console.error(`❌ DB Error for ${v.title}:`, error.message);
+                        console.log(`✅ Admitted & Inserted: ${finalProblem.title}`);
+                        existingTitles.add(finalProblem.title);
+                        totalAdded++;
+                        report.push(finalProblem.title);
                     }
                 } else {
-                    console.warn(`🚫 Rejected ${v.title}: ${v.reason}`);
-                    report.push({ title: v.title, status: 'REJECTED_BY_AI', reason: v.reason, model: GEMINI_MODELS[currentGeminiIndex] });
+                    console.log(`🚫 Rejected ${item.title}: ${item.reason}`);
                 }
-                if (totalAdded >= totalToGenerate) break;
             }
-        }
-
-        console.log(`\n--- Session Progress: ${totalAdded}/250 ---`);
-
-        if (totalAdded < totalToGenerate) {
-            console.log("Sleeping 45s for rate-limit buffer...");
-            await new Promise(r => setTimeout(r, 45000));
         }
     }
 
@@ -277,13 +370,27 @@ async function main() {
         details: report
     };
 
+    // Explicit model status logging
+    console.log('\nModel Status Report:');
+    Object.entries(modelStatus).forEach(([model, status]) => {
+        const state = status.failed ? "❌ FAILED/NOT_EXIST" : (status.exhausted ? "🛑 EXHAUSTED" : "✅ AVAILABLE");
+        console.log(`- ${model}: ${state} ${status.reason ? `(${status.reason})` : ''}`);
+    }); console.log(`New DB Total: ${existingTitles.size}`);
+
+    // Check if we reached target
+    if (existingTitles.size >= TARGET_TOTAL) {
+        console.log(`🎉 SUCCESS: Target of ${TARGET_TOTAL} problems reached!`);
+    } else {
+        console.log(`⚠️ Stopped early. Progress: ${existingTitles.size}/${TARGET_TOTAL}.`);
+    }
+
     const reportPath = path.resolve(process.cwd(), 'expansion_report.json');
-    fs.writeFileSync(reportPath, JSON.stringify(finalReport, null, 2));
-
-    console.log(`\n--- Generation Cycle Summary ---`);
-    console.log(`Successfully added: ${totalAdded} problems.`);
-    console.log(`Report written to: expansion_report.json`);
-
+    fs.writeFileSync(reportPath, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        added_count: totalAdded,
+        total_db_count: existingTitles.size,
+        added_problems: report
+    }, null, 2));
     // Explicit model status logging
     console.log('\nModel Status Report:');
     Object.entries(modelStatus).forEach(([model, status]) => {
