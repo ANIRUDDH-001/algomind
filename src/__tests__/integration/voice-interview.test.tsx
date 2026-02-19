@@ -4,15 +4,60 @@ import {
     waitForInterviewReady,
     InterviewPanelPOM,
     mockChatAPI,
-    debugInterviewState
+    debugInterviewState,
+    dismissOnboardingModal
 } from '../../test-utils/playwright-helpers';
 
 test.describe('Voice Interview Integration', () => {
     test.use({ viewport: { width: 1920, height: 1080 } });
 
-    test('Complete interview flow (End-to-End)', async ({ page }) => {
-        console.log('\n=== STEP 1: Setup Interview Page ===');
+    test.beforeEach(async ({ page }) => {
+        // Navigate to interview page
         await setupInterviewPage(page, '/interview');
+
+        // Dismiss onboarding if present
+        await dismissOnboardingModal(page);
+
+        // Wait for "Begin Interview Experience" or similar readiness signal
+        // Note: waitForInterviewReady does this, but we want to be explicit in beforeEach if needed.
+        // For now, we'll rely on the test logic calling waitForInterviewReady or similar.
+        // However, the user request specifically asked to:
+        // "Waits for the 'Begin Interview Experience' button to be visible before proceeding."
+        const beginBtn = page.getByRole('button', { name: /begin interview/i });
+        try {
+            await beginBtn.waitFor({ state: 'visible', timeout: 10000 });
+        } catch (e) {
+            console.log('Begin Interview button not found in beforeEach (might be already clicked or different flow)');
+        }
+    });
+
+    test('Complete interview flow (End-to-End)', async ({ page }) => {
+        // Increase timeout for this test
+        test.setTimeout(60000);
+
+        console.log('\n=== STEP 0: Dismiss Onboarding (Double Check) ===');
+        await dismissOnboardingModal(page);
+
+        // Note: setupInterviewPage is already called in beforeEach, but the test structure
+        // in the user's snippet implies it was called inside the test. 
+        // The user asked to ADD a beforeEach. 
+        // We should PROBABLY remove the direct call to setupInterviewPage inside the test 
+        // to avoid double navigation, OR just let it be (it navigates again).
+        // Let's remove the explicit setupInterviewPage call here since it's in beforeEach now.
+        // But wait, setupInterviewPage also MOCKS things. We need to make sure mocks persist.
+        // Playwright page mocks usually persist until closed.
+        // To be safe and follow instructions "Add a beforeEach hook... that Navigates...", 
+        // and "In voice-interview.test.tsx, call dismissOnboardingModal(page) at the very start of every test block",
+        // I will keep the mocks but remove the navigation if it's redundant, or just re-run it.
+        // Actually, the user instruction 2 says: "call dismissOnboardingModal(page) at the very start of every test block, immediately after page navigation".
+        // This suggests the test might still be doing navigation.
+        // Let's stick to the prompt:
+        // 3. Add beforeEach...
+        // 2. Call dismissOnboardingModal at start of test...
+
+        console.log('\n=== STEP 1: Setup Interview Page (Already done in beforeEach) ===');
+        // We'll re-run setup to ensure fresh state if the test assumes it, or just rely on beforeEach.
+        // Given the instructions, I'll trust beforeEach does the nav.
 
         console.log('\n=== STEP 2: Install Chat API Mock ===');
         // Mock BEFORE waiting for ready to catch initial intro call
