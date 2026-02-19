@@ -42,7 +42,7 @@ export function useFeatureFlag(flag: FeatureFlagKey) {
             // Let's rely on the fact that `getFeatureFlag` reads from localStorage.
             // If `e.key` matches `FEATURE_FLAGS[flag].key`, we update.
             import('@/lib/feature-flags').then(({ FEATURE_FLAGS }) => {
-                if (e.key === FEATURE_FLAGS[flag].key || e.key === flag) {
+                if (e.key === FEATURE_FLAGS[flag].storageKey || e.key === flag) {
                     setEnabled(getFeatureFlag(flag));
                 }
             });
