@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { IntroAnimation } from '@/components/onboarding/IntroAnimation';
 import { shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -9,15 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Mic, BarChart, Brain, BookOpen } from 'lucide-react';
 
 export default function HomePage() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return shouldShowOnboarding();
+    }
+    return false;
+  });
   const { user, loading } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      setShowOnboarding(shouldShowOnboarding());
-    }
-  }, [loading]);
 
   const handleOnboardingComplete = () => {
     markOnboardingComplete();

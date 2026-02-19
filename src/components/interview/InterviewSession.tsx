@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useInterview } from '@/hooks/useInterview';
+import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
+import { type CognitiveSkill } from '@/types/assessment';
 import { useProgress } from '@/hooks/useProgress';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -9,6 +10,7 @@ import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { recordUserQuestion } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
+import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
@@ -49,36 +51,16 @@ export function InterviewSession({
     ragContext,
     remainingQuestions
 }: InterviewSessionProps) {
-    const router = useRouter();
     const { user } = useAuth();
+    const router = useRouter();
 
     // VAD feature flag
     const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
 
-    const {
-        state,
-        messages,
-        isProcessing,
-        startInterview,
-        resetInterview,
-        submitUserResponse,
-        handleInterruption,
-        autoSubmitEnabled,
-        setAutoSubmitEnabled,
-        loadTranscript,
-        voice
-    } = useInterview({ vadEnabled });
-
-    const { analyzeSession, isAnalyzing, result, error: assessmentError, reset: resetAssessment } = useAssessment();
-    const { addSession } = useProgress();
-
-    // Interview limits and guest trial hooks
-    const limits = useInterviewLimits();
-    const guestTrial = useGuestTrial(isGuest);
-
+    // --- 1. Basic State ---
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
-    const [lastBadgeSkill, setLastBadgeSkill] = useState<any>('pattern-recognition');
+    const [lastBadgeSkill, setLastBadgeSkill] = useState<CognitiveSkill>('pattern-recognition');
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('interview');
     const [showLoginModal, setShowLoginModal] = useState(false);
@@ -88,6 +70,50 @@ export function InterviewSession({
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [showMobileWarning, setShowMobileWarning] = useState(false);
     const [optimisticListening, setOptimisticListening] = useState<boolean | null>(null);
+
+    // --- 2. Supporting Hooks ---
+    const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
+    const { addSession } = useProgress();
+    const limits = useInterviewLimits();
+    const guestTrial = useGuestTrial(isGuest);
+
+    // --- 3. Interview Logic & Callbacks ---
+    const handleUserMessage = useCallback((_msg: Message, messageCount: number) => {
+        // 1. Guest trial turn tracking
+        if (isGuest && hasStarted) {
+            guestTrial.recordTurn();
+            // Show login modal when trial is complete
+            if (guestTrial.isTrialComplete && !showLoginModal) {
+                setShowLoginModal(true);
+            }
+        }
+
+        // 2. Increment turn counter
+        if (hasStarted) {
+            limits.incrementTurn();
+        }
+
+        // 3. Demo Skill Badge logic: Trigger a badge on user message
+        if (!showBadge && messageCount > 2) {
+            setLastBadgeSkill(messageCount > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
+            setShowBadge(true);
+        }
+    }, [isGuest, hasStarted, guestTrial, showLoginModal, limits, showBadge]);
+
+    const {
+        state,
+        messages,
+        isProcessing,
+        startInterview,
+        resetInterview,
+        submitUserResponse,
+        handleInterruption,
+        loadTranscript,
+        voice
+    } = useInterview({
+        vadEnabled,
+        onUserMessage: handleUserMessage
+    });
 
     // Track session start time for duration calculation
     const startTimeRef = React.useRef<number>(0);
@@ -102,16 +128,18 @@ export function InterviewSession({
     // Sync optimistic state with real state
     useEffect(() => {
         if (optimisticListening === voice.isListening) {
-            setOptimisticListening(null);
+            setTimeout(() => setOptimisticListening(null), 0);
         }
     }, [voice.isListening, optimisticListening]);
 
     useEffect(() => {
         // Reset local and hook state when problem changes
-        setHasStarted(false);
-        setError(null);
-        resetInterview();
-        transcriptLoadedRef.current = false; // Reset loaded state
+        setTimeout(() => {
+            setHasStarted(false);
+            setError(null);
+            resetInterview();
+            transcriptLoadedRef.current = false; // Reset loaded state
+        }, 0);
     }, [problem.id, problem.title, resetInterview]);
 
     // Stop listening when AI speaks (prevent echo)
@@ -119,9 +147,9 @@ export function InterviewSession({
     useEffect(() => {
         if (voice.isSpeaking && voice.isListening && !vadEnabled) {
             voice.stopListening();
-            setOptimisticListening(false);
+            setTimeout(() => setOptimisticListening(false), 0);
         }
-    }, [voice.isSpeaking, voice.isListening, vadEnabled]);
+    }, [voice, vadEnabled]);
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
@@ -132,7 +160,7 @@ export function InterviewSession({
                 timestamp: new Date() // Placeholder as we don't store per-msg timestamp yet
             }));
             loadTranscript(msgs);
-            setHasStarted(true);
+            setTimeout(() => setHasStarted(true), 0);
             transcriptLoadedRef.current = true;
         }
     }, [readOnly, initialTranscript, loadTranscript]);
@@ -274,49 +302,12 @@ export function InterviewSession({
         limits.stopTimer();
     };
 
-    // Guest trial turn tracking
-    const prevMessagesLengthRef = React.useRef(0);
-    useEffect(() => {
-        if (isGuest && hasStarted) {
-            // Only process new messages
-            const currentLen = messages.length;
-            if (currentLen > prevMessagesLengthRef.current) {
-                prevMessagesLengthRef.current = currentLen;
-                guestTrial.recordTurn();
-            }
-
-            // Show login modal when trial is complete
-            if (guestTrial.isTrialComplete && !showLoginModal) {
-                setShowLoginModal(true);
-            }
-        }
-    }, [messages.length, isGuest, hasStarted, guestTrial.isTrialComplete, guestTrial.recordTurn, showLoginModal]);
-
     // Auto-end on limits (time or turns)
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
             setShowLimitModal(true);
         }
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
-
-    // Increment turn counter when user speaks (use ref to track)
-    const prevUserMsgCountRef = React.useRef(0);
-    useEffect(() => {
-        const userMsgs = messages.filter(m => m.role === 'user').length;
-        if (userMsgs > prevUserMsgCountRef.current && hasStarted) {
-            prevUserMsgCountRef.current = userMsgs;
-            limits.incrementTurn();
-        }
-    }, [messages, hasStarted, limits.incrementTurn]);
-
-    // Demo Skill Badge logic: Trigger a badge on user message if not already showing
-    useEffect(() => {
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg && lastMsg.role === 'user' && !showBadge && messages.length > 2) {
-            setLastBadgeSkill(messages.length > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
-            setShowBadge(true);
-        }
-    }, [messages, showBadge]);
 
     // Badge Auto-Hide Timer - Separate effect to prevent cancellation by message updates
     useEffect(() => {
@@ -847,6 +838,8 @@ export function InterviewSession({
             <div className="fixed top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
                 <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
             </div>
+
+            {hasStarted && <VoiceOnboarding />}
 
 
             {/* Force Mobile Scrollbars Style - Touch Friendly Indicator Look */}

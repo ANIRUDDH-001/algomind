@@ -1,0 +1,5 @@
+
+> algomind@0.1.0 type-check
+> tsc --noEmit
+
+Terminate batch job (Y/N)? Terminate batch job (Y/N)? 

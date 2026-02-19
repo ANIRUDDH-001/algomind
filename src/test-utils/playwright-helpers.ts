@@ -108,6 +108,9 @@ export async function setupInterviewPage(page: Page, url: string = '/interview')
 
     await page.goto(url);
     await page.waitForLoadState('networkidle');
+
+    // Clear onboarding state to ensure it always appears (or never appears if we wanted)
+    await page.evaluate(() => localStorage.removeItem('voice_onboarding_seen'));
 }
 
 // Wait for interview to be fully ready
@@ -117,17 +120,20 @@ export async function waitForInterviewReady(page: Page) {
     await expect(beginBtn).toBeVisible({ timeout: 10000 });
     await beginBtn.click();
 
-    // Check for onboarding modal or mic button
-    // The modal might appear, or we might go straight to interview
-    // Check for Onboarding Modal (it should appear for fresh users)
+    // Small delay to let the modal mount
+    await page.waitForTimeout(1000);
+
+    // Check for Onboarding Modal (it should appear as we cleared localStorage)
     try {
-        const onboardingBtn = page.getByRole('button', { name: /got it, let's start!/i });
-        // Wait up to 5s for the modal
-        await onboardingBtn.waitFor({ state: 'visible', timeout: 8000 });
+        const onboardingBtn = page.getByTestId('onboarding-complete');
+        // Wait up to 12s for the modal
+        await onboardingBtn.waitFor({ state: 'visible', timeout: 12000 });
         await onboardingBtn.click();
         console.log('Dismissed onboarding modal');
+        // Wait for modal to close fully
+        await page.waitForTimeout(500);
     } catch (e) {
-        console.log('Onboarding modal did not appear (or timed out), continuing...');
+        console.log('Onboarding modal did not appear or was not clickable:', e);
     }
 
     // Wait for the interview interface to load (look for mic button)

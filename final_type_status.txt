@@ -1,0 +1,18 @@
+﻿
+> algomind@0.1.0 type-check
+> tsc --noEmit
+
+src/lib/ai/client.ts(617,38): error TS2721: Cannot invoke an object which is possibly 'null'.
+src/lib/ai/client.ts(617,38): error TS18047: 'localEmbedder' is possibly 'null'.
+src/lib/ai/client.ts(651,13): error TS2322: Type 'Promise<FeatureExtractionPipeline>' is not assignable to type 'Promise<(text: string, options?: { pooling?: string | undefined; normalize?: boolean | undefined; } | undefined) => Promise<{ data: Float32Array<ArrayBufferLike>; }>>'.
+  Type 'FeatureExtractionPipeline' is not assignable to type '(text: string, options?: { pooling?: string | undefined; normalize?: boolean | undefined; } | undefined) => Promise<{ data: Float32Array<ArrayBufferLike>; }>'.
+    Types of parameters 'options' and 'options' are incompatible.
+      Type '{ pooling?: string | undefined; normalize?: boolean | undefined; } | undefined' is not assignable to type 'FeatureExtractionPipelineOptions | undefined'.
+        Type '{ pooling?: string | undefined; normalize?: boolean | undefined; }' is not assignable to type 'FeatureExtractionPipelineOptions'.
+          Types of property 'pooling' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "mean" | "cls" | undefined'.
+              Type 'string' is not assignable to type '"none" | "mean" | "cls" | undefined'.
+src/lib/ai/client.ts(661,21): error TS2339: Property 'data' does not exist on type 'number[] | { data?: number[] | Float32Array<ArrayBufferLike> | undefined; } | { data: number[]; }'.
+  Property 'data' does not exist on type 'number[]'.
+src/lib/ai/client.ts(661,52): error TS2339: Property 'data' does not exist on type 'number[] | { data?: number[] | Float32Array<ArrayBufferLike> | undefined; } | { data: number[]; }'.
+  Property 'data' does not exist on type 'number[]'.
