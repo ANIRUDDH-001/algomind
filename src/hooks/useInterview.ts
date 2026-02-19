@@ -329,8 +329,9 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
 
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
+    // DISBLED IF VAD IS ACTIVE: We want continuous listening for interruptions
     useEffect(() => {
-        if (!isListening || !isMicEnabled) return;
+        if (!isListening || !isMicEnabled || options.vadEnabled) return;
 
         const SILENCE_TIMEOUT = 7000; // 7 seconds
 
@@ -342,7 +343,7 @@ export function useInterview(options: { vadEnabled?: boolean } = {}) {
         }, 1000);
 
         return () => clearInterval(checkSilence);
-    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript]);
+    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript, options.vadEnabled]);
 
     const resetInterview = useCallback(() => {
         setMessages([]);
