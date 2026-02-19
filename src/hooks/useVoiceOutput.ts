@@ -22,7 +22,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const [isPaused, setIsPaused] = useState(false);
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
-    const [rate, setRate] = useState(options.rate || 1.0); // Standard speed
+    const [rate, setRate] = useState(options.rate || 0.9); // Slightly slower for natural feel
 
     // Queue of text chunks to speak
     const queueRef = useRef<string[]>([]);
@@ -46,7 +46,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                     const prefs = await getUserPreferences(user?.id || null);
 
                     // Apply Speed
-                    setRate(prefs.voiceRate || 1.0);
+                    setRate(prefs.voiceRate || 0.9);
 
                     // Apply Voice
                     // If we have a preferred name, try to find it
