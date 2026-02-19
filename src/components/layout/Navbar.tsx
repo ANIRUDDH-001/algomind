@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag } from 'lucide-react';
 import Link from 'next/link';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { isDemoMode } from '@/lib/demo/manager';
@@ -138,13 +138,22 @@ export function Navbar() {
 
                                             {/* Admin button - only visible to admins */}
                                             {isAdmin && (
-                                                <DropdownMenuItem
-                                                    onClick={() => router.push('/admin/knowledge')}
-                                                    className="text-emerald-400 hover:bg-emerald-900/30 hover:text-emerald-300 cursor-pointer focus:bg-emerald-800 rounded-xl px-3 py-2 text-xs font-bold"
-                                                >
-                                                    <Shield className="mr-2 h-4 w-4" />
-                                                    Admin Dashboard
-                                                </DropdownMenuItem>
+                                                <>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/knowledge')}
+                                                        className="text-emerald-400 hover:bg-emerald-900/30 hover:text-emerald-300 cursor-pointer focus:bg-emerald-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                    >
+                                                        <Shield className="mr-2 h-4 w-4" />
+                                                        Knowledge Base
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/features')}
+                                                        className="text-purple-400 hover:bg-purple-900/30 hover:text-purple-300 cursor-pointer focus:bg-purple-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                    >
+                                                        <Flag className="mr-2 h-4 w-4" />
+                                                        Feature Flags
+                                                    </DropdownMenuItem>
+                                                </>
                                             )}
 
                                             <DropdownMenuSeparator className="bg-slate-800 my-1" />
