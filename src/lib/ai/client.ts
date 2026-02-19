@@ -2,9 +2,9 @@
 // Automatically falls back between Gemini and Groq based on rate limits
 // DIRECT API CALLS implementation (No SDKs)
 
-import { CHAT_MODELS, ModelConfig, ModelTier, Provider } from './providers';
+import { CHAT_MODELS, ModelConfig, Provider } from './providers';
 import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
-import { IntentClassifier, getIntentClassifier } from './intent-classifier';
+import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
 import type { GenerateResponseOptions, AIResponse } from './types';
@@ -60,7 +60,7 @@ export class UnifiedAIClient {
         messages: Message[],
         options: CompletionOptions = {}
     ): Promise<CompletionResult> {
-        const { preferredProvider = 'groq', maxTokens = 2048, estimatedTokens = 0 } = options;
+        const { preferredProvider = 'groq' } = options;
         const attemptedModels: string[] = [];
 
         // FALLBACK RULES:
@@ -171,8 +171,9 @@ export class UnifiedAIClient {
                 return await this.callGemini(model.id, messages, options);
             }
             return { success: false, error: "Unsupported provider" };
-        } catch (error: any) {
-            return { success: false, error: error.message || String(error) };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return { success: false, error: errorMessage };
         }
     }
 
@@ -251,7 +252,11 @@ export class UnifiedAIClient {
                 ? { parts: [{ text: messages.find(m => m.role === 'system')!.content }] }
                 : undefined);
 
-        const body: any = {
+        const body: {
+            contents: { role: string; parts: { text: string }[] }[];
+            generationConfig: { maxOutputTokens?: number; temperature: number };
+            systemInstruction?: { parts: { text: string }[] };
+        } = {
             contents,
             generationConfig: {
                 maxOutputTokens: options.maxTokens,
@@ -294,7 +299,7 @@ export class UnifiedAIClient {
     /**
      * Legacy chat method for backward compatibility
      */
-    async chat(messages: Message[], options: any = {}) {
+    async chat(messages: Message[], options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}) {
         const result = await this.generateCompletion(messages, {
             preferredProvider: options.preferredTier ? 'groq' : undefined, // loose mapping
             maxTokens: options.maxTokens,
@@ -426,7 +431,6 @@ export class UnifiedAIClient {
         );
 
         // Streaming optimization: simple queries skip streaming for lower latency
-        const shouldStream = classification.complexity !== 'simple' && !!options.streamCallback;
 
         // Try routed provider first
         let result = await this.generateCompletion(messages, {
@@ -609,9 +613,11 @@ export class UnifiedAIClient {
             const localEmbedder = await this.getLocalEmbedder();
             const vectors: number[][] = [];
 
-            for (const text of textArray) {
-                const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
-                vectors.push(this.extractLocalVector(output));
+            if (localEmbedder) {
+                for (const text of textArray) {
+                    const output = await localEmbedder(text, { pooling: 'mean', normalize: true });
+                    vectors.push(this.extractLocalVector(output));
+                }
             }
 
             return {
@@ -654,7 +660,7 @@ export class UnifiedAIClient {
 
     private extractLocalVector(output: any): number[] {
         // Simplified extraction logic compatible with various Xenova output shapes
-        if (output?.data) return Array.from(output.data);
+        if (output && typeof output === 'object' && 'data' in output) return Array.from(output.data);
         if (Array.isArray(output)) {
             if (Array.isArray(output[0])) return output[0]; // Nested array
             return output; // Flat array
@@ -676,7 +682,7 @@ export function getAIClient(): UnifiedAIClient {
 // Helper exports for backward compatibility and RAG imports
 export async function chat(
     messages: Message[],
-    options: any = {}
+    options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}
 ) {
     return getAIClient().chat(messages, options);
 }

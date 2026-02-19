@@ -7,16 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, Volume2, Zap, Globe } from 'lucide-react';
 
 export function VoiceOnboarding() {
-    const [open, setOpen] = useState(false);
-
-    useEffect(() => {
-        // Show only on first visit
-        // In a real app we might check user profile, but localStorage is good for device-specific onboarding
-        const hasSeenOnboarding = localStorage.getItem('voice_onboarding_seen');
-        if (!hasSeenOnboarding) {
-            setOpen(true);
+    const [open, setOpen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !localStorage.getItem('voice_onboarding_seen');
         }
-    }, []);
+        return false;
+    });
 
     const handleComplete = () => {
         localStorage.setItem('voice_onboarding_seen', 'true');
@@ -95,7 +91,7 @@ export function VoiceOnboarding() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                    <Button onClick={handleComplete}>
+                    <Button onClick={handleComplete} data-testid="onboarding-complete">
                         Got it, let's start!
                     </Button>
                 </div>

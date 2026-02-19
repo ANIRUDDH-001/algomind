@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface IntroAnimationProps {
     onComplete: () => void;
@@ -9,6 +9,14 @@ interface IntroAnimationProps {
 
 export function IntroAnimation({ onComplete }: IntroAnimationProps) {
     const [step, setStep] = useState(0);
+    const particlesRef = useRef(
+        [...Array(20)].map(() => ({
+            x: Math.random(), // normalized 0-1
+            y: Math.random(), // normalized 0-1
+            duration: 3 + Math.random() * 2,
+            delay: Math.random() * 2,
+        }))
+    );
 
     useEffect(() => {
         const timers = [
@@ -218,22 +226,22 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
             {/* Animated particles */}
             <div className="absolute inset-0 pointer-events-none">
-                {[...Array(20)].map((_, i) => (
+                {particlesRef.current.map((particle, i) => (
                     <motion.div
                         key={i}
                         className="absolute w-1 h-1 bg-white/30 rounded-full"
                         initial={{
-                            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-                            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+                            x: particle.x * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+                            y: particle.y * (typeof window !== 'undefined' ? window.innerHeight : 800),
                         }}
                         animate={{
                             y: [null, -100],
                             opacity: [0, 1, 0],
                         }}
                         transition={{
-                            duration: 3 + Math.random() * 2,
+                            duration: particle.duration,
                             repeat: Infinity,
-                            delay: Math.random() * 2,
+                            delay: particle.delay,
                         }}
                     />
                 ))}

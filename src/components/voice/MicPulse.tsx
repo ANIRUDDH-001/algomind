@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,13 @@ interface MicPulseProps {
 }
 
 export function MicPulse({ state, className }: MicPulseProps) {
+    const barsRef = useRef(
+        [...Array(12)].map(() => ({
+            height: Math.random() * 40 + 10,
+            duration: 0.4 + Math.random() * 0.4
+        }))
+    );
+
     return (
         <div className={cn("absolute inset-0 overflow-hidden pointer-events-none rounded-xl", className)}>
             <AnimatePresence mode="wait">
@@ -80,16 +87,16 @@ export function MicPulse({ state, className }: MicPulseProps) {
                     {/* SPEAKING: Modern Visualizer Bars */}
                     {state === 'speaking' && (
                         <div className="flex items-end justify-center gap-[3px] h-12">
-                            {[...Array(12)].map((_, i) => (
+                            {barsRef.current.map((bar, i) => (
                                 <motion.div
                                     key={`bar-${i}`}
                                     className="w-1.5 bg-gradient-to-t from-emerald-500 to-cyan-400 rounded-full"
                                     animate={{
-                                        height: [10, Math.random() * 40 + 10, 15],
+                                        height: [10, bar.height, 15],
                                         opacity: [0.5, 1, 0.5]
                                     }}
                                     transition={{
-                                        duration: 0.4 + Math.random() * 0.4,
+                                        duration: bar.duration,
                                         repeat: Infinity,
                                         repeatType: "mirror"
                                     }}
