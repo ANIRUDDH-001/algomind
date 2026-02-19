@@ -6,7 +6,7 @@
 
 ![AlgoMind Dashboard Preview](public/dashboard-screenshot.png)
 
-AlgoMind is a cutting-edge technical interview preparation platform that simulates real-world coding interviews using voice-first AI. Built with a sophisticated **Multi-Model Architecture (Gemini 1.5 + Groq)** and **RAG (Retrieval-Augmented Generation)**, it delivers 99.9% uptime, sub-second latency, and context-aware feedback.
+AlgoMind is a cutting-edge technical interview preparation platform that simulates real-world coding interviews using voice-first AI. Built with a sophisticated **Multi-Model Architecture (Llama 4 + Gemini 2.5)** and **RAG (Retrieval-Augmented Generation)**, it delivers 99.9% uptime, sub-second latency, and context-aware feedback.
 
 Unlike standard coding platforms, AlgoMind evaluates candidates on **8 distinct cognitive dimensions**, providing a granular scientific analysis of their engineering potential.
 
@@ -16,8 +16,9 @@ Unlike standard coding platforms, AlgoMind evaluates candidates on **8 distinct 
 
 ### 🎤 Voice-First AI Interviewer
 *   **Real-time Conversation**: Speak naturally with the AI. It interrupts, asks follow-up questions, and provides hints just like a human interviewer.
-*   **Interruptions & Pacing**: The AI handles interruptions gracefully and manages the interview pace dynamically.
-*   **Multi-Model Voice Pipeline**: Uses browser-native speech recognition for zero-latency input and high-quality TTS for natural output.
+*   **Smart Interruption Manager**: A dedicated `InterruptionManager` handles debouncing and state management to prevent accidental cut-offs while allowing natural turn-taking.
+*   **Voice Activity Detection (VAD)**: Uses **Silero VAD** (ONNX Runtime) directly in the browser for privacy-first, zero-latency speech detection.
+*   **Multi-Model Voice Pipeline**: Browser-native speech recognition + High-quality TTS.
 
 ### 🧠 8-Dimensional Cognitive Assessment
 We go beyond "passing test cases". Use our proprietary scoring engine to measure:
@@ -31,20 +32,21 @@ We go beyond "passing test cases". Use our proprietary scoring engine to measure
 8.  **Adaptability**: How well the candidate incorporates feedback.
 
 ### 🚀 High-Performance AI Architecture
-*   **Hybrid Model Strategy**:
-    *   **Google Gemini 1.5 Pro**: Handles complex reasoning, code analysis, and deep evaluation.
-    *   **Groq (Llama 3/Mixtral)**: Powers instant conversational responses and rapid hints.
-*   **RAG Pipeline**: Vector-search powered retrieval system (Supabase pgvector) ensures the AI "knows" the specific problem context, test cases, and optimal solutions without hallucinations.
+*   **Hybrid Model Strategy (2026 Standards)**:
+    *   **Llama 4 (Maverick/Scout)**: Powers the core interview logic with superior reasoning and speed.
+    *   **Gemini 2.5 / 3.0 Pro**: Handles deep verification and complicated code analysis.
+    *   **Kimi K2**: Especialized in structured output generation.
+*   **Local RAG Pipeline**: Custom **JSON-based Vector Store** with **Hybrid Search** (Cosine Similarity + Jaccard Keyword Matching) ensures the AI "knows" the specific problem context without heavy database dependencies.
 
 ### 📚 Comprehensive Practice Ecosystem
-*   **Curated Problem Lists**: Blind 75, NeetCode 150, Grid 75, and company-specific tracks.
+*   **Massive Problem Bank**: ~480+ High-Quality problems sourced from **Blind 75**, **NeetCode 150**, **Striver's A-Z**, and **Grind 75**.
+*   **Strict Quality Control**: All problems are vetted by a "Lead Tech Interviewer" AI agent for clarity, constraints, and solvability.
 *   **Smart Filters**: Sort by difficulty, topic (DP, Graphs, Trees), and status.
-*   **"Feeling Lucky"**: Random problem generator for spontaneous practice.
 
-### 📊 Professional Insights & Reports
+### 💎 Premium Experience
+*   **Guest Conversion Flow**: Intelligent trial limits with a high-conversion modal to upsell premium features like persistent history and advanced analytics.
 *   **Visual Radar Charts**: Instantly visualize strengths and weaknesses.
-*   **Trend Analysis**: Track improvement over time across all 8 dimensions.
-*   **PDF Export**: Generate professional assessment reports to share with recruiters.
+*   **PDF Export**: Generate professional assessment reports.
 
 ---
 
@@ -55,44 +57,39 @@ We go beyond "passing test cases". Use our proprietary scoring engine to measure
 *   **Language**: [TypeScript](https://www.typescriptlang.org/) (Strict Mode)
 *   **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) + [Framer Motion](https://www.framer.com/motion/)
 *   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+*   **Voice**: Web Speech API + [ONNX Runtime Web](https://onnxruntime.ai/) (Silero VAD)
 
 ### Backend & Database
 *   **Database**: [Supabase](https://supabase.com/) (PostgreSQL)
-*   **Vector Search**: pgvector (for RAG context retrieval)
+*   **Vector Querying**: Local Hybrid Search (In-Memory/JSON)
 *   **Auth**: Supabase Auth (GitHub/Google/Email)
-*   **ORM**: Raw SQL + Supabase Client for maximum performance
 
 ### AI & Intelligence
 *   **Unified AI Client**: Standardized interface with intelligent routing and fallbacks.
-*   **Models (16 Total)**:
-    *   **Groq (Speed)**: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `qwen-2.5-32b`, and more.
-    *   **Gemini (Intelligence)**: `gemini-1.5-pro`, `gemini-2.0-flash`, `gemini-2.0-flash-lite-preview`.
-*   **Embeddings**: `gemini-embedding-001` with `Xenova/all-MiniLM-L6-v2` local fallback.
+*   **Models**:
+    *   **Primary**: `meta-llama/llama-4-maverick-17b-128e-instruct`, `gemini-2.5-flash`
+    *   **Fallback**: `gemma-3-27b-it`, `openai/gpt-oss-120b`
+    *   **Safety**: `openai/gpt-oss-safeguard-20b`
 *   **Resilience**:
-    *   **Fallback Strategy**: Primary Provider -> Same Provider Backup -> Secondary Provider.
-    *   **Rate Limiting**: `IntelligentRateLimiter` tracks RPM/TPM with 15% safety margin and exponential backoff.
-*   **Orchestration**: Custom "Antigravity Router" for failover and model selection
+    *   **Smart Routing**: Automatically switches providers on Rate Limits (429) or API errors.
+    *   **Self-Healing Scripts**: Generation scripts auto-retry and adapt to model capabilities (e.g., handling JSON mode support).
 
 ### DevOps & Tools
+*   **Test**: Playwright (E2E) + Vitest (Unit)
 *   **Linting**: ESLint
-*   **Formatting**: Prettier
-*   **Deployment**: Vercel (Edge Functions ready)
+*   **Deployment**: Vercel
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these steps to set up AlgoMind locally for evaluation.
-
 ### Prerequisites
 *   Node.js 18+
-*   npm or pnpm
-*   Git
+*   npm
 
 ### Installation
 
 1.  **Clone the repository**
-    (Use your own repository URL if forking)
     ```bash
     git clone https://github.com/yourusername/algomind.git
     cd algomind
@@ -101,8 +98,6 @@ Follow these steps to set up AlgoMind locally for evaluation.
 2.  **Install dependencies**
     ```bash
     npm install
-    # or
-    pnpm install
     ```
 
 3.  **Environment Setup**
@@ -111,16 +106,7 @@ Follow these steps to set up AlgoMind locally for evaluation.
     cp .env.example .env.local
     ```
     
-    Fill in your API keys:
-    ```env
-    # AI Providers
-    GEMINI_API_KEY=your_gemini_key
-    GROQ_API_KEY=your_groq_key
-
-    # Supabase (Database & Auth)
-    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-    ```
+    Fill in your API keys for **Gemini**, **Groq**, and **Supabase**.
 
 4.  **Run the Development Server**
     ```bash
@@ -132,28 +118,6 @@ Follow these steps to set up AlgoMind locally for evaluation.
 
 ---
 
-## 🧪 Running Tests & Demo Mode
-
-### Demo Mode
-For hackathons and presentations, we have a built-in **Demo Mode** that populates the dashboard with realistic dummy data to showcase the visualization capabilities without needing to complete 10+ interviews.
-
-1.  Go to **Settings** -> **Developer**.
-2.  Toggle **"Enable Demo Mode"**.
-3.  Refresh the Dashboard to see populated analytics.
-
----
-
-## 🏆 Hackathon Context
-
-This project addresses the **"Interview Gap"**—the disconnect between LeetCode-style grinding and the actual communicative assessment of a real interview.
-
-**Why it wins:**
-1.  **It works**: Fully functional voice loop with negligible latency.
-2.  **It's useful**: Provides actionable data (8-dim score) candidates don't get elsewhere.
-3.  **It's technically impressive**: complex orchestration of multiple LLMs, RAG, and real-time audio analysis in a seamless UI.
-
----
-
 ## 📄 License
 
-MIT License © 2024 AlgoMind
+MIT License © 2026 AlgoMind
