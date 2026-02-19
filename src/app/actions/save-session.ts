@@ -21,9 +21,9 @@ export async function saveInterviewSession(
             .insert({
                 user_id: userId,
                 problem_id: problemId,
-                title: problemTitle,
+                problem_title: problemTitle,
                 transcript: transcript,
-                duration_seconds: durationSeconds,
+                duration: durationSeconds,
                 feedback: result,
                 overall_score: Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length,
                 created_at: new Date().toISOString()
@@ -65,9 +65,8 @@ export async function saveInterviewSession(
         console.log('✅ [ACTION] Session saved successfully');
         return { success: true };
     } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const error = e as any;
+        const error = e as unknown;
         console.error('❌ [ACTION] Unexpected error:', error);
-        return { success: false, error: error.message || String(e) };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
 }

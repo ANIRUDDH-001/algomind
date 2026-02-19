@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
-import { getVectorStore } from '@/lib/rag/vectorStore';
+import { createServerSupabase } from '@/lib/supabase/server';
+import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
+import { incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
 
 export async function POST(req: NextRequest) {
     try {
 
-        let body: any = {};
+        interface ChatRequestBody {
+            messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+            systemPrompt?: string;
+            problemContext?: {
+                title?: string;
+                content?: string;
+                ragContext?: string;
+            };
+            guestMode?: boolean;
+        }
+
+        let body: ChatRequestBody = { messages: [] };
         try {
             const text = await req.text();
             if (text && text.trim()) {
@@ -17,7 +30,25 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext } = body;
+        const { messages, systemPrompt, problemContext, guestMode } = body;
+
+        // 🔒 Auth Check
+        const supabase = await createServerSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!guestMode && !user) {
+            console.warn('⛔ [Chat API] Unauthorized access attempt');
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        if (user) {
+            console.log(`👤 [Chat API] Authenticated user: ${user.id}`);
+        } else if (guestMode) {
+            console.log('👀 [Chat API] Guest mode access');
+        }
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
@@ -30,10 +61,6 @@ export async function POST(req: NextRequest) {
         console.log('🔍 [RAG] Query:', query.substring(0, 100) + (query.length > 100 ? '...' : ''));
 
         // Initialize and Load Vector Store
-        const vectorStore = getVectorStore();
-        await vectorStore.load(); // This loads embeddings.json
-
-        console.log(`🔮 [RAG] Loaded ${vectorStore.size()} chunks from vector store`);
 
         // Perform RAG retrieval - use pre-embedded context if provided (for guests)
         let ragContext = '';
@@ -42,9 +69,10 @@ export async function POST(req: NextRequest) {
             ragContext = problemContext.ragContext;
             console.log(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - saving API calls`);
         } else if (query) {
-            // Perform live RAG retrieval (authenticated users)
+            // Perform live RAG retrieval (authenticated users) via Supabase
             try {
-                const searchResults = await vectorStore.hybridSearch(query, 3);
+                // Determine limit based on query complexity/length if needed, default to 3
+                const searchResults = await supabaseHybridSearch(query, 3);
 
                 if (searchResults.length > 0) {
                     console.log(`✅ [RAG] Found ${searchResults.length} relevant chunks:`);
@@ -59,7 +87,7 @@ export async function POST(req: NextRequest) {
                     console.log('⚠️ [RAG] No relevant chunks found for query');
                 }
             } catch (searchError) {
-                console.warn('❌ [RAG] Search failed:', searchError);
+                console.warn('❌ [RAG] Embedding failed — proceeding without RAG context:', searchError);
                 // Continue without RAG if search fails
             }
         }
@@ -97,6 +125,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // 💾 Track usage for authenticated users
+        if (user && !guestMode) {
+            // Fire and forget - don't block response
+            incrementUserUsage(user.id, supabase).catch(err =>
+                console.error('❌ [Chat API] Failed to track usage:', err)
+            );
+        }
+
         return NextResponse.json({
             response: result.response,
             modelUsed: result.modelUsed,
@@ -111,10 +147,10 @@ export async function POST(req: NextRequest) {
             } : {}),
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('❌ [Chat API] Error:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
+            { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }
         );
     }

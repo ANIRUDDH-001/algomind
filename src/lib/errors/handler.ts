@@ -47,8 +47,8 @@ export async function retryWithBackoff<T>(
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             return await fn();
-        } catch (error) {
-            lastError = error as Error;
+        } catch (error: unknown) {
+            lastError = error instanceof Error ? error : new Error(String(error));
 
             // Don't retry non-retryable errors
             if (error instanceof APIError && !error.retryable) {
@@ -77,7 +77,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
     return (async (...args: Parameters<T>) => {
         try {
             return await fn(...args);
-        } catch (error) {
+        } catch (error: unknown) {
             const handledError = error instanceof Error ? error : new Error(String(error));
             onError?.(handledError);
             throw handledError;

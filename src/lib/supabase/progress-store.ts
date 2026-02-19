@@ -93,14 +93,14 @@ export class SupabaseProgressStore {
                 throw assessmentError;
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ [SupabaseProgressStore] Save failed:', {
-                name: error?.name,
-                message: error?.message,
-                code: error?.code,
-                details: error?.details,
-                hint: error?.hint,
-                stack: error?.stack
+                name: (error as any)?.name,
+                message: (error as any)?.message,
+                code: (error as any)?.code,
+                details: (error as any)?.details,
+                hint: (error as any)?.hint,
+                stack: (error as any)?.stack
             });
             throw error;
         }
@@ -206,10 +206,10 @@ export class SupabaseProgressStore {
                 averageScores,
                 lastUpdated: new Date(),
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ [SupabaseProgressStore] Failed to load progress:', {
-                message: error?.message,
-                code: error?.code
+                message: (error as any)?.message,
+                code: (error as any)?.code
             });
             return null;
         }

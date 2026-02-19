@@ -43,8 +43,8 @@ export class ProgressStore {
 
             const pruned = this.pruneOldSessions(updatedSessions);
             localStorage.setItem(key, JSON.stringify(pruned));
-        } catch (error: any) {
-            if (error.name === 'QuotaExceededError') {
+        } catch (error: unknown) {
+            if ((error as any).name === 'QuotaExceededError') {
                 console.warn("Storage quota exceeded. Forcing prune and retrying.");
                 this.forceClearOldest(session.userId);
                 return this.saveSession(session);

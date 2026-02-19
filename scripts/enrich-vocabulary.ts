@@ -37,7 +37,7 @@ const DOMAINS = {
 
 async function generateMassiveVocabulary() {
     const client = getAIClient();
-    let allTerms: Set<string> = new Set();
+    const allTerms: Set<string> = new Set();
     const outputPath = join(process.cwd(), 'src', 'lib', 'voice', 'vocabulary-ai.ts');
 
     // 1. Load existing terms to avoid duplicates and provide context

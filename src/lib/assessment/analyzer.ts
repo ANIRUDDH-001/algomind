@@ -22,6 +22,18 @@ export interface AssessmentResult {
     modelUsed?: string;
 }
 
+interface ParsedAssessmentResponse {
+    skills: Record<string, {
+        score: number;
+        evidence: string[];
+        strengths: string[];
+        improvements: string[];
+    }>;
+    overallFeedback: string;
+    nextSteps: string[];
+    knowledgeGaps?: string[];
+}
+
 export class CognitiveAnalyzer {
     private maxRetries = 3;
     private retryDelayMs = 1000;
@@ -42,12 +54,12 @@ export class CognitiveAnalyzer {
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
                 const rawResponse = await this.callAI(prompt);
-                const parsedData = this.parseResponse(rawResponse);
+                const parsedData = this.parseResponse(rawResponse) as unknown as ParsedAssessmentResponse;
 
                 // Post-process: calculate confidence and finalize structure
                 const sessionConfidence = calculateConfidence(transcript, parsedData);
 
-                const finalizedSkills: any = {};
+                const finalizedSkills: Record<string, SkillScore> = {};
                 Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
                     const data = parsedData.skills[skillId] || {
                         score: 5,
@@ -71,7 +83,7 @@ export class CognitiveAnalyzer {
                     knowledgeGaps: parsedData.knowledgeGaps || []
                 };
 
-            } catch (error) {
+            } catch (error: unknown) {
                 lastError = error instanceof Error ? error : new Error(String(error));
                 console.warn(`Assessment attempt ${attempt} failed:`, lastError.message);
 
@@ -112,7 +124,7 @@ export class CognitiveAnalyzer {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private parseResponse(raw: string): any {
+    private parseResponse(raw: string): unknown {
         // 1. Strip markdown fences more thoroughly
         let jsonString = raw
             .replace(/^```(?:json)?\s*/i, '')  // Opening fence

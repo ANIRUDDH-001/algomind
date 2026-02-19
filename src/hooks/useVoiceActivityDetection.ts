@@ -191,7 +191,7 @@ export function useVoiceActivityDetection(
             mountedRef.current = false;
             cleanupManager();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     // --- Auto-start ----------------------------------------------------------
@@ -213,7 +213,7 @@ export function useVoiceActivityDetection(
                 setIsSpeaking(false);
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [enabled]);
 
     // -------------------------------------------------------------------------
@@ -324,7 +324,7 @@ export function useVoiceActivityDetection(
         } catch (err) {
             handleError(err);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [enabled, vadConfig]);
 
     /**

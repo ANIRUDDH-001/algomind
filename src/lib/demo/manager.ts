@@ -1,4 +1,6 @@
 const DEMO_MODE_KEY = 'algomind_demo_mode';
+import { SessionHistory } from '@/lib/assessment/progress-store';
+import { CognitiveSkill } from '@/types/assessment';
 
 export function isDemoMode(): boolean {
     if (typeof window === 'undefined') return false;
@@ -20,7 +22,7 @@ export function getDemoProgress() {
 
 // Generate impressive demo data showing clear progression
 function generateImpressiveDemoData() {
-    const sessions: any[] = [];
+    const sessions: SessionHistory[] = [];
 
     // Start with moderate scores, show clear progression
     const baseScores: Record<string, number> = {
@@ -63,9 +65,10 @@ function generateImpressiveDemoData() {
 
         sessions.unshift({
             sessionId: `demo-session-${12 - i}`,
+            userId: 'demo-user',
             problemId: problemNames[i] || `problem-${i}`,
             problemDifficulty: i < 4 ? 'easy' : i < 8 ? 'medium' : 'hard',
-            timestamp: new Date(Date.now() - (11 - i) * 24 * 60 * 60 * 1000).toISOString(),
+            timestamp: new Date(Date.now() - (11 - i) * 24 * 60 * 60 * 1000),
             duration: 300 + Math.floor(Math.random() * 600), // 5-15 minutes
             skills: sessionScores,
             overallScore,
@@ -75,7 +78,7 @@ function generateImpressiveDemoData() {
     // Calculate average scores from latest sessions
     const avgScores: Record<string, number> = {};
     Object.keys(baseScores).forEach(skill => {
-        const sum = sessions.slice(0, 5).reduce((acc, s) => acc + (s.skills[skill] || 0), 0);
+        const sum = sessions.slice(0, 5).reduce((acc, s) => acc + (s.skills[skill as CognitiveSkill] || 0), 0);
         avgScores[skill] = sum / 5;
     });
 

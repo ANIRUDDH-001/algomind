@@ -71,6 +71,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             // And on change
             window.speechSynthesis.onvoiceschanged = updateVoicesAndPrefs;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, options.rate]); // Removed currentVoice dependency to avoid loops, relying on explicit check
 
     const speakChunk = useCallback((text: string) => {

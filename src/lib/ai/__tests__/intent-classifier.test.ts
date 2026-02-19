@@ -11,6 +11,7 @@ import {
     levenshtein,
     type IntentClassification,
 } from '../intent-classifier';
+import { type Mock } from 'vitest';
 
 // ── Levenshtein tests ───────────────────────────────────────────────
 
@@ -368,7 +369,7 @@ describe('IntentClassifier', () => {
                 reasoning: 'Detailed question about algorithms',
             };
 
-            (global.fetch as any).mockResolvedValue({
+            (global.fetch as unknown as Mock).mockResolvedValue({
                 ok: true,
                 json: async () => ({
                     choices: [{

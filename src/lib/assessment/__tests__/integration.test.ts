@@ -12,7 +12,7 @@ describe('Cognitive Assessment Integration', () => {
         difficulty: 'easy'
     };
 
-    const mockTranscript: any[] = [
+    const mockTranscript: { role: string; content: string }[] = [
         { role: 'assistant', content: 'How would you solve this?' },
         { role: 'user', content: 'I would use a hash map to store the complement of each number. This makes it O(n) time.' }
     ];
@@ -25,6 +25,7 @@ describe('Cognitive Assessment Integration', () => {
     });
 
     it('should save and retrieve sessions from ProgressStore', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const session: any = {
             sessionId: 'test-sess-1',
             userId: 'test-user',

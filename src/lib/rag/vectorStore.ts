@@ -76,16 +76,21 @@ export class SimpleVectorStore {
      * Add a chunk with embedding
      */
     async add(chunk: KnowledgeChunk): Promise<void> {
-        // Generate embedding
-        const result = await embed(chunk.content);
+        try {
+            // Generate embedding
+            const result = await embed(chunk.content);
 
-        const embeddedChunk: EmbeddedChunk = {
-            ...chunk,
-            embedding: result.embeddings[0],
-            embeddingModel: result.modelUsed,
-        };
+            const embeddedChunk: EmbeddedChunk = {
+                ...chunk,
+                embedding: result.embeddings[0],
+                embeddingModel: result.modelUsed,
+            };
 
-        this.chunks.push(embeddedChunk);
+            this.chunks.push(embeddedChunk);
+        } catch (error) {
+            console.error(`❌ [VectorStore] Failed to embed chunk "${chunk.title}":`, error);
+            throw error; // Re-throw to signal ingestion failure
+        }
     }
 
     /**
@@ -159,9 +164,12 @@ export class SimpleVectorStore {
         topK: number = 5,
         semanticWeight: number = 0.7
     ): Promise<SearchResult[]> {
-        // Run both searches
+        // Run both searches - handle semantic failure gracefully
         const [semanticResults, keywordResults] = await Promise.all([
-            this.semanticSearch(query, topK * 2),
+            this.semanticSearch(query, topK * 2).catch(err => {
+                console.warn('⚠️ [VectorStore] Semantic search failed (likely embedding issue), falling back to keyword only:', err);
+                return [];
+            }),
             Promise.resolve(this.keywordSearch(query, topK * 2)),
         ]);
 

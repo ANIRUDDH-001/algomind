@@ -67,9 +67,9 @@ export default function VoiceTestPage() {
                     <div className="text-sm text-center text-muted-foreground px-4">
                         <p>Try saying DSA terms:</p>
                         <ul className="mt-2 space-y-1 font-mono text-xs">
-                            <li>"binary search tree"</li>
-                            <li>"dynamic programming"</li>
-                            <li>"O(n squared)"</li>
+                            <li>&quot;binary search tree&quot;</li>
+                            <li>&quot;dynamic programming&quot;</li>
+                            <li>&quot;O(n squared)&quot;</li>
                         </ul>
                     </div>
 

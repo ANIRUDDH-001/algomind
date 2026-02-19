@@ -31,7 +31,7 @@ export const FEATURE_FLAGS = {
     // Response Caching
     ENABLE_RESPONSE_CACHE: {
         storageKey: 'feature_ENABLE_RESPONSE_CACHE',
-        defaultValue: true, // ENABLE by default (improves repeat queries)
+        defaultValue: false, // DISABLED by default (in-memory only, not suitable for serverless)
         description: 'Cache common interview responses for instant retrieval',
         requiresBrowserSupport: false,
     },

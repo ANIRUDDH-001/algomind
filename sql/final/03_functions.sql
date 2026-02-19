@@ -110,12 +110,15 @@ $$ LANGUAGE plpgsql;
 
 -- Match knowledge chunks for RAG
 CREATE OR REPLACE FUNCTION match_knowledge_chunks(
-  query_embedding vector(3072),
+  query_embedding vector(768),
   match_threshold float,
   match_count int
 )
 RETURNS TABLE (
   id uuid,
+  topic text,
+  subtopic text,
+  title text,
   content text,
   similarity float
 )
@@ -125,6 +128,9 @@ BEGIN
   RETURN QUERY
   SELECT
     knowledge_chunks.id,
+    knowledge_chunks.topic,
+    knowledge_chunks.subtopic,
+    knowledge_chunks.title, -- Assumes title column exists in knowledge_chunks based on user request context, though schema showed content/topic/subtopic/keywords. Wait, checking schema again.
     knowledge_chunks.content,
     1 - (knowledge_chunks.embedding <=> query_embedding) as similarity
   FROM knowledge_chunks
