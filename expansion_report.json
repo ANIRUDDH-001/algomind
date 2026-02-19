@@ -1,59 +1,43 @@
 {
-  "timestamp": "2026-02-19T10:41:09.241Z",
-  "total_added": 1,
-  "model_status": {
-    "llama-3.3-70b-versatile": {
-      "exhausted": false,
-      "failed": false
-    },
-    "qwen/qwen3-32b": {
-      "exhausted": false,
-      "failed": false
-    },
-    "mistral-saba-24b": {
-      "exhausted": false,
-      "failed": true,
-      "reason": "Model doesn't exist or decommissioned"
-    },
-    "openai/gpt-oss-120b": {
-      "exhausted": false,
-      "failed": false
-    },
-    "gemini-2.5-flash": {
-      "exhausted": false,
-      "failed": false
-    },
-    "gemini-2.5-pro": {
-      "exhausted": true,
-      "failed": false,
-      "reason": "429 Rate Limit"
-    },
-    "gemini-2.0-flash": {
-      "exhausted": true,
-      "failed": false,
-      "reason": "429 Rate Limit"
-    },
-    "gemini-3-pro-preview": {
-      "exhausted": true,
-      "failed": false,
-      "reason": "429 Rate Limit"
-    },
-    "gemma-3-27b-it": {
-      "exhausted": false,
-      "failed": false
-    }
-  },
-  "details": [
-    {
-      "title": "Substring with Concatenation of All Words",
-      "status": "REJECTED_BY_AI",
-      "reason": "The description is mostly clear, but the third hint 'Handle overlapping windows by adjusting the window size dynamically.' is potentially misleading. The standard optimal solution for this problem (LeetCode 30) typically uses a fixed-size sliding window (equal to the total length of all words) that shifts, often requiring multiple starting points for the window. It does not generally involve dynamically adjusting the window size in the way this hint suggests. Additionally, for completeness, the constraints could explicitly specify the character set for 's' and 'words' and clarify that `words.length` must be at least 1.",
-      "model": "gemini-2.5-flash"
-    },
-    {
-      "title": "Data Stream as Disjoint Intervals",
-      "status": "INSERTED_VERIFIED",
-      "model": "gemini-2.5-flash"
-    }
+  "timestamp": "2026-02-19T12:38:52.650Z",
+  "added_count": 36,
+  "total_db_count": 295,
+  "added_problems": [
+    "Task Scheduler",
+    "Reorganize String",
+    "Course Schedule II",
+    "Critical Connections in a Network",
+    "Minimum Number of Arrows to Burst Balloons",
+    "Find First and Last Position of Element in Sorted Array",
+    "Minimum Falling Path Sum",
+    "Word Break II",
+    "Minimum Genetic Mutation",
+    "Validate Stack Sequences",
+    "Max Points on a Line",
+    "Online Stock Span",
+    "Minimum Remove to Make Valid Parentheses",
+    "Find Median of Two Sorted Arrays",
+    "Find the City With the Smallest Number of Neighbors Above Threshold",
+    "Minimum Effort Path",
+    "Minimum Cost to Hire K Workers",
+    "Number of Good Paths",
+    "Design a Stack With Increment Operation",
+    "Find Minimum Time to Finish Tasks",
+    "Find the Ceiling in a Sorted Array",
+    "Find Indices of Two Numbers Summing to Target",
+    "Maximum Profit from a Single Stock Transaction",
+    "Shortest Transformation Sequence Between Words",
+    "Order Courses to Satisfy Prerequisites",
+    "Merge Multiple Sorted Linked Lists into One",
+    "Time Based Key-Value Store",
+    "Design Twitter",
+    "Subtree of Another Tree",
+    "Jump Game II",
+    "Minimum Time to Collect All Fruits",
+    "Count Subarrays with at Most K Distinct Elements",
+    "Reverse Words in a String",
+    "Minimum Operations to Make Array Equal",
+    "Minimum Absolute Difference",
+    "Minimum Number of Operations to Make Array Elements Equal"
   ]
 }
