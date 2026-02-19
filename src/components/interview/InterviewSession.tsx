@@ -112,12 +112,13 @@ export function InterviewSession({
     }, [problem.id, problem.title, resetInterview]);
 
     // Stop listening when AI speaks (prevent echo)
+    // Stop listening when AI speaks (prevent echo) ONLY if VAD is disabled
     useEffect(() => {
-        if (voice.isSpeaking && voice.isListening) {
+        if (voice.isSpeaking && voice.isListening && !vadEnabled) {
             voice.stopListening();
             setOptimisticListening(false);
         }
-    }, [voice.isSpeaking, voice.isListening]);
+    }, [voice.isSpeaking, voice.isListening, vadEnabled]);
 
     // Handle Read-Only Mode / Resume Session
     useEffect(() => {
