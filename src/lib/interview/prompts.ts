@@ -25,7 +25,7 @@ interface PromptContext {
 export function generateSystemPrompt(problem?: Problem, ragContext?: string): string {
     // If no problem provided, return basic prompt (backward compatibility)
     if (!problem) {
-        return `You are "Algo", an expert technical interviewer at a top tech company. 
+        return `You are "Kai", an expert technical interviewer at a top tech company. 
 Your goal is to conduct a mock regular coding interview. 
 You are friendly, encouraging, but rigorous.
 Speak naturally and concisely (max 2-3 sentences usually) so the candidate can respond.
