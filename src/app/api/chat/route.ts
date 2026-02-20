@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
                 ragContext?: string;
             };
             guestMode?: boolean;
+            companyPersona?: string;
         }
 
         let body: ChatRequestBody = { messages: [] };
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext, guestMode } = body;
+        const { messages, systemPrompt, problemContext, guestMode, companyPersona } = body;
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
@@ -99,12 +100,16 @@ export async function POST(req: NextRequest) {
 
         const client = getAIClient();
 
-        // Enhance system prompt with RAG context
-        const enhancedSystemPrompt = systemPrompt + (ragContext
-            ? `\n\n### RELEVANT DSA KNOWLEDGE (use this to give accurate, educational feedback):\n${ragContext}`
-            : '');
+        // Enhance system prompt with RAG context and Company Persona
+        let enhancedSystemPrompt = systemPrompt || '';
+
+        if (companyPersona) {
+            enhancedSystemPrompt += '\n\n## COMPANY INTERVIEW STYLE\n' + companyPersona;
+            console.log(`🏢 [AI] Applying Company Persona`);
+        }
 
         if (ragContext) {
+            enhancedSystemPrompt += `\n\n### RELEVANT DSA KNOWLEDGE (use this to give accurate, educational feedback):\n${ragContext}`;
             console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
         }
 

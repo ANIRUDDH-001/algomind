@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { setFeatureFlag, getFeatureFlag } from '@/lib/feature-flags';
 
 import { VoiceSettings } from './VoiceSettings';
+import { LeetCodeSettings } from './LeetCodeSettings';
 
 export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
@@ -290,6 +291,9 @@ export function SettingsPanel() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* LeetCode Integration */}
+            <LeetCodeSettings />
 
             {/* App Info */}
             <Card className="bg-slate-900/50 border-slate-800">
