@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createClient } from '@supabase/supabase-js';
 
 async function verifyAdminForApi() {
     const supabase = await createServerSupabase();
@@ -22,6 +23,14 @@ async function verifyAdminForApi() {
     return user;
 }
 
+// Helper to get an admin client that bypasses RLS for table management
+function getAdminClient() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+}
+
 export async function GET() {
     try {
         const user = await verifyAdminForApi();
@@ -29,8 +38,8 @@ export async function GET() {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const supabase = await createServerSupabase();
-        const { data: admins, error } = await supabase
+        const supabaseAdmin = getAdminClient();
+        const { data: admins, error } = await supabaseAdmin
             .from('admin_users')
             .select('id, email, created_at:added_at') // Support added_at from schema
             .order('added_at', { ascending: false });
@@ -60,19 +69,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabase();
+        const supabaseAdmin = getAdminClient();
 
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
             .from('admin_users')
             .select('id')
             .eq('email', email)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             return NextResponse.json({ error: "Already an admin" }, { status: 409 });
         }
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('admin_users')
             .insert({ email, added_by: user.email });
 
@@ -101,9 +110,9 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabase();
+        const supabaseAdmin = getAdminClient();
 
-        const { count, error: countError } = await supabase
+        const { count, error: countError } = await supabaseAdmin
             .from('admin_users')
             .select('*', { count: 'exact', head: true });
 
@@ -113,7 +122,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 });
         }
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('admin_users')
             .delete()
             .eq('email', email);
