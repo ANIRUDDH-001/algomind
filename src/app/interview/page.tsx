@@ -80,7 +80,8 @@ function InterviewContent() {
                 // Handle Rate Limit Result
                 if (rateLimitData) {
                     setRateLimitInfo(rateLimitData);
-                    if (!rateLimitData.allowed) {
+                    // Admin users bypass rate limits entirely
+                    if (!rateLimitData.allowed && !rateLimitData.isAdmin) {
                         setError(`Daily limit reached (${rateLimitData.remaining}/5 questions). Try again tomorrow!`);
                         setLoading(false);
                         return;
