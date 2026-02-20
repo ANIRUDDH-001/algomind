@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS public.model_registry (
 INSERT INTO public.model_registry (model_id, provider, tier, context_window, is_active)
 VALUES
     ('llama-3.3-70b-versatile', 'groq', 1, 128000, true),
-    ('deepseek-r1-distill-llama-70b', 'groq', 1, 128000, true),
-    ('qwen-2.5-coder-32b', 'groq', 1, 32000, true),
+    ('llama-3.1-8b-instant', 'groq', 1, 128000, true),
+    ('gemma2-9b-it', 'groq', 1, 8192, true),
     ('gemini-2.0-flash', 'gemini', 1, 1000000, true),
     ('gemini-2.5-pro', 'gemini', 2, 2000000, true)
 ON CONFLICT (model_id) DO NOTHING;

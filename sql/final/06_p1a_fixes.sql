@@ -141,6 +141,19 @@ CREATE POLICY "Admins manage admin_users"
 
 
 -- -------------------------------------------------------
+-- 4.5. FIX DECOMMISSIONED MODELS (HOTFIX P1-H)
+-- -------------------------------------------------------
+
+DELETE FROM public.model_registry 
+WHERE model_id IN ('qwen-2.5-coder-32b', 'deepseek-r1-distill-llama-70b');
+
+INSERT INTO public.model_registry (model_id, provider, tier, context_window, is_active)
+VALUES
+    ('llama-3.1-8b-instant', 'groq', 1, 128000, true),
+    ('gemma2-9b-it', 'groq', 1, 8192, true)
+ON CONFLICT (model_id) DO NOTHING;
+
+-- -------------------------------------------------------
 -- 5. VERIFICATION QUERIES — Run each to confirm
 -- -------------------------------------------------------
 
