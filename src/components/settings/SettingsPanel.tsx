@@ -8,10 +8,12 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical } from 'lucide-react';
+import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical, Mic } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { setFeatureFlag, getFeatureFlag } from '@/lib/feature-flags';
 
 import { VoiceSettings } from './VoiceSettings';
 
@@ -22,11 +24,13 @@ export function SettingsPanel() {
     const [isClearing, setIsClearing] = useState(false);
     const { user, signOut, isConfigured } = useAuth();
     const router = useRouter();
+    const [vadEnabled, setVadEnabled] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         setIntroEnabled(shouldShowOnboarding());
         setDemoMode(isDemoMode());
+        setVadEnabled(getFeatureFlag('ENABLE_VAD_INTERRUPTIONS'));
 
         const handleDemoChange = (e: CustomEvent<{ enabled: boolean }>) => {
             setDemoMode(e.detail.enabled);
@@ -55,6 +59,11 @@ export function SettingsPanel() {
         window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
         toast.success('Demo mode disabled');
         router.refresh();
+    };
+
+    const handleVadToggle = (checked: boolean) => {
+        setVadEnabled(checked);
+        setFeatureFlag('ENABLE_VAD_INTERRUPTIONS', checked);
     };
 
     const handleStartDemoTour = () => {
@@ -181,6 +190,29 @@ export function SettingsPanel() {
 
             {/* Voice Settings */}
             <VoiceSettings />
+
+            {/* VAD Settings */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                        <Mic className="w-5 h-5" />
+                        Voice Activity Detection
+                    </CardTitle>
+                    <CardDescription>Automatically detects when you stop speaking. Disable if you experience mic issues.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                        <div className="space-y-0.5">
+                            <label className="text-sm font-medium text-slate-300 block">Voice Activity Detection</label>
+                            <p className="text-xs text-slate-500">Changes take effect on next interview session</p>
+                        </div>
+                        <Switch
+                            checked={vadEnabled}
+                            onCheckedChange={handleVadToggle}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Storage Info */}
             <Card className="bg-slate-900/50 border-slate-800">

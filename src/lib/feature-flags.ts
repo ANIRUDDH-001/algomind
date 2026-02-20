@@ -7,7 +7,7 @@ export const FEATURE_FLAGS = {
     // Voice Activity Detection - Natural interruptions
     ENABLE_VAD_INTERRUPTIONS: {
         storageKey: 'feature_ENABLE_VAD_INTERRUPTIONS',
-        defaultValue: false, // START DISABLED in production
+        defaultValue: true, // Enabled by default - user can disable in settings if mic issues occur
         description: 'Enable Voice Activity Detection for natural interruptions',
         requiresBrowserSupport: true,
     },
