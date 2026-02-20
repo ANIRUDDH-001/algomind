@@ -19,7 +19,7 @@ async function safeRpc(name) {
         return await sb.rpc(name);
     } catch (e) {
         return { data: null };
-    }
+    }   
 }
 
 async function safeFrom(table, select, eqCol, eqVal) {

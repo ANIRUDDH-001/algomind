@@ -201,7 +201,7 @@ export default function KnowledgeAdminPage() {
                                 <TrendingUp className="w-5 h-5 text-green-500" />
                             </div>
                             <div>
-                                <div className="text-2xl font-bold text-white">31</div>
+                                <div className="text-2xl font-bold text-white">{chunks.length}</div>
                                 <div className="text-xs text-slate-400">Active RAG Chunks</div>
                             </div>
                         </div>

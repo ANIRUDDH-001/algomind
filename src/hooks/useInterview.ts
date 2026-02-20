@@ -66,6 +66,15 @@ export function useInterview(options: {
         lastResultTime
     } = useVoiceInput();
 
+    const [optimisticListening, setOptimisticListening] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        if (optimisticListening === isListening) {
+            // Need a tiny timeout to avoid React state dispatch mid-render warnings
+            setTimeout(() => setOptimisticListening(null), 0);
+        }
+    }, [isListening, optimisticListening]);
+
     // Voice Hooks
     const voiceOutputOptions = useRef({}).current; // Or useMemo(() => ({}), [])
 
@@ -448,11 +457,17 @@ export function useInterview(options: {
             setState('completed');
         },
         voice: {
-            isListening,
+            isListening: optimisticListening ?? isListening,
             transcript,
             interimTranscript,
-            startListening: () => setIsMicEnabled(true), // Override to set intent
-            stopListening: () => setIsMicEnabled(false), // Override to set intent
+            startListening: () => {
+                setIsMicEnabled(true);
+                setOptimisticListening(true);
+            },
+            stopListening: () => {
+                setIsMicEnabled(false);
+                setOptimisticListening(false);
+            },
             toggleMic, // New toggle
             isMicEnabled, // Expose state
             isSpeaking,
