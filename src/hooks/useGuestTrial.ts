@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 
 // Guest trial configuration
-const GUEST_MAX_TURNS = 5; // AI speaks → User speaks → AI responds (x2) = 5 turns
+const GUEST_MAX_TURNS = 10; // 3-4 full exchanges for a meaningful demo experience
 const STORAGE_KEY = 'algomind_guest_trial';
 
 export interface GuestTrial {

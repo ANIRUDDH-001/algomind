@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
     const isDashboard = pathname.startsWith('/dashboard');
     const isSettings = pathname.startsWith('/settings');
     const isInterview = pathname.startsWith('/interview');
+    const isAdmin = pathname.startsWith('/admin');
 
     // Guest mode check for interview (Query param or Cookie)
     const isGuestMode =
@@ -44,7 +45,7 @@ export async function middleware(request: NextRequest) {
 
     // Redirect to login if accessing protected route without user
     if (!user) {
-        if (isDashboard || isSettings) {
+        if (isDashboard || isSettings || isAdmin) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             return NextResponse.redirect(url);

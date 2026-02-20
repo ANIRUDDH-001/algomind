@@ -41,7 +41,7 @@ export async function GET() {
         const supabaseAdmin = getAdminClient();
         const { data: admins, error } = await supabaseAdmin
             .from('admin_users')
-            .select('id, email, created_at:added_at') // Support added_at from schema
+            .select('id, email, added_at')
             .order('added_at', { ascending: false });
 
         if (error) throw error;

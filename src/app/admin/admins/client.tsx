@@ -6,12 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, User as UserIcon, Trash2, Shield } from 'lucide-react';
 import { format } from 'date-fns';
-import { createBrowserClient } from '@supabase/ssr';
+import { getSupabase } from '@/lib/supabase/client';
 
 interface AdminUser {
     id: string;
     email: string;
-    created_at: string;
+    added_at: string;
 }
 
 export default function AdminsClient() {
@@ -27,10 +27,7 @@ export default function AdminsClient() {
 
     const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabase();
 
     const fetchAdmins = async () => {
         try {
@@ -58,7 +55,8 @@ export default function AdminsClient() {
         };
         fetchUser();
         fetchAdmins();
-    }, [supabase]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleAddAdmin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -208,7 +206,7 @@ export default function AdminsClient() {
                                                 )}
                                             </div>
                                             <p className="text-xs text-slate-500 font-medium mt-1.5">
-                                                Added {format(new Date(admin.created_at || new Date()), 'MMM d, yyyy')}
+                                                Added {format(new Date(admin.added_at || new Date()), 'MMM d, yyyy')}
                                             </p>
                                         </div>
                                     </div>

@@ -16,6 +16,12 @@ export async function saveInterviewSession(
     const supabase = await createClient();
 
     try {
+        // Defensive profile upsert to prevent FK constraint failures
+        // This is needed if the handle_new_user trigger wasn't deployed correctly
+        await supabase
+            .from('profiles')
+            .upsert({ id: userId }, { onConflict: 'id', ignoreDuplicates: true });
+
         const { data: sessionData, error } = await supabase
             .from('interview_sessions')
             .insert({
@@ -24,6 +30,7 @@ export async function saveInterviewSession(
                 problem_title: problemTitle,
                 transcript: transcript,
                 duration: durationSeconds,
+                duration_seconds: durationSeconds,
                 feedback: result,
                 overall_score: Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length,
                 created_at: new Date().toISOString()

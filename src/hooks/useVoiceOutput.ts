@@ -41,6 +41,9 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
                 if (processed.length === 0) return;
 
+                // Don't change voice settings while actively speaking — prevents mid-sentence resets
+                if (isSpeaking) return;
+
                 // 3. Load User Preferences (Voice & Rate)
                 try {
                     const prefs = await getUserPreferences(user?.id || null);

@@ -15,9 +15,18 @@ export function disableDemoMode(): void {
     localStorage.removeItem(DEMO_MODE_KEY);
 }
 
+// Deterministic pseudo-random to prevent chart flicker on re-render
+function seededRandom(seed: number): number {
+    const x = Math.sin(seed * 9301 + 49297) * 233280;
+    return x - Math.floor(x);
+}
+
+// Pre-computed static demo data to avoid flicker
+const STATIC_DEMO_DATA = generateImpressiveDemoData();
+
 // Get demo progress data for display
 export function getDemoProgress() {
-    return generateImpressiveDemoData();
+    return STATIC_DEMO_DATA;
 }
 
 // Generate impressive demo data showing clear progression
@@ -55,10 +64,12 @@ function generateImpressiveDemoData() {
         const improvement = i * 0.28; // Gradual improvement
         const sessionScores: Record<string, number> = {};
 
+        let skillIdx = 0;
         Object.entries(baseScores).forEach(([skill, base]) => {
-            // Add improvement + some variance for realism
-            const variance = (Math.random() - 0.5) * 0.6;
+            // Deterministic variance based on session + skill index
+            const variance = (seededRandom(i * 100 + skillIdx) - 0.5) * 0.6;
             sessionScores[skill] = Math.min(10, Math.max(1, base + improvement + variance));
+            skillIdx++;
         });
 
         const overallScore = Object.values(sessionScores).reduce((a, b) => a + b, 0) / 8;
@@ -69,7 +80,7 @@ function generateImpressiveDemoData() {
             problemId: problemNames[i] || `problem-${i}`,
             problemDifficulty: i < 4 ? 'easy' : i < 8 ? 'medium' : 'hard',
             timestamp: new Date(Date.now() - (11 - i) * 24 * 60 * 60 * 1000),
-            duration: 300 + Math.floor(Math.random() * 600), // 5-15 minutes
+            duration: 300 + Math.floor(seededRandom(i * 7 + 42) * 600), // 5-15 minutes
             skills: sessionScores,
             overallScore,
         });
@@ -88,10 +99,10 @@ function generateImpressiveDemoData() {
         totalSessions: sessions.length,
         averageScores: avgScores,
         averageScore: Object.values(avgScores).reduce((a, b) => a + b, 0) / 8,
-        trends: Object.keys(baseScores).map(skill => ({
+        trends: Object.keys(baseScores).map((skill, idx) => ({
             skill,
             trend: 'improving' as const,
-            change: 15 + Math.random() * 10,
+            change: 15 + seededRandom(idx * 13 + 7) * 10,
         })),
         lastUpdated: new Date().toISOString(),
     };
