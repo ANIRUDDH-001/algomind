@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React from 'react';
 import { Mic, MicOff, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';

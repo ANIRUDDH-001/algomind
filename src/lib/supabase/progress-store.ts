@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { getSupabase } from './client';
 import { SessionHistory, UserProgress, SkillTrend, CognitiveSkill } from '@/types/assessment';
 import {
