@@ -1,5 +1,6 @@
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 const DAILY_LIMIT = 5;
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
@@ -48,6 +49,14 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         const result = data?.[0];
         if (!result) {
             return { allowed: false, remaining: 0, isAdmin: false };
+        }
+
+        if (!result.allowed && !result.is_admin_user) {
+            void logSystemEvent({
+                type: 'user_rate_limit',
+                userId: userId,
+                metadata: { count: DAILY_LIMIT - result.remaining, limit: DAILY_LIMIT }
+            });
         }
 
         return {
@@ -132,6 +141,15 @@ function checkLocalRateLimit(): RateLimitResult {
         }
 
         const remaining = Math.max(0, DAILY_LIMIT - usage.count);
+
+        if (remaining === 0) {
+            void logSystemEvent({
+                type: 'user_rate_limit',
+                userId: 'local',
+                metadata: { count: usage.count, limit: DAILY_LIMIT }
+            });
+        }
+
         return {
             allowed: remaining > 0,
             remaining,
