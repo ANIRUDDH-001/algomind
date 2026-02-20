@@ -42,13 +42,14 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
 
         if (error) {
             console.error('❌ [Rate Limit] Check failed:', error);
-            // Fail closed - deny on error for verified users to prevent abuse
-            return { allowed: false, remaining: 0, isAdmin: false };
+            // Fail OPEN - allow on error so missing RPCs or DB issues don't block users
+            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
         }
 
         const result = data?.[0];
         if (!result) {
-            return { allowed: false, remaining: 0, isAdmin: false };
+            // No data returned - fail open
+            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
         }
 
         if (!result.allowed && !result.is_admin_user) {
@@ -66,8 +67,8 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         };
     } catch (error: unknown) {
         console.error('❌ [Rate Limit] Unexpected error:', error);
-        // Fail closed
-        return { allowed: false, remaining: 0, isAdmin: false };
+        // Fail open - don't block users on unexpected errors
+        return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
     }
 }
 
