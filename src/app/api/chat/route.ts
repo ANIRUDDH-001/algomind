@@ -3,6 +3,7 @@ import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
 import { incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function POST(req: NextRequest) {
     try {
@@ -88,6 +89,10 @@ export async function POST(req: NextRequest) {
                 }
             } catch (searchError) {
                 console.warn('❌ [RAG] Embedding failed — proceeding without RAG context:', searchError);
+                void logSystemEvent({
+                    type: 'embedding_failed',
+                    errorMessage: searchError instanceof Error ? searchError.message : String(searchError)
+                });
                 // Continue without RAG if search fails
             }
         }

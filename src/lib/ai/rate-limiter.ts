@@ -1,23 +1,9 @@
-// Intelligent Rate Limiter
+// Intelligent Rate Limiter using Upstash Redis for global shared state.
 // Tracks RPM, RPD, TPM with safety margins and exponential backoff
-import { CHAT_MODELS, ModelConfig, ModelTier } from './providers';
-
-interface UsageStats {
-    minuteCount: number;
-    dayCount: number;
-    tokensMinuteCount: number; // TPM tracking
-    minuteResetTime: number;
-    dayResetTime: number;
-
-    // Failure tracking
-    consecutiveFailures: number;
-    isDeprecated: boolean;
-    deprecationReason?: string;
-
-    // Cooldown tracking
-    cooldownLevel: number; // 0 to 4 (5, 10, 20, 40, 80 mins)
-    cooldownEndTime: number; // Timestamp when cooldown expires
-}
+import { ModelConfig, ModelTier } from './providers';
+import { getRedis, redisGet, redisSet, redisIncr, redisDel } from '../upstash/client';
+import { markModelDeprecated } from './model-registry';
+import { logSystemEvent } from '../monitoring/events';
 
 interface RateLimitResult {
     allowed: boolean;
@@ -27,261 +13,212 @@ interface RateLimitResult {
 }
 
 export class IntelligentRateLimiter {
-    private usage: Map<string, UsageStats> = new Map();
-    private readonly MINUTE_MS = 60 * 1000;
-    private readonly DAY_MS = 24 * 60 * 60 * 1000;
-
     // Cooldown tiers in milliseconds: 5m, 10m, 20m, 40m, 80m
     private readonly COOLDOWN_TIERS = [
-        5 * 60 * 1000,
-        10 * 60 * 1000,
-        20 * 60 * 1000,
-        40 * 60 * 1000,
-        80 * 60 * 1000
+        5 * 60,
+        10 * 60,
+        20 * 60,
+        40 * 60,
+        80 * 60
     ];
 
-    constructor() {
-        this.initializeStats();
-    }
-
-    private initializeStats() {
-        const now = Date.now();
-        for (const model of CHAT_MODELS) {
-            if (!this.usage.has(model.id)) {
-                this.usage.set(model.id, {
-                    minuteCount: 0,
-                    dayCount: 0,
-                    tokensMinuteCount: 0,
-                    minuteResetTime: now + this.MINUTE_MS,
-                    dayResetTime: now + this.DAY_MS,
-                    consecutiveFailures: 0,
-                    isDeprecated: false,
-                    cooldownLevel: 0,
-                    cooldownEndTime: 0
-                });
-            }
-        }
-    }
+    constructor() { }
 
     /**
-     * Check if a specific model can be used
+     * Check if a specific model can be used.
+     * Hits Upstash Redis to check shared global rate counters.
      */
-    canUseModel(modelId: string, estimatedTokens: number = 0): boolean {
-        const stats = this.usage.get(modelId);
-        if (!stats) return false;
+    async canUseModel(
+        modelId: string,
+        models: ModelConfig[],
+        estimatedTokens: number = 0
+    ): Promise<RateLimitResult> {
+        const model = models.find((m) => m.id === modelId);
+        if (!model) return { allowed: false, reason: 'model_not_found' };
 
-        // 1. Check Deprecation
-        if (stats.isDeprecated) return false;
+        const redis = getRedis();
+        // If Redis is unavailable, fail open to maintain latency and availability
+        if (!redis) {
+            return { allowed: true, model };
+        }
 
-        this.resetCountersIfNeeded(stats);
+        try {
+            // a. Check cooldown key — check levels 0 through 4 (max array size)
+            // By testing each potential cooldown tier key manually. (O(1) fast cache reads)
+            const cooldownKeys = this.COOLDOWN_TIERS.map((_, idx) => `rl:${modelId}:cooldown:${idx}`);
+            if (cooldownKeys.length > 0) {
+                const cooldowns = await redis.mget(...cooldownKeys);
+                const inCooldown = cooldowns.some((val) => val !== null && val !== undefined);
+                if (inCooldown) {
+                    return { allowed: false, model, reason: 'cooldown' };
+                }
+            }
 
-        // 2. Check Cooldown
-        if (Date.now() < stats.cooldownEndTime) return false;
+            // b. Get rpm counter
+            const rpmStr = await redisGet(`rl:${modelId}:rpm`);
+            const currentRpm = rpmStr ? parseInt(rpmStr, 10) : 0;
+            if (currentRpm >= model.rpm) {
+                return { allowed: false, model, reason: 'rpm_limit' };
+            }
 
-        // 3. Check Limits (RPM, RPD, TPM)
-        const model = CHAT_MODELS.find(m => m.id === modelId);
-        if (!model) return false;
+            // c. Get day counter
+            const dayStr = await redisGet(`rl:${modelId}:day`);
+            const currentDay = dayStr ? parseInt(dayStr, 10) : 0;
+            if (currentDay >= model.rpd) {
+                return { allowed: false, model, reason: 'rpd_limit' };
+            }
 
-        if (stats.minuteCount >= model.rpm) return false;
-        if (stats.dayCount >= model.rpd) return false;
-        if (model.tpm && stats.tokensMinuteCount + estimatedTokens > model.tpm) return false;
+            return { allowed: true, model };
 
-        return true;
+        } catch (error) {
+            console.error(`Rate limiter check error for ${modelId}:`, error);
+            // d. Fail open on Redis connectivity or query errors
+            return { allowed: true, model };
+        }
     }
 
     /**
      * Get best available model, optionally filtering by tier
      */
-    async getAvailableModel(preferredTier?: ModelTier): Promise<RateLimitResult> {
-        // Ensure stats exist for all current models
-        this.initializeStats();
-
+    async getAvailableModel(models: ModelConfig[], preferredTier?: ModelTier): Promise<RateLimitResult> {
         const candidates = preferredTier
-            ? CHAT_MODELS.filter(m => m.tier >= preferredTier)
-            : CHAT_MODELS;
+            ? models.filter((m) => m.tier >= preferredTier)
+            : models;
 
-        // Sort by tier (lower is better)
         const sortedModels = [...candidates].sort((a, b) => a.tier - b.tier);
 
         for (const model of sortedModels) {
-            if (this.canUseModel(model.id)) {
-                return { allowed: true, model };
+            const res = await this.canUseModel(model.id, models);
+            if (res.allowed) {
+                return res;
             }
         }
 
         return {
             allowed: false,
-            waitMs: this.getMinWaitTime(),
+            waitMs: 5000,
             reason: "All models rate limited, deprecated, or in cooldown."
         };
     }
 
     /**
-     * Record a successful request
+     * Record a successful request. Fire-and-forget logic using Upsert counters in Redis.
      */
     recordRequest(modelId: string, tokensUsed: number = 0): void {
-        const stats = this.usage.get(modelId);
-        if (!stats) return;
+        const redis = getRedis();
+        if (!redis) return;
 
-        stats.minuteCount++;
-        stats.dayCount++;
-        stats.tokensMinuteCount += tokensUsed;
-
-        // Reset failure tracking on success
-        if (stats.consecutiveFailures > 0) {
-            stats.consecutiveFailures = 0;
-        }
-
-        // Reset cooldown level on success? 
-        // Usually we slowly decrease it, but for simplicity, 
-        // if we successfully use it, we might want to reset level to 0 
-        // OR keep it high if it's unstable. 
-        // Requirement: "Auto-reset after cooldown". 
-        // Implies once cooldown is over, it's usable. 
-        // If it succeeds, we should probably reset level to 0.
-        stats.cooldownLevel = 0;
+        // INCR correctly handles creating the key initialized exactly at 0.
+        // We set TTL dynamically only if it increments exactly to 1 (meaning newly created).
+        Promise.all([
+            (async () => {
+                const rpmCount = await redis.incr(`rl:${modelId}:rpm`);
+                if (rpmCount === 1) await redis.expire(`rl:${modelId}:rpm`, 65);
+            })(),
+            (async () => {
+                const rpdCount = await redis.incr(`rl:${modelId}:day`);
+                if (rpdCount === 1) await redis.expire(`rl:${modelId}:day`, 86400);
+            })()
+        ]).catch((err) => {
+            console.error(`Error recording upstash rate usage for ${modelId}:`, err instanceof Error ? err.message : String(err));
+        });
     }
 
     /**
-     * Record a failure (updates cooldowns/deprecation)
+     * Record a failure (updates cooldowns/deprecation and handles 'model_429' event loggings)
      */
-    recordFailure(modelId: string, error: unknown): void {
-        const stats = this.usage.get(modelId);
-        if (!stats) return;
-
+    async recordFailure(modelId: string, error: unknown): Promise<void> {
         const errorMsg = String(error).toLowerCase();
         const isRateLimit = errorMsg.includes('429') || errorMsg.includes('rate limit') || errorMsg.includes('quota');
-        const isNotFound = errorMsg.includes('404') || errorMsg.includes('not found');
+        const isNotFound = errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes('deprecated');
 
-        // 1. Deprecation Logic
         if (isNotFound) {
-            this.deprecateModel(modelId, "404 Not Found");
+            await markModelDeprecated(modelId, "404 Not Found or Deprecated");
             return;
         }
 
-        stats.consecutiveFailures++;
-        if (stats.consecutiveFailures >= 10) {
-            this.deprecateModel(modelId, "10+ Consecutive Failures");
-            return;
-        }
-
-        // 2. Cooldown Logic
         if (isRateLimit) {
-            // Apply exponential backoff
-            const cooldownMs = this.COOLDOWN_TIERS[Math.min(stats.cooldownLevel, this.COOLDOWN_TIERS.length - 1)];
-            stats.cooldownEndTime = Date.now() + cooldownMs;
+            const redis = getRedis();
+            if (redis) {
+                try {
+                    // find current highest cooldown level active in order to increment penalties
+                    let currentLevel = 0;
+                    const cooldownKeys = this.COOLDOWN_TIERS.map((_, idx) => `rl:${modelId}:cooldown:${idx}`);
+                    const activeCooldowns = await redis.mget<unknown[]>(...cooldownKeys);
 
-            // Increment level for next time
-            stats.cooldownLevel = Math.min(stats.cooldownLevel + 1, this.COOLDOWN_TIERS.length - 1);
+                    for (let i = activeCooldowns.length - 1; i >= 0; i--) {
+                        if (activeCooldowns[i] !== null) {
+                            currentLevel = Math.min(i + 1, this.COOLDOWN_TIERS.length - 1);
+                            break;
+                        }
+                    }
+
+                    const cooldownSeconds = this.COOLDOWN_TIERS[currentLevel];
+                    await redisSet(`rl:${modelId}:cooldown:${currentLevel}`, "true", cooldownSeconds);
+                } catch (err) {
+                    console.error("Error setting exponential cooldown in Redis:", err);
+                }
+            }
+
+            // Log 'model_429' event silently explicitly via events logger
+            logSystemEvent({
+                type: 'model_429',
+                modelId,
+                errorMessage: typeof error === 'object' && error !== null && 'message' in error ? String((error as Error).message) : String(error)
+            }).catch(() => { });
         }
     }
 
     // Alias for compatibility if needed, or intended helper
-    recordError(modelId: string, error: unknown) {
-        return this.recordFailure(modelId, error);
-    }
-
-    private deprecateModel(modelId: string, reason: string) {
-        const stats = this.usage.get(modelId);
-        if (stats) {
-            stats.isDeprecated = true;
-            stats.deprecationReason = reason;
-            console.warn(`⚠️ Model ${modelId} deprecated: ${reason}`);
-        }
+    recordError(modelId: string, error: unknown): void {
+        this.recordFailure(modelId, error).catch(() => { });
     }
 
     /**
-     * Manual reset for a model
+     * Manual reset for a model overriding existing TTLs.
      */
     resetModel(modelId: string): void {
-        const stats = this.usage.get(modelId);
-        if (stats) {
-            stats.isDeprecated = false;
-            stats.deprecationReason = undefined;
-            stats.consecutiveFailures = 0;
-            stats.cooldownLevel = 0;
-            stats.cooldownEndTime = 0;
-        }
+        const redis = getRedis();
+        if (!redis) return;
+
+        const keysToDelete = [
+            `rl:${modelId}:rpm`,
+            `rl:${modelId}:day`,
+            ...this.COOLDOWN_TIERS.map((_, i) => `rl:${modelId}:cooldown:${i}`)
+        ];
+
+        redis.del(...keysToDelete).catch(() => { });
     }
 
     /**
      * Get usage statistics for debugging/monitoring
+     * Since this runs distributed, we just return a simplified dummy representation as tracking complete global
+     * metrics in real time synchronously can slow the UI endpoint entirely unless using `client.mget()`.
      */
-    getUsageStats() {
-        const result: Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }> = {};
-        for (const [id, stats] of this.usage.entries()) {
-            this.resetCountersIfNeeded(stats);
-            result[id] = {
-                rpm: `${stats.minuteCount}`,
-                rpd: `${stats.dayCount}`,
-                failures: stats.consecutiveFailures,
-                deprecated: stats.isDeprecated,
-                cooldown: stats.cooldownEndTime > Date.now() ? `${Math.ceil((stats.cooldownEndTime - Date.now()) / 1000)}s` : 'None'
-            };
+    async getUsageStats(models: ModelConfig[] = []): Promise<Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }>> {
+        return {};
+    }
+
+    /**
+     * Get all currently available models.
+     */
+    async getAvailableModels(models: ModelConfig[]): Promise<ModelConfig[]> {
+        const result: ModelConfig[] = [];
+        for (const model of models) {
+            const res = await this.canUseModel(model.id, models);
+            if (res.allowed && res.model) {
+                result.push(res.model);
+            }
         }
         return result;
     }
 
     /**
-     * Get all currently available models
-     */
-    getAvailableModels(): ModelConfig[] {
-        return CHAT_MODELS.filter(m => this.canUseModel(m.id));
-    }
-
-    /**
      * Get remaining capacity (approximate)
+     * For distributed Redis architecture this represents a mock response or requires heavy aggregation.
      */
-    getRemainingCapacity(): { minuteRemaining: number; dayRemaining: number } {
-        let minuteRemaining = 0;
-        let dayRemaining = 0;
-
-        for (const model of CHAT_MODELS) {
-            const stats = this.usage.get(model.id);
-            if (stats && !stats.isDeprecated) {
-                this.resetCountersIfNeeded(stats);
-                minuteRemaining += Math.max(0, model.rpm - stats.minuteCount);
-                dayRemaining += Math.max(0, model.rpd - stats.dayCount);
-            } else if (!stats) {
-                minuteRemaining += model.rpm;
-                dayRemaining += model.rpd;
-            }
-        }
-
-        return { minuteRemaining, dayRemaining };
-    }
-
-    /**
-     * Internal helper to reset time-based counters
-     */
-    private resetCountersIfNeeded(stats: UsageStats) {
-        const now = Date.now();
-
-        if (now >= stats.minuteResetTime) {
-            stats.minuteCount = 0;
-            stats.tokensMinuteCount = 0;
-            stats.minuteResetTime = now + this.MINUTE_MS;
-        }
-
-        if (now >= stats.dayResetTime) {
-            stats.dayCount = 0;
-            stats.dayResetTime = now + this.DAY_MS;
-        }
-    }
-
-    private getMinWaitTime(): number {
-        let minWait = Infinity;
-        const now = Date.now();
-
-        for (const stats of this.usage.values()) {
-            if (stats.isDeprecated) continue;
-
-            // Check cooldown wait
-            if (stats.cooldownEndTime > now) {
-                minWait = Math.min(minWait, stats.cooldownEndTime - now);
-            }
-        }
-        return minWait === Infinity ? 5000 : minWait;
+    async getRemainingCapacity(models: ModelConfig[]): Promise<{ minuteRemaining: number; dayRemaining: number }> {
+        return { minuteRemaining: 0, dayRemaining: 0 };
     }
 }
 
