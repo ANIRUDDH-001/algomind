@@ -3,7 +3,7 @@ import { ModelConfig, CHAT_MODELS } from './providers';
 import { redisGet, redisSet, redisDel } from '../upstash/client';
 import { logSystemEvent } from '../monitoring/events';
 
-const CACHE_KEY = 'model_registry_v1';
+const CACHE_KEY = 'model_registry_v2';
 const CACHE_TTL_SECONDS = 3600; // 1 hour
 
 export interface ModelRegistryEntry {
@@ -90,18 +90,22 @@ export async function getActiveModels(): Promise<ModelConfig[]> {
 
             if (data && data.length > 0) {
                 // 3. Map DB rows to ModelConfig
-                const mappedModels: ModelConfig[] = (data as ModelRegistryEntry[]).map((row) => ({
-                    id: row.model_id,
-                    provider: row.provider as ModelConfig['provider'], // Cast to exact union type
-                    tier: row.tier,
-                    rpm: row.rpm,
-                    tpm: row.tpm,
-                    rpd: row.rpd,
-                    contextWindow: row.context_window,
-                    supportsEmbeddings: false, // Defaulting, adjust if needed or add to DB
-                    description: row.notes || `${row.provider} model (Tier ${row.tier})`,
-                    notes: row.notes || undefined,
-                }));
+                const mappedModels: ModelConfig[] = (data as ModelRegistryEntry[]).map((row) => {
+                    // Fallback to static CHAT_MODELS configuration to fill in missing/zero limits
+                    const fallback = CHAT_MODELS.find(m => m.id === row.model_id);
+                    return {
+                        id: row.model_id,
+                        provider: row.provider as ModelConfig['provider'], // Cast to exact union type
+                        tier: row.tier,
+                        rpm: row.rpm > 0 ? row.rpm : (fallback?.rpm || 25),
+                        tpm: row.tpm > 0 ? row.tpm : (fallback?.tpm || 5000),
+                        rpd: row.rpd > 0 ? row.rpd : (fallback?.rpd || 850),
+                        contextWindow: row.context_window > 0 ? row.context_window : (fallback?.contextWindow || 8192),
+                        supportsEmbeddings: fallback?.supportsEmbeddings || false,
+                        description: row.notes || fallback?.description || `${row.provider} model (Tier ${row.tier})`,
+                        notes: row.notes || undefined,
+                    };
+                });
 
                 // 4. Cache the result
                 try {
