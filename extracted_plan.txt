@@ -1,0 +1,1143 @@
+AlgoMind
+Phase 1 Completion Plan
+Copy-paste Claude prompts to fix every issue. Complete all phases. Then move to Phase 2.
+Phase
+Goal
+Effort
+Priority
+P1-A
+Database migration audit & alignment
+30–60 min
+🔴 CRITICAL
+P1-B
+CSS, dark mode & layout fixes
+20–30 min
+🟠 HIGH
+P1-C
+User limits & rate limit hardening
+45–60 min
+🟠 HIGH
+P1-D
+Duplicate session save & DB write fix
+20 min
+🟠 HIGH
+P1-E
+Security — RLS & any-type cleanup
+30 min
+🟡 MEDIUM
+P1-F
+Code quality & singleton patterns
+20 min
+🟡 MEDIUM
+P1-G
+Full verification run
+30–45 min
+🟢 GATE
+⚠️  Complete ALL phases in order. Each phase has a verification checklist. Do not start Phase 2 until Phase 1-G passes clean.
+PHASE P1-A
+Database Migration Audit
+Run the MIGRATION.md SQL, verify all tables, fix embedding dimension mismatch
+Before touching a single line of code, the database must be fully set up and verified. The Phase 1 code references tables that may not exist yet. This is the most critical phase — everything else depends on it.
+1
+Run MIGRATION.md — Steps 1 through 14 in Supabase SQL Editor
+⚠️  Run each step of MIGRATION.md in order in your Supabase SQL Editor. Do NOT skip steps. If you get a "relation already exists" error on Step 1, that is fine — it means you are migrating an existing project.
+After running all steps, run this verification query in Supabase SQL Editor:
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public' ORDER BY table_name;
+Expected tables (18 total):
+admin_users, assessment_campaigns, assessments, candidate_submissions
+company_profiles, dsa_knowledge, insight_snapshots, interview_sessions
+learner_profiles, leetcode_profiles, model_registry, problems
+profiles, session_replays, spaced_repetition, system_events
+user_preferences, user_rate_limits
+2
+Fix the Embedding Dimension Mismatch — CRITICAL
+🔴  CRITICAL: knowledge_chunks table uses vector(3072) but match_knowledge_chunks() SQL function expects vector(768). RAG will fail on every call until this is fixed. Choose ONE option below.
+Run this in Supabase SQL Editor — choose the option that matches your embedding model:
+📋  PROMPT FOR CLAUDE  —  OPTION A — Use Gemini text-embedding-004 (768 dimensions) [Recommended]
+-- Run in Supabase SQL Editor
+-- First check what dimension your knowledge_chunks table currently uses:
+SELECT column_name, udt_name, character_maximum_length
+FROM information_schema.columns
+WHERE table_name = 'knowledge_chunks' AND column_name = 'embedding';
+ 
+-- If it shows vector or vector(3072), alter it to 768:
+-- WARNING: This will wipe existing embeddings. Re-run your ingest script after.
+ALTER TABLE public.knowledge_chunks
+  ALTER COLUMN embedding TYPE vector(768)
+  USING NULL;  -- sets existing to NULL, you must re-ingest
+ 
+-- Update the match function signature to match:
+CREATE OR REPLACE FUNCTION match_knowledge_chunks(
+  query_embedding vector(768),
+  match_threshold float DEFAULT 0.5,
+  match_count int DEFAULT 3
+)
+RETURNS TABLE (
+  id uuid, topic text, subtopic text,
+  title text, content text, similarity float
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    kc.id, kc.topic, kc.subtopic,
+    COALESCE(kc.topic || ': ' || kc.subtopic, 'Untitled') AS title,
+    kc.content,
+    1 - (kc.embedding <=> query_embedding) as similarity
+  FROM knowledge_chunks kc
+  WHERE kc.embedding IS NOT NULL
+    AND 1 - (kc.embedding <=> query_embedding) > match_threshold
+  ORDER BY kc.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+ 
+-- Verify the fix:
+SELECT proname, pronargs FROM pg_proc
+WHERE proname = 'match_knowledge_chunks';
+3
+Fix check_user_rate_limit — Make it atomic
+🔴  The current check_user_rate_limit RPC reads the count but does NOT increment it. A separate call increments it later — creating a race condition. Replace with this atomic version.
+📋  PROMPT FOR CLAUDE  —  Atomic Rate Limit Function — Run in Supabase SQL Editor
+-- Drop and recreate with atomic increment-then-check logic
+CREATE OR REPLACE FUNCTION check_user_rate_limit(
+  p_user_id UUID,
+  p_limit INTEGER DEFAULT 5
+)
+RETURNS TABLE(allowed BOOLEAN, remaining INTEGER, is_admin_user BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_current_usage INTEGER;
+  v_is_admin BOOLEAN;
+BEGIN
+  -- 1. Check admin status first (admins exempt from limits)
+  v_is_admin := public.is_admin(p_user_id);
+  IF v_is_admin THEN
+    RETURN QUERY SELECT TRUE, p_limit, TRUE;
+    RETURN;
+  END IF;
+ 
+  -- 2. Atomic increment: insert 1 or add 1 if today's row exists
+  INSERT INTO public.user_daily_usage (user_id, date, questions_used)
+  VALUES (p_user_id, CURRENT_DATE, 1)
+  ON CONFLICT (user_id, date)
+  DO UPDATE SET
+    questions_used = user_daily_usage.questions_used + 1,
+    updated_at = NOW()
+  RETURNING questions_used INTO v_current_usage;
+ 
+  -- 3. If over limit, rollback the increment and return denied
+  IF v_current_usage > p_limit THEN
+    -- Undo the increment we just did
+    UPDATE public.user_daily_usage
+    SET questions_used = questions_used - 1, updated_at = NOW()
+    WHERE user_id = p_user_id AND date = CURRENT_DATE;
+ 
+    RETURN QUERY SELECT FALSE, 0, FALSE;
+  ELSE
+    RETURN QUERY SELECT TRUE, p_limit - v_current_usage, FALSE;
+  END IF;
+END;
+$$;
+ 
+-- record_user_question is now ONLY called as a backup.
+-- With the atomic check above, the client-side incrementUserUsage() call
+-- in InterviewSession.tsx can be REMOVED (see Phase P1-C).
+-- Keep this function for legacy compat but it should not be called in the main flow:
+CREATE OR REPLACE FUNCTION record_user_question(p_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO public.user_daily_usage (user_id, date, questions_used)
+  VALUES (p_user_id, CURRENT_DATE, 1)
+  ON CONFLICT (user_id, date)
+  DO UPDATE SET questions_used = user_daily_usage.questions_used + 1,
+               updated_at = NOW();
+END;
+$$;
+4
+Fix Admin Users RLS — Restrict Who Can See Admin Emails
+🔴  Currently any authenticated user can SELECT all rows from admin_users, exposing all admin emails. Fix with a restrictive policy.
+📋  PROMPT FOR CLAUDE  —  Fix admin_users RLS — Run in Supabase SQL Editor
+-- Drop the overly permissive policy
+DROP POLICY IF EXISTS "Anyone can check admin status" ON public.admin_users;
+DROP POLICY IF EXISTS "Admin users can view admin list" ON public.admin_users;
+ 
+-- Replace: users can only see their OWN admin record (not the full list)
+CREATE POLICY "Users check own admin status"
+  ON public.admin_users FOR SELECT
+  USING (
+    email = (SELECT email FROM auth.users WHERE id = auth.uid())
+  );
+ 
+-- Admins can manage the full list (for the admin panel)
+CREATE POLICY "Admins manage admin_users"
+  ON public.admin_users FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.admin_users self
+      WHERE self.email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    )
+  );
+ 
+-- Verify RLS is on:
+SELECT tablename, rowsecurity FROM pg_tables
+WHERE schemaname = 'public' AND rowsecurity = false;
+-- Should return 0 rows
+5
+Seed your admin email
+-- Run in Supabase SQL Editor (replace with your actual email):
+INSERT INTO public.admin_users (email, name, added_by)
+VALUES ('your-email@gmail.com', 'Your Name', 'manual')
+ON CONFLICT (email) DO NOTHING;
+✅  VERIFICATION CHECKLIST
+☐  All 18 tables exist in Supabase dashboard → Table Editor
+☐  model_registry table has 10 rows (run: SELECT COUNT(*) FROM model_registry)
+☐  company_profiles table has 4 rows (Google, Meta, Amazon, Startup)
+☐  match_knowledge_chunks function signature uses vector(768)
+☐  knowledge_chunks.embedding column is vector(768)
+☐  check_user_rate_limit is the new atomic version
+☐  admin_users RLS policy changed — only own email visible
+☐  Your admin email is inserted in admin_users
+☐  npx tsc --noEmit passes with no errors
+PHASE P1-B
+CSS & Layout Fixes
+Dark mode, navbar, layout offsets, accessibility
+1
+Fix Dark Mode — Add className="dark" to <html>
+📋  PROMPT FOR CLAUDE  —  Fix layout.tsx — Dark Mode
+You are working on the AlgoMind Next.js 15 codebase.
+ 
+Open src/app/layout.tsx and make these EXACT changes:
+ 
+1. Find the <html> tag (currently: <html lang="en" suppressHydrationWarning>)
+   Change it to:
+   <html lang="en" className="dark" suppressHydrationWarning>
+ 
+2. Find the viewport export and change userScalable from false to true:
+   From:  userScalable: false,
+   To:    userScalable: true,
+ 
+3. Remove this unused import (DemoBanner is already inside Navbar):
+   Remove: import { DemoBanner } from "@/components/demo/DemoBanner";
+ 
+4. The TooltipProvider is imported but never rendered. Either:
+   a) Wrap children with <TooltipProvider> inside the body (best option for global tooltip support):
+      Wrap the QueryProvider block: <TooltipProvider>{...}</TooltipProvider>
+   b) Or remove the import if tooltips are not needed globally.
+ 
+After changes, run:
+  npx tsc --noEmit
+  # Should output nothing (zero errors)
+ 
+Show me the full updated layout.tsx file after changes.
+2
+Fix Navbar — Correct "Practice" link + remove logo duplication
+📋  PROMPT FOR CLAUDE  —  Fix Navbar.tsx
+You are working on src/components/layout/Navbar.tsx in AlgoMind.
+ 
+Make these changes:
+ 
+1. The "Practice" nav link currently points to /interview which requires a problemId.
+   Change it to point to /practice (the problem browser):
+   
+   Find: href="/interview"  (inside the nav links section, labeled "Practice")
+   Change to: href="/practice"
+   Also update the pathname check:
+   From: pathname === '/interview'
+   To:   pathname === '/practice'
+   
+   Note: Keep the href="/interview" on the Mic icon link ONLY if there is a separate
+   direct-to-interview link. Otherwise change all instances in the nav links section.
+ 
+2. There are two identical logo comment blocks (// Logo appears twice).
+   Remove the duplicate. Keep only ONE logo block.
+ 
+3. The Navbar already renders <DemoBanner /> internally.
+   Verify layout.tsx is NOT also rendering DemoBanner (it should have been removed in P1-B Step 1).
+ 
+Run: npx tsc --noEmit
+Show the updated Navbar.tsx nav links section.
+3
+Fix double navbar compensation — Remove hardcoded top padding from pages
+📋  PROMPT FOR CLAUDE  —  Fix page top-padding — practice/page.tsx and settings/page.tsx
+In the AlgoMind codebase, the Navbar component already renders a spacer <div> after itself
+that pushes page content down the correct amount (h-16 for normal, h-[104px] for demo mode).
+Several pages ALSO add their own top padding, causing double compensation.
+ 
+Make these specific fixes:
+ 
+1. src/app/practice/page.tsx
+   Find the outermost wrapper div with className containing "pt-20"
+   Change pt-20 to pt-6 (or remove it entirely — the spacer handles it)
+   
+   Before: <div className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
+   After:  <div className="min-h-screen bg-slate-950 pb-12 px-4">
+ 
+2. src/app/settings/page.tsx
+   Find and remove any pt-16, pt-20, mt-16, mt-20 from the outermost wrapper.
+   The Navbar spacer handles offset.
+ 
+3. src/app/dashboard/page.tsx
+   Check for pt-16 or mt-16 on the outermost wrapper and remove if present.
+ 
+4. src/components/interview/InterviewSession.tsx
+   The mobile panel uses: className="lg:hidden fixed top-16 bottom-[72px]..."
+   This top-16 is CORRECT for normal mode but breaks in demo mode.
+   
+   Change to use a CSS variable approach:
+   Replace: top-16
+   With:    top-[var(--navbar-h,64px)]
+   
+   Then in Navbar.tsx, add to the <header> element:
+   style={{ '--navbar-h': isDemo ? '104px' : '64px' } as React.CSSProperties}
+ 
+Run: npx tsc --noEmit after each file change.
+Show me each changed file.
+4
+Fix inline <style> and scrollbar classes
+📋  PROMPT FOR CLAUDE  —  Move inline styles to globals.css + fix scrollbar utilities
+In AlgoMind, make these CSS fixes:
+ 
+1. src/app/globals.css — Add proper scrollbar styles at the bottom of the file:
+   
+   /* Mobile scrollbar indicator */
+   @media (max-width: 1024px) {
+     .mobile-scroll::-webkit-scrollbar {
+       width: 4px;
+       background: transparent;
+     }
+     .mobile-scroll::-webkit-scrollbar-thumb {
+       background: rgba(148, 163, 184, 0.5);
+       border-radius: 10px;
+     }
+   }
+   
+   /* Thin scrollbar utility (replaces tailwind-scrollbar plugin) */
+   .scrollbar-thin {
+     scrollbar-width: thin;
+   }
+   .scrollbar-thin::-webkit-scrollbar {
+     width: 6px;
+     height: 6px;
+   }
+   .scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+     background-color: #475569;
+     border-radius: 3px;
+   }
+   .scrollbar-track-transparent::-webkit-scrollbar-track {
+     background: transparent;
+   }
+   
+   /* Remove the -ms-overflow-style: none from .mobile-scroll-container
+      (it was inconsistently hiding scrollbars in IE/Edge only) */
+ 
+2. src/components/interview/InterviewSession.tsx
+   Find this block (around line 530):
+     <style dangerouslySetInnerHTML={{
+       __html: `@media (max-width: 1024px) { .mobile-scroll::-webkit-scrollbar { ... } }`
+     }} />
+   
+   DELETE the entire <style dangerouslySetInnerHTML> block.
+   The styles are now in globals.css.
+ 
+3. In src/app/globals.css, find .mobile-scroll-container:
+   Remove the line: -ms-overflow-style: none;
+   (We want scrollbars visible everywhere, the webkit block is already commented out)
+ 
+Run: npx tsc --noEmit
+✅  VERIFICATION CHECKLIST
+☐  Open the app — body background is dark AND cards/dropdowns are also dark (not white)
+☐  Open Supabase auth and sign in — no white card flashing on dark background
+☐  Navbar "Practice" link goes to /practice (problem browser), not /interview
+☐  Practice page has no extra gap below the navbar compared to other pages
+☐  No <style dangerouslySetInnerHTML> tag in InterviewSession.tsx
+☐  npx tsc --noEmit — zero errors
+☐  No duplicate logo block in Navbar.tsx
+PHASE P1-C
+User Limits & Rate Limiting
+Fix deprecated helpers, hardcoded constants, client-side incrementing
+ℹ️  The SQL fix for the atomic rate limit was done in P1-A Step 3. This phase fixes the TypeScript/client-side code to match.
+1
+Remove deprecated recordUserQuestion call from InterviewSession
+📋  PROMPT FOR CLAUDE  —  Fix InterviewSession.tsx — Rate Limit Calls
+In src/components/interview/InterviewSession.tsx, make these changes:
+ 
+1. Find this import near the top:
+   import { recordUserQuestion } from '@/lib/rate-limit/user-rate-limiter';
+   
+   Replace with:
+   import { incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
+ 
+2. Find the handleStart function. It currently calls:
+   await recordUserQuestion(user.id);
+   
+   Change to:
+   // NOTE: Rate limiting is now handled atomically by check_user_rate_limit RPC.
+   // incrementUserUsage is kept here as a backup write for non-RPC code paths.
+   // The primary gate is the server-side RPC which already incremented on check.
+   // Remove this call if check_user_rate_limit was updated to the atomic version.
+   // (If you ran the P1-A Step 3 SQL, you can DELETE this call entirely.)
+   
+   DELETE the entire block:
+     if (!isGuest && user?.id && !questionRecordedRef.current) {
+       questionRecordedRef.current = true;
+       await recordUserQuestion(user.id);
+     }
+   
+   Since check_user_rate_limit now atomically increments, we do NOT need a
+   separate client-side increment call.
+ 
+3. Find the hardcoded "5" in the remaining questions display:
+   Find: {remainingQuestions}/5 questions remaining today
+   Change to:
+   import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
+   (add to imports at top)
+   Then change the display to:
+   {remainingQuestions}/{RATE_LIMIT.DAILY_LIMIT} questions remaining today
+ 
+4. Find the guest trial comment in the code:
+   const GUEST_MAX_TURNS = 10; // 3-4 full exchanges for a meaningful demo experience
+   The comment says 3-4 exchanges but 10 turns = 5 full exchanges.
+   Update the comment to:
+   const GUEST_MAX_TURNS = 10; // 5 full back-and-forth exchanges (10 total turns)
+ 
+Run: npx tsc --noEmit
+Show the changed handleStart function and the remainingQuestions display.
+2
+Fix Upstash INCR + EXPIRE race in rate-limiter.ts
+📋  PROMPT FOR CLAUDE  —  Fix src/lib/ai/rate-limiter.ts — Atomic Redis initialization
+In src/lib/ai/rate-limiter.ts, find the recordRequest method.
+ 
+Currently it does INCR then conditionally EXPIRE — there is a race between two
+concurrent requests where both see count===1 and both try to EXPIRE.
+ 
+Replace the recordRequest method with this safer implementation:
+ 
+  recordRequest(modelId: string, _tokensUsed: number = 0): void {
+    const redis = getRedis();
+    if (!redis) return;
+ 
+    // Fire-and-forget: increment RPM and RPD counters atomically
+    void (async () => {
+      try {
+        // Use pipeline for atomicity
+        const pipeline = redis.pipeline();
+        pipeline.incr(`rl:${modelId}:rpm`);
+        pipeline.incr(`rl:${modelId}:day`);
+        const [rpmCount, rpdCount] = await pipeline.exec() as [number, number];
+ 
+        // Set TTL only on first create (count === 1)
+        // These expire calls are safe even if they run twice
+        if (rpmCount === 1) {
+          await redis.expire(`rl:${modelId}:rpm`, 65);
+        }
+        if (rpdCount === 1) {
+          await redis.expire(`rl:${modelId}:day`, 86400);
+        }
+      } catch (err) {
+        // Silently swallow — rate limiter errors must not affect user requests
+      }
+    })();
+  }
+ 
+If @upstash/redis does not support .pipeline(), use this fallback instead:
+ 
+  recordRequest(modelId: string, _tokensUsed: number = 0): void {
+    const redis = getRedis();
+    if (!redis) return;
+ 
+    // RPM counter with SET NX EX for atomic init
+    void redis.set(`rl:${modelId}:rpm`, 0, { nx: true, ex: 65 })
+      .then(() => redis.incr(`rl:${modelId}:rpm`))
+      .catch(() => {});
+ 
+    // RPD counter
+    void redis.set(`rl:${modelId}:day`, 0, { nx: true, ex: 86400 })
+      .then(() => redis.incr(`rl:${modelId}:day`))
+      .catch(() => {});
+  }
+ 
+Run: npx tsc --noEmit
+3
+Fix execute route — remove duplicate rate-limit increment
+📋  PROMPT FOR CLAUDE  —  Verify src/app/api/execute/route.ts — Code Execution Rate Limit
+Review src/app/api/execute/route.ts.
+ 
+The route uses redisIncr for execution rate limiting. This is correct.
+However, verify that:
+ 
+1. redisIncr is called BEFORE the Piston API call (not after) — so timed-out
+   requests still count toward the limit. ✅ Already correct.
+ 
+2. The EXEC_RATE_LIMIT constant (10) and EXEC_RATE_WINDOW_SECONDS (60) are
+   exported so they can be shown in the UI:
+   
+   Add at the bottom of route.ts:
+   export const CODE_EXEC_LIMITS = {
+     MAX_PER_MINUTE: EXEC_RATE_LIMIT,
+     WINDOW_SECONDS: EXEC_RATE_WINDOW_SECONDS,
+   };
+ 
+3. The rate limit check currently allows bypass when Redis returns 0:
+   if (currentUsage > EXEC_RATE_LIMIT)
+   
+   This is intentional (fail-open). Add a comment to explain:
+   // Redis unavailable returns 0 — we fail open to not block users
+   // This means rate limiting only works when Upstash is configured
+ 
+Run: npx tsc --noEmit
+✅  VERIFICATION CHECKLIST
+☐  recordUserQuestion is no longer imported in InterviewSession.tsx
+☐  incrementUserUsage is imported instead (or the call is removed entirely)
+☐  Hardcoded "5" replaced with RATE_LIMIT.DAILY_LIMIT in UI
+☐  Guest trial comment updated to say "5 full exchanges"
+☐  rate-limiter.ts recordRequest uses pipeline or SET NX pattern
+☐  npx tsc --noEmit — zero errors
+PHASE P1-D
+Duplicate Session Save Fix
+One save path, fix schema mismatches, fix dashboard routing
+1
+Remove duplicate session save — Keep only the server action
+📋  PROMPT FOR CLAUDE  —  Fix InterviewSession.tsx — Remove duplicate addSession call
+In src/components/interview/InterviewSession.tsx:
+ 
+PROBLEM: When an interview completes, the session is saved TWICE:
+  - handleFinish() calls addSession() → SupabaseProgressStore.saveSession()
+  - A useEffect watching state === "completed" calls saveInterviewSession() (server action)
+ 
+The server action (saveInterviewSession) is more complete — it handles knowledge gaps,
+returns success/error, and shows toast notifications. Keep ONLY the server action path.
+ 
+CHANGES:
+ 
+1. In handleFinish(), find this block after the assessment analysis:
+     const store = new ProgressStore();
+     ...
+     if (!isGuest) {
+       await addSession({
+         sessionId: assessment.sessionId,
+         userId,
+         problemId: problem.id,
+         ...
+       });
+     }
+   
+   DELETE the entire addSession() call and its surrounding if(!isGuest) block.
+   Keep everything else in handleFinish() (the analyzeSession call, error handling, etc.)
+ 
+2. Keep the useEffect that calls handleSaveSession (the server action) — that is the
+   single correct save path now.
+ 
+3. In handleSaveSession (the server action call), find the insert object.
+   Remove this non-existent column:
+     duration_seconds: durationSeconds,   // DELETE THIS LINE — column does not exist
+   Keep:
+     duration: durationSeconds,           // This is the correct column name
+ 
+4. The profiles upsert in save-session.ts is missing email (NOT NULL constraint risk).
+   Open src/app/actions/save-session.ts and update the defensive upsert:
+   
+   Find:
+     await supabase.from('profiles').upsert({ id: userId }, ...)
+   
+   Replace with:
+     // Skip defensive upsert — rely on handle_new_user trigger.
+     // If trigger failed, session insert will surface the actual error.
+   
+   DELETE the profiles upsert entirely.
+ 
+Run: npx tsc --noEmit
+Show the updated handleFinish function and the save-session.ts changes.
+2
+Fix dashboard session click — interview routing
+📋  PROMPT FOR CLAUDE  —  Fix interview page — load problem from Supabase if not in sessionStorage
+In src/app/interview/page.tsx (or wherever the interview page is defined):
+ 
+PROBLEM: When navigating from Dashboard history → interview page, sessionStorage
+does not have the problem data (only the practice page sets it). The interview page
+falls back to nothing and may render empty.
+ 
+Look at how the interview page currently loads the problem:
+- It reads from sessionStorage with key 'currentProblem'
+- It uses the problemId query param
+ 
+ADD a fallback to fetch from Supabase:
+ 
+1. Find where the problem is loaded from sessionStorage.
+   Add a fallback after the sessionStorage attempt:
+   
+   If problem is null after reading sessionStorage AND problemId is in the URL:
+   → Fetch the problem from Supabase using getProblem(problemId)
+   → Show a loading spinner while fetching
+   
+   The getProblem function should already exist in src/lib/supabase/problems.ts.
+   If it does not exist, create it:
+   
+   export async function getProblem(id: string): Promise<Problem | null> {
+     const supabase = getSupabase();
+     if (!supabase) return null;
+     const { data, error } = await supabase
+       .from('problems')
+       .select('*')
+       .eq('id', id)
+       .single();
+     if (error || !data) return null;
+     return data as Problem;
+   }
+ 
+2. The sessionId param is passed from the dashboard for read-only replay.
+   Make sure it is used to load the transcript for read-only mode.
+ 
+Run: npx tsc --noEmit
+3
+Fix attempted problems — Supabase source of truth
+📋  PROMPT FOR CLAUDE  —  Fix practice/page.tsx — Load attempted problems from Supabase
+In src/app/practice/page.tsx:
+ 
+PROBLEM: Attempted problems are tracked in localStorage per user ID.
+This does not persist across devices and is inconsistent with the actual DB data.
+ 
+Replace the localStorage-based attempted loading with a Supabase query:
+ 
+1. Remove the loadAttemptedProblems function that reads from localStorage.
+ 
+2. Add a Supabase query to get attempted problem IDs:
+   
+   const loadAttemptedProblems = async () => {
+     if (!user || !isSupabaseConfigured()) return;
+     try {
+       const supabase = getSupabase();
+       if (!supabase) return;
+       const { data } = await supabase
+         .from('interview_sessions')
+         .select('problem_id')
+         .eq('user_id', user.id)
+         .eq('status', 'completed');  // or 'in_progress' too
+       if (data) {
+         setAttemptedProblems(new Set(data.map(d => d.problem_id)));
+       }
+     } catch (e) {
+       console.error('Failed to load attempted problems:', e);
+     }
+   };
+ 
+3. Keep the handleStartInterview function but remove the localStorage.setItem call.
+   Marking a problem as attempted will now be based on Supabase data which refreshes
+   after each session is saved.
+ 
+4. Import isSupabaseConfigured and getSupabase from '@/lib/supabase/client'.
+ 
+Run: npx tsc --noEmit
+✅  VERIFICATION CHECKLIST
+☐  Only ONE session save occurs per interview (server action only, not addSession + server action)
+☐  duration_seconds column reference removed from save-session.ts
+☐  Profiles defensive upsert removed from save-session.ts
+☐  Dashboard → session click → interview page shows the problem correctly
+☐  Practice page loads attempted problems from Supabase, not localStorage
+☐  npx tsc --noEmit — zero errors
+☐  Complete a full interview → check Supabase Table Editor → interview_sessions has exactly 1 new row
+PHASE P1-E
+Security & Type Safety
+Remove any types, fix middleware, clean up env vars
+1
+Remove all any types — Zero tolerance
+📋  PROMPT FOR CLAUDE  —  Fix TypeScript any types across codebase
+In the AlgoMind codebase, there are several remaining "any" type usages that violate
+the zero-any policy from the Phase 1 spec. Fix each one:
+ 
+1. src/lib/feature-flags.ts — Line with (window as any).webkitAudioContext:
+   
+   Replace:
+     (window.AudioContext || (window as any).webkitAudioContext)
+   
+   With:
+     interface WindowWithWebkit extends Window {
+       webkitAudioContext?: typeof AudioContext;
+     }
+     ((window as WindowWithWebkit).AudioContext || (window as WindowWithWebkit).webkitAudioContext)
+   
+   Add the interface declaration at the top of the checkBrowserSupport function
+   or at module scope.
+ 
+2. src/components/interview/InterviewSession.tsx — catch block with (err as any).message:
+   
+   Replace:
+     setError((err as any).message || "Failed to analyze interview.")
+   
+   With:
+     setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.")
+ 
+3. src/lib/rag/supabaseVectorStore.ts — data.map((row: any) => ...):
+   
+   Define an explicit type for the RPC result:
+   
+   interface KnowledgeChunkRow {
+     id: string;
+     topic: string;
+     subtopic: string;
+     title: string;
+     content: string;
+     similarity: number;
+   }
+   
+   Replace: data.map((row: any) => {
+   With:    (data as KnowledgeChunkRow[]).map((row) => {
+ 
+4. Check for any remaining "any" types:
+   Run: grep -r ": any" src/ --include="*.ts" --include="*.tsx"
+   Fix each one found.
+ 
+Run: npx tsc --noEmit
+Expected: zero errors, zero any types
+2
+Fix middleware — Add /api/chat back to protection scope
+📋  PROMPT FOR CLAUDE  —  Fix src/middleware.ts — Remove api/chat from exclusion list
+In src/middleware.ts, find the matcher config at the bottom:
+ 
+Current (problematic):
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/|api/chat).*)',
+  ],
+ 
+Change to (remove api/chat from exclusion — the route handles auth internally):
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/).*)',
+  ],
+ 
+This means the middleware will now refresh the Supabase session for /api/chat requests.
+The route already correctly handles guestMode separately, so this change only ensures
+the session cookie is refreshed before auth.getUser() is called in the route.
+ 
+Verify the chat route still handles guestMode correctly:
+  In src/app/api/chat/route.ts, confirm:
+    if (!guestMode && !user) → returns 401  ✅
+    if (guestMode && !user) → allows through ✅
+ 
+Run: npx tsc --noEmit
+3
+Fix unused env vars in providers.ts
+📋  PROMPT FOR CLAUDE  —  Fix src/lib/ai/providers.ts — Use or remove env var constants
+In src/lib/ai/providers.ts, there are three env var constants that are defined
+but never used in the CHAT_MODELS array:
+ 
+  const GROQ_GPT_OSS_MODEL_ID = process.env.GROQ_GPT_OSS_MODEL_ID || "openai/gpt-oss-120b";
+  const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "openai/gpt-oss-20b";
+  const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-2.0-flash";
+ 
+Fix: Use these variables in the corresponding CHAT_MODELS entries instead of hardcoding the IDs.
+ 
+Find the model entry with id: "openai/gpt-oss-120b"
+Change: id: "openai/gpt-oss-120b"
+To:     id: GROQ_GPT_OSS_MODEL_ID
+ 
+Find the model entry with id: "openai/gpt-oss-20b"  
+Change: id: "openai/gpt-oss-20b"
+To:     id: GROQ_GPT_OSS_20B_MODEL_ID
+ 
+Find the model entry with id: "gemini-2.0-flash"
+Change: id: "gemini-2.0-flash"
+To:     id: GEMINI_FREE_TIER_MODEL_ID
+ 
+This allows model IDs to be overridden via environment variables.
+ 
+Run: npx tsc --noEmit
+✅  VERIFICATION CHECKLIST
+☐  grep -r ": any" src/ --include="*.ts" --include="*.tsx" returns zero results
+☐  feature-flags.ts uses WindowWithWebkit interface
+☐  supabaseVectorStore.ts uses KnowledgeChunkRow interface
+☐  /api/chat removed from middleware exclusion matcher
+☐  providers.ts uses GROQ_GPT_OSS_MODEL_ID and other env var constants
+☐  npx tsc --noEmit — zero errors
+PHASE P1-F
+Code Quality & Singletons
+Fix singleton patterns, remove console.logs, stub methods
+1
+Fix monitoring/events.ts — Lazy singleton pattern
+📋  PROMPT FOR CLAUDE  —  Fix src/lib/monitoring/events.ts — Move client creation inside function
+In src/lib/monitoring/events.ts, the Supabase admin client is created at MODULE LOAD TIME:
+ 
+  const supabaseAdmin = getEventLoggerClient();  // ← runs at import time
+ 
+In Next.js serverless functions, env vars may not be populated at module evaluation time.
+This means supabaseAdmin could be null even when env vars are set.
+ 
+Fix: Move client creation to a lazy singleton inside the function:
+ 
+1. Remove the top-level const supabaseAdmin = getEventLoggerClient(); line.
+ 
+2. Add a module-level variable: let supabaseAdmin: ReturnType<typeof getEventLoggerClient> | undefined = undefined;
+ 
+3. Inside logSystemEvent, get the client lazily:
+   
+   export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
+     if (typeof window !== 'undefined') return;
+     
+     // Lazy init — ensures env vars are loaded before client creation
+     if (supabaseAdmin === undefined) {
+       supabaseAdmin = getEventLoggerClient();
+     }
+     
+     if (!supabaseAdmin) return;
+     
+     // ... rest of function unchanged
+   }
+ 
+Run: npx tsc --noEmit
+2
+Fix model-registry.ts — Singleton client, not per-call
+📋  PROMPT FOR CLAUDE  —  Fix src/lib/ai/model-registry.ts — Singleton registry client
+In src/lib/ai/model-registry.ts, getRegistryClient() is called inside getActiveModels()
+and markModelDeprecated() — creating a new Supabase client on every invocation.
+ 
+Fix: Apply the same lazy singleton pattern as upstash/client.ts:
+ 
+1. Add a module-level variable at the top (after imports):
+   let registryClientInstance: ReturnType<typeof createClient> | null = null;
+   let registryClientInitialized = false;
+ 
+2. Replace the getRegistryClient() function with:
+   
+   function getRegistryClient() {
+     if (registryClientInitialized) return registryClientInstance;
+     registryClientInitialized = true;
+     
+     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+     if (!supabaseUrl || !supabaseServiceKey) {
+       registryClientInstance = null;
+       return null;
+     }
+     try {
+       registryClientInstance = createClient(supabaseUrl, supabaseServiceKey, {
+         auth: { autoRefreshToken: false, persistSession: false },
+       });
+     } catch {
+       registryClientInstance = null;
+     }
+     return registryClientInstance;
+   }
+ 
+3. Verify all calls to getRegistryClient() inside the module use this singleton.
+ 
+Run: npx tsc --noEmit
+3
+Remove console.logs from production paths
+📋  PROMPT FOR CLAUDE  —  Remove production console.log calls
+In the AlgoMind codebase, find and remove console.log calls in production code paths.
+Keep console.error (needed for debugging), but remove console.log "success" messages.
+ 
+Files to clean:
+ 
+1. src/lib/rate-limit/user-rate-limiter.ts:
+   Find: console.log(`✅ [Rate Limit] Increment success for ${userId}`)
+   DELETE this line entirely.
+ 
+2. src/app/api/chat/route.ts has multiple console.log statements.
+   These are development logs. For production, wrap them in a debug guard OR remove:
+   
+   For now: Remove the following console.log lines (they are chatty in production):
+   - console.log(`👤 [Chat API] Authenticated user: ...`)
+   - console.log('👀 [Chat API] Guest mode access')
+   - console.log('🔍 [RAG] Query: ...')
+   - console.log(`📚 [RAG] Using pre-embedded context...`)
+   - The searchResults.forEach(...console.log) block
+   - console.log(`✨ [AI] Response generated using...`)
+   - console.log(`🧠 [AI] Smart routing...`)
+   - console.log(`📚 [AI] Injecting RAG context...`)
+   
+   Keep: console.error, console.warn (these signal actual problems)
+ 
+3. src/app/actions/save-session.ts — Remove console.log success messages:
+   - console.log('💾 [ACTION] Saving interview session...')
+   - console.log(`🧠 [ACTION] Saving ${...} knowledge gaps...`)
+   - console.log('✅ [ACTION] Session saved successfully')
+ 
+4. src/lib/supabase/progress-store.ts — Remove debug console.log blocks.
+ 
+Run: npx tsc --noEmit
+4
+Document stub methods in rate-limiter
+📋  PROMPT FOR CLAUDE  —  Fix src/lib/ai/rate-limiter.ts — Document stub methods
+In src/lib/ai/rate-limiter.ts, two methods return empty/zero data:
+ 
+1. getUsageStats() always returns {}
+2. getRemainingCapacity() always returns { minuteRemaining: 0, dayRemaining: 0 }
+ 
+These are used (or will be used) in the admin dashboard.
+ 
+Fix: Add @todo comments and implement basic Redis reads:
+ 
+For getUsageStats(), implement a real version using Redis MGET:
+ 
+  async getUsageStats(models: ModelConfig[] = []): Promise<Record<string, {
+    rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string;
+  }>> {
+    const redis = getRedis();
+    if (!redis || models.length === 0) return {};
+    
+    const result: Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }> = {};
+    
+    for (const model of models) {
+      try {
+        const [rpmStr, rpdStr] = await Promise.all([
+          redis.get<string>(`rl:${model.id}:rpm`),
+          redis.get<string>(`rl:${model.id}:day`),
+        ]);
+        result[model.id] = {
+          rpm: rpmStr || '0',
+          rpd: rpdStr || '0',
+          failures: 0,
+          deprecated: false,
+          cooldown: 'none',
+        };
+      } catch {
+        result[model.id] = { rpm: '?', rpd: '?', failures: 0, deprecated: false, cooldown: 'unknown' };
+      }
+    }
+    return result;
+  }
+ 
+Run: npx tsc --noEmit
+✅  VERIFICATION CHECKLIST
+☐  monitoring/events.ts uses lazy singleton — supabaseAdmin created inside function, not at import time
+☐  model-registry.ts getRegistryClient() uses module-level singleton
+☐  console.log("✅ [Rate Limit] Increment success") removed from user-rate-limiter.ts
+☐  Chat API route has reduced console.log output
+☐  save-session.ts has no success console.log statements
+☐  getUsageStats() returns real Redis data instead of empty object
+☐  npx tsc --noEmit — zero errors
+PHASE P1-G
+Final Verification Gate
+Run ALL checks. Green across the board before Phase 2.
+🔴  This is the GATE. Every prompt below must pass before you are allowed to start Phase 2.
+1
+Full TypeScript + Test + Lint run
+📋  PROMPT FOR CLAUDE  —  Run full verification suite
+In the AlgoMind root directory, run each of these commands and confirm they pass:
+ 
+# 1. TypeScript — must be zero errors
+npx tsc --noEmit
+# Expected: no output (silence = success)
+ 
+# 2. Tests — all must pass
+npm test
+# Expected: all tests green, no failures
+ 
+# 3. Check for any remaining "any" types
+grep -r ": any" src/ --include="*.ts" --include="*.tsx" | grep -v "// eslint-disable"
+# Expected: zero results
+ 
+# 4. Check for console.log in production paths (not test files)
+grep -r "console.log" src/ --include="*.ts" --include="*.tsx"   | grep -v "__tests__" | grep -v ".test." | grep -v "// debug"
+# Review results — remove any non-debug logs
+ 
+# 5. Verify no duplicate imports
+grep -r "recordUserQuestion" src/ --include="*.ts" --include="*.tsx"
+# Expected: only appears in user-rate-limiter.ts (the function definition),
+# NOT in InterviewSession.tsx
+ 
+# 6. Build check
+npm run build
+# Expected: successful build, no errors
+ 
+Report the output of each command.
+2
+Database verification queries
+📋  PROMPT FOR CLAUDE  —  Run in Supabase SQL Editor — Final DB verification
+Run each query and verify the expected result:
+ 
+-- 1. All 18 tables exist
+SELECT COUNT(*) FROM information_schema.tables
+WHERE table_schema = 'public';
+-- Expected: 18 (or more if you have additional tables)
+ 
+-- 2. Model registry seeded with 10 models
+SELECT COUNT(*), COUNT(CASE WHEN is_active THEN 1 END) as active_count
+FROM public.model_registry;
+-- Expected: 10 total, 10 active
+ 
+-- 3. Company profiles seeded
+SELECT id, display_name FROM public.company_profiles ORDER BY id;
+-- Expected: amazon, google, meta, startup
+ 
+-- 4. No tables with RLS disabled
+SELECT tablename FROM pg_tables
+WHERE schemaname = 'public' AND rowsecurity = false;
+-- Expected: 0 rows
+ 
+-- 5. match_knowledge_chunks uses correct vector dimension
+SELECT proname, pg_get_function_arguments(oid) as args
+FROM pg_proc WHERE proname = 'match_knowledge_chunks';
+-- Expected: args contains "vector(768)" NOT "vector(3072)"
+ 
+-- 6. knowledge_chunks embedding column dimension
+SELECT attname, atttypmod FROM pg_attribute
+JOIN pg_class ON pg_class.oid = pg_attribute.attrelid
+WHERE relname = 'knowledge_chunks' AND attname = 'embedding';
+-- Expected: atttypmod = 776 (which = 768 + 8, pgvector's encoding)
+ 
+-- 7. Atomic rate limit function exists
+SELECT proname FROM pg_proc WHERE proname = 'check_user_rate_limit';
+-- Expected: 1 row
+ 
+-- 8. system_events and model_registry tables have correct structure
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_name = 'system_events' ORDER BY ordinal_position;
+-- Expected: id, event_type, provider, model_id, user_id, error_code, error_message, metadata, created_at
+ 
+-- 9. Admin email is in admin_users
+SELECT email FROM public.admin_users;
+-- Expected: your admin email
+3
+End-to-end manual test
+📋  PROMPT FOR CLAUDE  —  Manual end-to-end test checklist
+Test each user flow manually in the browser. Report any failures.
+ 
+SETUP:
+- Start dev server: npm run dev
+- Open http://localhost:3000
+ 
+TEST 1 — Guest flow:
+[ ] Landing page loads with dark background and dark cards (no white flashing)
+[ ] Click "Try as Guest" or demo mode
+[ ] Navigate to interview — starts without error
+[ ] Speak 2 turns — rate limit trial count decrements correctly
+[ ] After 10 turns — login prompt appears
+ 
+TEST 2 — Auth flow:
+[ ] Sign up with a new test email
+[ ] Profile is auto-created (check Supabase → profiles table)
+[ ] Navigate to /practice — problem list loads
+[ ] Click a problem → interview page loads the problem correctly
+[ ] Complete a full interview (say at least 2 things)
+[ ] Click "End & Analyze"
+[ ] Assessment loads and shows scores
+[ ] Check Supabase → interview_sessions — exactly 1 new row
+[ ] Check Supabase → assessments — exactly 1 new row (matching session)
+[ ] Navigate to /dashboard — shows your session in history
+ 
+TEST 3 — Dashboard session replay:
+[ ] In /dashboard → History tab
+[ ] Click on a completed session
+[ ] Interview page opens in read-only mode with the problem loaded
+ 
+TEST 4 — Rate limiting:
+[ ] Complete 5 interviews
+[ ] On the 6th, check that the API returns rate limit message
+[ ] Admin user: complete 6+ interviews — should NOT be rate limited
+ 
+TEST 5 — Admin panel:
+[ ] Sign in as admin email
+[ ] User avatar dropdown shows admin options
+[ ] Navigate to /admin/knowledge — loads without error
+[ ] Navigate to /admin/features — feature flags visible
+[ ] Navigate to /admin/admins — shows admin list (only your own email via RLS)
+ 
+Report: PASS or FAIL with details for each test.
+4
+Env vars final check
+📋  PROMPT FOR CLAUDE  —  Verify all required env vars are set
+Run this in the project root to check all required Phase 1 env vars:
+ 
+node -e "
+const vars = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'GROQ_API_KEY',
+  'GEMINI_API_KEY',
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'PISTON_URL',
+];
+require('dotenv').config({ path: '.env.local' });
+let allGood = true;
+vars.forEach(v => {
+  const ok = !!process.env[v];
+  console.log(ok ? '✅' : '❌ MISSING', v);
+  if (!ok) allGood = false;
+});
+console.log(allGood ? '\n✅ ALL VARS SET' : '\n❌ MISSING VARS — fix before Phase 2');
+"
+ 
+Also verify in Vercel dashboard (if deployed):
+- Settings → Environment Variables
+- All 8 vars must be present for Production environment
+ 
+Report the output.
+✅  VERIFICATION CHECKLIST
+☐  npx tsc --noEmit → zero output (zero errors)
+☐  npm test → all tests passing (zero failures)
+☐  npm run build → successful build
+☐  Zero "any" types in grep scan
+☐  Zero recordUserQuestion calls outside user-rate-limiter.ts
+☐  All 18 DB tables exist
+☐  model_registry has 10 active models
+☐  company_profiles has 4 rows
+☐  match_knowledge_chunks uses vector(768)
+☐  knowledge_chunks.embedding is vector(768)
+☐  No tables with RLS disabled
+☐  Admin email in admin_users
+☐  Guest flow — dark mode visible, trial limit works
+☐  Auth flow — 1 session row + 1 assessment row per interview
+☐  Dashboard → session click → interview loads problem correctly
+☐  Rate limit enforced after 5 questions for non-admins
+☐  Admin bypasses rate limit
+☐  All 8 env vars set in .env.local AND Vercel
+☐  Deployed to Vercel and all tests pass in production URL
+✅  PHASE 1 COMPLETE. You are now cleared to start Phase 2 — Core Experience Upgrades. Checkout the phase/2-core-experience branch and follow PHASE_2_CORE_EXPERIENCE.md.
+Appendix — Quick Reference
+Files Changed in Phase 1 Completion
+File
+Changes Made
+src/app/layout.tsx
+className="dark", remove DemoBanner import, fix userScalable, add TooltipProvider
+src/components/layout/Navbar.tsx
+Fix Practice link → /practice, remove duplicate logo, add --navbar-h CSS var
+src/app/globals.css
+Add scrollbar-thin utilities, .mobile-scroll styles, remove -ms-overflow-style
+src/components/interview/InterviewSession.tsx
+Remove inline style, remove addSession call, remove recordUserQuestion, fix hardcoded "5"
+src/app/actions/save-session.ts
+Remove duration_seconds, remove profiles upsert
+src/app/practice/page.tsx
+Remove pt-20, load attempted problems from Supabase
+src/app/interview/page.tsx
+Add Supabase fallback for problem loading
+src/lib/ai/rate-limiter.ts
+Fix recordRequest pipeline, implement getUsageStats
+src/lib/ai/providers.ts
+Use env var constants in model IDs
+src/lib/ai/model-registry.ts
+Singleton client pattern
+src/lib/monitoring/events.ts
+Lazy singleton client init
+src/lib/rate-limit/user-rate-limiter.ts
+Remove console.log, remove deprecated export
+src/lib/feature-flags.ts
+WindowWithWebkit interface replaces any
+src/lib/rag/supabaseVectorStore.ts
+KnowledgeChunkRow interface replaces any
+src/middleware.ts
+Remove api/chat from exclusion list
+src/app/api/chat/route.ts
+Remove production console.log calls
+SQL Runs Summary
+MIGRATION.md Step 1–14 — Full schema setup (run once on fresh/existing project)
+P1-A Step 2 — Fix embedding dimension: ALTER TABLE knowledge_chunks ALTER COLUMN embedding TYPE vector(768)
+P1-A Step 3 — Replace check_user_rate_limit with atomic version
+P1-A Step 4 — Fix admin_users RLS policies
+P1-A Step 5 — Insert admin email into admin_users
+Phase Order After This Document
+Phase 1-A through 1-G: THIS DOCUMENT — complete before anything else
+Phase 2: PHASE_2_CORE_EXPERIENCE.md — LeetCode integration, company modes, radar chart
+Phase 3: PHASE_3_INTELLIGENCE.md — Spaced repetition, AI difficulty calibration
+Phase 4: PHASE_4_ENGAGEMENT.md — Streaks, badges, session sharing
+Phase 5: PHASE_5_ADMIN.md — Admin analytics, knowledge gap management
+Phase 6: PHASE_6_ENTERPRISE.md — Assessment campaigns, candidate submissions
+AlgoMind Phase 1 Completion Playbook  •  February 2026

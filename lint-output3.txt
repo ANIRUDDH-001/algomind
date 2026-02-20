@@ -1,0 +1,195 @@
+﻿
+D:\algomind\src\__tests__\integration\error-recovery.test.tsx
+  32:29  warning  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\__tests__\integration\feature-flags.test.tsx
+  8:10  warning  'TEST_IDS' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\__tests__\integration\voice-interview.test.tsx
+   7:5   warning  'debugInterviewState' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  29:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u           @typescript-eslint/no-unused-vars
+
+D:\algomind\src\app\admin\voice-debug\client.tsx
+  108:25  warning  'InterruptionManager' is assigned a value but only used as a type. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  122:9   warning  'timer' is never reassigned. Use 'const' instead                                                         prefer-const
+
+D:\algomind\src\app\api\__tests__\chat.test.ts
+  1:48  warning  'afterEach' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\app\dashboard\page.tsx
+  20:10   warning  'Button' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  34:83   warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  34:105  warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\app\voice-test\page.tsx
+  7:10  warning  'Card' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\assessment\ReportCard.tsx
+   20:42  warning  'onClose' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+   25:24  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  121:50  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+D:\algomind\src\components\auth\UserButton.tsx
+  14:18  warning  'User' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\dashboard\ExportReportButton.tsx
+  17:11  warning  'buttonRef' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  37:17  warning  'blob' is defined but never used. Allowed unused args must match /^_/u                @typescript-eslint/no-unused-vars
+  37:23  warning  'url' is defined but never used. Allowed unused args must match /^_/u                 @typescript-eslint/no-unused-vars
+  37:37  warning  'error' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\dashboard\PDFReport.tsx
+    2:50  warning  'Font' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  140:62  warning  'i' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\dashboard\SkillTrendCard.tsx
+  5:5  warning  'LineChart' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  6:5  warning  'Line' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\dashboard\StatsOverview.tsx
+  16:80  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\components\layout\Navbar.tsx
+  56:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\algomind\src\components\settings\SettingsPanel.tsx
+   11:10  warning  'RotateCcw' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   11:21  warning  'Trash2' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   14:10  warning  'cn' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   24:12  warning  'isClearing' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   45:11  warning  'toggleIntro' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   78:11  warning  'handleClearData' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  153:37  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\algomind\src\components\settings\VoiceSettings.tsx
+   10:10  warning  'Mic' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+   10:21  warning  'Settings' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  122:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\tour\IntroTour.tsx
+  60:13  warning  'pollingInterval' is never reassigned. Use 'const' instead     prefer-const
+  61:13  warning  'stopPollingTimeout' is never reassigned. Use 'const' instead  prefer-const
+
+D:\algomind\src\components\tour\TourContext.tsx
+   4:34  warning  'useSearchParams' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  28:11  warning  'pathname' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\tour\TourTooltip.tsx
+   5:18  warning  'AnimatePresence' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   6:10  warning  'X' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+  30:11  warning  'isDemo' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\voice\MicrophoneButton.tsx
+  2:23  warning  'Loader2' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  2:32  warning  'AlertCircle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\voice\TranscriptViewer.tsx
+  3:10  warning  'cn' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\hooks\__tests__\useVoiceActivityDetection.test.ts
+    9:46  warning  'afterEach' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   48:7   warning  'mockUseEffect' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  169:17  warning  'startListening' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\hooks\useInterview.ts
+  89:148  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:90   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\hooks\useVoiceInput.ts
+   71:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:87  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:87  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:87  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\lib\ai\__tests__\intent-classifier.test.ts
+  12:10  warning  'IntentClassification' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\ai\__tests__\response-chunker.test.ts
+  346:26  warning  'chunk' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\ai\client.ts
+  5:10  warning  'CHAT_MODELS' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\ai\response-chunker.ts
+  179:35  warning  'firstChunkTime' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\analytics\voice-analytics.ts
+  27:57  warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  29:28  warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  30:22  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\assessment\__tests__\integration.test.ts
+   9:11  warning  'mockProblem' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  15:11  warning  'mockTranscript' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\assessment\analyzer.ts
+  1:26  warning  'SkillDefinition' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\assessment\mock-data.ts
+  25:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:69  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\lib\assessment\progress-store.ts
+  47:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\lib\assessment\prompts.ts
+  33:42  warning  'id' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\assessment\trend-calculator.ts
+  1:10  warning  'CognitiveSkill' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\auth\session-manager.ts
+  17:35  warning  'session' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\errors\handler.ts
+  73:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:73  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\algomind\src\lib\interview\interruption-context.ts
+  23:5  warning  'interruptedAt' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\interview\state-machine.ts
+  29:15  warning  'previous' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\rate-limit\user-rate-limiter.ts
+  93:15  warning  'today' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\recommendations\engine.ts
+   3:10  warning  'Problem' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  58:39  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  94:23  warning  'tags' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\supabase\__tests__\save-session.test.ts
+  25:11  warning  'mockInsertGaps' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\supabase\progress-store.ts
+   70:27  warning  'assessmentData' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   98:33  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+   99:36  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  100:33  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  101:36  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  102:33  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  103:34  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  162:76  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  211:36  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  212:33  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+
+D:\algomind\src\lib\supabase\server.ts
+  18:30  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  25:30  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\tour\steps.ts
+  1:10  warning  'disableDemoMode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\lib\voice\__tests__\vad-manager.test.ts
+  316:31  warning  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\test-utils\playwright-helpers.ts
+   77:38  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  166:14  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+Ô£û 98 problems (0 errors, 98 warnings)
+
