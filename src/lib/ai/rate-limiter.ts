@@ -102,26 +102,22 @@ export class IntelligentRateLimiter {
     }
 
     /**
-     * Record a successful request. Fire-and-forget logic using Upsert counters in Redis.
+     * Record a successful request. Fire-and-forget logic using atomic Redis counters.
      */
     recordRequest(modelId: string, _tokensUsed: number = 0): void {
         const redis = getRedis();
         if (!redis) return;
 
-        // INCR correctly handles creating the key initialized exactly at 0.
-        // We set TTL dynamically only if it increments exactly to 1 (meaning newly created).
-        Promise.all([
-            (async () => {
-                const rpmCount = await redis.incr(`rl:${modelId}:rpm`);
-                if (rpmCount === 1) await redis.expire(`rl:${modelId}:rpm`, 65);
-            })(),
-            (async () => {
-                const rpdCount = await redis.incr(`rl:${modelId}:day`);
-                if (rpdCount === 1) await redis.expire(`rl:${modelId}:day`, 86400);
-            })()
-        ]).catch((err) => {
-            console.error(`Error recording upstash rate usage for ${modelId}:`, err instanceof Error ? err.message : String(err));
-        });
+        // Use SET NX EX for atomic key initialization, then INCR
+        // RPM counter (65s TTL to cover 1-minute window with small buffer)
+        void redis.set(`rl:${modelId}:rpm`, 0, { nx: true, ex: 65 })
+            .then(() => redis.incr(`rl:${modelId}:rpm`))
+            .catch(() => { /* Silently swallow — rate limiter errors must not affect user requests */ });
+
+        // RPD counter (86400s = 24h TTL)
+        void redis.set(`rl:${modelId}:day`, 0, { nx: true, ex: 86400 })
+            .then(() => redis.incr(`rl:${modelId}:day`))
+            .catch(() => { /* Silently swallow */ });
     }
 
     /**
@@ -191,12 +187,33 @@ export class IntelligentRateLimiter {
     }
 
     /**
-     * Get usage statistics for debugging/monitoring
-     * Since this runs distributed, we just return a simplified dummy representation as tracking complete global
-     * metrics in real time synchronously can slow the UI endpoint entirely unless using `client.mget()`.
+     * Get usage statistics for debugging/monitoring.
+     * Reads real counters from Redis using individual gets.
      */
     async getUsageStats(models: ModelConfig[] = []): Promise<Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }>> {
-        return {};
+        const redis = getRedis();
+        if (!redis || models.length === 0) return {};
+
+        const result: Record<string, { rpm: string; rpd: string; failures: number; deprecated: boolean; cooldown: string }> = {};
+
+        for (const model of models) {
+            try {
+                const [rpmStr, rpdStr] = await Promise.all([
+                    redisGet(`rl:${model.id}:rpm`),
+                    redisGet(`rl:${model.id}:day`),
+                ]);
+                result[model.id] = {
+                    rpm: rpmStr || '0',
+                    rpd: rpdStr || '0',
+                    failures: 0,
+                    deprecated: false,
+                    cooldown: 'none',
+                };
+            } catch {
+                result[model.id] = { rpm: '?', rpd: '?', failures: 0, deprecated: false, cooldown: 'unknown' };
+            }
+        }
+        return result;
     }
 
     /**

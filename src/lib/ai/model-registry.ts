@@ -22,25 +22,37 @@ export interface ModelRegistryEntry {
     notes: string | null;
 }
 
+// Lazy singleton for registry client
+let registryClientInstance: ReturnType<typeof createClient> | null = null;
+let registryClientInitialized = false;
+
 /**
- * Creates a singleton Supabase service role client specifically for the model registry.
+ * Gets or creates a singleton Supabase service role client for the model registry.
  * Bypasses RLS to allow server-side reading/writing of the registry.
  */
 function getRegistryClient() {
+    if (registryClientInitialized) return registryClientInstance;
+    registryClientInitialized = true;
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
+        registryClientInstance = null;
         return null;
     }
 
-    // Use the service role key to bypass RLS, this client is strictly server-side
-    return createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    });
+    try {
+        registryClientInstance = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+            },
+        });
+    } catch {
+        registryClientInstance = null;
+    }
+    return registryClientInstance;
 }
 
 /**
@@ -134,13 +146,15 @@ export async function markModelDeprecated(modelId: string, reason: string): Prom
 
     try {
         // 1. Update Supabase
+        const updatePayload = {
+            is_active: false,
+            deprecated_at: new Date().toISOString(),
+            notes: reason,
+        };
         const { error } = await supabase
             .from('model_registry')
-            .update({
-                is_active: false,
-                deprecated_at: new Date().toISOString(),
-                notes: reason,
-            })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped Supabase client, fix by generating DB types
+            .update(updatePayload as never)
             .eq('model_id', modelId);
 
         if (error) {

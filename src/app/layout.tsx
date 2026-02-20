@@ -5,7 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+
 import { Toaster } from "@/components/ui/toaster";
 import { TourProvider } from "@/components/tour/TourContext";
 import { IntroTour } from "@/components/tour/IntroTour";
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
+  userScalable: true,
   themeColor: '#6366f1',
 };
 
@@ -71,23 +71,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
           <AuthProvider>
             <ClientProviders>
-              <ErrorBoundary>
-                <TourProvider>
-                  <Navbar />
-                  <main className="overflow-x-hidden">
-                    {children}
-                  </main>
-                  <IntroTour />
-                  <Toaster />
-                </TourProvider>
-              </ErrorBoundary>
+              <TooltipProvider>
+                <ErrorBoundary>
+                  <TourProvider>
+                    <Navbar />
+                    <main className="overflow-x-hidden">
+                      {children}
+                    </main>
+                    <IntroTour />
+                    <Toaster />
+                  </TourProvider>
+                </ErrorBoundary>
+              </TooltipProvider>
             </ClientProviders>
           </AuthProvider>
         </QueryProvider>

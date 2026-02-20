@@ -43,12 +43,11 @@ export function Navbar() {
 
     return (
         <>
-            <header className="fixed top-0 left-0 right-0 z-[100] flex flex-col">
+            <header className="fixed top-0 left-0 right-0 z-[100] flex flex-col" style={{ '--navbar-h': isDemo ? '104px' : '64px' } as React.CSSProperties}>
                 <DemoBanner />
                 <nav className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 h-16 shadow-2xl">
                     <div className="w-full px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
-                            {/* Logo */}
                             {/* Logo */}
                             <button
                                 onClick={() => router.push('/')}
@@ -82,8 +81,8 @@ export function Navbar() {
                                         Dashboard
                                     </Link>
                                     <Link
-                                        href="/interview"
-                                        className={`flex items-center gap-2 text-sm font-bold transition-colors ${pathname === '/interview' ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+                                        href="/practice"
+                                        className={`flex items-center gap-2 text-sm font-bold transition-colors ${pathname === '/practice' ? 'text-blue-400' : 'text-slate-400 hover:text-white'
                                             }`}
                                     >
                                         <Mic className="w-4 h-4" />

@@ -187,9 +187,9 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
     return (
         <div className="flex flex-col h-full">
             {/* Editor Header */}
-            <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700 rounded-t-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 sm:p-3 bg-slate-800 border-b border-slate-700 rounded-t-lg">
                 <div className="flex items-center gap-2" data-tour="language-select">
-                    <span className="text-sm text-slate-400">Language:</span>
+                    <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">Lang:</span>
                     <select
                         value={language}
                         onChange={(e) => {
@@ -197,7 +197,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                             setLanguage(newLang);
                             onLanguageChange?.(newLang);
                         }}
-                        className="px-3 py-1.5 bg-slate-900 text-white rounded border border-slate-700 text-sm focus:outline-none focus:border-blue-500"
+                        className="px-2 sm:px-3 py-1.5 bg-slate-900 text-white rounded border border-slate-700 text-xs sm:text-sm focus:outline-none focus:border-blue-500 min-w-0"
                     >
                         <option value="python">Python</option>
                         <option value="javascript">JavaScript</option>
@@ -211,7 +211,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     <button
                         onClick={handleRunCode}
                         disabled={isRunning || !code.trim()}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium mr-2"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
                     >
                         {isRunning ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -226,13 +226,13 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                             setCode('');
                             onCodeChange('');
                         }}
-                        className="px-3 py-1.5 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
                     >
                         Clear
                     </button>
                     <button
                         onClick={() => navigator.clipboard.writeText(code)}
-                        className="px-3 py-1.5 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
                     >
                         Copy
                     </button>

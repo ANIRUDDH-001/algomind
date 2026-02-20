@@ -45,7 +45,8 @@ function getEventLoggerClient() {
     });
 }
 
-const supabaseAdmin = getEventLoggerClient();
+// Lazy singleton — ensures env vars are loaded before client creation
+let supabaseAdmin: ReturnType<typeof getEventLoggerClient> | undefined = undefined;
 
 /**
  * Logs a system event to the 'system_events' table asynchronously.
@@ -53,10 +54,15 @@ const supabaseAdmin = getEventLoggerClient();
  * Only attempts to log when executed on the server-side.
  */
 export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
-    // Only execute server-side and if we have a valid admin client
-    if (typeof window !== 'undefined' || !supabaseAdmin) {
-        return;
+    // Only execute server-side
+    if (typeof window !== 'undefined') return;
+
+    // Lazy init — ensures env vars are loaded before client creation
+    if (supabaseAdmin === undefined) {
+        supabaseAdmin = getEventLoggerClient();
     }
+
+    if (!supabaseAdmin) return;
 
     const payload = {
         type: event.type,

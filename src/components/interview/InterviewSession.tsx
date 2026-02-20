@@ -9,7 +9,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { recordUserQuestion } from '@/lib/rate-limit/user-rate-limiter';
+import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
@@ -165,18 +165,15 @@ export function InterviewSession({
         }
     }, [readOnly, initialTranscript, loadTranscript]);
 
-    const handleStart = async () => {
+    const handleStart = () => {
         setHasStarted(true);
         startTimeRef.current = Date.now(); // Record start time
 
         // Start timer for limits
         limits.startTimer();
 
-        // Record question for rate limiting (authenticated users only)
-        if (!isGuest && user?.id && !questionRecordedRef.current) {
-            questionRecordedRef.current = true;
-            await recordUserQuestion(user.id);
-        }
+        // Rate limiting is now handled atomically by check_user_rate_limit RPC
+        // which increments on check. No separate client-side increment needed.
 
         startInterview(problem.title, problem.description, ragContext);
     };
@@ -280,23 +277,11 @@ export function InterviewSession({
             // Calculate actual session duration
             const actualDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
-            // Skip saving for guest users
-            if (!isGuest) {
-                await addSession({
-                    sessionId: assessment.sessionId,
-                    userId,
-                    problemId: problem.id,
-                    problemDifficulty: problem.difficulty,
-                    timestamp: new Date(),
-                    duration: actualDuration,
-                    skills: skillScores,
-                    overallScore: store.calculateWeightedScore(skillScores),
-                    transcript: transcript
-                });
-            }
+            // Session saving is handled by the server action (handleSaveSession)
+            // triggered by the useEffect watching state === 'completed'
         } catch (err: unknown) {
             console.error("❌ Assessment error:", err);
-            setError((err as any).message || "Failed to analyze interview. Please try again.");
+            setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
         }
 
         // Stop timer
@@ -497,7 +482,7 @@ export function InterviewSession({
                                         {/* Remaining Questions (authenticated users) */}
                                         {!isGuest && remainingQuestions !== undefined && (
                                             <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
-                                                {remainingQuestions}/5 questions remaining today
+                                                {remainingQuestions}/{RATE_LIMIT.DAILY_LIMIT} questions remaining today
                                             </div>
                                         )}
                                     </div>
@@ -738,7 +723,7 @@ export function InterviewSession({
 
     return (
         <div
-            className="min-h-[100dvh] lg:h-full flex flex-col bg-slate-950 pt-16 lg:pt-6"
+            className="h-full flex flex-col bg-slate-950"
             data-tour="interview-container"
             aria-label="Interview"
             data-testid="interview-panel"
@@ -964,7 +949,7 @@ export function InterviewSession({
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-full max-h-[calc(100vh-64px)]">
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden">
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}

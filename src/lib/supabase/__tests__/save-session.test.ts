@@ -165,14 +165,15 @@ describe('Supabase Data Layer', () => {
             expect(result).toEqual({ allowed: true, remaining: 3, isAdmin: false });
         });
 
-        it('should fail closed on RPC error', async () => {
+        it('should fail OPEN on RPC error (do not block users)', async () => {
             mockRpc.mockResolvedValue({
                 data: null,
                 error: { message: 'timeout' }
             });
 
             const result = await checkUserRateLimit('user-id');
-            expect(result).toEqual({ allowed: false, remaining: 0, isAdmin: false });
+            // Fail open: allow user through even if DB is down
+            expect(result).toEqual({ allowed: true, remaining: 5, isAdmin: false });
         });
     });
 });

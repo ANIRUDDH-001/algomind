@@ -33,7 +33,6 @@ const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "open
 const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-2.0-flash";
 
 // Chat Models Registry - ordered by preference
-// Chat Models Registry - ordered by preference
 export const CHAT_MODELS: ModelConfig[] = [
     // --- GROQ MODELS ---
     {
@@ -93,7 +92,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq Llama 4 Maverick"
     },
     {
-        id: "openai/gpt-oss-120b",
+        id: GROQ_GPT_OSS_MODEL_ID,
         provider: 'groq',
         tier: 5,
         rpm: 25.5,
@@ -104,7 +103,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq GPT-OSS 120B"
     },
     {
-        id: "openai/gpt-oss-20b",
+        id: GROQ_GPT_OSS_20B_MODEL_ID,
         provider: 'groq',
         tier: 6,
         rpm: 25.5,
@@ -162,7 +161,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Gemini 1.5 Flash"
     },
     {
-        id: "gemini-2.0-flash", // Newer Experimental
+        id: GEMINI_FREE_TIER_MODEL_ID, // Newer Experimental
         provider: 'gemini',
         tier: 11,
         rpm: 10,
