@@ -13,15 +13,12 @@ export async function saveInterviewSession(
     durationSeconds: number,
     result: AssessmentResult
 ) {
-    console.log('💾 [ACTION] Saving interview session...');
+
     const supabase = await createClient();
 
     try {
-        // Defensive profile upsert to prevent FK constraint failures
-        // This is needed if the handle_new_user trigger wasn't deployed correctly
-        await supabase
-            .from('profiles')
-            .upsert({ id: userId }, { onConflict: 'id', ignoreDuplicates: true });
+        // Profile creation is handled by the handle_new_user trigger.
+        // If trigger failed, the session insert will surface the actual FK error.
 
         const { data: sessionData, error } = await supabase
             .from('interview_sessions')
@@ -31,7 +28,6 @@ export async function saveInterviewSession(
                 problem_title: problemTitle,
                 transcript: transcript,
                 duration: durationSeconds,
-                duration_seconds: durationSeconds,
                 feedback: result,
                 overall_score: Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length,
                 created_at: new Date().toISOString()
@@ -47,7 +43,7 @@ export async function saveInterviewSession(
 
         // Save knowledge gaps if any
         if (result.knowledgeGaps && result.knowledgeGaps.length > 0) {
-            console.log(`🧠 [ACTION] Saving ${result.knowledgeGaps.length} knowledge gaps...`);
+
 
             // Map gaps to table structure
             // We use the new session ID we just got
@@ -71,7 +67,6 @@ export async function saveInterviewSession(
             }
         }
 
-        console.log('✅ [ACTION] Session saved successfully');
         return { success: true };
     } catch (e) {
         const error = e as unknown;

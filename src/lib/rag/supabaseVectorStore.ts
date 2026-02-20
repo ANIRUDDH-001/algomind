@@ -42,8 +42,17 @@ export async function supabaseHybridSearch(query: string, limit = 3): Promise<Se
 
     if (!data) return [];
 
+    interface KnowledgeChunkRow {
+        id: string;
+        topic: string;
+        subtopic: string;
+        title: string;
+        content: string;
+        similarity: number;
+    }
+
     // Map to SearchResult interface
-    return data.map((row: any) => {
+    return (data as KnowledgeChunkRow[]).map((row) => {
         // Construct a partial KnowledgeChunk with available data
         const chunk: KnowledgeChunk = {
             id: row.id,

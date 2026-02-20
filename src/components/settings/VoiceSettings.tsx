@@ -194,7 +194,7 @@ export function VoiceSettings() {
                         max={2.0}
                         step={0.1}
                         onValueChange={handleRateChange}
-                        className="py-4 [&_.bg-primary]:bg-indigo-600 [&_.bg-primary\/20]:bg-indigo-600/20 [&_.border-primary\/50]:border-indigo-600/50"
+                        className="py-4 [&_.bg-primary]:bg-indigo-600 [&_.bg-muted]:bg-indigo-600/20 [&_.border-input]:border-indigo-600/50"
                     />
                     <div className="flex justify-between text-[10px] text-slate-500 px-1">
                         <span>Slow</span>

@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.knowledge_chunks (
     status TEXT DEFAULT 'active', -- 'active', 'archived'
     usage_count INT DEFAULT 0,
     effectiveness_score FLOAT DEFAULT 0.0,
-    embedding vector(3072), -- Compatible with text-embedding-3-large or Gemini
+    embedding vector(768), -- Compatible with Gemini text-embedding-004 (768 dimensions)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

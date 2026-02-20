@@ -71,8 +71,7 @@ export const config = {
          * - public (public folder)
          * - vad (vad models)
          * - api/auth (auth api)
-         * - api/chat (chat api - handled internally)
          */
-        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/|api/chat).*)',
+        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/).*)',
     ],
 };
