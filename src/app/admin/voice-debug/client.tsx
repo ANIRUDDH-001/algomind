@@ -108,7 +108,7 @@ export default function VoiceDebugPage() {
                 const { InterruptionManager } = await import('@/lib/voice/interruption-manager');
                 // We can't access the singleton from here since it's in ConversationView
                 // Instead, read from a global debug hook if available
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 const w = window as unknown as { __algomind_im_debug?: InstanceType<typeof InterruptionManager> };
                 if (w.__algomind_im_debug) {
                     const im = w.__algomind_im_debug;
@@ -135,7 +135,7 @@ export default function VoiceDebugPage() {
         setLocalConfig(updated);
 
         // Also hot-update any live InterruptionManager instance
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const w = window as unknown as { __algomind_im_debug?: { setConfig: (c: Partial<VoiceConfigValues>) => void } };
         if (w.__algomind_im_debug?.setConfig) {
             w.__algomind_im_debug.setConfig({ [key]: value });
@@ -145,7 +145,7 @@ export default function VoiceDebugPage() {
     const handleReset = useCallback(() => {
         const defaults = resetVoiceConfig();
         setLocalConfig(defaults);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const w = window as unknown as { __algomind_im_debug?: { setConfig: (c: Partial<VoiceConfigValues>) => void } };
         if (w.__algomind_im_debug?.setConfig) {
             w.__algomind_im_debug.setConfig(defaults);

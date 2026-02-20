@@ -5,7 +5,7 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 const DAILY_LIMIT = 5;
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
 
-interface RateLimitResult {
+export interface RateLimitResult {
     allowed: boolean;
     remaining: number;
     isAdmin: boolean;
@@ -111,10 +111,6 @@ export async function incrementUserUsage(userId: string, supabaseClient?: Supaba
 
         if (error) {
             console.error('❌ [Rate Limit] Failed to record usage via RPC:', error);
-            // Fallback to manual upsert if RPC fails? 
-            // Ideally we trust the RPC. If it fails, we might just log it.
-        } else {
-            console.log(`✅ [Rate Limit] Increment success for ${userId}`);
         }
 
     } catch (error: unknown) {

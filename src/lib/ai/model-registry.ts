@@ -157,7 +157,7 @@ export async function markModelDeprecated(modelId: string, reason: string): Prom
         };
         const { error } = await supabase
             .from('model_registry')
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped Supabase client, fix by generating DB types
+             
             .update(updatePayload as never)
             .eq('model_id', modelId);
 

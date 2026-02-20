@@ -25,7 +25,7 @@ describe('Cognitive Assessment Integration', () => {
     });
 
     it('should save and retrieve sessions from ProgressStore', async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const session: any = {
             sessionId: 'test-sess-1',
             userId: 'test-user',

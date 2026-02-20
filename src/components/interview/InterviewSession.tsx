@@ -3,7 +3,7 @@ import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { type AssessmentResult } from '@/lib/assessment/analyzer';
 import { type CognitiveSkill } from '@/types/assessment';
-import { useProgress } from '@/hooks/useProgress';
+
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
@@ -20,12 +20,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, LogIn, Code } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
 import { SkillBadge } from '@/components/assessment/SkillBadge';
-import { ProgressStore } from '@/lib/assessment/progress-store';
+
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
@@ -75,7 +75,6 @@ export function InterviewSession({
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
-    const { addSession } = useProgress();
     const limits = useInterviewLimits();
     const guestTrial = useGuestTrial(isGuest);
 
@@ -124,8 +123,7 @@ export function InterviewSession({
     const startTimeRef = React.useRef<number>(0);
     // Track if transcript has been loaded to prevent infinite loops
     const transcriptLoadedRef = React.useRef(false);
-    // Track if we've recorded this question for rate limiting
-    const questionRecordedRef = React.useRef(false);
+
 
     // Debugging and Reset on Problem Change
     // Logs removed for production cleanliness
@@ -265,17 +263,6 @@ export function InterviewSession({
                 setError("Assessment failed. Please try again or check the console for details.");
                 return;
             }
-
-            const store = new ProgressStore();
-            const skillScores: Record<string, number> = {};
-            Object.entries(assessment.skills).forEach(([id, s]) => {
-                skillScores[id] = s.score;
-            });
-
-            const userId = user?.id || 'guest-user';
-
-            // Calculate actual session duration
-            const actualDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
             // Session saving is handled by the server action (handleSaveSession)
             // triggered by the useEffect watching state === 'completed'
@@ -805,21 +792,6 @@ export function InterviewSession({
 
             {hasStarted && <VoiceOnboarding />}
 
-
-            {/* Force Mobile Scrollbars Style - Touch Friendly Indicator Look */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @media (max-width: 1024px) {
-                    .mobile-scroll::-webkit-scrollbar {
-                        width: 4px; /* Thin, like a native indicator */
-                        background: transparent;
-                    }
-                    .mobile-scroll::-webkit-scrollbar-thumb {
-                        background: rgba(148, 163, 184, 0.5); /* slate-400/50 - Subtle but visible */
-                        border-radius: 10px; /* Fully rounded caps */
-                    }
-                }
-            `}} />
 
             {/* MOBILE LAYOUT (< 1024px) - Tabbed Interface with FIXED VIEWPORT */}
             <div

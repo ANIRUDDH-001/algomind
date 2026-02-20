@@ -8,7 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { checkVADSupport, getVADErrorMessage, VAD_SUPPORTED_BROWSERS } from '../vad-utils';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type Any = any;
 
 // ── Helpers ─────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
 import { getGuestProblem } from '@/lib/guest/guest-problems';
-import { checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
+import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-rate-limiter';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -41,19 +41,15 @@ function InterviewContent() {
 
             try {
                 // Parallel data fetching for better performance
-                const promises: Promise<any>[] = [];
-
                 // 1. Rate Limit Check (Authenticated users only, not history view)
-                if (!sessionId && userId) {
-                    promises.push(checkUserRateLimit(userId));
-                } else {
-                    promises.push(Promise.resolve(null)); // Placeholder
-                }
+                const rateLimitPromise: Promise<RateLimitResult | null> =
+                    (!sessionId && userId) ? checkUserRateLimit(userId) : Promise.resolve(null);
 
                 // 2. Fetch Problem
+                let problemPromise: Promise<Problem | null>;
                 if (isGuest && !sessionId) {
                     // Guest: Use hardcoded problem (instant)
-                    promises.push(Promise.resolve(getGuestProblem()));
+                    problemPromise = Promise.resolve(getGuestProblem());
                 } else {
                     // Authenticated: Fetch from DB or Cache
                     const cachedProblem = sessionStorage.getItem('currentProblem');
@@ -61,21 +57,20 @@ function InterviewContent() {
                         try {
                             const parsed = JSON.parse(cachedProblem) as Problem;
                             if (parsed.id === problemId) {
-                                promises.push(Promise.resolve(parsed));
+                                problemPromise = Promise.resolve(parsed);
                             } else {
-                                // Cache mismatch, fetch fresh
-                                promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                                problemPromise = problemId ? getProblemById(problemId) : getRandomProblem();
                             }
-                        } catch (e) {
-                            promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                        } catch {
+                            problemPromise = problemId ? getProblemById(problemId) : getRandomProblem();
                         }
                     } else {
-                        promises.push(problemId ? getProblemById(problemId) : getRandomProblem());
+                        problemPromise = problemId ? getProblemById(problemId) : getRandomProblem();
                     }
                 }
 
                 // Wait for all data
-                const [rateLimitData, fetchedProblem] = await Promise.all(promises);
+                const [rateLimitData, fetchedProblem] = await Promise.all([rateLimitPromise, problemPromise]);
 
                 // Handle Rate Limit Result
                 if (rateLimitData) {

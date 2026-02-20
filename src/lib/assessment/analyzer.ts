@@ -123,7 +123,7 @@ export class CognitiveAnalyzer {
         return result.response;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     private parseResponse(raw: string): unknown {
         // 1. Strip markdown fences more thoroughly
         let jsonString = raw

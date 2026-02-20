@@ -134,7 +134,7 @@ export function createMockMicVAD(): MockMicVAD {
 
 // ── Browser Environment Setup ───────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type Any = any;
 
 let savedWindow: Any;
