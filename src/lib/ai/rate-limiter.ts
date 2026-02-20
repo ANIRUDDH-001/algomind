@@ -1,7 +1,7 @@
 // Intelligent Rate Limiter using Upstash Redis for global shared state.
 // Tracks RPM, RPD, TPM with safety margins and exponential backoff
-import { ModelConfig, ModelTier } from './providers';
-import { getRedis, redisGet, redisSet, redisIncr, redisDel } from '../upstash/client';
+import { ModelConfig } from './providers';
+import { getRedis, redisGet, redisSet } from '../upstash/client';
 import { markModelDeprecated } from './model-registry';
 import { logSystemEvent } from '../monitoring/events';
 
@@ -31,7 +31,7 @@ export class IntelligentRateLimiter {
     async canUseModel(
         modelId: string,
         models: ModelConfig[],
-        estimatedTokens: number = 0
+        _estimatedTokens: number = 0
     ): Promise<RateLimitResult> {
         const model = models.find((m) => m.id === modelId);
         if (!model) return { allowed: false, reason: 'model_not_found' };
@@ -80,9 +80,9 @@ export class IntelligentRateLimiter {
     /**
      * Get best available model, optionally filtering by tier
      */
-    async getAvailableModel(models: ModelConfig[], preferredTier?: ModelTier): Promise<RateLimitResult> {
-        const candidates = preferredTier
-            ? models.filter((m) => m.tier >= preferredTier)
+    async getAvailableModel(models: ModelConfig[], _preferredTier?: number): Promise<RateLimitResult> {
+        const candidates = _preferredTier
+            ? models.filter((m) => m.tier >= _preferredTier)
             : models;
 
         const sortedModels = [...candidates].sort((a, b) => a.tier - b.tier);
@@ -104,7 +104,7 @@ export class IntelligentRateLimiter {
     /**
      * Record a successful request. Fire-and-forget logic using Upsert counters in Redis.
      */
-    recordRequest(modelId: string, tokensUsed: number = 0): void {
+    recordRequest(modelId: string, _tokensUsed: number = 0): void {
         const redis = getRedis();
         if (!redis) return;
 
@@ -217,7 +217,7 @@ export class IntelligentRateLimiter {
      * Get remaining capacity (approximate)
      * For distributed Redis architecture this represents a mock response or requires heavy aggregation.
      */
-    async getRemainingCapacity(models: ModelConfig[]): Promise<{ minuteRemaining: number; dayRemaining: number }> {
+    async getRemainingCapacity(_models: ModelConfig[]): Promise<{ minuteRemaining: number; dayRemaining: number }> {
         return { minuteRemaining: 0, dayRemaining: 0 };
     }
 }

@@ -84,7 +84,8 @@ export async function POST(req: NextRequest) {
         }
 
         // 4. Prepare Piston Request
-        const pistonUrl = process.env.PISTON_URL || 'https://emkc.org/api/v2/piston';
+        // PISTON_URL should be the full execute endpoint (e.g. https://emkc.org/api/v2/piston/execute)
+        const pistonExecuteUrl = process.env.PISTON_URL || 'https://emkc.org/api/v2/piston/execute';
         const config = LANGUAGE_MAP[language];
 
         const pistonPayload = {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
             const signal = abortController.signal;
             const timeoutId = setTimeout(() => abortController.abort(), 15000);
 
-            const result = await fetch(`${pistonUrl}/execute`, {
+            const result = await fetch(pistonExecuteUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
