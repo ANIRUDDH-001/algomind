@@ -136,15 +136,34 @@
 }
 
 /* Mobile scroll container for horizontal scrolling elements */
-/* Mobile scroll container for horizontal scrolling elements */
 .mobile-scroll-container {
   -webkit-overflow-scrolling: touch;
-  /* scrollbar-width: none;  <-- REMOVED TO ALLOW VISIBLE SCROLL */
-  -ms-overflow-style: none;
 }
 
-/* 
-.mobile-scroll-container::-webkit-scrollbar {
-  display: none;
-} 
-*/
+/* Mobile scrollbar indicator */
+@media (max-width: 1024px) {
+  .mobile-scroll::-webkit-scrollbar {
+    width: 4px;
+    background: transparent;
+  }
+  .mobile-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+  }
+}
+
+/* Thin scrollbar utility (replaces tailwind-scrollbar plugin) */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 3px;
+}
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}

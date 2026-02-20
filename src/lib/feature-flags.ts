@@ -87,9 +87,12 @@ export function checkBrowserSupport(flag: FeatureFlagKey): boolean {
 
     // Check for VAD support (AudioContext + MediaStream)
     if (flag === 'ENABLE_VAD_INTERRUPTIONS') {
+        interface WindowWithWebkit extends Window {
+            webkitAudioContext?: typeof AudioContext;
+        }
         return !!(
             typeof window !== 'undefined' &&
-            (window.AudioContext || (window as any).webkitAudioContext) &&
+            (window.AudioContext || (window as unknown as WindowWithWebkit).webkitAudioContext) &&
             navigator.mediaDevices &&
             navigator.mediaDevices.getUserMedia
         );
