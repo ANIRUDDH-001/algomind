@@ -1,7 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { Play, Loader2 } from 'lucide-react';
+import { OnMount } from '@monaco-editor/react';
+
+export interface ExecutionResult {
+    stdout: string;
+    stderr: string;
+    exit_code: number;
+    runtime_ms: number;
+    language: string;
+}
+
 
 // Lazy load Monaco Editor (2MB - only load when needed)
 const Editor = dynamic(() => import('@monaco-editor/react'), {
@@ -78,11 +89,94 @@ interface CodeEditorProps {
     defaultLanguage?: string;
     initialCode?: string;
     onLanguageChange?: (lang: string) => void;
+    onExecutionResult?: (result: ExecutionResult) => void;
 }
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange }: CodeEditorProps) {
+const LANGUAGE_API_MAP: Record<string, string> = {
+    python: 'python',
+    javascript: 'javascript',
+    typescript: 'javascript',
+    java: 'java',
+    cpp: 'cpp',
+};
+
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionResult }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
+    const [isRunning, setIsRunning] = useState(false);
+    const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+    const [activeTab, setActiveTab] = useState<'output' | 'error' | 'info'>('output');
+
+    // Ref to hold the current values for the shortcut handler
+    const codeRef = useRef(code);
+    const languageRef = useRef(language);
+
+    useEffect(() => {
+        codeRef.current = code;
+    }, [code]);
+
+    useEffect(() => {
+        languageRef.current = language;
+    }, [language]);
+
+    const handleRunCode = async () => {
+        const currentCode = codeRef.current;
+        const currentLang = languageRef.current;
+
+        if (!currentCode.trim()) return;
+
+        setIsRunning(true);
+        setExecutionResult(null);
+
+        try {
+            const apiLang = LANGUAGE_API_MAP[currentLang] || currentLang;
+            const res = await fetch('/api/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: apiLang, code: currentCode }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                setExecutionResult({
+                    stdout: '',
+                    stderr: errorData.error || `Execution failed with status ${res.status}`,
+                    exit_code: 1,
+                    runtime_ms: 0,
+                    language: apiLang,
+                });
+                setActiveTab('error');
+            } else {
+                const data = await res.json();
+                const result: ExecutionResult = { ...data, language: apiLang };
+                setExecutionResult(result);
+                onExecutionResult?.(result);
+
+                if (data.stderr && !data.stdout) {
+                    setActiveTab('error');
+                } else {
+                    setActiveTab('output');
+                }
+            }
+        } catch (error) {
+            setExecutionResult({
+                stdout: '',
+                stderr: error instanceof Error ? error.message : 'Unknown execution error',
+                exit_code: 1,
+                runtime_ms: 0,
+                language: currentLang,
+            });
+            setActiveTab('error');
+        } finally {
+            setIsRunning(false);
+        }
+    };
+
+    const handleEditorDidMount: OnMount = (editor, monaco) => {
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+            handleRunCode();
+        });
+    };
 
     const handleEditorChange = (value: string | undefined) => {
         const newCode = value || '';
@@ -113,7 +207,20 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     </select>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleRunCode}
+                        disabled={isRunning || !code.trim()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium mr-2"
+                    >
+                        {isRunning ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Play className="w-4 h-4 fill-current" />
+                        )}
+                        Run
+                    </button>
+                    <div className="w-px h-5 bg-slate-700 mx-1"></div>
                     <button
                         onClick={() => {
                             setCode('');
@@ -139,6 +246,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     language={language}
                     value={code}
                     onChange={handleEditorChange}
+                    onMount={handleEditorDidMount}
                     theme="vs-dark"
                     options={{
                         minimap: { enabled: false },
@@ -156,6 +264,75 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     }}
                 />
             </div>
+
+            {/* Execution Panel */}
+            {(executionResult || isRunning) && (
+                <div className="h-48 max-h-[200px] border-t border-slate-700 bg-slate-900 flex flex-col shrink-0 overflow-hidden rounded-b-lg">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700 text-sm">
+                        <div className="flex items-center gap-4">
+                            {isRunning ? (
+                                <span className="text-slate-400 flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Executing...
+                                </span>
+                            ) : executionResult && (
+                                <>
+                                    <button
+                                        onClick={() => setActiveTab('output')}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'output' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                    >
+                                        Output
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('error')}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'error' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                    >
+                                        Error
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('info')}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                    >
+                                        Info
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                        {!isRunning && (
+                            <button
+                                onClick={() => setExecutionResult(null)}
+                                className="text-slate-400 hover:text-white transition-colors"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-3 font-mono text-sm leading-relaxed">
+                        {!isRunning && executionResult && (
+                            <>
+                                {activeTab === 'output' && (
+                                    <pre className={`whitespace-pre-wrap ${executionResult.exit_code === 0 ? 'text-green-400' : 'text-slate-300'}`}>
+                                        {executionResult.stdout || <span className="text-slate-500 italic">No output</span>}
+                                    </pre>
+                                )}
+                                {activeTab === 'error' && (
+                                    <pre className="whitespace-pre-wrap text-amber-400">
+                                        {executionResult.stderr || <span className="text-slate-500 italic">No errors</span>}
+                                    </pre>
+                                )}
+                                {activeTab === 'info' && (
+                                    <div className="text-slate-400">
+                                        Exit code: {executionResult.exit_code} | Runtime: {executionResult.runtime_ms}ms
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

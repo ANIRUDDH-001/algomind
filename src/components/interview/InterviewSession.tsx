@@ -229,6 +229,7 @@ export function InterviewSession({
     }, [state, result, isGuest, readOnly, handleSaveSession]);
 
 
+    // Adds user code to the interview context so AI can critique it
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
 
@@ -635,6 +636,14 @@ export function InterviewSession({
                                     defaultLanguage={codeLanguage}
                                     initialCode={userCode}
                                     onLanguageChange={setCodeLanguage}
+                                    onExecutionResult={(result) => {
+                                        if (result.stdout || result.stderr) {
+                                            const execSummary = result.exit_code === 0
+                                                ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}`
+                                                : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
+                                            shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                        }
+                                    }}
                                 />
                                 <Button
                                     onClick={() => shareCodeWithAI(userCode)}
@@ -883,6 +892,14 @@ export function InterviewSession({
                                             defaultLanguage={codeLanguage}
                                             initialCode={userCode}
                                             onLanguageChange={setCodeLanguage}
+                                            onExecutionResult={(result) => {
+                                                if (result.stdout || result.stderr) {
+                                                    const execSummary = result.exit_code === 0
+                                                        ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}`
+                                                        : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
+                                                    shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                                }
+                                            }}
                                         />
                                         <Button
                                             onClick={() => shareCodeWithAI(userCode)}
