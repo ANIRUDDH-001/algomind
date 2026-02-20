@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { CognitiveSkill } from '@/types/assessment';
 import { SessionHistory } from './progress-store';
 

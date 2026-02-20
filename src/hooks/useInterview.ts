@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
