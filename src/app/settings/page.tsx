@@ -1,5 +1,4 @@
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
-import { DemoBanner } from '@/components/demo/DemoBanner';
 
 export default function SettingsPage() {
     return (

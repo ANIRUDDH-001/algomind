@@ -48,7 +48,7 @@ interface MicVADInstance {
     destroy: () => Promise<void>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type MicVADConstructor = { new: (options: Record<string, unknown>) => Promise<MicVADInstance> };
 
 let _scriptsLoaded = false;

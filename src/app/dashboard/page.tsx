@@ -17,7 +17,6 @@ import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPane
 import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { Brain, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';

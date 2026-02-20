@@ -18,19 +18,37 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }],
       "react/no-unescaped-entities": "off",
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-empty-object-type": "off",
       "prefer-const": "warn",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "warn",
-      // These seem to be specific rules from a plugin or custom config
-      "react-hooks/set-state-in-effect": "warn",
+      // Turned off: these flag valid SSR hydration patterns (syncing localStorage/external state
+      // into React state on mount via useEffect). This is the recommended Next.js approach.
+      "react-hooks/set-state-in-effect": "off",
       "react-hooks/static-components": "warn",
-      "react-hooks/purity": "warn",
-      // General fallbacks
+      // Turned off: flags Math.random() in useRef() initializer as impure, but useRef
+      // only evaluates its initializer once — this is a stable, idiomatic pattern.
+      "react-hooks/purity": "off",
       "@next/next/no-img-element": "warn"
+    }
+  },
+  // Test files: allow any types (mocking requires flexible typing)
+  {
+    files: ["**/__tests__/**", "**/*.test.*", "**/test-utils/**"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }]
     }
   }
 ]);
