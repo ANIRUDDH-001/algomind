@@ -7,7 +7,7 @@ export async function GET() {
 
         // Check health of all providers
         const health = await client.runHealthCheck();
-        const rateLimits = client.getRateLimitStatus();
+        const rateLimits = await client.getRateLimitStatus();
 
         const isHealthy = Object.values(health).some(h => h.available);
 

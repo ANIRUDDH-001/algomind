@@ -7,6 +7,8 @@ import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
 import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
+import { getActiveModels } from './model-registry';
+import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
 
 // Types
@@ -75,11 +77,13 @@ export class UnifiedAIClient {
         // If preferred is Gemini: Try Gemini models. If all fail, Try Groq models.
 
         // 1. Try Primary Provider
+        const models = await getActiveModels();
         const primaryResult = await this.tryProvider(
             primaryProvider,
             messages,
             options,
-            attemptedModels
+            attemptedModels,
+            models
         );
 
         if (primaryResult.success) {
@@ -93,7 +97,8 @@ export class UnifiedAIClient {
                 'groq',
                 messages,
                 options,
-                attemptedModels
+                attemptedModels,
+                models
             );
 
             if (fallbackResult.success) {
@@ -115,17 +120,19 @@ export class UnifiedAIClient {
         provider: Provider,
         messages: Message[],
         options: CompletionOptions,
-        attemptedModels: string[]
+        attemptedModels: string[],
+        activeModels: ModelConfig[]
     ): Promise<CompletionResult> {
         // Get models for this provider
-        const models = CHAT_MODELS.filter(m => m.provider === provider);
+        const models = activeModels.filter(m => m.provider === provider);
 
         // Sort by tier (lower is better/higher priority)
         models.sort((a, b) => a.tier - b.tier);
 
         for (const model of models) {
             // Check Rate Limiter
-            if (!this.rateLimiter.canUseModel(model.id, options.estimatedTokens)) {
+            const rateLimit = await this.rateLimiter.canUseModel(model.id, activeModels, options.estimatedTokens);
+            if (!rateLimit.allowed) {
                 continue;
             }
 
@@ -173,6 +180,19 @@ export class UnifiedAIClient {
             return { success: false, error: "Unsupported provider" };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorCodeMatch = errorMessage.match(/\((\d{3})\)/);
+            const errorCode = errorCodeMatch ? errorCodeMatch[1] : undefined;
+
+            if (errorCode === '429') {
+                void logSystemEvent({ type: 'model_429', provider: model.provider, modelId: model.id, errorCode: '429' });
+            } else if (errorCode === '404') {
+                void logSystemEvent({ type: 'model_deprecated', provider: model.provider, modelId: model.id, errorCode: '404' });
+            } else if (errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('fetch failed')) {
+                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id });
+            } else {
+                void logSystemEvent({ type: 'model_error', provider: model.provider, modelId: model.id, errorMessage });
+            }
+
             return { success: false, error: errorMessage };
         }
     }
@@ -291,7 +311,8 @@ export class UnifiedAIClient {
      * Helper to try all Groq models specifically
      */
     async tryAllGroqModels(messages: Message[], options: CompletionOptions) {
-        return this.tryProvider('groq', messages, options, []);
+        const models = await getActiveModels();
+        return this.tryProvider('groq', messages, options, [], models);
     }
 
     // --- Legacy / Compatibility Methods ---
@@ -562,8 +583,10 @@ export class UnifiedAIClient {
             geminiResult.error = e instanceof Error ? e.message : String(e) || "Provider Unreachable";
         }
 
+        const models = await getActiveModels();
+
         // 3. Map status to all models with honest reporting
-        for (const model of CHAT_MODELS) {
+        for (const model of models) {
             // A. Handle Preview / Unverified Models (e.g. Gemini 2.5)
             if (model.id.includes('2.5')) {
                 results[model.id] = {
@@ -614,7 +637,8 @@ export class UnifiedAIClient {
         method: 'direct_check';
         status: 'available' | 'unavailable';
     }> {
-        const model = CHAT_MODELS.find(m => m.id === modelId);
+        const models = await getActiveModels();
+        const model = models.find(m => m.id === modelId);
         if (!model) {
             return {
                 available: false,
@@ -666,15 +690,16 @@ export class UnifiedAIClient {
         return this.checkAllModels();
     }
 
-    getRateLimiterStatus() {
+    async getRateLimiterStatus() {
+        const models = await getActiveModels();
         return {
-            usage: this.rateLimiter.getUsageStats(),
-            remaining: this.rateLimiter.getRemainingCapacity()
+            usage: await this.rateLimiter.getUsageStats(),
+            remaining: await this.rateLimiter.getRemainingCapacity(models)
         };
     }
 
     // Kept for legacy compatibility if called directly
-    getRateLimitStatus() {
+    async getRateLimitStatus() {
         return this.getRateLimiterStatus();
     }
 
@@ -704,6 +729,7 @@ export class UnifiedAIClient {
             }
         } catch (e) {
             console.warn("⚠️ Gemini embedding failed:", e instanceof Error ? e.message : e);
+            void logSystemEvent({ type: 'embedding_failed', provider: 'gemini' });
         }
 
         // 2. Fallback to Local MiniLM (ONLY in DEVELOPMENT)

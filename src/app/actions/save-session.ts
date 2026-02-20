@@ -3,6 +3,7 @@
 import { createServerSupabase as createClient } from '@/lib/supabase/server';
 import { AssessmentResult } from '@/lib/assessment/analyzer';
 import { ConversationTurn } from '@/lib/assessment/prompts';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function saveInterviewSession(
     userId: string,
@@ -40,6 +41,7 @@ export async function saveInterviewSession(
 
         if (error) {
             console.error('❌ [ACTION] Failed to save session:', error);
+            void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
             return { success: false, error: error.message };
         }
 
@@ -73,7 +75,9 @@ export async function saveInterviewSession(
         return { success: true };
     } catch (e) {
         const error = e as unknown;
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('❌ [ACTION] Unexpected error:', error);
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        void logSystemEvent({ type: 'db_error', errorMessage, metadata: { operation: 'save_session' } });
+        return { success: false, error: errorMessage };
     }
 }
