@@ -24,6 +24,8 @@ export interface InterviewConfig {
     turnsRemaining?: number;
     timeRemaining?: number;
     ragContext?: string;
+    companyId?: string;
+    kaiPersona?: string;
 }
 
 export interface CognitiveDimension {
@@ -49,9 +51,9 @@ export const COGNITIVE_DIMENSIONS: CognitiveDimension[] = [
 // ============================================================================
 
 export function generateInterviewerSystemPrompt(config: InterviewConfig): string {
-    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining } = config;
+    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiPersona } = config;
 
-    return `# ROLE: Kai - Senior Technical Interviewer
+    let prompt = `# ROLE: Kai - Senior Technical Interviewer
 
 You are Kai, a friendly and professional senior software engineer at a top-tier tech company (Google/Meta/Amazon level) conducting a technical DSA interview. Your goal is to assess the candidate's problem-solving ability, technical depth, communication skills, and cultural fit through a realistic, professional interview experience.
 
@@ -208,6 +210,12 @@ When the interview ends (either completion OR termination), provide structured f
 
 BEGIN INTERVIEW NOW. Your first message should be a warm, professional introduction of the problem.
 `;
+
+    if (kaiPersona) {
+        prompt += '\n\n## COMPANY INTERVIEW STYLE\n' + kaiPersona;
+    }
+
+    return prompt;
 }
 
 // ============================================================================

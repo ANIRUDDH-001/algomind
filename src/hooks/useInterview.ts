@@ -34,6 +34,7 @@ interface ProblemContext {
     title: string;
     content: string;
     ragContext?: string;
+    companyPersona?: string;
 }
 
 export function useInterview(options: {
@@ -131,7 +132,8 @@ export function useInterview(options: {
                         { role: 'user', content: prompt }
                     ],
                     systemPrompt,
-                    problemContext
+                    problemContext,
+                    companyPersona: problemContext.companyPersona
                 })
             });
 
@@ -232,8 +234,8 @@ export function useInterview(options: {
     }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
 
     // Core Logic
-    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string) => {
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext };
+    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string, companyPersona?: string) => {
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 

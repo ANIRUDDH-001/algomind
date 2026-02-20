@@ -12,6 +12,7 @@ import { RadarChart } from '@/components/charts/RadarChart';
 import { RadarChartLegend } from '@/components/charts/RadarChartLegend';
 import { EmptyState } from '@/components/assessment/EmptyState';
 import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
+import { LeetCodePrompt } from '@/components/onboarding/LeetCodePrompt';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
 import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
 import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
@@ -107,6 +108,7 @@ function DashboardContent() {
 
     return (
         <div {...handlers} className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+            <LeetCodePrompt />
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader progress={progress} />
 

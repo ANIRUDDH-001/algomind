@@ -3,14 +3,14 @@ import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { type AssessmentResult } from '@/lib/assessment/analyzer';
 import { type CognitiveSkill } from '@/types/assessment';
-
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
+import { CompanyModeSelector } from './CompanyModeSelector';
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
@@ -55,6 +55,7 @@ export function InterviewSession({
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     // VAD feature flag
     const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
@@ -72,6 +73,23 @@ export function InterviewSession({
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [showMobileWarning, setShowMobileWarning] = useState(false);
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+
+    // --- Company Mode Selection ---
+    const [selectedCompany, setSelectedCompany] = useState<string | null>(searchParams.get('company'));
+    const [companyPersona, setCompanyPersona] = useState<string | null>(null);
+
+    const handleCompanySelect = (id: string | null, persona: string | null) => {
+        setSelectedCompany(id);
+        setCompanyPersona(persona);
+
+        const newParams = new URLSearchParams(searchParams.toString());
+        if (id) {
+            newParams.set('company', id);
+        } else {
+            newParams.delete('company');
+        }
+        router.replace(`?${newParams.toString()}`, { scroll: false });
+    };
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
@@ -173,7 +191,7 @@ export function InterviewSession({
         // Rate limiting is now handled atomically by check_user_rate_limit RPC
         // which increments on check. No separate client-side increment needed.
 
-        startInterview(problem.title, problem.description, ragContext);
+        startInterview(problem.title, problem.description, ragContext, companyPersona || undefined);
     };
 
     // --- SESSION PERSISTENCE ---
@@ -412,7 +430,13 @@ export function InterviewSession({
                 {hasStarted && !readOnly && !isMobile && renderCodeEditorToggle()}
 
                 {!hasStarted ? (
-                    <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8">
+                        <div className="w-full max-w-2xl mb-8">
+                            <CompanyModeSelector
+                                selectedCompany={selectedCompany}
+                                onSelect={handleCompanySelect}
+                            />
+                        </div>
                         <Button
                             size="lg"
                             className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
