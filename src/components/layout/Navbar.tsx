@@ -153,6 +153,13 @@ export function Navbar() {
                                                         <Flag className="mr-2 h-4 w-4" />
                                                         Feature Flags
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/admins')}
+                                                        className="text-blue-400 hover:bg-blue-900/30 hover:text-blue-300 cursor-pointer focus:bg-blue-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                    >
+                                                        <Shield className="mr-2 h-4 w-4" />
+                                                        Admin Users
+                                                    </DropdownMenuItem>
                                                 </>
                                             )}
 
