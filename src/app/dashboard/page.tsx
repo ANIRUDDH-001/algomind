@@ -12,16 +12,18 @@ import { RadarChart } from '@/components/charts/RadarChart';
 import { RadarChartLegend } from '@/components/charts/RadarChartLegend';
 import { EmptyState } from '@/components/assessment/EmptyState';
 import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
+import { SkillDrillDown } from '@/components/charts/SkillDrillDown';
 import { LeetCodePrompt } from '@/components/onboarding/LeetCodePrompt';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
 import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
 import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { Brain, ChevronRight } from 'lucide-react';
+import { Brain, ChevronRight, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
 import { useSwipeable } from 'react-swipeable';
+import { getSupabase } from '@/lib/supabase/client';
 
 function DashboardContent() {
     const router = useRouter();
@@ -31,9 +33,15 @@ function DashboardContent() {
     // Initialize tab from URL or default to overview
     const initialTab = (searchParams.get('tab') as string) || 'overview';
     const validTabs = ['overview', 'skills', 'history', 'insights'] as const;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const defaultTab: typeof validTabs[number] = validTabs.includes(initialTab as any) ? (initialTab as any) : 'overview';
     const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(defaultTab);
     const [showPrevious, setShowPrevious] = useState(false);
+    const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+
+    // Feature state for "All-time" averages logic
+    const [allTimeData, setAllTimeData] = useState<Record<string, number> | undefined>(undefined);
+    const [showAllTime, setShowAllTime] = useState(true);
 
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
@@ -55,6 +63,49 @@ function DashboardContent() {
         }
         fetchRecommendations();
     }, [progress]);
+
+    // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions
+    useEffect(() => {
+        const fetchAllTimeAverages = async () => {
+            if (!progress?.userId) return;
+            try {
+                const supabase = getSupabase();
+                const { data, error } = await supabase.rpc('get_user_sessions_with_assessment', {
+                    p_user_id: progress.userId,
+                    p_limit: 20
+                });
+
+                if (error || !data || data.length === 0) return;
+
+                const averages: Record<string, number> = {};
+                const counts: Record<string, number> = {};
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data.forEach((row: any) => {
+                    Object.keys(SKILL_DEFINITIONS).forEach((skill) => {
+                        const dbKey = skill.replace(/-/g, '_');
+                        if (row[dbKey] != null && !isNaN(parseFloat(row[dbKey]))) {
+                            averages[skill] = (averages[skill] || 0) + Number(row[dbKey]);
+                            counts[skill] = (counts[skill] || 0) + 1;
+                        }
+                    });
+                });
+
+                Object.keys(averages).forEach((skill) => {
+                    if (counts[skill] > 0) {
+                        averages[skill] /= counts[skill];
+                    }
+                });
+
+                setAllTimeData(averages);
+            } catch (err) {
+                console.error('Failed to load all-time session averages', err);
+            }
+        };
+
+        fetchAllTimeAverages();
+    }, [progress?.userId]);
+
     // Sync tab state with URL parameters
     useEffect(() => {
         const tabParam = searchParams.get('tab');
@@ -132,19 +183,48 @@ function DashboardContent() {
                                             isLoading={isLoading}
                                             data-tour="cognitive-profile"
                                         >
-                                            <div className="flex flex-col items-center justify-center h-full py-4">
+                                            <div className="flex flex-col xl:flex-row items-center justify-center h-full py-4 w-full">
                                                 {latestSession ? (
                                                     <>
-                                                        <RadarChart
-                                                            currentScores={latestSession.skills}
-                                                            previousScores={previousSession?.skills}
-                                                            showComparison={showPrevious}
-                                                            size="medium"
-                                                        />
-                                                        <RadarChartLegend
-                                                            showPrevious={showPrevious}
-                                                            onToggle={(type) => type === 'previous' && setShowPrevious(!showPrevious)}
-                                                        />
+                                                        <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0">
+                                                            {allTimeData && (
+                                                                <button
+                                                                    onClick={() => setShowAllTime(!showAllTime)}
+                                                                    className={cn(
+                                                                        "self-end mb-2 mr-4 px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 border",
+                                                                        showAllTime
+                                                                            ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+                                                                            : "bg-slate-900/50 text-slate-500 border-slate-800 hover:text-slate-300"
+                                                                    )}
+                                                                >
+                                                                    <Activity className="w-3 h-3" />
+                                                                    Show avg
+                                                                </button>
+                                                            )}
+                                                            <RadarChart
+                                                                currentScores={latestSession.skills}
+                                                                previousScores={previousSession?.skills}
+                                                                showComparison={showPrevious}
+                                                                size="medium"
+                                                                onSkillClick={(skill) => setSelectedSkill(skill === selectedSkill ? null : skill)}
+                                                                selectedSkill={selectedSkill}
+                                                                allTimeData={allTimeData}
+                                                                showAllTime={showAllTime}
+                                                            />
+                                                            <RadarChartLegend
+                                                                showPrevious={showPrevious}
+                                                                onToggle={(type) => type === 'previous' && setShowPrevious(!showPrevious)}
+                                                            />
+                                                        </div>
+                                                        {selectedSkill && (
+                                                            <div className="w-full xl:w-80 shrink-0 xl:ml-6 mt-6 xl:mt-0 max-w-sm mx-auto animate-in fade-in slide-in-from-right-8 duration-500">
+                                                                <SkillDrillDown
+                                                                    skill={selectedSkill}
+                                                                    sessions={progress?.sessions || []}
+                                                                    onClose={() => setSelectedSkill(null)}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </>
                                                 ) : (
                                                     <div className="flex flex-col items-center justify-center py-20 opacity-30 text-slate-500">

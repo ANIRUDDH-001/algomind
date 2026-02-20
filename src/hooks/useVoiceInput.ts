@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DSA_VOCABULARY } from '@/lib/voice/vocabulary';
 
