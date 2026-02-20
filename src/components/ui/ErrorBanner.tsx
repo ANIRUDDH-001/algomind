@@ -14,7 +14,7 @@ export function ErrorBanner({ message, className, onClose, autoCloseMs = 5000, .
             const timer = setTimeout(onClose, autoCloseMs);
             return () => clearTimeout(timer);
         }
-    }, [autoCloseMs, onClose]);
+    }, [autoCloseMs, onClose, message]);
 
     return (
         <div className={cn(

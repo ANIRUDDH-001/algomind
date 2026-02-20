@@ -53,7 +53,7 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         return {
             allowed: result.allowed,
             remaining: result.remaining,
-            isAdmin: result.remaining >= 999
+            isAdmin: result.is_admin_user
         };
     } catch (error: unknown) {
         console.error('❌ [Rate Limit] Unexpected error:', error);

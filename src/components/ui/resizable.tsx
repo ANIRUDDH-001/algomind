@@ -15,7 +15,8 @@ const ResizablePanelGroup = ({
             "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
             className
         )}
-        orientation={direction}
+        // @ts-expect-error - Runtime expects direction, but types have orientation
+        direction={direction}
         {...props}
     />
 )

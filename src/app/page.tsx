@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { IntroAnimation } from '@/components/onboarding/IntroAnimation';
 import { shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
+import { enableDemoMode } from '@/lib/demo/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,12 @@ export default function HomePage() {
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
     setShowOnboarding(false);
-    // Stay on home page after intro animation - don't redirect to dashboard
+    // Auto-enable demo mode for guests so they can experience the product
+    if (!user) {
+      enableDemoMode();
+      window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
+      router.push('/dashboard');
+    }
   };
 
   if (showOnboarding) {
@@ -55,14 +61,25 @@ export default function HomePage() {
 
         {/* Action Buttons - ALL SAME STYLE */}
         <div className="flex flex-wrap gap-4 justify-center mb-20" data-tour="home-actions">
-          <Button
-            onClick={() => router.push('/interview')}
-            size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
-          >
-            <Mic className="w-5 h-5 mr-2" />
-            Quick Practice
-          </Button>
+          {user ? (
+            <Button
+              onClick={() => router.push('/interview')}
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
+            >
+              <Mic className="w-5 h-5 mr-2" />
+              Quick Practice
+            </Button>
+          ) : (
+            <Button
+              onClick={() => router.push('/interview?demo=true')}
+              size="lg"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-6 text-lg"
+            >
+              <Mic className="w-5 h-5 mr-2" />
+              Try Demo as Guest
+            </Button>
+          )}
 
           {user && (
             <>

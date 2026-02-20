@@ -65,7 +65,8 @@ describe('Supabase Data Layer', () => {
 
             mockFrom.mockImplementation((table) => {
                 if (table === 'interview_sessions') return { insert: mockInsertSession };
-                return { insert: vi.fn() };
+                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+                return { insert: vi.fn(), upsert: vi.fn() };
             });
 
             mockSingle.mockResolvedValue({ data: { id: 'session-123' }, error: null });
@@ -95,7 +96,11 @@ describe('Supabase Data Layer', () => {
                 })
             });
 
-            mockFrom.mockReturnValue({ insert: mockInsertSession });
+            mockFrom.mockImplementation((table) => {
+                if (table === 'interview_sessions') return { insert: mockInsertSession };
+                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+                return { insert: mockInsertSession, upsert: vi.fn() };
+            });
             mockSingle.mockResolvedValue({ data: null, error: { message: 'duplicate key' } });
 
             const result = await saveInterviewSession(
@@ -121,7 +126,8 @@ describe('Supabase Data Layer', () => {
             mockFrom.mockImplementation((table) => {
                 if (table === 'interview_sessions') return { insert: mockInsertSession };
                 if (table === 'knowledge_gaps') return { insert: mockInsertGaps };
-                return { insert: vi.fn() };
+                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+                return { insert: vi.fn(), upsert: vi.fn() };
             });
 
             mockSingle.mockResolvedValue({ data: { id: 'session-123' }, error: null });
@@ -151,7 +157,7 @@ describe('Supabase Data Layer', () => {
     describe('checkUserRateLimit', () => {
         it('should return allowed when below limit', async () => {
             mockRpc.mockResolvedValue({
-                data: [{ allowed: true, remaining: 3 }],
+                data: [{ allowed: true, remaining: 3, is_admin_user: false }],
                 error: null
             });
 

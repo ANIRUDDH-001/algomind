@@ -47,7 +47,7 @@ export function useAdmin() {
 
             // Check if user email is in admin_users table via RPC
             // This avoids RLS issues and 406 errors with direct table access
-            const { data, error: dbError } = await supabase.rpc('is_admin');
+            const { data, error: dbError } = await supabase.rpc('check_is_admin');
 
             if (dbError) {
                 console.warn('Admin check error:', dbError);

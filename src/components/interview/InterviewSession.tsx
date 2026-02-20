@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
+import { type AssessmentResult } from '@/lib/assessment/analyzer';
 import { type CognitiveSkill } from '@/types/assessment';
 import { useProgress } from '@/hooks/useProgress';
 import { useRouter } from 'next/navigation';
@@ -70,7 +71,7 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [showMobileWarning, setShowMobileWarning] = useState(false);
-    const [optimisticListening, setOptimisticListening] = useState<boolean | null>(null);
+    const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
@@ -130,31 +131,23 @@ export function InterviewSession({
     // Logs removed for production cleanliness
 
     // Sync optimistic state with real state
-    useEffect(() => {
-        if (optimisticListening === voice.isListening) {
-            setTimeout(() => setOptimisticListening(null), 0);
-        }
-    }, [voice.isListening, optimisticListening]);
+    // Handled by useInterview hook now
 
     useEffect(() => {
         // Reset local and hook state when problem changes
-        setTimeout(() => {
-            setHasStarted(false);
-            setError(null);
-            resetInterview();
-            transcriptLoadedRef.current = false; // Reset loaded state
-        }, 0);
-    }, [problem.id, problem.title, resetInterview]);
+        setHasStarted(false);
+        setError(null);
+        resetInterview();
+        transcriptLoadedRef.current = false;
+        guestTrial.reset();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [problem.id]);
 
-    // Stop listening when AI speaks (prevent echo)
-    // Stop listening when AI speaks (prevent echo) ONLY if VAD is disabled
-    // Stop listening when AI speaks (prevent echo)
-    // Stop listening when AI speaks (prevent echo) ONLY if VAD is disabled
+    // Stop listening when AI speaks (prevent echo) — only if VAD is disabled
     const { isSpeaking, isListening, stopListening } = voice;
     useEffect(() => {
         if (isSpeaking && isListening && !vadEnabled) {
             stopListening();
-            setTimeout(() => setOptimisticListening(false), 0);
         }
     }, [isSpeaking, isListening, stopListening, vadEnabled]);
 
@@ -189,7 +182,7 @@ export function InterviewSession({
     };
 
     // --- SESSION PERSISTENCE ---
-    const handleSaveSession = useCallback(async (result: any) => {
+    const handleSaveSession = useCallback(async (result: AssessmentResult) => {
         if (!user || !user.id || !problem || isGuest) return;
 
         try {
@@ -276,7 +269,7 @@ export function InterviewSession({
             }
 
             const store = new ProgressStore();
-            const skillScores: any = {};
+            const skillScores: Record<string, number> = {};
             Object.entries(assessment.skills).forEach(([id, s]) => {
                 skillScores[id] = s.score;
             });
@@ -542,7 +535,7 @@ export function InterviewSession({
                                     {/* Status Indicator */}
                                     <div className="text-center space-y-2 bg-slate-950/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-800/80 shadow-inner">
                                         <p className="text-xs font-bold text-white tracking-wide" data-testid="interview-status-main">
-                                            {(optimisticListening ?? voice.isListening) ? "I'M LISTENING..." :
+                                            {voice.isListening ? "I'M LISTENING..." :
                                                 isProcessing ? "THINKING..." :
                                                     voice.isSpeaking ? "AI IS SPEAKING..." :
                                                         "READY FOR YOU"}
@@ -550,10 +543,10 @@ export function InterviewSession({
                                         <div className="flex items-center justify-center gap-2">
                                             <div className={cn(
                                                 "w-1 h-1 rounded-full animate-pulse",
-                                                (optimisticListening ?? voice.isListening) ? "bg-blue-500" : "bg-slate-600"
+                                                voice.isListening ? "bg-blue-500" : "bg-slate-600"
                                             )} />
                                             <p className="text-[9px] uppercase tracking-widest text-slate-500 font-black" data-testid="mic-status-indicator">
-                                                {(optimisticListening ?? voice.isListening) ? "Auto-Submit Active" : "Waiting for mic"}
+                                                {voice.isListening ? "Auto-Submit Active" : "Waiting for mic"}
                                             </p>
                                         </div>
                                     </div>
@@ -562,21 +555,18 @@ export function InterviewSession({
                                     {!readOnly && (
                                         <div className="flex justify-center pb-6">
                                             <MicrophoneButton
-                                                isListening={optimisticListening ?? voice.isListening}
+                                                isListening={voice.isListening}
                                                 onClick={() => {
-                                                    const current = optimisticListening ?? voice.isListening;
-                                                    if (current) {
-                                                        setOptimisticListening(false);
+                                                    if (voice.isListening) {
                                                         voice.stopListening();
                                                     } else if (!isProcessing && !voice.isSpeaking) {
-                                                        setOptimisticListening(true);
                                                         voice.startListening();
                                                     }
                                                 }}
                                                 disabled={isProcessing || voice.isSpeaking}
                                                 className={cn(
                                                     "transition-all duration-300 scale-[1.2] lg:scale-[1.4] shadow-2xl",
-                                                    (optimisticListening ?? voice.isListening) && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
+                                                    voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                                 )}
                                             />
                                         </div>
@@ -767,11 +757,11 @@ export function InterviewSession({
                     data-testid={error.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
                 />
             )}
-            {voice.error && (
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+            {voice.error && !voiceErrorDismissed && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-bounce">
                     <ErrorBanner
                         message={`Mic Problem: ${voice.error}. Try clicking the mic button to restart.`}
-                        onClose={() => { }}
+                        onClose={() => setVoiceErrorDismissed(true)}
                     />
                 </div>
             )}
@@ -961,7 +951,7 @@ export function InterviewSession({
                 <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
 
                     {/* Left Panel: Problem */}
-                    <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-problem">
+                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-problem">
                         <div className="flex flex-col gap-4 h-full p-2">
                             <div className="flex-1 min-h-0 overflow-hidden">
                                 {renderProblemCardContent()}
@@ -973,7 +963,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
 
                     {/* Center Panel: Interaction */}
-                    <ResizablePanel defaultSize="50" minSize="30" id="panel-interaction">
+                    <ResizablePanel defaultSize={50} minSize={30} id="panel-interaction">
                         <div className="h-full p-2" data-testid="panel-interaction">
                             {renderInteractionArea()}
                         </div>
@@ -982,7 +972,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
 
                     {/* Right Panel: History */}
-                    <ResizablePanel defaultSize="25" minSize="20" maxSize="40" id="panel-history">
+                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-history">
                         <div className="h-full p-2">
                             {renderHistoryArea()}
                         </div>
