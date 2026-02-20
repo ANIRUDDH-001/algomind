@@ -8,10 +8,10 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RotateCcw, Trash2, ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical, Mic } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical, Mic } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+
 import { Switch } from '@/components/ui/switch';
 import { setFeatureFlag, getFeatureFlag } from '@/lib/feature-flags';
 
@@ -21,7 +21,7 @@ export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
     const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const [isClearing, setIsClearing] = useState(false);
+    const [_isClearing, setIsClearing] = useState(false);
     const { user, signOut, isConfigured } = useAuth();
     const router = useRouter();
     const [vadEnabled, setVadEnabled] = useState(false);
@@ -42,7 +42,7 @@ export function SettingsPanel() {
         };
     }, []);
 
-    const toggleIntro = () => {
+    const _toggleIntro = () => {
         // ... (existing toggleIntro logic)
         if (introEnabled) {
             markOnboardingComplete();
@@ -75,7 +75,7 @@ export function SettingsPanel() {
         window.dispatchEvent(new CustomEvent('start-tour'));
     };
 
-    const handleClearData = async () => {
+    const _handleClearData = async () => {
         if (!confirm('Are you sure? This will delete ALL your interview sessions and progress. This cannot be undone!')) {
             return;
         }

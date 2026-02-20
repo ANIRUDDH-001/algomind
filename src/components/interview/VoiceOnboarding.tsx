@@ -36,7 +36,7 @@ export function VoiceOnboarding() {
         setOpen(false);
     };
 
-    const OnboardingContent = () => (
+    const onboardingContent = (
         <div className="space-y-6">
             <div className="flex gap-4">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg h-fit shrink-0">
@@ -107,7 +107,7 @@ export function VoiceOnboarding() {
                         <DialogTitle className="text-2xl">Welcome to Voice Interviews! 🎤</DialogTitle>
                     </DialogHeader>
                     <div className="py-2 overflow-y-auto flex-1 px-1">
-                        <OnboardingContent />
+                        {onboardingContent}
                     </div>
                     <div className="flex justify-end gap-2 pt-4 mt-auto border-t shrink-0">
                         <Button onClick={handleComplete} data-testid="onboarding-complete">
@@ -127,7 +127,7 @@ export function VoiceOnboarding() {
                         <DrawerTitle className="text-2xl">Welcome to Voice Interviews! 🎤</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-0 max-h-[60vh] overflow-y-auto">
-                        <OnboardingContent />
+                        {onboardingContent}
                     </div>
                     <DrawerFooter>
                         <Button onClick={handleComplete} className="w-full">

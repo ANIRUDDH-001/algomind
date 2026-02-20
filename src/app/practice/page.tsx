@@ -9,6 +9,7 @@ import { ProblemCard } from '@/components/practice/ProblemCard';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 const PROBLEMS_PER_PAGE = 10;
 
@@ -54,21 +55,26 @@ export default function PracticePage() {
         loadProblems();
     }, [loadProblems]);
 
-    const loadAttemptedProblems = async () => {
-        if (!user) return;
+    const loadAttemptedProblems = useCallback(async () => {
+        if (!user || !isSupabaseConfigured()) return;
         try {
-            const attempted = localStorage.getItem(`attempted_problems_${user.id}`);
-            if (attempted) {
-                setAttemptedProblems(new Set(JSON.parse(attempted)));
+            const supabase = getSupabase();
+            if (!supabase) return;
+            const { data } = await supabase
+                .from('interview_sessions')
+                .select('problem_id')
+                .eq('user_id', user.id);
+            if (data) {
+                setAttemptedProblems(new Set(data.map((d: { problem_id: string }) => d.problem_id)));
             }
-        } catch (e) {
-            console.error('Failed to load attempted problems:', e);
+        } catch {
+            // Non-critical — fail silently
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         loadAttemptedProblems();
-    }, [user]);
+    }, [loadAttemptedProblems]);
 
     // Filter by attempted status (client-side since it's local data)
     const displayedProblems = useMemo(() => {
@@ -95,16 +101,10 @@ export default function PracticePage() {
     };
 
     const handleStartInterview = (problemId: string, problem?: Problem) => {
+        // Optimistically mark as attempted in local state
         const newAttempted = new Set(attemptedProblems);
         newAttempted.add(problemId);
         setAttemptedProblems(newAttempted);
-
-        if (user) {
-            localStorage.setItem(
-                `attempted_problems_${user.id}`,
-                JSON.stringify(Array.from(newAttempted))
-            );
-        }
 
         // Store full problem in sessionStorage for Interview page to use
         if (problem) {
@@ -138,7 +138,7 @@ export default function PracticePage() {
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
+            <div className="min-h-screen bg-slate-950 pb-12 px-4">
                 <div className="max-w-5xl mx-auto">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

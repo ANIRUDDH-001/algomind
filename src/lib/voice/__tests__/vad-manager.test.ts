@@ -10,7 +10,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VADState } from '../types';
 import { createMockMicVAD } from '@/test-utils/voice-mocks';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type Any = any;
 
 // ── Module-level state needs resetting between tests ────────────────
