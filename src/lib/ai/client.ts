@@ -743,8 +743,8 @@ export class UnifiedAIClient {
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-        // Use v1beta for embedding-001
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${apiKey}`;
+        // Use v1beta for gemini-embedding-001
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
