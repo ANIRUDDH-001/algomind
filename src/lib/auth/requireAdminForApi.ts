@@ -16,13 +16,9 @@ export async function requireAdminForApi(): Promise<AdminCheckResult> {
         };
     }
 
-    const { data: adminRecord } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('email', user.email!)
-        .single();
+    const { data: isAdmin, error: adminErr } = await supabase.rpc('check_is_admin');
 
-    if (!adminRecord) {
+    if (adminErr || !isAdmin) {
         return {
             user: null,
             errorResponse: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
