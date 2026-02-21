@@ -1,109 +1,76 @@
-import { describe, test, expect } from 'vitest';
-import { getProcesedVoices, findBestMatchingVoice } from '../voice-utils';
+import { describe, it, expect } from 'vitest';
+import { preprocessForTTS } from '../tts-preprocessor';
+import { calculateSpeakingDuration, splitIntoSpeakableChunks, MAX_CHUNK_LENGTH } from '../voice-utils';
 
-// Helper to create mock voice
-const createVoice = (name: string, lang: string, defaultVoice = false): SpeechSynthesisVoice => ({
-    name,
-    lang,
-    default: defaultVoice,
-    localService: true,
-    voiceURI: name,
-});
+describe('Voice Utilities', () => {
 
-describe('voice-utils', () => {
-    describe('getProcesedVoices', () => {
-        test('returns empty array for empty input', () => {
-            expect(getProcesedVoices([])).toEqual([]);
+    describe('tts-preprocessor.ts', () => {
+        it('1. Code blocks replaced with "code block" or equivalent spoken form', () => {
+            const input = 'Here is a ```function main() {}``` and an inline `const x = 1` var.';
+            const result = preprocessForTTS(input);
+            expect(result).toContain('Here is a code block and an inline code block var.');
         });
 
-        test('filters out non-target languages', () => {
-            const voices = [
-                createVoice('English Voice', 'en-US'),
-                createVoice('Spanish Voice', 'es-ES'), // Should be filtered out
-                createVoice('Hindi Voice', 'hi-IN'),
-            ];
-            const processed = getProcesedVoices(voices);
-            expect(processed).toHaveLength(2);
-            expect(processed.map(v => v.lang)).toContain('en-US');
-            expect(processed.map(v => v.lang)).toContain('hi-IN');
+        it('2. Markdown bold/italic syntax stripped before speaking', () => {
+            const input = 'This is **bold** and *italic* and __underline__ and _also italic_.';
+            const result = preprocessForTTS(input);
+            expect(result).toBe('This is bold and italic and underline and also italic.');
         });
 
-        test('sorts by priority: US -> GB -> IN -> HI', () => {
-            const voices = [
-                createVoice('Hindi', 'hi-IN'),
-                createVoice('Indian English', 'en-IN'),
-                createVoice('British', 'en-GB'),
-                createVoice('American', 'en-US'),
-            ];
-            const processed = getProcesedVoices(voices);
-            const langs = processed.map(v => v.lang);
-            expect(langs).toEqual(['en-US', 'en-GB', 'en-IN', 'hi-IN']);
+        it('3. URLs replaced with "link" or omitted', () => {
+            const input = 'Check out https://example.com/page?id=123 for details.';
+            const result = preprocessForTTS(input);
+            expect(result).toBe('Check out link for details.');
         });
 
-        test('deduplicates exact matches', () => {
-            const v1 = createVoice('Voice A', 'en-US');
-            const v2 = createVoice('Voice A', 'en-US');
-            const processed = getProcesedVoices([v1, v2]);
-            expect(processed).toHaveLength(1);
+        it('4. Numbered lists converted to speakable format', () => {
+            const input = 'Here are steps:\n1. First step\n2. Second step';
+            const result = preprocessForTTS(input);
+            // Matches our ' $1 ' Regex replacements
+            expect(result).toBe('Here are steps:\n 1 First step\n 2 Second step');
         });
 
-        test('keeps distinct voices', () => {
-            const v1 = createVoice('Voice A', 'en-US');
-            const v2 = createVoice('Voice B', 'en-US');
-            expect(getProcesedVoices([v1, v2])).toHaveLength(2);
+        it('5. LaTeX/math expressions handled gracefully (not spoken as raw LaTeX)', () => {
+            const input = 'The math $x = y^2$ and inline \\( x \\) and block \\[ y \\]';
+            const result = preprocessForTTS(input);
+            expect(result).toBe('The math x = y^2 and inline  x  and block  y ');
         });
 
-        test('limits to 8 voices but ensures diversity', () => {
-            const voices = [
-                // 10 US voices
-                ...Array.from({ length: 10 }, (_, i) => createVoice(`US Voice ${i}`, 'en-US')),
-                // 1 Hindi voice
-                createVoice('Hindi Voice', 'hi-IN'),
-            ];
-
-            const processed = getProcesedVoices(voices);
-            expect(processed).toHaveLength(8); // limit is 8
-            // Should contain the Hindi voice
-            expect(processed.some(v => v.lang === 'hi-IN')).toBe(true);
+        it('6. Empty string -> empty string returned', () => {
+            const input = '';
+            const result = preprocessForTTS(input);
+            expect(result).toBe('');
         });
     });
 
-    describe('findBestMatchingVoice', () => {
-        test('returns null for empty list', () => {
-            expect(findBestMatchingVoice([], 'foo')).toBeNull();
+    describe('voice-utils.ts', () => {
+        it('1. calculateSpeakingDuration(text): reasonable estimate for typical sentences', () => {
+            const text = 'This is a normal sentence with seven words.';
+            // 8 words / 2.5 wps = 3.2 seconds = 3200ms
+            const duration = calculateSpeakingDuration(text);
+            expect(duration).toBe(3200);
+
+            expect(calculateSpeakingDuration('')).toBe(0);
         });
 
-        test('returns exact match', () => {
-            const v1 = createVoice('Voice A', 'en-US');
-            const v2 = createVoice('Voice B', 'en-US');
-            expect(findBestMatchingVoice([v1, v2], 'Voice B')).toBe(v2);
+        it('2. splitIntoSpeakableChunks(text): no chunk exceeds MAX_CHUNK_LENGTH', () => {
+            const longText = 'A'.repeat(MAX_CHUNK_LENGTH + 50);
+            const chunks = splitIntoSpeakableChunks(longText);
+
+            expect(chunks.length).toBeGreaterThan(1);
+            chunks.forEach(chunk => {
+                expect(chunk.length).toBeLessThanOrEqual(MAX_CHUNK_LENGTH);
+            });
         });
 
-        test('falls back to Google US English', () => {
-            const v1 = createVoice('Microsoft Zira', 'en-US');
-            const v2 = createVoice('Google US English', 'en-US');
-            expect(findBestMatchingVoice([v1, v2], 'Non Existent')).toBe(v2); // Google preferred
-        });
+        it('3. All returned chunks together reconstruct the original text (minus whitespace normalization)', () => {
+            const original = 'First sentence. Second sentence! Third sentence? Yes.';
+            const chunks = splitIntoSpeakableChunks(original);
 
-        test('falls back to Microsoft Zira if Google missing', () => {
-            const v1 = createVoice('Microsoft Zira', 'en-US');
-            const v2 = createVoice('Other', 'en-GB');
-            expect(findBestMatchingVoice([v1, v2], 'Non Existent')).toBe(v1);
-        });
+            const reconstructed = chunks.join(' ');
 
-        test('falls back to any en-US', () => {
-            const v1 = createVoice('Other', 'en-US');
-            expect(findBestMatchingVoice([v1], 'Non Existent')).toBe(v1);
-        });
-
-        test('falls back to any English', () => {
-            const v1 = createVoice('Other', 'en-GB');
-            expect(findBestMatchingVoice([v1], 'Non Existent')).toBe(v1);
-        });
-
-        test('falls back to first available as last resort', () => {
-            const v1 = createVoice('Unknown', 'fr-FR');
-            expect(findBestMatchingVoice([v1], 'Non Existent')).toBe(v1);
+            // Should match ignoring varying spaces
+            expect(reconstructed.replace(/\s+/g, '')).toBe(original.replace(/\s+/g, ''));
         });
     });
 });

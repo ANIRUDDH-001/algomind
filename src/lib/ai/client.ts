@@ -387,7 +387,7 @@ export class UnifiedAIClient {
             const cache = getResponseCache();
             const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
             const cacheQuery = lastUserMsg?.content ?? '';
-            const cached = cache.get(cacheQuery);
+            const cached = await cache.get(cacheQuery);
 
             if (cached) {
                 const totalTimeMs = performance.now() - totalStart;
@@ -531,7 +531,7 @@ export class UnifiedAIClient {
         if (!cacheEnabled) return;
 
         const cache = getResponseCache();
-        cache.set(query, response, model, latencyMs);
+        void cache.set(query, response, model, latencyMs);
     }
 
     // --- Health Check & Admin Methods ---

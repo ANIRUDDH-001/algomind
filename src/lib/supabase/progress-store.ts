@@ -188,9 +188,20 @@ export class SupabaseProgressStore {
                             const e = entry as Record<string, unknown>;
                             return {
                                 role: String(e.role || 'user'),
-                                content: typeof e.content === 'string' ? e.content
-                                    : typeof e.text === 'string' ? e.text
-                                        : String(e.content ?? e.text ?? ''),
+                                content: typeof e.content === 'string'
+                                    ? e.content
+                                    : typeof e.content === 'object' && e.content !== null
+                                        ? String(
+                                            (e.content as Record<string, unknown>).text
+                                            ?? (e.content as Record<string, unknown>).sentence
+                                            ?? (e.content as Record<string, unknown>).content
+                                            ?? JSON.stringify(e.content)
+                                        )
+                                        : typeof e.text === 'string'
+                                            ? e.text
+                                            : typeof (e as Record<string, unknown>).sentence === 'string'
+                                                ? String((e as Record<string, unknown>).sentence)
+                                                : (e.content ?? e.text) ? JSON.stringify(e.content ?? e.text) : '',
                             };
                         })
                         : [],

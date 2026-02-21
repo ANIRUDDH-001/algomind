@@ -107,6 +107,17 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
     const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
     const [activeTab, setActiveTab] = useState<'output' | 'error' | 'info'>('output');
 
+    const [editorHeight, setEditorHeight] = useState<string>('calc(100dvh - 320px)');
+
+    useEffect(() => {
+        const updateHeight = () => {
+            setEditorHeight(window.innerWidth >= 1024 ? '100%' : 'calc(100dvh - 320px)');
+        };
+        updateHeight();
+        window.addEventListener('resize', updateHeight);
+        return () => window.removeEventListener('resize', updateHeight);
+    }, []);
+
     // Ref to hold the current values for the shortcut handler
     const codeRef = useRef(code);
     const languageRef = useRef(language);
@@ -240,7 +251,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1" style={{ minHeight: '400px', height: '100%' }}>
+            <div className="flex-1" style={{ height: editorHeight, minHeight: '200px' }}>
                 <Editor
                     height="100%"
                     language={language}

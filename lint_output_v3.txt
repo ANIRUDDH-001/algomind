@@ -279,13 +279,8 @@ D:\algomind\src\lib\spaced-repetition\queue.ts
   128:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 D:\algomind\src\lib\startup\validateEnv.ts
-  58:54  error  The `Function` type accepts any function-like value.
-Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
-
-D:\algomind\src\lib\supabase\__tests__\save-session.test.ts
-   4:10  warning  'CognitiveAnalyzer' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
-  36:9   warning  'mockAnalyzer' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
-  74:49  warning  'data' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  58:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:74  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 D:\algomind\src\lib\tour\steps.ts
   1:10  warning  'disableDemoMode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
@@ -293,6 +288,6 @@ D:\algomind\src\lib\tour\steps.ts
 D:\algomind\src\lib\voice\__tests__\vad-manager.test.ts
   2:42  warning  'VADManager' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
-Ô£û 147 problems (1 error, 146 warnings)
+Ô£û 145 problems (0 errors, 145 warnings)
   0 errors and 8 warnings potentially fixable with the `--fix` option.
 

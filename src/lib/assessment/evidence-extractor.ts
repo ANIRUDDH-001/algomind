@@ -10,20 +10,25 @@ export function extractEvidence(
     const userTurns = transcript.filter(t => t.role === 'user');
 
     const skillKeywords: Record<CognitiveSkill, string[]> = {
-        'problem-decomposition': ['break down', 'subproblems', 'part', 'first', 'second', 'step'],
+        'problem-decomposition': ['break down', 'subproblems', 'part', 'first', 'second', 'step', 'divide'],
         'pattern-recognition': ['dynamic programming', 'hash map', 'two pointers', 'sliding window', 'recursive'],
         'algorithmic-thinking': ['loop', 'iterate', 'stack', 'queue', 'sorting', 'binary'],
-        'complexity-analysis': ['O(', 'complexity', 'time', 'space', 'linear', 'logarithmic'],
+        'complexity-analysis': ['O(', 'complexity', 'time', 'space', 'linear', 'logarithmic', 'O(n', 'O(1', 'O(log'],
         'communication-clarity': ['explain', 'think', 'thought', 'process'],
-        'edge-case-awareness': ['empty', 'null', 'negative', 'overflow', 'limit', 'boundary'],
+        'edge-case-awareness': ['empty', 'null', 'negative', 'overflow', 'limit', 'boundary', 'undefined'],
         'optimization-mindset': ['faster', 'optimize', 'efficiency', 'overhead', 'tradeoff'],
         'debugging-approach': ['bug', 'wrong', 'fix', 'error', 'tracing', 'instead'],
     };
 
     const keywords = skillKeywords[skill];
-    const relevantTurns = userTurns.filter(turn =>
-        keywords.some(kw => turn.content.toLowerCase().includes(kw.toLowerCase()))
-    );
+    const relevantTurns = transcript.filter(turn => {
+        // Also look for code snippets wrapped in backticks
+        const hasCodeSnippet = /`[^`]+`|```[\s\S]*?```/.test(turn.content);
+
+        // Assistant can also highlight facts contributing to evidence mapping
+        return keywords.some(kw => turn.content.toLowerCase().includes(kw.toLowerCase())) ||
+            (skill === 'algorithmic-thinking' && hasCodeSnippet);
+    });
 
     return relevantTurns.slice(0, 3).map(turn => turn.content);
 }

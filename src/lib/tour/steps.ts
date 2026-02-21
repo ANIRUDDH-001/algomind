@@ -162,7 +162,7 @@ export const TOUR_STEPS: TourStep[] = [
         id: 8,
         type: 'spotlight',
         route: '/interview',
-        target: '[data-tour="interview-container"]',
+        target: '[data-tour="begin-button"]',
         title: 'The Interview Interface',
         content: 'This is your workspace. Switch between Voice Mode and Code Editor manually using the controls here. Kai will guide you!',
         spotlightShape: 'rectangle',

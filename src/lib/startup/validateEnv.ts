@@ -1,3 +1,5 @@
+import { createServerSupabase } from '@/lib/supabase/server';
+
 export function validateEnv(): void {
     const criticalVars = [
         { key: "NEXT_PUBLIC_SUPABASE_URL", use: "Supabase project URL" },
@@ -40,3 +42,33 @@ export const env = {
     GITHUB_REPO: process.env.GITHUB_REPO,
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
 };
+
+export async function validateDB(): Promise<void> {
+    try {
+        const supabase = await createServerSupabase();
+
+        const criticalRPCs = [
+            'check_is_admin',
+            'get_model_rate_stats',
+            'check_user_rate_limit',
+            'get_user_sessions_with_assessment',
+        ];
+
+        for (const rpc of criticalRPCs) {
+            const { error } = await (supabase.rpc as (...args: any[]) => any)(rpc);
+            if (error?.code === 'PGRST202') {
+                console.error(`[DB VALIDATION] MISSING RPC: ${rpc} — run supabase/migrations/001_master.sql`);
+            }
+        }
+
+        const criticalTables = ['admin_users', 'user_preferences', 'system_events', 'company_profiles'];
+        for (const table of criticalTables) {
+            const { error } = await supabase.from(table).select('id').limit(0);
+            if (error?.code === '42P01') {
+                console.error(`[DB VALIDATION] MISSING TABLE: ${table} — run supabase/migrations/001_master.sql`);
+            }
+        }
+    } catch (e) {
+        console.warn('[DB VALIDATION] Could not run DB validation:', e);
+    }
+}

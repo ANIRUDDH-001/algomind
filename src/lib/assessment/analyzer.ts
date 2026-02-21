@@ -95,9 +95,29 @@ export class CognitiveAnalyzer {
             }
         }
 
-        // All retries exhausted
-        console.error(`Assessment failed after ${this.maxRetries} attempts`);
-        throw new Error(`Assessment failed after ${this.maxRetries} attempts. Last error: ${lastError?.message}`);
+        // All retries exhausted, return fallback result instead of crashing
+        console.error(`Assessment failed after ${this.maxRetries} attempts. Returning fallback.`);
+
+        const fallbackSkills: Record<string, SkillScore> = {};
+        Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
+            fallbackSkills[skillId] = {
+                score: 5,
+                evidence: ["Session analysis failed."],
+                strengths: [],
+                improvements: ["Unable to analyze due to technical constraints."],
+                confidence: 0, // 0 confidence indicates automated failure
+            };
+        });
+
+        return {
+            sessionId,
+            timestamp: new Date(),
+            problem,
+            skills: fallbackSkills as Record<CognitiveSkill, SkillScore>,
+            overallFeedback: "Automated analysis failed. Manual review required.",
+            nextSteps: ["Review the session manually due to assessment failure."],
+            knowledgeGaps: []
+        };
     }
 
     private async callAI(prompt: string): Promise<string> {
@@ -123,7 +143,7 @@ export class CognitiveAnalyzer {
         return result.response;
     }
 
-     
+
     private parseResponse(raw: string): unknown {
         // 1. Strip markdown fences more thoroughly
         let jsonString = raw

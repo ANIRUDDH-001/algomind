@@ -11,10 +11,12 @@
  * Gated by ENABLE_RESPONSE_CACHE feature flag.
  *
  * @module response-cache
- * @deprecated In-memory only. Disable in serverless deployments. Enable only if Redis/persistent cache is added.
+ * @note Now uses Redis for persistence across cold starts.
+ * Falls back to in-memory if Redis is unavailable.
  */
 
 import { levenshtein } from './intent-classifier';
+import { redisGet, redisSet, redisDel } from '@/lib/upstash/client';
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -116,28 +118,28 @@ export class ResponseCache {
      * Checks exact match first, then fuzzy match within threshold.
      * Returns null on miss.
      */
-    get(query: string): CacheEntry | null {
+    async get(query: string): Promise<CacheEntry | null> {
         const key = normaliseCacheKey(query);
         if (!key) {
             this.totalMisses++;
             return null;
         }
 
-        // 1. Exact match
+        // 1. Exact match (in memory)
         const exact = this.cache.get(key);
         if (exact) {
             if (this.isExpired(exact)) {
                 this.cache.delete(key);
                 this.currentMemory -= exact.sizeBytes;
-                this.totalMisses++;
-                return null;
+                // Don't return miss yet, check Redis below
+            } else {
+                exact.hitCount++;
+                this.totalHits++;
+                return exact;
             }
-            exact.hitCount++;
-            this.totalHits++;
-            return exact;
         }
 
-        // 2. Fuzzy match
+        // 2. Fuzzy match (in memory)
         if (key.length <= 100) { // perf guard
             let bestKey: string | null = null;
             let bestDist = Infinity;
@@ -161,6 +163,22 @@ export class ResponseCache {
             }
         }
 
+        // 3. Fallback to Redis
+        let redisValue: string | null = null;
+        try {
+            redisValue = await redisGet(`ai:cache:${key}`);
+        } catch { /* suppress network errors */ }
+
+        if (redisValue) {
+            try {
+                const entry = JSON.parse(redisValue) as CacheEntry;
+                if (Date.now() - entry.timestamp < (this.opts.ttlMs ?? 86400000)) {
+                    this.cache.set(key, entry); // warm local cache
+                    return entry;
+                }
+            } catch { /* invalid JSON, ignore */ }
+        }
+
         this.totalMisses++;
         return null;
     }
@@ -171,12 +189,12 @@ export class ResponseCache {
      * Cache a response for a query.
      * Handles LRU eviction and memory limits.
      */
-    set(
+    async set(
         query: string,
         response: string,
         model: 'groq' | 'gemini',
         latencyMs = 0
-    ): void {
+    ): Promise<void> {
         const key = normaliseCacheKey(query);
         if (!key || !response) return;
 
@@ -215,6 +233,14 @@ export class ResponseCache {
 
         this.cache.set(key, entry);
         this.currentMemory += sizeBytes;
+
+        try {
+            await redisSet(
+                `ai:cache:${key}`,
+                JSON.stringify(entry),
+                Math.floor((this.opts.ttlMs ?? 86400000) / 1000)
+            );
+        } catch { /* ignore set errors */ }
     }
 
     // ── Invalidation ────────────────────────────────────────────────
@@ -261,7 +287,7 @@ export class ResponseCache {
 
         for (const query of queries) {
             // Skip if already cached and valid
-            const existing = this.get(query);
+            const existing = await this.get(query);
             if (existing) {
                 warmed++;
                 continue;
@@ -269,7 +295,7 @@ export class ResponseCache {
 
             try {
                 const result = await generator(query);
-                this.set(query, result.response, result.model, result.latencyMs);
+                await this.set(query, result.response, result.model, result.latencyMs);
                 warmed++;
             } catch (err) {
                 console.warn(`[ResponseCache] Pre-warm failed for: "${query.slice(0, 50)}"`, err);

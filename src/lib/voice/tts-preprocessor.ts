@@ -5,6 +5,19 @@
 
 // Map of patterns to spoken replacements
 const TTS_REPLACEMENTS: [RegExp, string][] = [
+    // Pre-formatting (Markdown, Code, URLs, Math)
+    [/```[\s\S]*?```/gi, 'code block'],
+    [/`[^`]+`/gi, 'code block'],
+    [/\*\*((?:\n|.)*?)\*\*/g, '$1'],
+    [/\*((?:\n|.)*?)\*/g, '$1'],
+    [/__(.*?)__/g, '$1'],
+    [/_(.*?)_/g, '$1'],
+    [/https?:\/\/[^\s]+/gi, 'link'],
+    [/(^|\n)(\d+)\.\s/g, '$1 $2 '],
+    [/\$([^$]+)\$/g, '$1'],
+    [/\\\((.*?)\\\)/g, '$1'],
+    [/\\\[(.*?)\\\]/g, '$1'],
+
     // Big O Notation - must come before simpler patterns
     [/O\(n\s*\*\s*m\)/gi, 'O of N times M'],
     [/O\(n\s*\+\s*m\)/gi, 'O of N plus M'],
