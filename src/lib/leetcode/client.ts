@@ -1,6 +1,6 @@
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { getRedis } from '@/lib/upstash/client';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase/service';
 
 export interface LeetCodeSubmission {
     title: string;
@@ -105,19 +105,7 @@ export async function fetchLeetCodeProfile(username: string): Promise<LeetCodePr
 
 export async function saveLeetCodeProfile(userId: string, profile: LeetCodeProfile): Promise<void> {
     try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Supabase admin credentials not configured');
-        }
-
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        });
+        const supabase = getServiceClient();
 
         const { error } = await supabase
             .from('leetcode_profiles')
@@ -152,28 +140,26 @@ export async function fetchAndSaveLeetCodeProfile(
     userId: string,
     username: string
 ): Promise<{ success: boolean; profile: LeetCodeProfile | null; error?: string }> {
-    const lockKey = `lc_fetch_lock:${userId}`;
+    // Use a username-scoped key so parallel fetches for the same LC account
+    // are blocked regardless of which userId triggered them.
+    const lockKey = `lc_fetch_lock:${username}`;
     const redis = getRedis();
 
-    try {
-        if (redis) {
-            const isLocked = await redis.get(lockKey);
-            if (isLocked) {
-                return { success: false, profile: null, error: 'fetch_in_progress' };
-            }
-            // Set lock with 300s (5 min) TTL
-            await redis.set(lockKey, 'locked', { ex: 300 });
+    // ── Atomic lock: SET NX acquires only if key doesn't exist ────────────────
+    // Returns the string 'OK' on success, null if already locked.
+    if (redis) {
+        const lockSet = await redis.set(lockKey, '1', { nx: true, ex: 30 });
+        if (!lockSet) {
+            // Another fetch is already in progress for this username
+            return { success: false, profile: null, error: 'fetch_in_progress' };
         }
+    }
 
+    try {
         const profile = await fetchLeetCodeProfile(username);
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (supabaseUrl && supabaseKey) {
-            const supabase = createClient(supabaseUrl, supabaseKey, {
-                auth: { autoRefreshToken: false, persistSession: false }
-            });
+        try {
+            const supabase = getServiceClient();
 
             if (!profile && username) {
                 // User provided a username but it wasn't found on LeetCode
@@ -191,19 +177,14 @@ export async function fetchAndSaveLeetCodeProfile(
                     })
                     .eq('user_id', userId);
             }
-        }
+        } catch { /* missing env vars — skip preference update */ }
 
         return { success: !!profile, profile };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (supabaseUrl && supabaseKey) {
-            const supabase = createClient(supabaseUrl, supabaseKey, {
-                auth: { autoRefreshToken: false, persistSession: false }
-            });
+        try {
+            const supabase = getServiceClient();
             await supabase
                 .from('user_preferences')
                 .update({
@@ -211,10 +192,11 @@ export async function fetchAndSaveLeetCodeProfile(
                     leetcode_fetch_error: errorMessage
                 })
                 .eq('user_id', userId);
-        }
+        } catch { /* missing env vars — skip status update */ }
 
         return { success: false, profile: null, error: errorMessage };
     } finally {
+        // Always release the lock — even if the fetch failed or timed out
         if (redis) {
             await redis.del(lockKey);
         }

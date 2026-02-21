@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Send, MessageSquare } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Send } from 'lucide-react';
 import { ConversationView } from './ConversationView';
 import { Message } from '@/hooks/useInterview';
 import { Button } from '@/components/ui/button';
@@ -23,11 +23,22 @@ export function TextInterviewMode({
     className
 }: TextInterviewModeProps) {
     const [input, setInput] = useState('');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const textarea = e.target;
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+        setInput(textarea.value);
+    };
 
     const handleSend = () => {
         if (!input.trim() || isProcessing) return;
         onSendMessage(input.trim());
         setInput('');
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -50,17 +61,15 @@ export function TextInterviewMode({
                 <div className="flex gap-2 max-w-4xl mx-auto">
                     <div className="relative flex-1">
                         <textarea
+                            ref={textareaRef}
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={handleInput}
                             onKeyDown={handleKeyPress}
                             placeholder="Type your response..."
                             disabled={isProcessing}
-                            className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none min-h-[44px] max-h-32"
+                            className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none min-h-[44px] overflow-hidden"
                             rows={1}
                         />
-                        <div className="absolute top-1/2 -translate-y-1/2 left-3 pointer-events-none opacity-20">
-                            <MessageSquare className="w-4 h-4" />
-                        </div>
                     </div>
                     <Button
                         onClick={handleSend}

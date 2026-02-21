@@ -41,6 +41,7 @@ interface ProblemContext {
 
 export function useInterview(options: {
     vadEnabled?: boolean;
+    isReviewMode?: boolean;
     onUserMessage?: (msg: Message, messageCount: number) => void;
 } = {}) {
     // State
@@ -257,7 +258,12 @@ export function useInterview(options: {
 
         setIsProcessing(true);
         try {
-            const responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
+            let responseText = '';
+            if (options.isReviewMode) {
+                responseText = `Let's review ${problemTitle} which you've seen before. Without looking at your previous solution, explain your approach to this problem.`;
+            } else {
+                responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
+            }
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
@@ -295,7 +301,7 @@ export function useInterview(options: {
     // Test Hook: Expose trigger for Playwright
     useEffect(() => {
         if (typeof window !== 'undefined') {
-             
+
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
                 submitUserResponse(message, currentProblemRef.current || { title: 'Test', content: 'Test' });
             };

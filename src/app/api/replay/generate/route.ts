@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase/client';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { getAIClient } from '@/lib/ai/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import crypto from 'crypto';
@@ -16,7 +16,7 @@ interface Annotation {
 
 export async function POST(req: NextRequest) {
     try {
-        const supabase = getSupabase();
+        const supabase = await createServerSupabase();
         if (!supabase) {
             return NextResponse.json({ error: 'Supabase client not initialized' }, { status: 500 });
         }

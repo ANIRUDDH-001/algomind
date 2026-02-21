@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/is-admin';
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const supabase = await createServerSupabase();
 
         // 1. Fetch Models Data
@@ -15,7 +16,7 @@ export async function GET() {
             supabase.rpc('get_model_rate_stats')
         ]);
 
-        const statsMap = new Map<string, number>(((modelStats as any[]) || []).map(s => [s.model_id, Number(s.hits_24h)]));
+        const statsMap = new Map<string, number>(((modelStats as unknown[]) || []).map((s: unknown) => [(s as { model_id: string }).model_id, Number((s as { hits_24h: number }).hits_24h)]));
 
         const modelsSummary = {
             total: 0,
@@ -132,9 +133,6 @@ export async function GET() {
         });
 
     } catch (error) {
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Health API] Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

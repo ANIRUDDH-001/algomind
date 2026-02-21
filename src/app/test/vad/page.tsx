@@ -13,6 +13,7 @@
  */
 
 import dynamic from 'next/dynamic';
+import { notFound } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
 // Gate check
@@ -41,6 +42,10 @@ const VADTestContent = dynamic(() => import('./VADTestContent'), {
 // ---------------------------------------------------------------------------
 
 export default function VADTestPage() {
+    if (process.env.NODE_ENV !== 'development') {
+        notFound();
+    }
+
     if (!IS_ALLOWED) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/is-admin';
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { markModelDeprecated } from '@/lib/ai/model-registry';
@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const supabase = await createServerSupabase();
 
         const body = await request.json();
@@ -105,11 +106,20 @@ export async function POST(request: Request) {
                     message = `Gemini error: ${geminiRes.statusText}`;
                 }
             } else if (model.provider === 'deepseek') {
+                // Guard: key must be present before we make the request
+                const deepseekKey = process.env.DEEPSEEK_API_KEY;
+                if (!deepseekKey) {
+                    return NextResponse.json(
+                        { error: 'DeepSeek API key not configured. Add DEEPSEEK_API_KEY to environment variables.' },
+                        { status: 503 }
+                    );
+                }
+
                 // Deepseek format
                 const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+                        'Authorization': `Bearer ${deepseekKey}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -177,9 +187,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ modelId, status, message });
 
     } catch (error) {
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Model Verify API] Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

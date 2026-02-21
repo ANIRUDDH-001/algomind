@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/is-admin';
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const supabase = await createServerSupabase();
 
         const { searchParams } = new URL(request.url);
@@ -57,9 +58,6 @@ export async function GET(request: Request) {
         });
 
     } catch (error) {
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Events API] Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { UserProgress, CognitiveSkill } from '@/types/assessment';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
-import { Problem } from '@/lib/supabase/problems';
+
 
 export interface Recommendation {
     skillId: CognitiveSkill;
@@ -56,7 +56,7 @@ export class RecommendationEngine {
 
             // Fetch problems from Supabase matching tags OR difficulty
             // We'll try to find problems that have at least one matching tag and correct difficulty
-            const { data: dbProblems, error } = await supabase
+            const { data: dbProblems } = await supabase
                 .from('problems')
                 .select('id, title, difficulty, external_url, tags')
                 .eq('difficulty', targetDifficulty)
@@ -69,7 +69,7 @@ export class RecommendationEngine {
             if (suggestions.length === 0) {
                 const { data: fallbackProblems } = await supabase
                     .from('problems')
-                    .select('id, title, difficulty, external_url')
+                    .select('id, title, difficulty, external_url, tags')
                     .eq('difficulty', targetDifficulty)
                     .limit(2);
                 suggestions = fallbackProblems || [];
@@ -92,7 +92,7 @@ export class RecommendationEngine {
         // 2. Identify declining trends
         for (const trend of progress.trends) {
             if (trend.trend === 'declining' && !results.some(r => r.skillId === trend.skill)) {
-                const tags = SKILL_TO_TAGS[trend.skill] || [];
+
 
                 // Get one medium problem for recovery
                 const { data: trendProblems } = await supabase

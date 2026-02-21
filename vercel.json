@@ -2,7 +2,8 @@
     "crons": [
         {
             "path": "/api/cron/trigger",
-            "schedule": "30 20 * * *"
+            "schedule": "30 20 * * *",
+            "_comment": "Runs at 20:30 UTC = 02:00 IST = 01:30 PKT. Vercel Hobby: once/day, ±59min precision. Requires CRON_SECRET env var. Falls back to GitHub Actions workflow_dispatch if Vercel cron fails."
         }
     ]
 }

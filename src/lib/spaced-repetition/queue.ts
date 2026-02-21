@@ -1,19 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { SpacedRepetitionRecord, computeNextReview, formatNextReviewDate } from './sm2';
-
-/**
- * Service role client for secure upserts
- */
-function getServiceClient() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-        throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    }
-    return createClient(url, key, { auth: { persistSession: false } });
-}
+import { getServiceClient } from '@/lib/supabase/service';
 
 export async function addToQueue(params: {
     userId: string;
@@ -62,14 +50,19 @@ export async function addToQueue(params: {
                 next_review_date: formatNextReviewDate(nextSchedule.intervalDays),
             };
         } else {
-            // Default values for new entry
+            // New entry: run through SM-2 from a blank-slate record so first-time
+            // scheduling is score-aware (high scores → longer initial interval).
+            // computeNextReview converts overallScore (0-10) → SM-2 quality (0-5) internally.
+            const initialRecord = { intervalDays: 1, easeFactor: 2.5, repetitions: 0 };
+            const nextSchedule = computeNextReview(initialRecord, params.overallScore);
+
             upsertData = {
                 ...upsertData,
-                interval_days: 1,
-                ease_factor: 2.5,
-                repetitions: 0,
-                last_quality: Math.round((params.overallScore / 10) * 5),
-                next_review_date: formatNextReviewDate(1),
+                interval_days: nextSchedule.intervalDays,
+                ease_factor: nextSchedule.easeFactor,
+                repetitions: nextSchedule.repetitions,
+                last_quality: nextSchedule.lastQuality,
+                next_review_date: formatNextReviewDate(nextSchedule.intervalDays),
             };
         }
 

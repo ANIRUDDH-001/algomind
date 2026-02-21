@@ -38,6 +38,16 @@ export async function middleware(request: NextRequest) {
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
 
+    const isTestPage = pathname.startsWith('/test') ||
+        pathname.startsWith('/tts-test') ||
+        pathname.startsWith('/voice-test');
+
+    if (isTestPage && process.env.NODE_ENV !== 'development') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/';
+        return NextResponse.redirect(url);
+    }
+
     // Guest mode check for interview (Query param or Cookie)
     const isGuestMode =
         searchParams.get('demo') === 'true' ||

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSupabase } from '@/lib/supabase/client';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Brain, ExternalLink, Play, ThumbsUp, Lightbulb, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -20,8 +20,7 @@ interface ReplayPageProps {
 export const dynamic = 'force-dynamic';
 
 export default async function ReplayPage({ params }: ReplayPageProps) {
-    const supabase = getSupabase();
-    if (!supabase) return notFound();
+    const supabase = await createServerSupabase();
 
     // 1. Fetch replay and associated session
     const { data: replay } = await supabase
@@ -38,6 +37,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
         `)
         .eq('public_token', params.token)
         .eq('is_public', true)
+        .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString())
         .maybeSingle();
 
     if (!replay || !replay.interview_sessions) {
@@ -45,9 +45,11 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
     }
 
     // Fire and forget view count increment
-    void supabase.rpc('increment_view_count', { p_token: params.token }).catch(() => {
-        // Fallback if rpc doesn't exist yet
-        void supabase.from('session_replays').update({ view_count: replay.view_count + 1 }).eq('public_token', params.token);
+    void supabase.rpc('increment_view_count', { p_token: params.token }).then(({ error }) => {
+        if (error) {
+            // Fallback if rpc doesn't exist yet
+            void supabase.from('session_replays').update({ view_count: replay.view_count + 1 }).eq('public_token', params.token);
+        }
     });
 
     const session = replay.interview_sessions as any; // any to bypass strict typing for dynamic joined row
@@ -130,8 +132,8 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                                 return (
                                     <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] sm:max-w-[75%] rounded-3xl p-5 ${isUser
-                                                ? 'bg-blue-600/20 border border-blue-500/30 text-blue-50 rounded-tr-sm'
-                                                : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-tl-sm'
+                                            ? 'bg-blue-600/20 border border-blue-500/30 text-blue-50 rounded-tr-sm'
+                                            : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-tl-sm'
                                             }`}>
                                             <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-50 flex items-center justify-between">
                                                 <span>{isUser ? 'Candidate' : 'Interviewer'}</span>

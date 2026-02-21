@@ -33,7 +33,10 @@ export async function saveInterviewSession(
                 duration: durationSeconds,
                 feedback: result,
                 overall_score: Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                is_candidate_session: false,
             })
             .select() // Select to return the inserted row
             .single();
@@ -70,7 +73,12 @@ export async function saveInterviewSession(
             }
         }
 
-        void updateKaiMemory(userId);
+        try {
+            await updateKaiMemory(userId);
+        } catch (err) {
+            console.error('[save-session] updateKaiMemory failed — user memory not updated:', err);
+            // Non-fatal: session is already saved, log and continue
+        }
 
         // Retrieve problem difficulty for the spaced repetition queue
         const { data: prob } = await supabase
@@ -79,13 +87,25 @@ export async function saveInterviewSession(
             .eq('id', problemId)
             .maybeSingle();
 
-        void addToQueue({
-            userId,
-            problemId,
-            problemTitle,
-            problemDifficulty: prob?.difficulty || 'medium',
-            overallScore: sessionData.overall_score
-        });
+        try {
+            await addToQueue({
+                userId,
+                problemId,
+                problemTitle,
+                problemDifficulty: prob?.difficulty || 'medium',
+                overallScore: sessionData.overall_score
+            });
+        } catch (err) {
+            console.error('[save-session] addToQueue failed — spaced repetition not updated:', err);
+            // Non-fatal: session is already saved, log and continue
+        }
+
+        try {
+            const { invalidateDashboardCache } = await import('@/lib/cache/dashboardCache');
+            await invalidateDashboardCache(userId);
+        } catch (err) {
+            console.error('[save-session] cache invalidation failed:', err);
+        }
 
         return { success: true };
     } catch (e) {

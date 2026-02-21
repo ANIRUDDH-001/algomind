@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { retrieveContext } from "@/lib/rag/retriever";
+import { createServerSupabase } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
+    // Auth guard — only authenticated users may query the RAG store
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const body = await req.json();
         const { query, topic, difficulty } = body;
