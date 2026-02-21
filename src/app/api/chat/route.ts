@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
             };
             guestMode?: boolean;
             companyPersona?: string;
+            kaiMemory?: string;
         }
 
         let body: ChatRequestBody = { messages: [] };
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext, guestMode, companyPersona } = body;
+        const { messages, systemPrompt, problemContext, guestMode, companyPersona, kaiMemory } = body;
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
@@ -106,6 +107,12 @@ export async function POST(req: NextRequest) {
         if (companyPersona) {
             enhancedSystemPrompt += '\n\n## COMPANY INTERVIEW STYLE\n' + companyPersona;
             console.log(`🏢 [AI] Applying Company Persona`);
+        }
+
+        if (kaiMemory) {
+            enhancedSystemPrompt += '\n\n## YOUR MEMORY OF THIS STUDENT\n' + kaiMemory +
+                '\n\nUse this naturally. Do NOT announce that you remember them. Simply demonstrate it through your questions and observations.';
+            console.log('🧠 [AI] Injecting Kai memory');
         }
 
         if (ragContext) {

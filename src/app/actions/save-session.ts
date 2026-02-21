@@ -4,6 +4,7 @@ import { createServerSupabase as createClient } from '@/lib/supabase/server';
 import { AssessmentResult } from '@/lib/assessment/analyzer';
 import { ConversationTurn } from '@/lib/assessment/prompts';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { updateKaiMemory } from '@/lib/ai/memory-generator';
 
 export async function saveInterviewSession(
     userId: string,
@@ -19,6 +20,7 @@ export async function saveInterviewSession(
     try {
         // Profile creation is handled by the handle_new_user trigger.
         // If trigger failed, the session insert will surface the actual FK error.
+        await supabase.rpc('ensure_learner_profile', { p_user_id: userId });
 
         const { data: sessionData, error } = await supabase
             .from('interview_sessions')
@@ -66,6 +68,8 @@ export async function saveInterviewSession(
                 // We don't fail the whole request because the primary session was saved
             }
         }
+
+        void updateKaiMemory(userId);
 
         return { success: true };
     } catch (e) {

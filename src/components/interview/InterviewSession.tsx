@@ -78,6 +78,19 @@ export function InterviewSession({
     const [selectedCompany, setSelectedCompany] = useState<string | null>(searchParams.get('company'));
     const [companyPersona, setCompanyPersona] = useState<string | null>(null);
 
+    // --- Kai Memory (fetched once on mount, sent with every request) ---
+    const [kaiMemory, setKaiMemory] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user || isGuest) return;
+        fetch('/api/user/memory')
+            .then(r => r.ok ? r.json() : null)
+            .then((data: { kaiMemory: string | null } | null) => {
+                if (data?.kaiMemory) setKaiMemory(data.kaiMemory);
+            })
+            .catch(() => { }); // Never block the interview
+    }, [user, isGuest]);
+
     const handleCompanySelect = (id: string | null, persona: string | null) => {
         setSelectedCompany(id);
         setCompanyPersona(persona);
@@ -191,7 +204,7 @@ export function InterviewSession({
         // Rate limiting is now handled atomically by check_user_rate_limit RPC
         // which increments on check. No separate client-side increment needed.
 
-        startInterview(problem.title, problem.description, ragContext, companyPersona || undefined);
+        startInterview(problem.title, problem.description, ragContext, companyPersona || undefined, kaiMemory || undefined);
     };
 
     // --- SESSION PERSISTENCE ---
