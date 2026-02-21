@@ -43,6 +43,14 @@ export const FEATURE_FLAGS = {
         description: 'Allow interviews in Hinglish (Hindi + English mix)',
         requiresBrowserSupport: false,
     },
+
+    // Silent Observer Coaching Nudge
+    ENABLE_SILENT_OBSERVER: {
+        storageKey: 'feature_ENABLE_SILENT_OBSERVER',
+        defaultValue: true,
+        description: 'Show real-time coaching nudges during interview',
+        requiresBrowserSupport: false,
+    },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

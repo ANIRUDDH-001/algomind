@@ -12,6 +12,7 @@ import { RadarChart } from '@/components/charts/RadarChart';
 import { RadarChartLegend } from '@/components/charts/RadarChartLegend';
 import { EmptyState } from '@/components/assessment/EmptyState';
 import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
+import { ReviewQueueWidget } from '@/components/dashboard/ReviewQueueWidget';
 import { SkillDrillDown } from '@/components/charts/SkillDrillDown';
 import { LeetCodePrompt } from '@/components/onboarding/LeetCodePrompt';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
@@ -249,6 +250,10 @@ function DashboardContent() {
                                         </DashboardCard>
                                     </div>
                                 </div>
+
+                                {progress?.userId && (
+                                    <ReviewQueueWidget userId={progress?.userId} />
+                                )}
 
                                 <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
                             </>
