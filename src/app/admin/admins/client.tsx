@@ -46,6 +46,22 @@ export default function AdminsClient() {
         }
     };
 
+    const [employers, setEmployers] = useState<any[]>([]);
+    const [loadingEmployers, setLoadingEmployers] = useState(true);
+
+    const fetchEmployers = async () => {
+        try {
+            setLoadingEmployers(true);
+            const res = await fetch('/api/admin/users?type=employer');
+            if (!res.ok) throw new Error('Failed to fetch employers');
+            setEmployers(await res.json());
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingEmployers(false);
+        }
+    };
+
     useEffect(() => {
         const fetchUser = async () => {
             if (!supabase) return;
@@ -56,6 +72,7 @@ export default function AdminsClient() {
         };
         fetchUser();
         fetchAdmins();
+        fetchEmployers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -248,6 +265,142 @@ export default function AdminsClient() {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Manage User Roles Section */}
+                <div className="space-y-4 pt-8 border-t border-slate-800">
+                    <h3 className="font-bold text-slate-200 px-1 flex items-center gap-2">
+                        <UserIcon className="w-5 h-5 text-purple-400" />
+                        Manage User Roles
+                    </h3>
+
+                    <Card className="p-6 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl">
+                        <h4 className="font-semibold mb-3 text-slate-300 text-sm tracking-wide uppercase">Upgrade to Employer</h4>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const form = e.currentTarget;
+                            const emailEl = form.elements.namedItem('email') as HTMLInputElement;
+                            const companyEl = form.elements.namedItem('company_name') as HTMLInputElement;
+                            const email = emailEl.value;
+                            const companyName = companyEl.value;
+
+                            if (!email) return;
+
+                            try {
+                                const res = await fetch('/api/admin/users', {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ email, accountType: 'employer', companyName })
+                                });
+
+                                if (!res.ok) throw new Error(await res.text());
+
+                                emailEl.value = '';
+                                companyEl.value = '';
+                                // We purposefully don't show success popups since admins work fast. Just fetch.
+                                fetchAdmins(); // Fetching admins acts like a nice standard state refresher.
+                            } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Update failed');
+                            }
+                        }} className="space-y-4 mb-6 pb-6 border-b border-slate-800">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input
+                                    name="email"
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                    required
+                                />
+                                <input
+                                    name="company_name"
+                                    type="text"
+                                    placeholder="Company Name (Optional)"
+                                    className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                />
+                                <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 shrink-0">
+                                    Promote
+                                </Button>
+                            </div>
+                        </form>
+
+                        <h4 className="font-semibold mb-3 text-slate-300 text-sm tracking-wide uppercase">Find / Demote Users</h4>
+                        <div className="flex flex-col gap-3">
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                const form = e.currentTarget;
+                                const emailEl = form.elements.namedItem('demote_email') as HTMLInputElement;
+                                const email = emailEl.value;
+                                if (!email) return;
+
+                                try {
+                                    const res = await fetch('/api/admin/users', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ email, accountType: 'candidate', companyName: null })
+                                    });
+                                    if (!res.ok) throw new Error(await res.text());
+                                    emailEl.value = '';
+                                    fetchEmployers();
+                                } catch (err) {
+                                    alert(err instanceof Error ? err.message : 'Update failed');
+                                }
+                            }} className="flex flex-col sm:flex-row gap-3 border-b border-slate-800 pb-6 mb-6">
+                                <input
+                                    name="demote_email"
+                                    type="email"
+                                    placeholder="Search by exact email to demote to Candidate"
+                                    className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500/50"
+                                    required
+                                />
+                                <Button type="submit" variant="outline" className="border-slate-700 text-slate-300 hover:text-white shrink-0">
+                                    Demote to Candidate
+                                </Button>
+                            </form>
+
+                            <div className="space-y-4">
+                                <h5 className="font-semibold text-slate-300 text-sm tracking-wide uppercase">Current Employers</h5>
+                                {loadingEmployers ? (
+                                    <div className="text-center py-4 text-slate-500">Loading employers...</div>
+                                ) : employers.length === 0 ? (
+                                    <div className="text-center py-4 text-slate-500">No employers found</div>
+                                ) : (
+                                    <div className="grid gap-3">
+                                        {employers.map((emp) => (
+                                            <div key={emp.id} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div>
+                                                    <p className="font-bold text-white">{emp.email}</p>
+                                                    {emp.company_name && (
+                                                        <p className="text-xs text-slate-400 mt-1">{emp.company_name}</p>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={async () => {
+                                                        if (!confirm(`Demote ${emp.email} to Candidate?`)) return;
+                                                        try {
+                                                            const res = await fetch('/api/admin/users', {
+                                                                method: 'PATCH',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ email: emp.email, accountType: 'candidate', companyName: null })
+                                                            });
+                                                            if (!res.ok) throw new Error(await res.text());
+                                                            fetchEmployers();
+                                                        } catch (err) {
+                                                            alert(err instanceof Error ? err.message : 'Update failed');
+                                                        }
+                                                    }}
+                                                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                                                >
+                                                    Demote
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
                 </div>
             </div>
         </div>

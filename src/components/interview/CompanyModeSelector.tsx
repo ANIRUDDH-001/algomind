@@ -144,7 +144,12 @@ export function CompanyModeSelector({ selectedCompany, onSelect }: CompanyModeSe
                 <Building2 className="w-4 h-4 text-slate-400" />
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Interview Mode</h3>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
+            <div
+                className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+            >
                 {companies.map((company) => {
                     const isActive = selectedCompany === company.id || (selectedCompany === null && company.id === 'general');
 
