@@ -183,7 +183,17 @@ export class SupabaseProgressStore {
                     duration: s.duration || 0,
                     skills,
                     overallScore: Number(assessment.overall_score) || 0,
-                    transcript: s.transcript // Map transcript from DB response
+                    transcript: Array.isArray(s.transcript)
+                        ? (s.transcript as unknown[]).map((entry) => {
+                            const e = entry as Record<string, unknown>;
+                            return {
+                                role: String(e.role || 'user'),
+                                content: typeof e.content === 'string' ? e.content
+                                    : typeof e.text === 'string' ? e.text
+                                        : String(e.content ?? e.text ?? ''),
+                            };
+                        })
+                        : [],
                 };
             });
 

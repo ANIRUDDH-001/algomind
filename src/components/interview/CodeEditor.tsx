@@ -240,7 +240,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1 min-h-[300px]">
+            <div className="flex-1" style={{ minHeight: '400px', height: '100%' }}>
                 <Editor
                     height="100%"
                     language={language}

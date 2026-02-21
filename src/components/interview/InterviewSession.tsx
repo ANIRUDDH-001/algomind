@@ -230,7 +230,11 @@ export function InterviewSession({
         if (readOnly && initialTranscript && initialTranscript.length > 0 && !transcriptLoadedRef.current) {
             const msgs = initialTranscript.map(t => ({
                 role: t.role as 'user' | 'assistant' | 'system',
-                content: t.content,
+                content: typeof t.content === 'string'
+                    ? t.content
+                    : typeof (t as Record<string, unknown>).text === 'string'
+                        ? (t as Record<string, unknown>).text as string
+                        : String((t as Record<string, unknown>).content ?? ''),
                 timestamp: new Date() // Placeholder as we don't store per-msg timestamp yet
             }));
             loadTranscript(msgs);
@@ -460,7 +464,7 @@ export function InterviewSession({
             <button
                 onClick={() => {
                     if (isMobileDevice()) {
-                        setShowMobileWarning(true);
+                        setActiveTab('code'); // Mobile has a code tab — just switch to it
                     } else {
                         setShowCodeEditor(true);
                     }
@@ -857,11 +861,25 @@ export function InterviewSession({
 
             {isAnalyzing && <AssessmentLoader />}
             {error && (
-                <ErrorBanner
-                    message={error || ''}
-                    onClose={() => setError(null)}
-                    data-testid={error?.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
-                />
+                error.includes('VAD Initialization Failed') ||
+                    error.includes('Voice Activity Detection') ||
+                    error.includes('AudioWorklet') ? (
+                    // Subtle informational notice for VAD issues
+                    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-800/90 border border-slate-700/50 rounded-full text-xs text-slate-400 flex items-center gap-2 max-w-xs shadow-xl">
+                        <svg className="w-3 h-3 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Using standard mic mode</span>
+                        <button onClick={() => setError(null)} className="text-slate-500 hover:text-slate-300 ml-1">×</button>
+                    </div>
+                ) : (
+                    // Full red error banner for real errors
+                    <ErrorBanner
+                        message={error}
+                        onClose={() => setError(null)}
+                        data-testid={error?.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
+                    />
+                )
             )}
             {voice.error && !voiceErrorDismissed && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-bounce">
@@ -966,7 +984,7 @@ export function InterviewSession({
 
                         {/* CODE TAB */}
                         <TabsContent value="code" className="w-full h-full m-0 data-[state=inactive]:hidden overflow-y-auto mobile-scroll">
-                            <div className="p-3 pb-6 min-h-full flex flex-col">
+                            <div className="p-3 pb-6 flex flex-col" style={{ minHeight: 'calc(100dvh - 160px)' }}>
                                 <Card className="flex-1 bg-slate-900/30 border-slate-800/50 p-2">
                                     <div className="h-full flex flex-col gap-3">
                                         <CodeEditor

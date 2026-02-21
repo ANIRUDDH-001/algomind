@@ -16,11 +16,11 @@
  * (AudioContext + AudioWorklet + WASM SIMD + SharedArrayBuffer).
  */
 export const VAD_SUPPORTED_BROWSERS = [
-    'Chrome 91+',
-    'Edge 91+',
-    'Firefox 89+',
+    'Chrome 66+',
+    'Edge 79+',
+    'Firefox 76+',
     'Safari 16.4+',
-    'Opera 77+',
+    'Opera 53+',
 ] as const;
 
 /**
@@ -55,8 +55,9 @@ export function checkVADSupport(): boolean {
         typeof navigator.mediaDevices?.getUserMedia === 'function';
 
     const hasWasm = typeof WebAssembly !== 'undefined';
+    const hasAudioWorklet = typeof AudioWorkletNode !== 'undefined';
 
-    return hasAudioContext && hasGetUserMedia && hasWasm;
+    return hasAudioContext && hasGetUserMedia && hasWasm && hasAudioWorklet;
 }
 
 // ---------------------------------------------------------------------------

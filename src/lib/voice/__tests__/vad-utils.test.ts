@@ -8,7 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { checkVADSupport, getVADErrorMessage, VAD_SUPPORTED_BROWSERS } from '../vad-utils';
 
- 
+
 type Any = any;
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -17,12 +17,14 @@ let originalWindow: Any;
 let originalNavigatorDescriptor: PropertyDescriptor | undefined;
 let originalWebAssembly: Any;
 let originalAudioContext: Any;
+let originalAudioWorkletNode: Any;
 
 beforeEach(() => {
     originalWindow = (globalThis as Any).window;
     originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
     originalWebAssembly = (globalThis as Any).WebAssembly;
     originalAudioContext = (globalThis as Any).AudioContext;
+    originalAudioWorkletNode = (globalThis as Any).AudioWorkletNode;
 });
 
 afterEach(() => {
@@ -51,11 +53,19 @@ afterEach(() => {
     } else {
         delete (globalThis as Any).AudioContext;
     }
+
+    // Restore AudioWorkletNode
+    if (originalAudioWorkletNode !== undefined) {
+        (globalThis as Any).AudioWorkletNode = originalAudioWorkletNode;
+    } else {
+        delete (globalThis as Any).AudioWorkletNode;
+    }
 });
 
 function setupFullBrowser() {
     (globalThis as Any).window = { test: true };
     (globalThis as Any).AudioContext = class MockAudioContext { };
+    (globalThis as Any).AudioWorkletNode = class MockAudioWorkletNode { };
     Object.defineProperty(globalThis, 'navigator', {
         value: {
             mediaDevices: { getUserMedia: async () => ({}) },
@@ -105,6 +115,12 @@ describe('checkVADSupport', () => {
     test('returns false without WebAssembly', () => {
         setupFullBrowser();
         delete (globalThis as Any).WebAssembly;
+        expect(checkVADSupport()).toBe(false);
+    });
+
+    test('returns false without AudioWorkletNode', () => {
+        setupFullBrowser();
+        delete (globalThis as Any).AudioWorkletNode;
         expect(checkVADSupport()).toBe(false);
     });
 });
