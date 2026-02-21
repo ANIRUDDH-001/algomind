@@ -43,33 +43,7 @@ const nextConfig: NextConfig = {
             value: "same-origin",
           },
         ],
-      },
-      {
-        source: "/interview",
-        headers: [
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "require-corp",
-          },
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin",
-          },
-        ],
-      },
-      {
-        source: "/assess/:path*",
-        headers: [
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "require-corp",
-          },
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin",
-          },
-        ],
-      },
+      }
     ];
   },
 };

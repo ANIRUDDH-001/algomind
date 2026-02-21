@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Building2 } from 'lucide-react';
@@ -61,7 +61,11 @@ export function CompanyModeSelector({ selectedCompany, onSelect }: CompanyModeSe
     const [companies, setCompanies] = useState<CompanyProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchedRef = useRef(false);
+
     useEffect(() => {
+        if (fetchedRef.current) return;
+        fetchedRef.current = true;
         async function fetchProfiles() {
             try {
                 const supabase = getSupabase();

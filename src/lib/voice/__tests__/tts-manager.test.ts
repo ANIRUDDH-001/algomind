@@ -450,4 +450,129 @@ describe('TTSManager', () => {
 
         expect(spy).not.toHaveBeenCalled();
     });
+
+    // ── Requested Coverage Scenarios ─────────────────────────────────────────────
+
+    describe('Requested Coverage', () => {
+        test('1. speak(text) calls speechSynthesis.speak with correct utterance', async () => {
+            const tts = new TTSManager();
+            const p = tts.speak('One sentence.');
+            await vi.advanceTimersByTimeAsync(60);
+            await vi.runAllTimersAsync();
+            await p;
+            expect(mockSynth.speak).toHaveBeenCalled();
+            expect(mockUtterances[0].text).toBe('One sentence.');
+        });
+
+        test('2. cancel() calls speechSynthesis.cancel and clears queue', async () => {
+            const tts = new TTSManager();
+            disableAutoEnd = true;
+            tts.enqueueChunk('Chunk one.');
+            tts.enqueueChunk('Chunk two.');
+            await vi.advanceTimersByTimeAsync(60);
+            expect(tts.getQueue().length).toBe(1);
+            await cancelWithFade(tts);
+            expect(cancelCalled).toBe(true);
+            expect(tts.getQueue()).toEqual([]);
+        });
+
+        test('3. Queue behavior: if already speaking, new enqueueChunk() is queued not dropped', async () => {
+            const tts = new TTSManager();
+            disableAutoEnd = true;
+            tts.enqueueChunk('First.');
+            await vi.advanceTimersByTimeAsync(60);
+            tts.enqueueChunk('Second.');
+            expect(tts.getQueue()).toEqual(['Second.']);
+        });
+
+        test('4. Queue drains: after onend fires, next item in queue starts', async () => {
+            const tts = new TTSManager();
+            disableAutoEnd = true;
+            tts.enqueueChunk('First.');
+            tts.enqueueChunk('Second.');
+            await vi.advanceTimersByTimeAsync(60);
+            expect(mockUtterances.length).toBe(1);
+            expect(mockUtterances[0].text).toBe('First.');
+
+            // manually trigger onend for the first chunk
+            mockUtterances[0].onend?.();
+            await vi.advanceTimersByTimeAsync(1);
+            await vi.runAllTimersAsync();
+
+            expect(mockUtterances.length).toBe(2);
+            expect(mockUtterances[1].text).toBe('Second.');
+        });
+
+        test('5. onSentenceComplete callback: fires at correct sentence boundaries (via CHUNK_END)', async () => {
+            const tts = new TTSManager();
+            const listener = vi.fn();
+            tts.on(TTSEvent.CHUNK_END, listener);
+
+            disableAutoEnd = true;
+            tts.enqueueChunk('Sentence one.');
+            tts.enqueueChunk('Sentence two.');
+
+            await vi.advanceTimersByTimeAsync(60);
+            mockUtterances[0].onend?.();
+            await vi.advanceTimersByTimeAsync(1);
+            await vi.runAllTimersAsync();
+
+            mockUtterances[1].onend?.();
+            await vi.advanceTimersByTimeAsync(1);
+            await vi.runAllTimersAsync();
+
+            expect(listener).toHaveBeenCalledTimes(2);
+            expect(listener.mock.calls[0][0].text).toBe('Sentence one.');
+            expect(listener.mock.calls[1][0].text).toBe('Sentence two.');
+        });
+
+        test('6. Error handling: speechSynthesis.onerror -> queue continues', async () => {
+            const tts = new TTSManager();
+            disableAutoEnd = true;
+            tts.enqueueChunk('Error chunk.');
+            tts.enqueueChunk('Next chunk.');
+            await vi.advanceTimersByTimeAsync(60);
+
+            // Trigger standard browser error for the first chunk
+            mockUtterances[0].onerror?.({ error: 'network' } as any);
+            await vi.advanceTimersByTimeAsync(10);
+            await vi.runAllTimersAsync();
+
+            expect(mockUtterances.length).toBe(2);
+            expect(mockUtterances[1].text).toBe('Next chunk.');
+        });
+
+        test('7. isSpeaking getter: true while utterance is active, false otherwise', async () => {
+            const tts = new TTSManager();
+            expect(tts.isPlaying()).toBe(false);
+            disableAutoEnd = true;
+            tts.speak('Test.');
+            await vi.advanceTimersByTimeAsync(60);
+            expect(tts.isPlaying()).toBe(true);
+            mockUtterances[0].onend?.();
+            await vi.advanceTimersByTimeAsync(10);
+            expect(tts.isPlaying()).toBe(false);
+        });
+
+        test('8. Voice selection: prefers a matching voice by lang / from options', async () => {
+            const tts = new TTSManager();
+            const customVoice = { lang: 'en-US', name: 'Custom Voice' } as SpeechSynthesisVoice;
+            const p = tts.speak('Hello.', { voice: customVoice });
+            await vi.advanceTimersByTimeAsync(60);
+            await vi.runAllTimersAsync();
+            await p;
+            expect(mockUtterances[0].voice).toBe(customVoice);
+        });
+
+        test('9. Rate/pitch/volume: applied correctly from VoiceSettings config', async () => {
+            const tts = new TTSManager();
+            const p = tts.speak('Hello.', { rate: 1.2, pitch: 1.1, volume: 0.9 });
+            await vi.advanceTimersByTimeAsync(60);
+            await vi.runAllTimersAsync();
+            await p;
+            expect(mockUtterances[0].rate).toBe(1.2);
+            expect(mockUtterances[0].pitch).toBe(1.1);
+            expect(mockUtterances[0].volume).toBe(0.9);
+        });
+    });
 });

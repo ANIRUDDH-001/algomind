@@ -40,6 +40,12 @@ const DEFAULT_OPTIONS: Required<ClassifierOptions> = {
     llmTimeoutMs: 3000,
 };
 
+// ── Normalization ───────────────────────────────────────────────────
+
+export function normalizeQuery(query: string): string {
+    return query.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_]/gu, '').replace(/\s+/g, ' ');
+}
+
 // ── Levenshtein Distance ────────────────────────────────────────────
 
 /**
@@ -92,11 +98,11 @@ export class IntentClassifier {
      * Hybrid: regex first → cache → (optional) Groq LLM → fallback Gemini.
      */
     async classify(query: string): Promise<IntentClassification> {
-        const normalised = query.trim().toLowerCase();
+        const normalised = normalizeQuery(query);
 
         // 0. Admin override
         if (this.modelOverride) {
-            const base = this.regexClassify(normalised) ?? this.defaultClassification(normalised);
+            const base = this.regexClassify(normalised, query) ?? this.defaultClassification(normalised);
             return {
                 ...base,
                 suggestedModel: this.modelOverride,
@@ -113,7 +119,7 @@ export class IntentClassifier {
         if (fuzzy) return { ...fuzzy, reasoning: 'fuzzy_cache_hit' };
 
         // 3. Regex first-pass (instant)
-        const regexResult = this.regexClassify(normalised);
+        const regexResult = this.regexClassify(normalised, query);
         if (regexResult && regexResult.confidence >= this.opts.confidenceThreshold) {
             this.addToCache(normalised, regexResult);
             return regexResult;
@@ -133,16 +139,12 @@ export class IntentClassifier {
             }
         }
 
-        // 5. Fallback: default to Gemini for safety
-        const fallback: IntentClassification = {
-            complexity: 'complex',
-            category: 'technical',
-            confidence: 0.5,
-            suggestedModel: 'gemini',
-            reasoning: regexResult
-                ? `Low-confidence regex (${regexResult.confidence.toFixed(2)}), defaulting to Gemini`
-                : 'No pattern match, defaulting to Gemini',
-        };
+        // 5. Fallback: default heuristic
+        const fallback = this.defaultClassification(normalised);
+        fallback.reasoning = regexResult
+            ? `Low-confidence regex (${regexResult.confidence.toFixed(2)}), defaulting to heuristics`
+            : 'No pattern match, defaulting to heuristics';
+
         this.addToCache(normalised, fallback);
         return fallback;
     }
@@ -152,10 +154,10 @@ export class IntentClassifier {
      * Useful when you need instant results with zero async overhead.
      */
     classifySync(query: string): IntentClassification | null {
-        const normalised = query.trim().toLowerCase();
+        const normalised = normalizeQuery(query);
 
         if (this.modelOverride) {
-            const base = this.regexClassify(normalised) ?? this.defaultClassification(normalised);
+            const base = this.regexClassify(normalised, query) ?? this.defaultClassification(normalised);
             return { ...base, suggestedModel: this.modelOverride, reasoning: `Admin override → ${this.modelOverride}` };
         }
 
@@ -165,7 +167,7 @@ export class IntentClassifier {
         const fuzzy = this.fuzzyLookup(normalised);
         if (fuzzy) return { ...fuzzy, reasoning: 'fuzzy_cache_hit' };
 
-        const result = this.regexClassify(normalised);
+        const result = this.regexClassify(normalised, query);
         if (result) this.addToCache(normalised, result);
         return result;
     }
@@ -185,7 +187,7 @@ export class IntentClassifier {
 
     /** Update cache with corrected classification (from user or admin feedback) */
     updateFromFeedback(query: string, corrected: IntentClassification): void {
-        const normalised = query.trim().toLowerCase();
+        const normalised = normalizeQuery(query);
         this.addToCache(normalised, { ...corrected, reasoning: 'user_feedback' });
     }
 
@@ -211,13 +213,13 @@ export class IntentClassifier {
 
     // ── Internal: Regex Pass ────────────────────────────────────────
 
-    private regexClassify(normalised: string): IntentClassification | null {
+    private regexClassify(normalised: string, originalQuery: string): IntentClassification | null {
         // Test against original (un-lowercased) query too, since some patterns
         // are case-insensitive but we normalised for caching.
         let bestMatch: { rule: PatternRule; confidence: number } | null = null;
 
         for (const rule of ALL_PATTERNS) {
-            if (rule.pattern.test(normalised)) {
+            if (rule.pattern.test(normalised) || rule.pattern.test(originalQuery)) {
                 if (!bestMatch || rule.confidence > bestMatch.confidence) {
                     bestMatch = { rule, confidence: rule.confidence };
                 }
@@ -384,8 +386,8 @@ Rules:
 
     private defaultClassification(normalised: string): IntentClassification {
         // Heuristic: short queries are likely simpler
-        const wordCount = normalised.split(/\s+/).length;
-        if (wordCount <= 3) {
+        const words = normalised.split(/\s+/).filter(w => w.length > 0);
+        if (words.length > 0 && words.length <= 3) {
             return { complexity: 'simple', category: 'clarification', confidence: 0.6, suggestedModel: 'groq' };
         }
         return { complexity: 'complex', category: 'technical', confidence: 0.5, suggestedModel: 'gemini' };

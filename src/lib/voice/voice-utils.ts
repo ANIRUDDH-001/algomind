@@ -111,3 +111,52 @@ export const findBestMatchingVoice = (voices: SpeechSynthesisVoice[], preferredN
         voices.find(v => v.lang.startsWith('hi')) ||
         voices[0];
 };
+
+/**
+ * Calculates roughly how long text will take to speak.
+ * Assumes average speaking speed of exactly 150 words per minute (2.5 words per second).
+ */
+export const calculateSpeakingDuration = (text: string): number => {
+    if (!text) return 0;
+    const words = text.trim().split(/\s+/).length;
+    return (words / 2.5) * 1000;
+};
+
+export const MAX_CHUNK_LENGTH = 200;
+
+/**
+ * Splits string text into speakable chunks. Ensures no chunk exceeds limit.
+ */
+export const splitIntoSpeakableChunks = (text: string): string[] => {
+    if (!text) return [];
+
+    // Split on sentence bounds
+    const sentences = text.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) || [text];
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    sentences.forEach(sentence => {
+        const trimmed = sentence.trim();
+        if (!trimmed) return;
+
+        if (currentChunk.length + trimmed.length + 1 <= MAX_CHUNK_LENGTH) {
+            currentChunk += (currentChunk ? ' ' : '') + trimmed;
+        } else {
+            if (currentChunk) chunks.push(currentChunk);
+            // If the sentence itself exceeds MAX_CHUNK_LENGTH, slice it
+            let largeSentence = trimmed;
+            while (largeSentence.length > MAX_CHUNK_LENGTH) {
+                // Find nearest space backwards to slice properly
+                let sliceAt = largeSentence.lastIndexOf(' ', MAX_CHUNK_LENGTH);
+                if (sliceAt === -1) sliceAt = MAX_CHUNK_LENGTH;
+
+                chunks.push(largeSentence.slice(0, sliceAt).trim());
+                largeSentence = largeSentence.slice(sliceAt).trim();
+            }
+            currentChunk = largeSentence;
+        }
+    });
+
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks;
+};

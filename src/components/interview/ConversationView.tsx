@@ -312,27 +312,39 @@ export function ConversationView({
                             </div>
 
                             {/* Message content */}
-                            {typeof msg.content === 'string'
-                                ? msg.content
-                                : typeof msg.content === 'object' && msg.content !== null
-                                    ? ((msg.content as Record<string, unknown>).text as string)
-                                    || ((msg.content as Record<string, unknown>).content as string)
-                                    || JSON.stringify(msg.content)
-                                    : String(msg.content ?? '')}
+                            {(() => {
+                                const safeContent: string =
+                                    typeof msg.content === 'string'
+                                        ? msg.content
+                                        : typeof msg.content === 'object' && msg.content !== null
+                                            ? String(
+                                                (msg.content as Record<string, unknown>).text
+                                                ?? (msg.content as Record<string, unknown>).sentence
+                                                ?? (msg.content as Record<string, unknown>).content
+                                                ?? JSON.stringify(msg.content)
+                                            )
+                                            : String(msg.content ?? '');
 
-                            {/* Interrupted badge + partial heard indicator */}
-                            {isVadEnabled && isInterruptedMsg && (
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                        ⚡ Interrupted
-                                    </span>
-                                    {msg.partialContent && msg.partialContent.length < msg.content.length && (
-                                        <span className="text-[9px] text-amber-500/60">
-                                            {Math.round((msg.partialContent.length / msg.content.length) * 100)}% heard
-                                        </span>
-                                    )}
-                                </div>
-                            )}
+                                return (
+                                    <>
+                                        {safeContent}
+
+                                        {/* Interrupted badge + partial heard indicator */}
+                                        {isVadEnabled && isInterruptedMsg && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                    ⚡ Interrupted
+                                                </span>
+                                                {msg.partialContent && msg.partialContent.length < safeContent.length && (
+                                                    <span className="text-[9px] text-amber-500/60">
+                                                        {Math.round((msg.partialContent.length / safeContent.length) * 100)}% heard
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
 
                             {/* Timestamp */}
                             <div className="text-[10px] opacity-50 mt-1 text-right">

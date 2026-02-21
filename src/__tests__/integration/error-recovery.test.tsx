@@ -29,7 +29,7 @@ test.describe('Error Recovery & Resilience', () => {
 
             // Mock VAD
             (window as any).mockMicVAD = {
-                new: async (options: any) => ({
+                new: async (_options: any) => ({
                     start: async () => { },
                     pause: async () => { },
                     destroy: async () => { },

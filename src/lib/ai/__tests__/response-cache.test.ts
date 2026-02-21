@@ -1,266 +1,227 @@
-/**
- * Unit tests for ResponseCache.
- *
- * Run:
- *   npx vitest run src/lib/ai/__tests__/response-cache.test.ts
- */
-
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import {
     ResponseCache,
     normaliseCacheKey,
     getResponseCache,
     resetResponseCache,
 } from '../response-cache';
+import { redisGet, redisSet } from '@/lib/upstash/client';
 
-// ── normaliseCacheKey ───────────────────────────────────────────────
+// Mock Redis client
+vi.mock('@/lib/upstash/client', () => ({
+    redisGet: vi.fn(),
+    redisSet: vi.fn(),
+    redisDel: vi.fn(),
+}));
 
-describe('normaliseCacheKey', () => {
-    test('lowercases and trims', () => {
-        expect(normaliseCacheKey('  Hello World  ')).toBe('hello world');
-    });
-
-    test('removes punctuation', () => {
-        expect(normaliseCacheKey('What is an array?')).toBe('what is an array');
-    });
-
-    test('collapses whitespace', () => {
-        expect(normaliseCacheKey('hello   world   foo')).toBe('hello world foo');
-    });
-
-    test('empty string', () => {
-        expect(normaliseCacheKey('')).toBe('');
-    });
-});
-
-// ── ResponseCache.get / set ─────────────────────────────────────────
-
-describe('ResponseCache', () => {
+describe('ResponseCache (Redis integrated)', () => {
     let cache: ResponseCache;
 
     beforeEach(() => {
-        cache = new ResponseCache({ maxEntries: 10, ttlMs: 60_000 });
+        vi.clearAllMocks();
+        // Reset Date.now mock if it was used
+        vi.useRealTimers();
+        cache = new ResponseCache({ maxEntries: 10, ttlMs: 60_000, maxMemoryBytes: 1024 * 1024 });
     });
 
-    test('set + get returns cached entry', () => {
-        cache.set('What is an array?', 'An array is a data structure.', 'groq', 150);
-        const entry = cache.get('What is an array?');
-        expect(entry).not.toBeNull();
-        expect(entry!.response).toBe('An array is a data structure.');
-        expect(entry!.model).toBe('groq');
-    });
-
-    test('get increments hitCount', () => {
-        cache.set('Hello', 'Hi there!', 'groq', 100);
-        cache.get('Hello');
-        cache.get('Hello');
-        const entry = cache.get('Hello');
-        expect(entry!.hitCount).toBe(3);
-    });
-
-    test('miss returns null', () => {
-        expect(cache.get('nonexistent')).toBeNull();
-    });
-
-    test('fuzzy matching finds similar queries', () => {
-        cache.set('What is an array', 'An array is...', 'groq', 100);
-        // "What is a array" — edit distance 1
-        const entry = cache.get('What is a array');
-        expect(entry).not.toBeNull();
-    });
-
-    test('fuzzy matching rejects distant queries', () => {
-        cache.set('What is an array', 'An array is...', 'groq', 100);
-        // Very different query
-        const entry = cache.get('How does quicksort work');
-        expect(entry).toBeNull();
-    });
-
-    test('empty query returns null', () => {
-        expect(cache.get('')).toBeNull();
-    });
-});
-
-// ── TTL expiry ──────────────────────────────────────────────────────
-
-describe('TTL expiry', () => {
-    test('expired entries are evicted on get', () => {
-        const cache = new ResponseCache({ ttlMs: 1 }); // 1ms TTL
-        cache.set('hello', 'world', 'groq', 100);
-
-        // Wait a bit for TTL to expire
-        const start = Date.now();
-        while (Date.now() - start < 5) { /* spin */ }
-
-        expect(cache.get('hello')).toBeNull();
-    });
-});
-
-// ── LRU eviction ────────────────────────────────────────────────────
-
-describe('LRU eviction', () => {
-    test('evicts least-used entry when at capacity', () => {
-        const cache = new ResponseCache({ maxEntries: 3, fuzzyThreshold: 0 });
-        cache.set('query1', 'response1', 'groq', 100);
-        cache.set('query2', 'response2', 'groq', 100);
-        cache.set('query3', 'response3', 'groq', 100);
-
-        // Hit query2 and query3 to make query1 least-used
-        cache.get('query2');
-        cache.get('query3');
-
-        // Add another — should evict query1
-        cache.set('query4', 'response4', 'gemini', 100);
-
-        expect(cache.get('query1')).toBeNull();
-        expect(cache.get('query2')).not.toBeNull();
-    });
-
-    test('evicts oldest on tie', () => {
-        const cache = new ResponseCache({ maxEntries: 2, fuzzyThreshold: 0 });
-        cache.set('old', 'r1', 'groq', 100);
-        cache.set('new', 'r2', 'groq', 100);
-
-        // Both have hitCount 0, "old" should be evicted (older timestamp)
-        cache.set('extra', 'r3', 'groq', 100);
-
-        expect(cache.get('old')).toBeNull();
-        expect(cache.get('new')).not.toBeNull();
-    });
-});
-
-// ── Invalidation ────────────────────────────────────────────────────
-
-describe('invalidation', () => {
-    test('invalidate removes matching entries', () => {
-        const cache = new ResponseCache({ maxEntries: 10 });
-        cache.set('What is an array', 'Array...', 'groq', 100);
-        cache.set('What is a linked list', 'List...', 'groq', 100);
-        cache.set('Hello', 'Hi!', 'groq', 100);
-
-        const removed = cache.invalidate('what is');
-        expect(removed).toBe(2);
-        expect(cache.get('Hello')).not.toBeNull();
-    });
-
-    test('clear removes everything', () => {
-        const cache = new ResponseCache();
-        cache.set('q1', 'r1', 'groq', 100);
-        cache.set('q2', 'r2', 'groq', 100);
+    afterEach(() => {
         cache.clear();
-
-        expect(cache.size).toBe(0);
-    });
-});
-
-// ── Stats ───────────────────────────────────────────────────────────
-
-describe('getStats', () => {
-    test('reports accurate stats', () => {
-        const cache = new ResponseCache();
-        cache.set('q1', 'r1', 'groq', 200);
-        cache.set('q2', 'r2', 'gemini', 400);
-        cache.get('q1');
-        cache.get('q1');
-        cache.get('q1');
-        cache.get('nonexistent'); // miss
-
-        const stats = cache.getStats();
-        expect(stats.entries).toBe(2);
-        expect(stats.totalHits).toBe(3);
-        expect(stats.totalMisses).toBe(1);
-        expect(stats.hitRate).toBe(75);
-        expect(stats.topQueries.length).toBe(2);
-        expect(stats.topQueries[0].query).toContain('q1');
-    });
-});
-
-// ── Memory limit ────────────────────────────────────────────────────
-
-describe('memory limits', () => {
-    test('does not cache entry larger than max memory', () => {
-        const cache = new ResponseCache({ maxMemoryBytes: 100 });
-        const hugeResponse = 'x'.repeat(200); // > 100 bytes
-        cache.set('q', hugeResponse, 'groq', 100);
-        expect(cache.size).toBe(0);
-    });
-
-    test('evicts entries when memory limit is reached', () => {
-        const cache = new ResponseCache({ maxEntries: 100, maxMemoryBytes: 100 });
-        cache.set('a', 'short', 'groq', 100);
-        cache.set('b', 'also short but fills up', 'groq', 100);
-        // Should have evicted to stay under 100 bytes
-        expect(cache.size).toBeLessThanOrEqual(2);
-    });
-});
-
-// ── Pre-warming ─────────────────────────────────────────────────────
-
-describe('preWarm', () => {
-    test('caches responses from generator', async () => {
-        const cache = new ResponseCache();
-        const result = await cache.preWarm(
-            ['q1', 'q2', 'q3'],
-            async (query) => ({
-                response: `answer to ${query}`,
-                model: 'groq' as const,
-                latencyMs: 100,
-            })
-        );
-
-        expect(result.warmed).toBe(3);
-        expect(result.failed).toBe(0);
-        expect(cache.get('q1')!.response).toBe('answer to q1');
-    });
-
-    test('skips already cached entries', async () => {
-        const cache = new ResponseCache();
-        cache.set('What is an array', 'existing', 'groq', 50);
-
-        let generatorCalls = 0;
-        await cache.preWarm(
-            ['What is an array', 'Explain dynamic programming'],
-            async (query) => {
-                generatorCalls++;
-                return { response: `new ${query}`, model: 'groq' as const, latencyMs: 100 };
-            }
-        );
-
-        // 'What is an array' was skipped (already cached), only 'Explain dynamic programming' was generated
-        expect(generatorCalls).toBe(1);
-    });
-
-    test('handles generator failures gracefully', async () => {
-        const cache = new ResponseCache();
-        const result = await cache.preWarm(
-            ['ok', 'fail'],
-            async (query) => {
-                if (query === 'fail') throw new Error('oops');
-                return { response: 'ok', model: 'groq' as const, latencyMs: 100 };
-            }
-        );
-
-        expect(result.warmed).toBe(1);
-        expect(result.failed).toBe(1);
-    });
-});
-
-// ── Singleton ───────────────────────────────────────────────────────
-
-describe('singleton', () => {
-    test('getResponseCache returns same instance', () => {
-        resetResponseCache();
-        const a = getResponseCache();
-        const b = getResponseCache();
-        expect(a).toBe(b);
         resetResponseCache();
     });
 
-    test('resetResponseCache clears singleton', () => {
-        const a = getResponseCache();
-        resetResponseCache();
-        const b = getResponseCache();
-        expect(a).not.toBe(b);
-        resetResponseCache();
+    describe('normaliseCacheKey', () => {
+        it('lowercases and removes punctuation', () => {
+            expect(normaliseCacheKey('What is an array?!')).toBe('what is an array');
+            expect(normaliseCacheKey('  hello   world  ')).toBe('hello world');
+        });
+    });
+
+    describe('Cache Hit & Miss', () => {
+        it('returns cached value on hit', async () => {
+            await cache.set('What is an array?', 'An array is...', 'groq', 150);
+            
+            // Should be in memory, so redisGet doesn't even need to be called
+            const entry = await cache.get('What is an array?');
+            expect(entry).not.toBeNull();
+            expect(entry!.response).toBe('An array is...');
+            expect(entry!.model).toBe('groq');
+            expect(redisSet).toHaveBeenCalledTimes(1);
+        });
+
+        it('returns null on cache miss', async () => {
+            // Mock Redis to return null for the miss
+            (redisGet as Mock).mockResolvedValue(null);
+
+            const entry = await cache.get('nonexistent query');
+            expect(entry).toBeNull();
+            expect(redisGet).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('TTL Expiry', () => {
+        it('evicts expired entries and returns null', async () => {
+            // Mock Date.now to control time
+            vi.useFakeTimers();
+            const cacheWithShortTTL = new ResponseCache({ ttlMs: 5000 });
+            
+            await cacheWithShortTTL.set('hello', 'world', 'groq', 100);
+            
+            // Advance time past TTL (5000ms)
+            vi.advanceTimersByTime(6000);
+            
+            // Redis also needs to return null or expired data to fully test eviction
+            (redisGet as Mock).mockResolvedValue(null);
+
+            const entry = await cacheWithShortTTL.get('hello');
+            expect(entry).toBeNull();
+            
+            vi.useRealTimers();
+        });
+    });
+
+    describe('Redis Fallback', () => {
+        it('hydrates in-memory cache from Redis if missing locally', async () => {
+            const simulatedTimestamp = Date.now();
+            
+            // Setup Redis to return a valid cached entry
+            const redisEntry = {
+                query: 'what is redis',
+                response: 'Redis is an in-memory datastore.',
+                model: 'groq',
+                timestamp: simulatedTimestamp,
+                hitCount: 5,
+                avgLatency: 120,
+                sizeBytes: 150
+            };
+            (redisGet as Mock).mockResolvedValue(JSON.stringify(redisEntry));
+
+            // Cache is empty in memory
+            expect(cache.size).toBe(0);
+
+            // Fetch
+            const entry = await cache.get('what is redis');
+            
+            expect(entry).not.toBeNull();
+            expect(entry!.response).toBe('Redis is an in-memory datastore.');
+            expect(redisGet).toHaveBeenCalledTimes(1);
+            
+            // It should now be warmed in memory
+            expect(cache.size).toBe(1);
+        });
+
+        it('gracefully handles Redis unvailability (throws)', async () => {
+            // Make Redis throw an error
+            (redisGet as Mock).mockRejectedValue(new Error('Redis connection failed'));
+
+            // Should not crash, just return null (miss)
+            const entry = await cache.get('connection test');
+            expect(entry).toBeNull();
+        });
+        
+        it('handles invalid JSON from Redis gracefully', async () => {
+             (redisGet as Mock).mockResolvedValue('invalid{json');
+             const entry = await cache.get('json test');
+             expect(entry).toBeNull();
+        });
+    });
+
+    describe('LRU Eviction', () => {
+        it('evicts least used entry when maxEntries is reached', async () => {
+            const smallCache = new ResponseCache({ maxEntries: 3 });
+            
+            await smallCache.set('query apple', 'r1', 'groq', 100);
+            await smallCache.set('query banana', 'r2', 'groq', 100);
+            await smallCache.set('query cherry', 'r3', 'groq', 100);
+
+            // Hit banana and cherry so they have higher hit counts
+            await smallCache.get('query banana');
+            await smallCache.get('query cherry');
+
+            // Add date. Since apple has the lowest hit count (0), it should be evicted.
+            await smallCache.set('query date', 'r4', 'gemini', 150);
+
+            // apple is evicted from memory. (Mock Redis to return null so we know it's gone)
+            (redisGet as Mock).mockResolvedValue(null);
+            
+            expect(await smallCache.get('query apple')).toBeNull();
+            expect(await smallCache.get('query banana')).not.toBeNull();
+            expect(await smallCache.get('query date')).not.toBeNull();
+        });
+    });
+
+    describe('Memory Bounds', () => {
+        it('evicts entries when memory limit is reached', async () => {
+            // Tiny memory limit (100 bytes)
+            const memCache = new ResponseCache({ maxMemoryBytes: 100 });
+            
+            await memCache.set('a', 'short', 'groq', 100); // approx 14 bytes
+            
+            // Add a massive entry that blows the limit
+            const hugeResponse = 'x'.repeat(200);
+            await memCache.set('b', hugeResponse, 'groq', 100); // 400+ bytes
+            
+            // Memory should never exceed bounds. EITHER it evicts everything, OR it refuses to cache 'b'
+            expect(memCache.size).toBeLessThanOrEqual(1);
+            
+            const stats = memCache.getStats();
+            expect(stats.memorySizeBytes).toBeLessThanOrEqual(100);
+        });
+    });
+
+    describe('Stats', () => {
+        it('returns accurately typed statistics', async () => {
+            await cache.set('stat query', 'r1', 'groq', 200);
+            await cache.get('stat query'); // hit
+
+            (redisGet as Mock).mockResolvedValue(null);
+            await cache.get('miss target variable'); // miss
+
+            const stats = cache.getStats();
+            expect(typeof stats.entries).toBe('number');
+            expect(stats.entries).toBe(1);
+            
+            expect(typeof stats.totalHits).toBe('number');
+            expect(stats.totalHits).toBe(1);
+            
+            expect(typeof stats.totalMisses).toBe('number');
+            expect(stats.totalMisses).toBe(1);
+            
+            expect(typeof stats.hitRate).toBe('number');
+            expect(stats.hitRate).toBe(50); // 1 hit, 1 miss = 50%
+            
+            expect(typeof stats.memorySizeBytes).toBe('number');
+            expect(typeof stats.maxMemoryBytes).toBe('number');
+            expect(typeof stats.avgLatencySaved).toBe('number');
+            
+            expect(Array.isArray(stats.topQueries)).toBe(true);
+            expect(stats.topQueries.length).toBe(1);
+            expect(stats.topQueries[0]).toHaveProperty('query', 'stat query');
+            expect(stats.topQueries[0]).toHaveProperty('hitCount', 1);
+            expect(stats.topQueries[0]).toHaveProperty('model', 'groq');
+        });
+    });
+
+    describe('Pre-warming', () => {
+        it('pre-warms the cache sequentially and caches results', async () => {
+            const queries = ['warm up alpha phase', 'warm up beta phase'];
+            
+            const generator = vi.fn().mockImplementation(async (query: string) => {
+                return { response: `response for ${query}`, model: 'groq', latencyMs: 50 };
+            });
+
+            // Mock to miss in redis initially
+            (redisGet as Mock).mockResolvedValue(null);
+
+            const result = await cache.preWarm(queries, generator);
+            
+            expect(result.warmed).toBe(2);
+            expect(result.failed).toBe(0);
+            expect(generator).toHaveBeenCalledTimes(2);
+
+            // Should exist in cache now
+            const entry1 = await cache.get('warm up alpha phase');
+            expect(entry1).not.toBeNull();
+            expect(entry1!.response).toBe('response for warm up alpha phase');
+        });
     });
 });

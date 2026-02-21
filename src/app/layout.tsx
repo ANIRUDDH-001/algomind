@@ -9,6 +9,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 import { TourProvider } from "@/components/tour/TourContext";
 import { IntroTour } from "@/components/tour/IntroTour";
+import { validateDB } from "@/lib/startup/validateEnv";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,6 +71,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Run critical initial database checks on the server immediately
+  void validateDB();
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body

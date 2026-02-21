@@ -170,3 +170,56 @@ export async function invalidateModelCache(): Promise<void> {
         console.error('Error invalidating model cache:', error);
     }
 }
+
+// Global registry tracking temporary 429 cooldowns locally via a map
+const rateLimitMap = new Map<string, number>();
+
+/**
+ * Marks a model as temporarily rate-limited.
+ */
+export function markModelRateLimited(modelId: string): void {
+    rateLimitMap.set(modelId, Date.now());
+}
+
+/**
+ * Clear rate limit for a model (mostly for testing).
+ */
+export function clearModelRateLimit(modelId: string): void {
+    rateLimitMap.delete(modelId);
+}
+
+/**
+ * Clears all rate limits (testing only).
+ */
+export function resetModelRegistry(): void {
+    rateLimitMap.clear();
+}
+
+/**
+ * Returns the best available model not currently in 60s cooldown constraint.
+ * Returns null if all models are in cooldown constraint.
+ */
+export async function getNextAvailableModel(tier?: number): Promise<ModelConfig | null> {
+    const models = await getActiveModels();
+
+    // Sort logic mirroring existing implementation orders
+    let candidates = [...models];
+    if (typeof tier === 'number') {
+        candidates = candidates.filter(m => m.tier >= tier);
+    }
+    candidates.sort((a, b) => a.tier - b.tier);
+
+    for (const model of candidates) {
+        const lastLimitedTime = rateLimitMap.get(model.id);
+
+        // Ensure 60 second cooling off window
+        if (!lastLimitedTime || (Date.now() - lastLimitedTime > 60_000)) {
+            // Unset from map if it expired
+            if (lastLimitedTime) rateLimitMap.delete(model.id);
+            return model;
+        }
+    }
+
+    // All matching candidate models are inside their 60s cooldown window
+    return null;
+}

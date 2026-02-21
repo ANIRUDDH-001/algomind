@@ -1,4 +1,4 @@
- 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -29,7 +29,22 @@ export function IntroTour() {
         if (el) {
             setTargetRect(el.getBoundingClientRect());
             // Ensure element is in view
-            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            const scrollParent = (el.closest('[data-tour-scroll]')
+                || el.closest('.overflow-y-auto')
+                || el.closest('.overflow-auto')) as HTMLElement | null;
+
+            if (scrollParent) {
+                const parentRect = scrollParent.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
+                const relativeTop = elRect.top - parentRect.top + scrollParent.scrollTop;
+                scrollParent.scrollTo({
+                    top: relativeTop - 100,
+                    behavior: 'smooth'
+                });
+            } else if (!el.closest('.fixed') && !el.closest('[style*="position: fixed"]')) {
+                // Only scroll document if element is not inside a fixed container
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         } else {
             // Check if we should wait for it (retry handled by effect below)
             setTargetRect(null);
@@ -84,7 +99,23 @@ export function IntroTour() {
             if (el && el !== currentEl) {
                 currentEl = el;
                 setTargetRect(el.getBoundingClientRect());
-                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                const scrollParent = (el.closest('[data-tour-scroll]')
+                    || el.closest('.overflow-y-auto')
+                    || el.closest('.overflow-auto')) as HTMLElement | null;
+
+                if (scrollParent) {
+                    const parentRect = scrollParent.getBoundingClientRect();
+                    const elRect = el.getBoundingClientRect();
+                    const relativeTop = elRect.top - parentRect.top + scrollParent.scrollTop;
+                    scrollParent.scrollTo({
+                        top: relativeTop - 100,
+                        behavior: 'smooth'
+                    });
+                } else if (!el.closest('.fixed') && !el.closest('[style*="position: fixed"]')) {
+                    // Only scroll document if element is not inside a fixed container
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
 
                 // Re-attach observer to new element
                 if (resizeObserver) resizeObserver.disconnect();
