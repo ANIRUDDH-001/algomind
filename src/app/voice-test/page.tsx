@@ -1,12 +1,17 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { notFound } from 'next/navigation';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Card } from '@/components/ui/card';
 
 export default function VoiceTestPage() {
+    if (process.env.NODE_ENV !== 'development') {
+        notFound();
+    }
+
     const {
         isListening,
         transcript,

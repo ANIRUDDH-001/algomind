@@ -2,22 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import * as jose from 'jose';
 import { CognitiveAnalyzer } from '@/lib/assessment/analyzer';
+import { validateEnv } from '@/lib/startup/validateEnv';
+
+validateEnv();
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { sessionToken, transcript, duration, finalCode } = body;
 
-        if (!sessionToken || !transcript || !Array.isArray(transcript)) {
-            return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+        if (!sessionToken || !Array.isArray(transcript) || transcript.length === 0) {
+            return NextResponse.json(
+                { error: 'Invalid transcript: must be a non-empty array' },
+                { status: 400 }
+            );
         }
+
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceKey) {
+            console.error('[Security] SUPABASE_SERVICE_ROLE_KEY is not set — refusing to sign JWT');
+            return NextResponse.json(
+                { error: 'Server misconfiguration. Contact administrator.' },
+                { status: 500 }
+            );
+        }
+        const secret = new TextEncoder().encode(serviceKey);
 
         const supabase = await createServerSupabase();
 
         // 1. Validate candidate JWT securely
         let payload;
         try {
-            const secret = new TextEncoder().encode(process.env.SUPABASE_SERVICE_ROLE_KEY || 'development_secret');
             const { payload: decoded } = await jose.jwtVerify(sessionToken, secret);
             payload = decoded;
         } catch (error) {
@@ -65,19 +80,38 @@ export async function POST(req: NextRequest) {
         }
 
         // 4. Run Assessment
+        // Normalize transcript from CandidateInterview format { speaker, text }
+        // to CognitiveAnalyzer format { role, content }
+        const normalizedTranscript = (transcript as Array<{ speaker: string; text: string }>).map((turn) => ({
+            role: (turn.speaker === 'ai' ? 'assistant' : turn.speaker) as 'user' | 'assistant' | 'system',
+            content: turn.text,
+        }));
+
         const analyzer = new CognitiveAnalyzer();
         // Generate a temporary UUID for the analyzer output format
         const tempSessionId = crypto.randomUUID();
-        const result = await analyzer.analyze(tempSessionId, problem, transcript);
+        let result;
+        try {
+            result = await analyzer.analyze(tempSessionId, problem, normalizedTranscript);
+        } catch (analyzeError) {
+            console.error('[Assess Complete] CognitiveAnalyzer.analyze() failed:', analyzeError);
+            return NextResponse.json(
+                { error: 'Failed to analyze assessment. Please try again.' },
+                { status: 500 }
+            );
+        }
 
         // Calculate overall score
         const overallScore = Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length;
 
-        // 5. Insert Interview Session using Employer's ID to preserve RLS policies for problem history if needed
+        // 5. Insert Interview Session with null user_id so it never appears in employer
+        //    dashboard queries (which filter by user_id). Link back to employer is via
+        //    candidate_submissions.session_id set in step 7.
         const { data: sessionData, error: sessionError } = await supabase
             .from('interview_sessions')
             .insert({
-                user_id: campaign.created_by, // Attribute it to the employer
+                user_id: null,              // Candidate sessions are not owned by any user
+                is_candidate_session: true, // Explicit flag for candidate-specific queries
                 problem_id: campaign.problem_id,
                 problem_title: problem.title,
                 transcript: transcript,
@@ -98,16 +132,16 @@ export async function POST(req: NextRequest) {
             .from('assessments')
             .insert({
                 session_id: sessionData.id,
-                user_id: campaign.created_by, // Again, employer
+                user_id: null, // Candidate session — not attributed to any user
                 overall_score: overallScore,
-                problem_decomposition: (result.skills as any).problem_decomposition?.score || 0,
-                pattern_recognition: (result.skills as any).pattern_recognition?.score || 0,
-                algorithmic_thinking: (result.skills as any).algorithmic_thinking?.score || 0,
-                complexity_analysis: (result.skills as any).complexity_analysis?.score || 0,
-                communication_clarity: (result.skills as any).communication_clarity?.score || 0,
-                edge_case_awareness: (result.skills as any).edge_case_awareness?.score || 0,
-                optimization_mindset: (result.skills as any).optimization_mindset?.score || 0,
-                debugging_approach: (result.skills as any).debugging_approach?.score || 0,
+                problem_decomposition: (result.skills as Record<string, { score: number }>).problem_decomposition?.score || 0,
+                pattern_recognition: (result.skills as Record<string, { score: number }>).pattern_recognition?.score || 0,
+                algorithmic_thinking: (result.skills as Record<string, { score: number }>).algorithmic_thinking?.score || 0,
+                complexity_analysis: (result.skills as Record<string, { score: number }>).complexity_analysis?.score || 0,
+                communication_clarity: (result.skills as Record<string, { score: number }>).communication_clarity?.score || 0,
+                edge_case_awareness: (result.skills as Record<string, { score: number }>).edge_case_awareness?.score || 0,
+                optimization_mindset: (result.skills as Record<string, { score: number }>).optimization_mindset?.score || 0,
+                debugging_approach: (result.skills as Record<string, { score: number }>).debugging_approach?.score || 0,
                 overall_feedback: result.overallFeedback,
                 next_steps: result.nextSteps,
                 skill_evidence: result.skills // Storing the full rich JSON with evidence/strengths
@@ -136,7 +170,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, overallScore });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CANDIDATE_COMPLETE_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error processing assessment' }, { status: 500 });
     }

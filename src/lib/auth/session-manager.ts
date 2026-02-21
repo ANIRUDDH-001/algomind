@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
  * Manages session persistence and refresh
  * Helps prevent unexpected logouts
  */
-export function useSessionPersistence() {
+export function useSessionPersistence(): void {
     useEffect(() => {
         const supabase = getSupabase();
         if (!supabase) return;

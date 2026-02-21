@@ -17,7 +17,8 @@ export default async function EmployerDashboardPage() {
     const [campaignRes, problemRes] = await Promise.all([
         supabase
             .from('assessment_campaigns')
-            .select('*')
+            .select('id, title, description, problem_id, time_limit_mins, max_uses, uses_count, show_score_to_candidate, public_token, created_at, is_active, expires_at')
+            .eq('created_by', user.id)
             .order('created_at', { ascending: false }),
 
         supabase

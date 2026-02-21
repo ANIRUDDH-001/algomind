@@ -13,6 +13,8 @@ function InterviewContent() {
     const searchParams = useSearchParams();
     const problemId = searchParams.get('problemId');
     const sessionId = searchParams.get('sessionId');
+    const mode = searchParams.get('mode');
+    const isReviewMode = mode === 'review';
     const { history } = useProgress();
     const { user } = useAuth();
 
@@ -155,6 +157,7 @@ function InterviewContent() {
                 isGuest={isGuest}
                 ragContext={problem.ragContext}
                 remainingQuestions={rateLimitInfo?.remaining}
+                isReviewMode={isReviewMode}
             />
         </div>
     );

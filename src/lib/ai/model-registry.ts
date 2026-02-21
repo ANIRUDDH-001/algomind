@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { ModelConfig, CHAT_MODELS } from './providers';
 import { redisGet, redisSet, redisDel } from '../upstash/client';
 import { logSystemEvent } from '../monitoring/events';
+import { getServiceClient } from '@/lib/supabase/service';
 
 const CACHE_KEY = 'model_registry_v2';
 const CACHE_TTL_SECONDS = 3600; // 1 hour
@@ -20,39 +20,6 @@ export interface ModelRegistryEntry {
     deprecated_at: string | null;
     last_verified: string | null;
     notes: string | null;
-}
-
-// Lazy singleton for registry client
-let registryClientInstance: ReturnType<typeof createClient> | null = null;
-let registryClientInitialized = false;
-
-/**
- * Gets or creates a singleton Supabase service role client for the model registry.
- * Bypasses RLS to allow server-side reading/writing of the registry.
- */
-function getRegistryClient() {
-    if (registryClientInitialized) return registryClientInstance;
-    registryClientInitialized = true;
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-        registryClientInstance = null;
-        return null;
-    }
-
-    try {
-        registryClientInstance = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-            },
-        });
-    } catch {
-        registryClientInstance = null;
-    }
-    return registryClientInstance;
 }
 
 /**
@@ -75,60 +42,62 @@ export async function getActiveModels(): Promise<ModelConfig[]> {
     }
 
     // 2. Query Supabase Database
-    const supabase = getRegistryClient();
-    if (supabase && typeof window === 'undefined') { // Server-side only check
+    if (typeof window === 'undefined') { // Server-side only
         try {
-            const { data, error } = await supabase
-                .from('model_registry')
-                .select('*')
-                .eq('is_active', true)
-                .order('tier', { ascending: true });
+            const supabase = getServiceClient();
+            try {
+                const { data, error } = await supabase
+                    .from('model_registry')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('tier', { ascending: true });
 
-            if (error) {
-                throw new Error(`Supabase query failed: ${error.message}`);
-            }
+                if (error) {
+                    throw new Error(`Supabase query failed: ${error.message}`);
+                }
 
-            if (data && data.length > 0) {
-                // 3. Map DB rows to ModelConfig
-                const mappedModels: ModelConfig[] = (data as ModelRegistryEntry[]).map((row) => {
-                    // Fallback to static CHAT_MODELS configuration to fill in missing/zero limits
-                    const fallback = CHAT_MODELS.find(m => m.id === row.model_id);
-                    return {
-                        id: row.model_id,
-                        provider: row.provider as ModelConfig['provider'], // Cast to exact union type
-                        tier: row.tier,
-                        rpm: row.rpm > 0 ? row.rpm : (fallback?.rpm || 25),
-                        tpm: row.tpm > 0 ? row.tpm : (fallback?.tpm || 5000),
-                        rpd: row.rpd > 0 ? row.rpd : (fallback?.rpd || 850),
-                        contextWindow: row.context_window > 0 ? row.context_window : (fallback?.contextWindow || 8192),
-                        supportsEmbeddings: fallback?.supportsEmbeddings || false,
-                        description: row.notes || fallback?.description || `${row.provider} model (Tier ${row.tier})`,
-                        notes: row.notes || undefined,
-                    };
+                if (data && data.length > 0) {
+                    // 3. Map DB rows to ModelConfig
+                    const mappedModels: ModelConfig[] = (data as ModelRegistryEntry[]).map((row) => {
+                        // Fallback to static CHAT_MODELS configuration to fill in missing/zero limits
+                        const fallback = CHAT_MODELS.find(m => m.id === row.model_id);
+                        return {
+                            id: row.model_id,
+                            provider: row.provider as ModelConfig['provider'], // Cast to exact union type
+                            tier: row.tier,
+                            rpm: row.rpm > 0 ? row.rpm : (fallback?.rpm || 25),
+                            tpm: row.tpm > 0 ? row.tpm : (fallback?.tpm || 5000),
+                            rpd: row.rpd > 0 ? row.rpd : (fallback?.rpd || 850),
+                            contextWindow: row.context_window > 0 ? row.context_window : (fallback?.contextWindow || 8192),
+                            supportsEmbeddings: fallback?.supportsEmbeddings || false,
+                            description: row.notes || fallback?.description || `${row.provider} model (Tier ${row.tier})`,
+                            notes: row.notes || undefined,
+                        };
+                    });
+
+                    // 4. Cache the result
+                    try {
+                        await redisSet(CACHE_KEY, JSON.stringify(mappedModels), CACHE_TTL_SECONDS);
+                    } catch (cacheWriteErr) {
+                        console.error('Error writing model registry to cache:', cacheWriteErr);
+                        // Don't fail the request if cache write fails
+                    }
+
+                    return mappedModels;
+                }
+            } catch (dbError) {
+                console.error('Database error fetching model registry:', dbError);
+
+                // Log db_error to system_events
+                logSystemEvent({
+                    type: 'db_error',
+                    errorMessage: dbError instanceof Error ? dbError.message : String(dbError),
+                    metadata: {
+                        context: 'getActiveModels_fetch',
+                    }
                 });
-
-                // 4. Cache the result
-                try {
-                    await redisSet(CACHE_KEY, JSON.stringify(mappedModels), CACHE_TTL_SECONDS);
-                } catch (cacheWriteErr) {
-                    console.error('Error writing model registry to cache:', cacheWriteErr);
-                    // Don't fail the request if cache write fails
-                }
-
-                return mappedModels;
             }
-        } catch (dbError) {
-            console.error('Database error fetching model registry:', dbError);
-
-            // Log db_error to system_events
-            logSystemEvent({
-                type: 'db_error',
-                errorMessage: dbError instanceof Error ? dbError.message : String(dbError),
-                metadata: {
-                    context: 'getActiveModels_fetch',
-                }
-            });
-        }
+        } catch { /* missing env vars — skip DB */ }
     }
 
     // 5. Fallback to static CHAT_MODELS
@@ -142,10 +111,15 @@ export async function getActiveModels(): Promise<ModelConfig[]> {
  * Never throws an error.
  */
 export async function markModelDeprecated(modelId: string, reason: string): Promise<void> {
-    const supabase = getRegistryClient();
+    if (typeof window !== 'undefined') {
+        return; // Client-side guard
+    }
 
-    if (!supabase || typeof window !== 'undefined') {
-        return; // Silently fail if no client or client-side
+    let supabase: ReturnType<typeof getServiceClient>;
+    try {
+        supabase = getServiceClient();
+    } catch {
+        return; // Missing env vars — silently skip
     }
 
     try {
@@ -157,7 +131,7 @@ export async function markModelDeprecated(modelId: string, reason: string): Prom
         };
         const { error } = await supabase
             .from('model_registry')
-             
+
             .update(updatePayload as never)
             .eq('model_id', modelId);
 

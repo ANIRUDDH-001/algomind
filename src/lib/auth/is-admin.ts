@@ -1,7 +1,8 @@
 import { createServerSupabase } from '@/lib/supabase/server';
+import { type User } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<User> {
     const supabase = await createServerSupabase();
     const { data: { user }, error } = await supabase.auth.getUser();
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { notFound } from 'next/navigation';
 import { useVoiceOutput } from '@/hooks/useVoiceOutput';
 import { SpeakerControls } from '@/components/voice/SpeakerControls';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,10 @@ function binarySearch(arr, target) {
 The time complexity for searching in a balanced BST is O(log n).`;
 
 export default function TTSTestPage() {
+    if (process.env.NODE_ENV !== 'development') {
+        notFound();
+    }
+
     const {
         speak,
         pause,

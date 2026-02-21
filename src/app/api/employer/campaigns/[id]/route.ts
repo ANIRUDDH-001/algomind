@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             },
             submissions
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CAMPAIGN_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
@@ -72,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const body = await req.json();
         const { isActive, expiresAt, maxUses } = body;
 
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         if (isActive !== undefined) updateData.is_active = isActive;
         if (expiresAt !== undefined) updateData.expires_at = expiresAt;
         if (maxUses !== undefined) updateData.max_uses = maxUses;
@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         }
 
         return NextResponse.json({ campaign: data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CAMPAIGN_PATCH_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
@@ -125,7 +125,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         }
 
         return NextResponse.json({ success: true, message: 'Campaign deactivated' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CAMPAIGN_DELETE_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

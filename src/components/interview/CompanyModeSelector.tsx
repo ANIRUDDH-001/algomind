@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Building2 } from 'lucide-react';
@@ -65,6 +65,7 @@ export function CompanyModeSelector({ selectedCompany, onSelect }: CompanyModeSe
         async function fetchProfiles() {
             try {
                 const supabase = getSupabase();
+                if (!supabase) throw new Error("Supabase not configured");
                 const { data, error } = await supabase
                     .from('company_profiles')
                     .select('*')

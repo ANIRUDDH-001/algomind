@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/is-admin';
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { invalidateModelCache } from '@/lib/ai/model-registry';
@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const supabase = await createServerSupabase();
 
         // Get 24h stats from RPC
@@ -35,7 +36,7 @@ export async function GET() {
             last_hit: string | null;
         }
 
-        const statsMap = new Map<string, ModelRateStats>((stats || []).map((s: any) => [s.model_id, s as ModelRateStats]));
+        const statsMap = new Map<string, ModelRateStats>((stats || []).map((s: unknown) => [(s as ModelRateStats).model_id, s as ModelRateStats]));
 
         const combinedModels = models.map(m => {
             const modelStats = statsMap.get(m.model_id);
@@ -73,10 +74,6 @@ export async function GET() {
         return NextResponse.json({ models: combinedModels });
 
     } catch (error) {
-        // requireAdmin throws redirects, catch and convert to 403 for API
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Models API] GET Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
@@ -84,7 +81,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const supabase = await createServerSupabase();
 
         const body = await request.json();
@@ -94,7 +92,7 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Missing modelId' }, { status: 400 });
         }
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (rpm !== undefined) updates.rpm = rpm;
         if (tpm !== undefined) updates.tpm = tpm;
         if (rpd !== undefined) updates.rpd = rpd;
@@ -128,9 +126,6 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ success: true, updated: updatedModel });
 
     } catch (error) {
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Models API] PATCH Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
@@ -138,7 +133,8 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        await requireAdmin();
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
         const body = await request.json();
         const { modelId, reason } = body;
 
@@ -158,9 +154,6 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
         console.error('[Admin Models API] DELETE Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         await upgradeToEmployer(user.id, trimmedName);
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[EMPLOYER_UPGRADE_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

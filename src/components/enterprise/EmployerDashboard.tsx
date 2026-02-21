@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';
+import { useRouter } from 'next/navigation';
 
 interface ProblemData {
     id: string;
@@ -58,6 +59,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const [activeTab, setActiveTab] = useState<'campaigns' | 'submissions'>('campaigns');
     const [campaigns, setCampaigns] = useState<CampaignData[]>(initialCampaigns);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(initialCampaigns[0]?.id || null);
+    const router = useRouter();
 
     // Submissions State
     const [submissions, setSubmissions] = useState<SubmissionData[]>([]);
@@ -79,6 +81,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const [compareSelection, setCompareSelection] = useState<string[]>([]);
     const [showCompareModal, setShowCompareModal] = useState(false);
 
+    const fetchWithAuthCheck = async (url: string, options?: RequestInit) => {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+            router.push('/login?reason=session_expired');
+            return null;
+        }
+        return res;
+    };
+
     // Fetch Submissions when tab changes or campaign changes
     useEffect(() => {
         if (activeTab === 'submissions' && selectedCampaignId) {
@@ -89,8 +100,8 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const loadSubmissions = async (campaignId: string) => {
         setIsLoadingSubmissions(true);
         try {
-            const res = await fetch(`/api/employer/submissions/${campaignId}`);
-            if (res.ok) {
+            const res = await fetchWithAuthCheck(`/api/employer/submissions/${campaignId}`);
+            if (res && res.ok) {
                 const data = await res.json();
                 setSubmissions(data.submissions || []);
             }
@@ -105,7 +116,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         e.preventDefault();
         setIsCreating(true);
         try {
-            const res = await fetch('/api/employer/campaigns', {
+            const res = await fetchWithAuthCheck('/api/employer/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -117,6 +128,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                 })
             });
 
+            if (!res) return; // 401 redirect handled inside fetchWithAuthCheck
             if (!res.ok) throw new Error("Failed to create campaign");
 
             const data = await res.json();
@@ -141,11 +153,11 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         if (!confirm('Are you sure you want to deactivate this campaign? Candidates will no longer be able to use its generic link.')) return;
 
         try {
-            const res = await fetch(`/api/employer/campaigns/${id}`, {
+            const res = await fetchWithAuthCheck(`/api/employer/campaigns/${id}`, {
                 method: 'DELETE'
             });
 
-            if (res.ok) {
+            if (res && res.ok) {
                 setCampaigns(campaigns.map(c => c.id === id ? { ...c, is_active: false } : c));
             }
         } catch (err) {

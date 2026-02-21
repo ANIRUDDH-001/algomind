@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-export async function createServerSupabase() {
+export async function createServerSupabase(): Promise<SupabaseClient> {
     const cookieStore = await cookies();
 
     return createServerClient(

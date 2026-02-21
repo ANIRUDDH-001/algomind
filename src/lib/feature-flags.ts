@@ -55,6 +55,17 @@ export const FEATURE_FLAGS = {
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
 
+export interface FeatureFlagValue {
+    key: FeatureFlagKey;
+    storageKey: string;
+    defaultValue: boolean;
+    description: string;
+    requiresBrowserSupport: boolean;
+    currentValue: boolean;
+    browserSupported: boolean;
+}
+
+
 /**
  * Get feature flag value from localStorage with fallback to default
  */
@@ -144,7 +155,7 @@ export function resetFlag(flag: FeatureFlagKey): void {
 /**
  * Get all feature flags with their current values and support status
  */
-export function getAllFeatureFlags() {
+export function getAllFeatureFlags(): FeatureFlagValue[] {
     return Object.entries(FEATURE_FLAGS).map(([key, config]) => ({
         key: key as FeatureFlagKey,
         ...config,

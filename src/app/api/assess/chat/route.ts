@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import * as jose from 'jose';
+import { validateEnv } from '@/lib/startup/validateEnv';
+import { getRedis } from '@/lib/upstash/client';
+
+validateEnv();
+
+const MESSAGE_LIMIT = 30; // Max AI turns per assessment session
 
 export async function POST(req: NextRequest) {
     try {
@@ -22,16 +28,25 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
-        const { sessionToken, messages, systemPrompt, problemContext } = body;
+        const { sessionToken, messages, systemPrompt } = body;
 
         if (!sessionToken) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
         }
 
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!serviceKey) {
+            console.error('[Security] SUPABASE_SERVICE_ROLE_KEY is not set — refusing to verify JWT');
+            return NextResponse.json(
+                { error: 'Server misconfiguration. Contact administrator.' },
+                { status: 500 }
+            );
+        }
+        const secret = new TextEncoder().encode(serviceKey);
+
         // 🔒 Validate candidate JWT securely
         let payload;
         try {
-            const secret = new TextEncoder().encode(process.env.SUPABASE_SERVICE_ROLE_KEY || 'development_secret');
             const { payload: decoded } = await jose.jwtVerify(sessionToken, secret);
             payload = decoded;
         } catch (error) {
@@ -43,8 +58,38 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
         }
 
-        // Apply a strict per-session limit without hitting the database on every chat via JWT
-        // (For production scale, Redis or a lightweight DB count here is recommended. We'll rely on time-expiry)
+        // ── Per-session message rate limit ────────────────────────────────────
+        const submissionId = payload.submissionId as string;
+        const redis = getRedis();
+        let currentCount = 0;
+
+        if (redis && submissionId) {
+            const messageCountKey = `assess:${submissionId}:msgCount`;
+            currentCount = await redis.incr(messageCountKey);
+
+            if (currentCount === 1) {
+                // First message — synchronize TTL with remaining JWT lifetime so the
+                // counter expires naturally when the session does.
+                const jwtExp = payload.exp as number | undefined;
+                const expirySeconds = jwtExp
+                    ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
+                    : 90 * 60; // fallback: 90 min
+                await redis.expire(messageCountKey, expirySeconds);
+            }
+
+            if (currentCount > MESSAGE_LIMIT) {
+                return NextResponse.json(
+                    {
+                        error: 'Message limit reached for this assessment session.',
+                        limitReached: true,
+                        messagesUsed: currentCount - 1,
+                        messageLimit: MESSAGE_LIMIT,
+                    },
+                    { status: 429 }
+                );
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         const client = getAIClient();
 
@@ -62,14 +107,22 @@ export async function POST(req: NextRequest) {
         });
 
         if (!result.success) {
-            throw new Error(result.error || "Failed to generate response");
+            throw new Error(result.error || 'Failed to generate response');
         }
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             response: result.response,
             modelUsed: result.modelUsed,
             provider: result.provider
         });
+
+        // Expose usage counters to the frontend (headers are visible via fetch)
+        if (currentCount > 0) {
+            response.headers.set('X-Messages-Used', String(currentCount));
+            response.headers.set('X-Messages-Limit', String(MESSAGE_LIMIT));
+        }
+
+        return response;
 
     } catch (error: unknown) {
         console.error('❌ [Assess Chat API] Error:', error);

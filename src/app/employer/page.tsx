@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Zap, Brain, Share2, Briefcase, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 export default function EmployerPage() {
     const { user, loading: authLoading } = useAuth();
@@ -72,14 +73,21 @@ export default function EmployerPage() {
                 body: JSON.stringify({ companyName: trimmed })
             });
 
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to upgrade');
+            if (res.ok) {
+                toast.success('Account upgraded successfully! Welcome to Employer.');
+                router.refresh(); // Sync server-side session to reflect new account_type
+                router.push('/employer/dashboard');
+            } else {
+                const err = await res.json();
+                const msg = (err as { error?: string }).error || 'Upgrade failed. Please try again.';
+                toast.error(msg);
+                setUpgradeError(msg);
+                setIsUpgrading(false);
             }
-
-            router.push('/employer/dashboard');
-        } catch (err: any) {
-            setUpgradeError(err.message);
+        } catch {
+            const msg = 'Network error. Please check your connection and try again.';
+            toast.error(msg);
+            setUpgradeError(msg);
             setIsUpgrading(false);
         }
     };
