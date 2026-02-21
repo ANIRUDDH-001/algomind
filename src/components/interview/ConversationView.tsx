@@ -312,7 +312,13 @@ export function ConversationView({
                             </div>
 
                             {/* Message content */}
-                            {msg.content}
+                            {typeof msg.content === 'string'
+                                ? msg.content
+                                : typeof msg.content === 'object' && msg.content !== null
+                                    ? ((msg.content as Record<string, unknown>).text as string)
+                                    || ((msg.content as Record<string, unknown>).content as string)
+                                    || JSON.stringify(msg.content)
+                                    : String(msg.content ?? '')}
 
                             {/* Interrupted badge + partial heard indicator */}
                             {isVadEnabled && isInterruptedMsg && (
