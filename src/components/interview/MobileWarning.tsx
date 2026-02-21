@@ -27,8 +27,9 @@ export function MobileWarning({ onContinue, onExit }: MobileWarningProps) {
                             ⚠️ Limited Functionality
                         </h3>
                         <p className="text-sm text-yellow-200/80">
-                            The code editor is not available on mobile devices. You can continue
-                            with voice-only interview, but you won&apos;t be able to write or test code visually.
+                            The code editor has limited functionality on mobile devices.
+                            You can switch to the "Code" tab to view or share solutions,
+                            but a desktop experience is recommended for coding and testing.
                         </p>
                     </div>
 

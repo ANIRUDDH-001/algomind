@@ -459,7 +459,7 @@ export function InterviewSession({
                 )}
             >
                 <Mic className="w-4 h-4 mr-2" />
-                Voice Mode
+                Interview
             </button>
             <button
                 onClick={() => {
@@ -1064,8 +1064,12 @@ export function InterviewSession({
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden">
-                <ResizablePanelGroup direction="horizontal" className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30">
+            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-[calc(100dvh-64px)]">
+                <ResizablePanelGroup
+                    direction="horizontal"
+                    id="interview_panels_v1"
+                    className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30"
+                >
 
                     {/* Left Panel: Problem */}
                     <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-problem">
@@ -1077,7 +1081,7 @@ export function InterviewSession({
                         </div>
                     </ResizablePanel>
 
-                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
+                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
 
                     {/* Center Panel: Interaction */}
                     <ResizablePanel defaultSize={50} minSize={30} id="panel-interaction">
@@ -1086,7 +1090,7 @@ export function InterviewSession({
                         </div>
                     </ResizablePanel>
 
-                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-1.5" />
+                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
 
                     {/* Right Panel: History */}
                     <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-history">
