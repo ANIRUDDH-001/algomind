@@ -10,13 +10,9 @@ export async function requireAdmin(): Promise<User> {
         redirect('/login');
     }
 
-    const { data: adminRecord } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('email', user.email!)
-        .single();
+    const { data: isAdmin, error: adminErr } = await supabase.rpc('check_is_admin');
 
-    if (!adminRecord) {
+    if (adminErr || !isAdmin) {
         redirect('/dashboard'); // Not an admin — send to normal dashboard
     }
 
