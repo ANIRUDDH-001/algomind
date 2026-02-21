@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
@@ -295,7 +295,7 @@ export function useInterview(options: {
     // Test Hook: Expose trigger for Playwright
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
                 submitUserResponse(message, currentProblemRef.current || { title: 'Test', content: 'Test' });
             };

@@ -147,6 +147,13 @@ export class SupabaseProgressStore {
                 return null;
             }
 
+            // Fetch learner profile for narrative data
+            const { data: profile } = await this.supabase
+                .from('learner_profiles')
+                .select('narrative, narrative_generated_at, sessions_at_last_narrative')
+                .eq('user_id', userId)
+                .maybeSingle();
+
             if (!sessions || sessions.length === 0) {
                 return {
                     userId,
@@ -156,6 +163,9 @@ export class SupabaseProgressStore {
                     averageScore: 0,
                     averageScores: { ...DEFAULT_SKILL_SCORES },
                     lastUpdated: new Date(),
+                    narrative: profile?.narrative,
+                    narrativeGeneratedAt: profile?.narrative_generated_at ? new Date(profile.narrative_generated_at) : undefined,
+                    sessionsAtLastNarrative: profile?.sessions_at_last_narrative || 0,
                 };
             }
 
@@ -206,6 +216,9 @@ export class SupabaseProgressStore {
                 averageScore: avgScore,
                 averageScores,
                 lastUpdated: new Date(),
+                narrative: profile?.narrative,
+                narrativeGeneratedAt: profile?.narrative_generated_at ? new Date(profile.narrative_generated_at) : undefined,
+                sessionsAtLastNarrative: profile?.sessions_at_last_narrative || 0,
             };
         } catch (error: unknown) {
             console.error('❌ [SupabaseProgressStore] Failed to load progress:', {

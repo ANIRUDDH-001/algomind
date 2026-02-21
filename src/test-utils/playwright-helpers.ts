@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Page, Locator, expect } from '@playwright/test';
 import { TEST_IDS } from './test-ids';
 export { TEST_IDS };

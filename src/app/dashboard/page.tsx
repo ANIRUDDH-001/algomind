@@ -20,8 +20,8 @@ import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engi
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 import { ShareReplayButton } from '@/components/dashboard/ShareReplayButton';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { Brain, ChevronRight, Activity } from 'lucide-react';
-import { format } from 'date-fns';
+import { Brain, ChevronRight, Activity, Sparkles, UserCheck } from 'lucide-react';
+import { format, differenceInHours } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
 import { useSwipeable } from 'react-swipeable';
