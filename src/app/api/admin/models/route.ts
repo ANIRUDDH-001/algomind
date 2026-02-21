@@ -1,0 +1,167 @@
+import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/is-admin';
+import { createServerSupabase } from '@/lib/supabase/server';
+import { logSystemEvent } from '@/lib/monitoring/events';
+import { invalidateModelCache } from '@/lib/ai/model-registry';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        await requireAdmin();
+        const supabase = await createServerSupabase();
+
+        // Get 24h stats from RPC
+        const { data: stats, error: statsError } = await supabase.rpc('get_model_rate_stats');
+
+        if (statsError) {
+            console.error('[Admin Models] Error fetching stats:', statsError);
+            throw statsError;
+        }
+
+        const { data: models, error: modelsError } = await supabase
+            .from('model_registry')
+            .select('*')
+            .order('tier', { ascending: true });
+
+        if (modelsError) {
+            console.error('[Admin Models] Error fetching models:', modelsError);
+            throw modelsError;
+        }
+
+        interface ModelRateStats {
+            model_id: string;
+            hits_24h: number;
+            last_hit: string | null;
+        }
+
+        const statsMap = new Map<string, ModelRateStats>((stats || []).map((s: any) => [s.model_id, s as ModelRateStats]));
+
+        const combinedModels = models.map(m => {
+            const modelStats = statsMap.get(m.model_id);
+            const rateLimitHits24h = modelStats ? Number(modelStats.hits_24h) : 0;
+            const lastRateLimitHit = modelStats ? modelStats.last_hit : null;
+
+            // Determine status
+            let status = 'active';
+            if (!m.is_active) {
+                status = 'deprecated';
+            } else if (rateLimitHits24h > 5) {
+                status = 'degraded';
+            }
+
+            return {
+                modelId: m.model_id,
+                provider: m.provider,
+                tier: m.tier,
+                rpm: m.rpm,
+                tpm: m.tpm,
+                rpd: m.rpd,
+                contextWindow: m.context_window,
+                isActive: m.is_active,
+                isVerified: m.is_verified,
+                isPreview: m.is_preview,
+                deprecatedAt: m.deprecated_at,
+                lastVerified: m.last_verified,
+                notes: m.notes,
+                rateLimitHits24h,
+                lastRateLimitHit,
+                status
+            };
+        });
+
+        return NextResponse.json({ models: combinedModels });
+
+    } catch (error) {
+        // requireAdmin throws redirects, catch and convert to 403 for API
+        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+        console.error('[Admin Models API] GET Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function PATCH(request: Request) {
+    try {
+        await requireAdmin();
+        const supabase = await createServerSupabase();
+
+        const body = await request.json();
+        const { modelId, rpm, tpm, rpd, notes } = body;
+
+        if (!modelId) {
+            return NextResponse.json({ error: 'Missing modelId' }, { status: 400 });
+        }
+
+        const updates: any = {};
+        if (rpm !== undefined) updates.rpm = rpm;
+        if (tpm !== undefined) updates.tpm = tpm;
+        if (rpd !== undefined) updates.rpd = rpd;
+        if (notes !== undefined) updates.notes = notes;
+
+        // If no valid fields to update, return 400
+        if (Object.keys(updates).length === 0) {
+            return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
+        }
+
+        const { data: updatedModel, error } = await supabase
+            .from('model_registry')
+            .update(updates)
+            .eq('model_id', modelId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[Admin Models] Error updating model:', error);
+            return NextResponse.json({ error: 'Failed to update model' }, { status: 500 });
+        }
+
+        // Invalidate cache
+        await invalidateModelCache();
+
+        void logSystemEvent({
+            type: 'admin_action',
+            metadata: { action: 'update_model', modelId, updates }
+        });
+
+        return NextResponse.json({ success: true, updated: updatedModel });
+
+    } catch (error) {
+        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+        console.error('[Admin Models API] PATCH Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    try {
+        await requireAdmin();
+        const body = await request.json();
+        const { modelId, reason } = body;
+
+        if (!modelId || !reason) {
+            return NextResponse.json({ error: 'Missing modelId or reason' }, { status: 400 });
+        }
+
+        // Use the existing markModelDeprecated function
+        const { markModelDeprecated } = await import('@/lib/ai/model-registry');
+        await markModelDeprecated(modelId, reason);
+
+        void logSystemEvent({
+            type: 'admin_action',
+            metadata: { action: 'deprecate_model', modelId, reason }
+        });
+
+        return NextResponse.json({ success: true });
+
+    } catch (error) {
+        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+        console.error('[Admin Models API] DELETE Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}

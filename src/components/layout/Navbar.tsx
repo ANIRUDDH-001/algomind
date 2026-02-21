@@ -25,10 +25,30 @@ export function Navbar() {
     const pathname = usePathname();
     const [isDemo, setIsDemo] = useState(false);
     const { isAdmin } = useAdmin();
+    const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
 
     useEffect(() => {
         setIsDemo(isDemoMode());
-    }, [pathname]); // Re-check on navigation
+
+        const checkModels = async () => {
+            if (!isAdmin) return;
+            try {
+                const res = await fetch('/api/admin/events?type=model_deprecated&days=1&limit=1');
+                if (res.ok) {
+                    const data = await res.json();
+                    setHasDeprecatedModels(data.count > 0);
+                }
+            } catch (error) {
+                console.error("Failed to fetch model deprecation status:", error);
+            }
+        };
+
+        if (isAdmin) {
+            checkModels();
+            const interval = setInterval(checkModels, 5 * 60 * 1000); // 5 mins
+            return () => clearInterval(interval);
+        }
+    }, [pathname, isAdmin]);
 
     const handleLogout = async () => {
         await signOut();
@@ -158,6 +178,32 @@ export function Navbar() {
                                                     >
                                                         <Shield className="mr-2 h-4 w-4" />
                                                         Admin Users
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/models')}
+                                                        className="text-amber-400 hover:bg-amber-900/30 hover:text-amber-300 cursor-pointer focus:bg-amber-800 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <Shield className="mr-2 h-4 w-4" />
+                                                            Model Registry
+                                                        </div>
+                                                        {hasDeprecatedModels && (
+                                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse ml-2" />
+                                                        )}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/analytics')}
+                                                        className="text-pink-400 hover:bg-pink-900/30 hover:text-pink-300 cursor-pointer focus:bg-pink-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                    >
+                                                        <BarChart className="mr-2 h-4 w-4" />
+                                                        System Analytics
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => router.push('/admin/cache-stats')}
+                                                        className="text-orange-400 hover:bg-orange-900/30 hover:text-orange-300 cursor-pointer focus:bg-orange-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                    >
+                                                        <BarChart className="mr-2 h-4 w-4" />
+                                                        Cache Stats
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
