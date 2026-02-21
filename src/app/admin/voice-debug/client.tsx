@@ -109,7 +109,7 @@ export default function VoiceDebugPage() {
                 const { InterruptionManager } = await import('@/lib/voice/interruption-manager');
                 // We can't access the singleton from here since it's in ConversationView
                 // Instead, read from a global debug hook if available
-                 
+
                 const w = window as unknown as { __algomind_im_debug?: InstanceType<typeof InterruptionManager> };
                 if (w.__algomind_im_debug) {
                     const im = w.__algomind_im_debug;
@@ -136,7 +136,7 @@ export default function VoiceDebugPage() {
         setLocalConfig(updated);
 
         // Also hot-update any live InterruptionManager instance
-         
+
         const w = window as unknown as { __algomind_im_debug?: { setConfig: (c: Partial<VoiceConfigValues>) => void } };
         if (w.__algomind_im_debug?.setConfig) {
             w.__algomind_im_debug.setConfig({ [key]: value });
@@ -146,7 +146,7 @@ export default function VoiceDebugPage() {
     const handleReset = useCallback(() => {
         const defaults = resetVoiceConfig();
         setLocalConfig(defaults);
-         
+
         const w = window as unknown as { __algomind_im_debug?: { setConfig: (c: Partial<VoiceConfigValues>) => void } };
         if (w.__algomind_im_debug?.setConfig) {
             w.__algomind_im_debug.setConfig(defaults);
@@ -177,7 +177,7 @@ export default function VoiceDebugPage() {
     }, [eventStream]);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6 lg:p-10">
+        <div className="text-white p-6 lg:p-10">
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="space-y-1">

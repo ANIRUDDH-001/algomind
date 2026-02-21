@@ -118,7 +118,7 @@ export default function AdminsClient() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6 lg:p-10">
+        <div className="text-white p-6 lg:p-10">
             <div className="max-w-4xl mx-auto space-y-8">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 flex items-center gap-3">
