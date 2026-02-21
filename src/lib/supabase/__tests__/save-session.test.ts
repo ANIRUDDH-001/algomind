@@ -71,6 +71,13 @@ describe('Supabase Data Layer', () => {
             mockFrom.mockImplementation((table) => {
                 if (table === 'interview_sessions') return { insert: mockInsertSession };
                 if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+                if (table === 'problems') return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            maybeSingle: vi.fn().mockResolvedValue({ data: { difficulty: 'easy' }, error: null })
+                        })
+                    })
+                };
                 return { insert: vi.fn(), upsert: vi.fn() };
             });
 
@@ -132,6 +139,13 @@ describe('Supabase Data Layer', () => {
                 if (table === 'interview_sessions') return { insert: mockInsertSession };
                 if (table === 'knowledge_gaps') return { insert: mockInsertGaps };
                 if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+                if (table === 'problems') return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            maybeSingle: vi.fn().mockResolvedValue({ data: { difficulty: 'easy' }, error: null })
+                        })
+                    })
+                };
                 return { insert: vi.fn(), upsert: vi.fn() };
             });
 

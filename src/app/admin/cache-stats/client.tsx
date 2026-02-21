@@ -56,7 +56,7 @@ export default function CacheStatsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6 lg:p-10">
+        <div className="text-white p-6 lg:p-10">
             <div className="max-w-3xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="space-y-1">

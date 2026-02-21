@@ -11,7 +11,8 @@ export type SystemEventType =
     | 'leetcode_fetch_failed'
     | 'piston_error'
     | 'cron_completed'
-    | 'cron_failed';
+    | 'cron_failed'
+    | 'admin_action';
 
 export interface SystemEventPayload {
     type: SystemEventType;
