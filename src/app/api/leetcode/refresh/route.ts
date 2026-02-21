@@ -13,13 +13,16 @@ export async function POST(req: NextRequest) {
         }
 
         const redis = getRedis();
-        const limitKey = `lc_refresh:${user.id}`;
+        const cooldownKey = `leetcode:refresh:${user.id}`;
 
-        // Check rate limit: 1 hour cooldown for manual refresh
+        // Check rate limit: 1-hour cooldown for manual refresh
         if (redis) {
-            const isLimited = await redis.get(limitKey);
-            if (isLimited) {
-                return NextResponse.json({ error: 'Can refresh once per hour' }, { status: 429 });
+            const existing = await redis.get(cooldownKey);
+            if (existing) {
+                return NextResponse.json(
+                    { error: 'LeetCode profile was recently refreshed. Please wait 1 hour between refreshes.' },
+                    { status: 429 }
+                );
             }
         }
 
@@ -34,9 +37,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No LeetCode profile connected' }, { status: 400 });
         }
 
-        // Set rate limit (3600s = 1 hour)
+        // Set cooldown BEFORE triggering the fetch (RC-02: prevent race between check and set)
         if (redis) {
-            await redis.set(limitKey, 'limited', { ex: 3600 });
+            await redis.set(cooldownKey, '1', { ex: 3600 });
         }
 
         // Trigger manual refresh

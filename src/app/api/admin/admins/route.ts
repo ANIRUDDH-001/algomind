@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase/service';
 
 async function verifyAdminForApi() {
     const supabase = await createServerSupabase();
@@ -23,13 +23,7 @@ async function verifyAdminForApi() {
     return user;
 }
 
-// Helper to get an admin client that bypasses RLS for table management
-function getAdminClient() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-}
+
 
 export async function GET() {
     try {
@@ -38,7 +32,7 @@ export async function GET() {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const supabaseAdmin = getAdminClient();
+        const supabaseAdmin = getServiceClient();
         const { data: admins, error } = await supabaseAdmin
             .from('admin_users')
             .select('id, email, added_at')
@@ -69,7 +63,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
         }
 
-        const supabaseAdmin = getAdminClient();
+        const supabaseAdmin = getServiceClient();
 
         const { data: existing } = await supabaseAdmin
             .from('admin_users')
@@ -110,7 +104,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
-        const supabaseAdmin = getAdminClient();
+        const supabaseAdmin = getServiceClient();
 
         const { count, error: countError } = await supabaseAdmin
             .from('admin_users')

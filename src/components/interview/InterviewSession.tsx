@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { type AssessmentResult } from '@/lib/assessment/analyzer';
@@ -52,6 +52,7 @@ interface InterviewSessionProps {
     isGuest?: boolean;
     ragContext?: string;
     remainingQuestions?: number;
+    isReviewMode?: boolean;
 }
 
 export function InterviewSession({
@@ -60,7 +61,8 @@ export function InterviewSession({
     readOnly = false,
     isGuest = false,
     ragContext,
-    remainingQuestions
+    remainingQuestions,
+    isReviewMode = false
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -162,6 +164,7 @@ export function InterviewSession({
         voice
     } = useInterview({
         vadEnabled,
+        isReviewMode,
         onUserMessage: handleUserMessage
     });
 
@@ -173,16 +176,22 @@ export function InterviewSession({
     // Sync optimistic state with real state
     // Handled by useInterview hook now
 
+    // Keep a ref to always-current messages so the observer interval
+    // doesn't need messages in its dep array (which recreated it on every turn).
+    const messagesRef = useRef(messages);
+    useEffect(() => { messagesRef.current = messages; }, [messages]);
+
     // --- Silent Observer Tick Loop ---
     useEffect(() => {
         if (!observerEnabled || !hasStarted || readOnly) return;
         if (state === 'completed' || state === 'idle' || isAnalyzing) return;
 
         const interval = setInterval(async () => {
+            const currentMessages = messagesRef.current;
             const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
             const tip = await observerRef.current.analyze({
-                recentTurns: messages.slice(-3).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-                interviewState: state as InterviewState, // State falls into defined union boundaries safely
+                recentTurns: currentMessages.slice(-3).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+                interviewState: state as InterviewState,
                 elapsedSeconds: currentElapsed,
             });
 
@@ -192,7 +201,9 @@ export function InterviewSession({
         }, 60_000);
 
         return () => clearInterval(interval);
-    }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing, messages]);
+        // messages intentionally removed — accessed via messagesRef to prevent interval restart on each turn
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing]);
 
     useEffect(() => {
         // Reset local and hook state when problem changes
@@ -567,6 +578,12 @@ export function InterviewSession({
                                         {!isGuest && remainingQuestions !== undefined && (
                                             <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
                                                 {remainingQuestions}/{RATE_LIMIT.DAILY_LIMIT} questions remaining today
+                                            </div>
+                                        )}
+                                        {/* Review Mode Badge */}
+                                        {isReviewMode && (
+                                            <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
+                                                🔄 Review Mode
                                             </div>
                                         )}
                                     </div>

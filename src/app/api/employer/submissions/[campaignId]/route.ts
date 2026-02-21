@@ -86,7 +86,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
         });
 
         return NextResponse.json({ submissions: rankedSubmissions });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[SUBMISSIONS_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

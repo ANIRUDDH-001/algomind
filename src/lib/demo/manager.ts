@@ -25,7 +25,7 @@ function seededRandom(seed: number): number {
 const STATIC_DEMO_DATA = generateImpressiveDemoData();
 
 // Get demo progress data for display
-export function getDemoProgress() {
+export function getDemoProgress(): ReturnType<typeof generateImpressiveDemoData> {
     return STATIC_DEMO_DATA;
 }
 

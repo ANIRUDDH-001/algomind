@@ -26,10 +26,8 @@ export class SilentObserver {
 
         // 3. Active phases only
         const activePhases: InterviewState[] = ['user-thinking', 'user-solving', 'ai-clarifying'];
-        // NOTE: Our actual state array sometimes simplifies 'user-solving/ai-clarifying' down to 'idle/user-speaking' logic.
-        // We will execute the safety gate regardless, checking if we fall inside those explicitly requested metrics or default to processing if state mapping is shallowly handled here initially.
-        if (!activePhases.includes(interviewState) && interviewState !== 'idle') {
-            return null;
+        if (!activePhases.includes(interviewState)) {
+            return null; // Only run during active phases; idle, completed, and all others are excluded
         }
 
         const recentHistoryText = recentTurns.slice(-3).map(

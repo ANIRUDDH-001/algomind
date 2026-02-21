@@ -6,109 +6,136 @@ import { logSystemEvent } from '../src/lib/monitoring/events';
 import { updateKaiMemory } from '../src/lib/ai/memory-generator';
 import { computeInsightsForUser } from '../src/lib/recommendations/insight-engine';
 import { updateNarrativeIfDue } from '../src/lib/assessment/narrative-generator';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '../src/lib/supabase/service';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ── Timeout utility ────────────────────────────────────────────────────────────
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`[timeout] ${label} exceeded ${ms}ms`)), ms)
+    );
+    return Promise.race([promise, timeout]);
+}
+
+// ── Shared helper: deduplicated user IDs from interview_sessions ───────────────
+async function getRecentUserIds(windowMs: number): Promise<string[]> {
+    const supabase = getServiceClient();
+    const { data } = await supabase
+        .from('interview_sessions')
+        .select('user_id')
+        .eq('status', 'completed')
+        .gte('completed_at', new Date(Date.now() - windowMs).toISOString());
+
+    return [...new Set((data ?? []).map((r: { user_id: string }) => r.user_id))];
+}
+
+// ── Step: Kai memory ───────────────────────────────────────────────────────────
 async function updateAllKaiMemories() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase environment variables');
+    const userIds = await getRecentUserIds(86_400_000); // last 24 h
+
+    let ok = 0;
+    let failed = 0;
+
+    // Sequential: one user at a time so a hung LLM call can't block all slots
+    for (const userId of userIds) {
+        try {
+            await withTimeout(
+                updateKaiMemory(userId),
+                30_000,
+                `updateKaiMemory for user ${userId}`
+            );
+            console.log(`✅ [kai-memory] Updated ${userId}`);
+            ok++;
+        } catch (err) {
+            console.error(
+                `❌ [kai-memory] FAILED for ${userId}:`,
+                err instanceof Error ? err.message : err
+            );
+            failed++;
+            // Continue to next user — don't rethrow
+        }
+        await sleep(200); // light throttle between users
     }
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all users who completed a session in last 24h
-    const { data: recentUsers } = await supabase
-        .from('interview_sessions')
-        .select('user_id')
-        .eq('status', 'completed')
-        .gte('completed_at', new Date(Date.now() - 86400000).toISOString());
-
-    const userIds = [...new Set(recentUsers?.map((r: any) => r.user_id) || [])];
-
-    // Process 5 at a time
-    for (let i = 0; i < userIds.length; i += 5) {
-        const batch = userIds.slice(i, i + 5);
-        await Promise.allSettled(batch.map((id: string) => updateKaiMemory(id)));
-        if (i + 5 < userIds.length) await sleep(600);
-    }
-    console.log(`[kai-memory] Updated ${userIds.length} users`);
+    console.log(`[kai-memory] Done — ${ok} ok, ${failed} failed / ${userIds.length} total`);
 }
 
+// ── Step: Insight snapshots ────────────────────────────────────────────────────
 async function updateInsightSnapshots() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase environment variables');
+    const userIds = await getRecentUserIds(7 * 86_400_000); // last 7 days
+
+    let ok = 0;
+    let failed = 0;
+
+    for (const userId of userIds) {
+        try {
+            await withTimeout(
+                computeInsightsForUser(userId),
+                45_000,
+                `computeInsightsForUser for user ${userId}`
+            );
+            console.log(`✅ [insights] Computed snapshot for ${userId}`);
+            ok++;
+        } catch (err) {
+            console.error(
+                `❌ [insights] FAILED for ${userId}:`,
+                err instanceof Error ? err.message : err
+            );
+            failed++;
+        }
+        await sleep(300);
     }
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // All users who completed a session in last 7 days (not just 24h — insights are weekly)
-    const { data } = await supabase
-        .from('interview_sessions')
-        .select('user_id')
-        .eq('status', 'completed')
-        .gte('completed_at', new Date(Date.now() - 7 * 86400000).toISOString());
-
-    const userIds = [...new Set(data?.map((r: any) => r.user_id) || [])];
-
-    // Process 3 at a time (LLM calls inside)
-    for (let i = 0; i < userIds.length; i += 3) {
-        const batch = userIds.slice(i, i + 3);
-        await Promise.allSettled(batch.map((id: string) => computeInsightsForUser(id)));
-        if (i + 3 < userIds.length) await sleep(1000);
-    }
-    console.log(`[insights] Computed snapshots for ${userIds.length} users`);
+    console.log(`[insights] Done — ${ok} ok, ${failed} failed / ${userIds.length} total`);
 }
 
+// ── Step: Cognitive narratives ─────────────────────────────────────────────────
 async function updateNarratives() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase environment variables');
-    }
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const userIds = await getRecentUserIds(86_400_000); // last 24 h
 
-    // Get all users who completed a session in the last 24h
-    // (This ensures we check if it was their 5th/10th session)
-    const { data } = await supabase
-        .from('interview_sessions')
-        .select('user_id')
-        .eq('status', 'completed')
-        .gte('completed_at', new Date(Date.now() - 86400000).toISOString());
-
-    const userIds = [...new Set(data?.map((r: any) => r.user_id) || [])];
     let generatedCount = 0;
+    let failed = 0;
 
-    // Process 2 at a time (Gemini calls, quality matters)
-    for (let i = 0; i < userIds.length; i += 2) {
-        const batch = userIds.slice(i, i + 2);
-        const results = await Promise.allSettled(batch.map((id: string) => updateNarrativeIfDue(id)));
-
-        results.forEach(r => {
-            if (r.status === 'fulfilled' && r.value) generatedCount++;
-        });
-
-        if (i + 2 < userIds.length) await sleep(2000); // 2s delay between LLM batches
+    for (const userId of userIds) {
+        try {
+            const generated = await withTimeout(
+                updateNarrativeIfDue(userId),
+                60_000,
+                `generateCognitiveNarrative for user ${userId}`
+            );
+            if (generated) {
+                console.log(`✅ [narratives] Generated for ${userId}`);
+                generatedCount++;
+            }
+        } catch (err) {
+            console.error(
+                `❌ [narratives] FAILED for ${userId}:`,
+                err instanceof Error ? err.message : err
+            );
+            failed++;
+        }
+        await sleep(500); // longer pause — Gemini quality calls
     }
-    console.log(`[narratives] Generated coach profiles for ${generatedCount}/${userIds.length} active users`);
+
+    console.log(`[narratives] Done — ${generatedCount} generated, ${failed} failed / ${userIds.length} total`);
 }
 
+// ── Main ───────────────────────────────────────────────────────────────────────
 async function main() {
+    // ── Watchdog: kill the process if the entire batch exceeds 60 minutes ──
+    const BATCH_TIMEOUT_MS = 60 * 60 * 1000;
+    const batchTimeout = setTimeout(() => {
+        console.error('[batch] WATCHDOG: Total batch exceeded 60 minutes — forcing exit');
+        process.exit(1);
+    }, BATCH_TIMEOUT_MS);
+    // Prevent the watchdog timer from keeping Node alive on its own
+    batchTimeout.unref();
+
     const startTime = Date.now();
     const results: Record<string, 'ok' | 'skipped' | 'error'> = {};
 
     console.log('[Nightly Batch] Starting at', new Date().toISOString());
-
-    // Step 1: Model registry sync (Phase 1)
-    // Step 2: LeetCode profiles (Phase 2) — placeholder
-    // Step 3: Learner profiles (Phase 3) — placeholder
-    // Step 4: Insight snapshots (Phase 3) — placeholder
-    // Step 5: Kai memory (Phase 3) — placeholder
-    // Step 6: Spaced repetition (Phase 4) — placeholder
-    // Step 7: Cognitive narratives (Phase 3) — placeholder
-    // Step 8: Cleanup (Phase 1)
 
     const step = async (name: string, fn: () => Promise<void>) => {
         try {
@@ -142,6 +169,9 @@ async function main() {
             results
         }
     });
+
+    // Disarm watchdog now that we've finished cleanly
+    clearTimeout(batchTimeout);
 }
 
 main().catch(console.error);

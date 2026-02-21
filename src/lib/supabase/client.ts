@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { type SupabaseClient } from '@supabase/supabase-js';
 
 // Check if Supabase is properly configured
 export function isSupabaseConfigured(): boolean {
@@ -14,7 +15,7 @@ export function isSupabaseConfigured(): boolean {
     );
 }
 
-export function createClient() {
+export function createClient(): SupabaseClient | null {
     if (!isSupabaseConfigured()) {
         return null;
     }
@@ -29,7 +30,7 @@ export function createClient() {
 let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
 let initialized = false;
 
-export function getSupabase() {
+export function getSupabase(): SupabaseClient | null {
     if (!initialized) {
         supabaseInstance = createClient();
         initialized = true;

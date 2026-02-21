@@ -10,7 +10,7 @@
 
 import { UnifiedAIClient } from './client';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase/service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,15 +74,6 @@ function getStrongSkills(skills: Record<string, number>): string {
     return top2.join(', ') || 'N/A';
 }
 
-/** Returns a service-role Supabase client (server-side only). */
-function getServiceClient(): SupabaseClient {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-        throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    }
-    return createClient(url, key, { auth: { persistSession: false } });
-}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

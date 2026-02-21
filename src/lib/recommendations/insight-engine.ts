@@ -10,8 +10,9 @@
  *   getInsightSnapshot(userId) — reads cached snapshot from insight_snapshots
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
+import { getServiceClient } from '@/lib/supabase/service';
 import {
     computeDifficultyTier,
     selectProblemDifficulty,
@@ -130,14 +131,6 @@ const SKILL_TAGS: Record<string, string[]> = {
 
 // ─── Private helpers ───────────────────────────────────────────────────────────
 
-function getServiceClient(): SupabaseClient {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-        throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    }
-    return createClient(url, key, { auth: { persistSession: false } });
-}
 
 function daysBetween(isoDate: string): number {
     return Math.floor((Date.now() - new Date(isoDate).getTime()) / 86_400_000);
@@ -150,12 +143,21 @@ function patternLabel(slug: string): string {
         .join(' ');
 }
 
+/** Extracts the problem slug from a LeetCode URL.
+ *  e.g. "https://leetcode.com/problems/two-sum/" → "two-sum" */
+function extractLeetcodeSlug(url: string | null): string | undefined {
+    if (!url) return undefined;
+    const match = url.match(/\/problems\/([^/]+)/);
+    return match ? match[1] : undefined;
+}
+
 function rowToSuggestion(row: ProblemRow): ProblemSuggestion {
     return {
         id: row.id,
         title: row.title,
         difficulty: row.difficulty,
         leetcodeUrl: row.external_url ?? undefined,
+        leetcodeSlug: extractLeetcodeSlug(row.external_url ?? null),
         patternTags: row.tags ?? undefined,
     };
 }
@@ -191,7 +193,7 @@ async function buildReinforceLeetcodeCards(
             const { data } = await supabase
                 .from('problems')
                 .select('id, title, difficulty, external_url, tags')
-                .or(`id.eq.${sub.slug},title.ilike.${encodeURIComponent(sub.title)}`)
+                .or(`id.eq.${sub.slug},title.ilike.%${sub.title.replace(/'/g, "''")}%`)
                 .limit(1)
                 .maybeSingle();
             if (data) suggestion = rowToSuggestion(data as ProblemRow);
@@ -371,29 +373,42 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
     const supabase = getServiceClient();
     const computedAt = new Date().toISOString();
 
-    // ── Step A: Gather data ────────────────────────────────────────────────────
+    // ── Step A: Gather data (Parallelized) ────────────────────────────────────────────────────
 
-    let sessions: RpcSessionRow[] = [];
-    try {
-        const { data, error } = await supabase.rpc(
-            'get_user_sessions_with_assessment',
-            { p_user_id: userId, p_limit: 20 }
-        );
-        if (error) console.error('[insight-engine] RPC error:', error.message);
-        else sessions = (data ?? []) as RpcSessionRow[];
-    } catch (err) {
-        console.error('[insight-engine] Unexpected RPC error:', err);
-    }
+    const fetchSessions = async () => {
+        try {
+            const { data, error } = await supabase.rpc(
+                'get_user_sessions_with_assessment',
+                { p_user_id: userId, p_limit: 20 }
+            );
+            if (error) {
+                console.error('[insight-engine] RPC error:', error.message);
+                return [];
+            }
+            return (data ?? []) as RpcSessionRow[];
+        } catch (err) {
+            console.error('[insight-engine] Unexpected RPC error:', err);
+            return [];
+        }
+    };
 
-    let lcProfile: LeetCodeProfileRow | null = null;
-    try {
-        const { data } = await supabase
-            .from('leetcode_profiles')
-            .select('contest_rating, medium_solved, hard_solved, recent_submissions')
-            .eq('user_id', userId)
-            .maybeSingle();
-        lcProfile = data as LeetCodeProfileRow | null;
-    } catch { /* table may not exist — silently skip */ }
+    const fetchLeetcodeProfile = async () => {
+        try {
+            const { data } = await supabase
+                .from('leetcode_profiles')
+                .select('contest_rating, medium_solved, hard_solved, recent_submissions')
+                .eq('user_id', userId)
+                .maybeSingle();
+            return data as LeetCodeProfileRow | null;
+        } catch {
+            return null; // table may not exist — silently skip
+        }
+    };
+
+    const [sessions, lcProfile] = await Promise.all([
+        fetchSessions(),
+        fetchLeetcodeProfile()
+    ]);
 
     // ── Step B: Compute tier ───────────────────────────────────────────────────
 
@@ -413,36 +428,51 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
 
     const { tier, reasoning: tierReasoning } = computeDifficultyTier(lcSignal, sessionSummaries);
 
-    // ── Step C: Generate insight cards ────────────────────────────────────────
+    // ── Step C: Generate insight cards (Parallelized) ────────────────────────────────────────
 
-    const allCards: InsightCard[] = [];
+    const buildLcCards = async () => {
+        try { return await buildReinforceLeetcodeCards(supabase, lcProfile, sessions); }
+        catch (err) { console.error('[insight-engine] LC card error:', err); return []; }
+    };
 
-    try {
-        const lcCards = await buildReinforceLeetcodeCards(supabase, lcProfile, sessions);
-        allCards.push(...lcCards);
-    } catch (err) { console.error('[insight-engine] LC card error:', err); }
+    const buildTrendCards = async () => {
+        try { return await buildDecliningTrendCards(supabase, sessions, tier); }
+        catch (err) { console.error('[insight-engine] Trend card error:', err); return []; }
+    };
 
-    try {
-        const trendCards = await buildDecliningTrendCards(supabase, sessions, tier);
-        allCards.push(...trendCards);
-    } catch (err) { console.error('[insight-engine] Trend card error:', err); }
+    const buildPatternCards = async () => {
+        try { return await buildUnexploredPatternCards(supabase, sessions, tier); }
+        catch (err) { console.error('[insight-engine] Pattern card error:', err); return []; }
+    };
 
-    try {
-        const patternCards = await buildUnexploredPatternCards(supabase, sessions, tier);
-        allCards.push(...patternCards);
-    } catch (err) { console.error('[insight-engine] Pattern card error:', err); }
+    const buildStreakRiskCard = async () => {
+        try { return buildStreakAtRiskCard(sessions); }
+        catch (err) { console.error('[insight-engine] Streak-at-risk card error:', err); return null; }
+    };
 
-    try {
-        const streakRiskCard = buildStreakAtRiskCard(sessions);
-        if (streakRiskCard) allCards.push(streakRiskCard);
-    } catch (err) { console.error('[insight-engine] Streak-at-risk card error:', err); }
+    const buildMomentumCardSafe = async () => {
+        try { return buildMomentumCard(sessions); }
+        catch (err) { console.error('[insight-engine] Momentum card error:', err); return null; }
+    };
 
-    try {
-        const momentumCard = buildMomentumCard(sessions);
-        if (momentumCard && !allCards.some((c) => c.type === 'streak_at_risk')) {
-            allCards.push(momentumCard);
-        }
-    } catch (err) { console.error('[insight-engine] Momentum card error:', err); }
+    const [lcCards, trendCards, patternCards, streakRiskCard, momentumCard] = await Promise.all([
+        buildLcCards(),
+        buildTrendCards(),
+        buildPatternCards(),
+        buildStreakRiskCard(),
+        buildMomentumCardSafe(),
+    ]);
+
+    const allCards: InsightCard[] = [
+        ...lcCards,
+        ...trendCards,
+        ...patternCards,
+    ];
+
+    if (streakRiskCard) allCards.push(streakRiskCard);
+    if (momentumCard && !allCards.some((c) => c.type === 'streak_at_risk')) {
+        allCards.push(momentumCard);
+    }
 
     // Sort: high → medium → low, cap at 4
     const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;

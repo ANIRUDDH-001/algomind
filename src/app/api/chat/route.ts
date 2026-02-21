@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
         }
 
         if (user) {
-            console.log(`👤 [Chat API] Authenticated user: ${user.id}`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`👤 [Chat API] Authenticated user: ${user.id}`);
+            }
         } else if (guestMode) {
             console.log('👀 [Chat API] Guest mode access');
         }

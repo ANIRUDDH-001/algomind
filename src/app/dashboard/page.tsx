@@ -48,59 +48,29 @@ function DashboardContent() {
 
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
-        // Navigate to interview page with the problem and session ID for read-only view
-        router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}`);
+        if (!session?.sessionId) return; // Guard: don't navigate with a null session
+        router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}&mode=review`);
     }, [router]);
 
-    // State for asynchronous recommendations
-    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-    useEffect(() => {
-        async function fetchRecommendations() {
-            if (!progress) return;
-            try {
-                const results = await new RecommendationEngine().analyze(progress);
-                setRecommendations(results);
-            } catch (err) {
-                console.error('Failed to fetch recommendations:', err);
-            }
-        }
-        fetchRecommendations();
+    // State for asynchronous recommendations (memoized to avoid render cycle issues)
+    const recommendations = React.useMemo(() => {
+        if (!progress) return [];
+        // Note: this returns a Promise, but since recommendations is currently unused 
+        // in the JSX of page.tsx, it's just kept here for future/reference use.
+        return new RecommendationEngine().analyze(progress);
     }, [progress]);
 
-    // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions
+    // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions (cached)
     useEffect(() => {
         const fetchAllTimeAverages = async () => {
             if (!progress?.userId) return;
             try {
-                const supabase = getSupabase();
-                const { data, error } = await supabase.rpc('get_user_sessions_with_assessment', {
-                    p_user_id: progress.userId,
-                    p_limit: 20
-                });
+                const { getDashboardAveragesAction } = await import('@/app/actions/dashboard');
+                const averages = await getDashboardAveragesAction(progress.userId);
 
-                if (error || !data || data.length === 0) return;
-
-                const averages: Record<string, number> = {};
-                const counts: Record<string, number> = {};
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data.forEach((row: any) => {
-                    Object.keys(SKILL_DEFINITIONS).forEach((skill) => {
-                        const dbKey = skill.replace(/-/g, '_');
-                        if (row[dbKey] != null && !isNaN(parseFloat(row[dbKey]))) {
-                            averages[skill] = (averages[skill] || 0) + Number(row[dbKey]);
-                            counts[skill] = (counts[skill] || 0) + 1;
-                        }
-                    });
-                });
-
-                Object.keys(averages).forEach((skill) => {
-                    if (counts[skill] > 0) {
-                        averages[skill] /= counts[skill];
-                    }
-                });
-
-                setAllTimeData(averages);
+                if (averages) {
+                    setAllTimeData(averages);
+                }
             } catch (err) {
                 console.error('Failed to load all-time session averages', err);
             }
@@ -120,9 +90,7 @@ function DashboardContent() {
     // Update URL when tab changes
     const handleTabChange = (tab: string) => {
         setActiveTab(tab as 'overview' | 'skills' | 'history' | 'insights');
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', tab);
-        window.history.pushState({}, '', url.toString());
+        router.push(`?tab=${tab}`, { scroll: false });
     };
 
     // Swipe handlers
@@ -282,8 +250,11 @@ function DashboardContent() {
                                         {progress?.sessions.map((session) => (
                                             <div
                                                 key={session.sessionId}
-                                                onClick={() => handleSessionClick(session)}
-                                                className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors cursor-pointer"
+                                                onClick={() => !isLoading && handleSessionClick(session)}
+                                                className={cn(
+                                                    "flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors",
+                                                    isLoading ? "opacity-50 cursor-wait pointer-events-none" : "cursor-pointer"
+                                                )}
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn(

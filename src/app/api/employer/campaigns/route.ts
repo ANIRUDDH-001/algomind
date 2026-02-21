@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({ campaigns: data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CAMPAIGNS_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create campaign
-        const insertData: any = {
+        const insertData: Record<string, unknown> = {
             created_by: auth.user.id,
             title,
             problem_id: problemId,
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ campaign });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[CAMPAIGNS_POST_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

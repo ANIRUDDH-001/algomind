@@ -31,7 +31,9 @@ export async function POST(req: NextRequest) {
         const rateLimiter = getRateLimiter();
         rateLimiter.resetModel(modelId);
 
-        console.log(`[Admin] Reset rate limits for model: ${modelId} by ${user.email}`);
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[Admin] Reset rate limits for model: ${modelId} by ${user.email}`);
+        }
 
         return NextResponse.json({
             success: true,

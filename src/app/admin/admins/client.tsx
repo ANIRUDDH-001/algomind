@@ -48,6 +48,7 @@ export default function AdminsClient() {
 
     useEffect(() => {
         const fetchUser = async () => {
+            if (!supabase) return;
             const { data: { user } } = await supabase.auth.getUser();
             if (user?.email) {
                 setCurrentUserEmail(user.email);
