@@ -52,4 +52,7 @@ export interface UserProgress {
     trends: SkillTrend[];
     sessions: SessionHistory[];
     lastUpdated: Date;
+    narrative?: string;
+    narrativeGeneratedAt?: Date;
+    sessionsAtLastNarrative?: number;
 }
