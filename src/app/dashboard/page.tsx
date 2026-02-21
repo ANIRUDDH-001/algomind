@@ -17,6 +17,8 @@ import { LeetCodePrompt } from '@/components/onboarding/LeetCodePrompt';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
 import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
 import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
+import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
+import { ShareReplayButton } from '@/components/dashboard/ShareReplayButton';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { Brain, ChevronRight, Activity } from 'lucide-react';
 import { format } from 'date-fns';
@@ -304,6 +306,9 @@ function DashboardContent() {
                                                             averageScore: session.overallScore
                                                         }} />
                                                     </div>
+                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                        <ShareReplayButton sessionId={session.sessionId} />
+                                                    </div>
                                                     <button
                                                         onClick={() => handleSessionClick(session)}
                                                         className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-blue-400"
@@ -325,10 +330,8 @@ function DashboardContent() {
                                     <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">AI-generated path based on your cognitive profile</p>
                                 </div>
 
-                                {progress && (
-                                    <RecommendationsPanel
-                                        recommendations={recommendations}
-                                    />
+                                {progress?.userId && (
+                                    <InsightsPanel userId={progress.userId} />
                                 )}
 
                                 <div className="p-8 border border-slate-800 bg-slate-900/40 rounded-3xl flex flex-col md:flex-row items-center gap-6 group">

@@ -26,6 +26,7 @@ export interface InterviewConfig {
     ragContext?: string;
     companyId?: string;
     kaiPersona?: string;
+    kaiMemory?: string;
 }
 
 export interface CognitiveDimension {
@@ -51,7 +52,7 @@ export const COGNITIVE_DIMENSIONS: CognitiveDimension[] = [
 // ============================================================================
 
 export function generateInterviewerSystemPrompt(config: InterviewConfig): string {
-    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiPersona } = config;
+    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiPersona, kaiMemory } = config;
 
     let prompt = `# ROLE: Kai - Senior Technical Interviewer
 
@@ -213,6 +214,11 @@ BEGIN INTERVIEW NOW. Your first message should be a warm, professional introduct
 
     if (kaiPersona) {
         prompt += '\n\n## COMPANY INTERVIEW STYLE\n' + kaiPersona;
+    }
+
+    if (kaiMemory) {
+        prompt += '\n\n## YOUR MEMORY OF THIS STUDENT\n' + kaiMemory +
+            '\n\nUse this naturally. Do NOT announce that you remember them. Simply demonstrate it through your questions and observations.';
     }
 
     return prompt;

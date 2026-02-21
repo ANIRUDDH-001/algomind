@@ -2,6 +2,63 @@ import 'dotenv/config';
 import { syncModelRegistry } from './batch/sync-models';
 import { runCleanup } from './batch/cleanup';
 import { logSystemEvent } from '../src/lib/monitoring/events';
+import { updateKaiMemory } from '../src/lib/ai/memory-generator';
+import { computeInsightsForUser } from '../src/lib/recommendations/insight-engine';
+import { createClient } from '@supabase/supabase-js';
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function updateAllKaiMemories() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase environment variables');
+    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get all users who completed a session in last 24h
+    const { data: recentUsers } = await supabase
+        .from('interview_sessions')
+        .select('user_id')
+        .eq('status', 'completed')
+        .gte('completed_at', new Date(Date.now() - 86400000).toISOString());
+
+    const userIds = [...new Set(recentUsers?.map((r: any) => r.user_id) || [])];
+
+    // Process 5 at a time
+    for (let i = 0; i < userIds.length; i += 5) {
+        const batch = userIds.slice(i, i + 5);
+        await Promise.allSettled(batch.map((id: string) => updateKaiMemory(id)));
+        if (i + 5 < userIds.length) await sleep(600);
+    }
+    console.log(`[kai-memory] Updated ${userIds.length} users`);
+}
+
+async function updateInsightSnapshots() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase environment variables');
+    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // All users who completed a session in last 7 days (not just 24h — insights are weekly)
+    const { data } = await supabase
+        .from('interview_sessions')
+        .select('user_id')
+        .eq('status', 'completed')
+        .gte('completed_at', new Date(Date.now() - 7 * 86400000).toISOString());
+
+    const userIds = [...new Set(data?.map((r: any) => r.user_id) || [])];
+
+    // Process 3 at a time (LLM calls inside)
+    for (let i = 0; i < userIds.length; i += 3) {
+        const batch = userIds.slice(i, i + 3);
+        await Promise.allSettled(batch.map((id: string) => computeInsightsForUser(id)));
+        if (i + 3 < userIds.length) await sleep(1000);
+    }
+    console.log(`[insights] Computed snapshots for ${userIds.length} users`);
+}
 
 async function main() {
     const startTime = Date.now();
@@ -33,6 +90,8 @@ async function main() {
 
     await step('model-sync', syncModelRegistry);
     await step('cleanup', runCleanup);
+    await step('insights-snapshot', updateInsightSnapshots);
+    await step('kai-memory', updateAllKaiMemories);
 
     const duration = Date.now() - startTime;
     console.log('[Nightly Batch] Complete in', duration, 'ms');
