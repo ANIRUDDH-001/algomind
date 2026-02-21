@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { syncModelRegistry } from './batch/sync-models';
 import { runCleanup } from './batch/cleanup';
+import { computeAllLearnerProfiles } from './batch/compute-learner-profiles';
 import { logSystemEvent } from '../src/lib/monitoring/events';
 import { updateKaiMemory } from '../src/lib/ai/memory-generator';
 import { computeInsightsForUser } from '../src/lib/recommendations/insight-engine';
@@ -124,6 +125,7 @@ async function main() {
 
     await step('model-sync', syncModelRegistry);
     await step('cleanup', runCleanup);
+    await step('learner-profiles', computeAllLearnerProfiles);
     await step('insights-snapshot', updateInsightSnapshots);
     await step('kai-memory', updateAllKaiMemories);
     await step('narratives', updateNarratives);

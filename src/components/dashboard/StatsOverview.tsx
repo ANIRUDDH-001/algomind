@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserProgress } from '@/types/assessment';
 import { TrendingUp, TrendingDown, Target, Clock, Code2, Sparkles } from 'lucide-react';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { CognitiveSkill } from '@/types/assessment';
+import { getSupabase } from '@/lib/supabase/client';
 
 interface StatsOverviewProps {
     progress: UserProgress | null;
@@ -15,8 +16,31 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
     if (!progress) return null;
 
     const totalMinutes = Math.floor((progress.sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0)) / 60);
-    const problemsSolved = progress.totalSessions;
-    const avgScore = progress.averageScore;
+    const PROBLEMS_SOLVED = progress.totalSessions;
+    const AVG_SCORE = progress.averageScore;
+
+    const [streakData, setStreakData] = useState<{ current: number; longest: number } | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+        async function fetchStreak() {
+            if (!progress?.userId) return;
+            const supabase = getSupabase();
+            if (!supabase) return;
+
+            const { data } = await supabase
+                .from('learner_profiles')
+                .select('current_streak, longest_streak')
+                .eq('user_id', progress.userId)
+                .maybeSingle();
+
+            if (mounted && data) {
+                setStreakData({ current: data.current_streak || 0, longest: data.longest_streak || 0 });
+            }
+        }
+        fetchStreak();
+        return () => { mounted = false; };
+    }, [progress?.userId]);
 
     // Calculate improvement (comparing last 2 sessions if available)
     const currentAvg = progress.sessions[0]?.overallScore || 0;
@@ -41,6 +65,19 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4" data-tour="performance-insights">
+                {streakData && streakData.current > 0 && (
+                    <div className="col-span-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-3 flex items-center justify-between shadow-inner">
+                        <div className="flex items-center gap-2 text-amber-500 font-bold">
+                            <span className="text-xl">🔥</span>
+                            <span>{streakData.current} Session Streak</span>
+                        </div>
+                        {streakData.current > Math.max(0, streakData.longest - 2) && (
+                            <span className="text-[10px] uppercase tracking-widest text-amber-500/80 font-black px-2 py-0.5 bg-amber-500/10 rounded-full">
+                                Personal best incoming!
+                            </span>
+                        )}
+                    </div>
+                )}
                 <StatItem
                     icon={<Clock className="w-4 h-4 text-emerald-400" />}
                     label="Practice Time"
@@ -49,12 +86,12 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
                 <StatItem
                     icon={<Code2 className="w-4 h-4 text-blue-400" />}
                     label="Problems Solved"
-                    value={problemsSolved.toString()}
+                    value={PROBLEMS_SOLVED.toString()}
                 />
                 <StatItem
                     icon={<Target className="w-4 h-4 text-purple-400" />}
                     label="Avg Score"
-                    value={avgScore.toFixed(1)}
+                    value={AVG_SCORE.toFixed(1)}
                 />
                 <StatItem
                     icon={improvement >= 0 ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}

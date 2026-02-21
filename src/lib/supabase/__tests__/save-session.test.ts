@@ -17,6 +17,11 @@ vi.mock('@/lib/supabase/client', () => ({
     isSupabaseConfigured: vi.fn()
 }));
 
+// Mock memory generator
+vi.mock('@/lib/ai/memory-generator', () => ({
+    updateKaiMemory: vi.fn().mockResolvedValue({ success: true, memory: 'mock-memory' })
+}));
+
 describe('Supabase Data Layer', () => {
     // Shared mocks
     const mockFrom = vi.fn();

@@ -11,6 +11,8 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { ConversationView } from './ConversationView';
 import { CompanyModeSelector } from './CompanyModeSelector';
+import { TextInterviewMode } from './TextInterviewMode';
+// Voice & Layout
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
@@ -22,10 +24,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code } from 'lucide-react';
 import { cn } from "@/lib/utils";
+
+// Assessment & Core
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 import { ReportCard } from '@/components/assessment/ReportCard';
 import { SkillBadge } from '@/components/assessment/SkillBadge';
 
+// Tools & Helpers
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
@@ -34,6 +39,10 @@ import { isMobileDevice } from '@/lib/utils/device-detection';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
+
+// Observer
+import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
+import { SilentObserverNudge } from './SilentObserverNudge';
 
 
 interface InterviewSessionProps {
@@ -57,8 +66,9 @@ export function InterviewSession({
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // VAD feature flag
+    // VAD & Observer feature flags
     const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
+    const { enabled: observerEnabled } = useFeatureFlag('ENABLE_SILENT_OBSERVER');
 
     // --- 1. Basic State ---
     const [hasStarted, setHasStarted] = useState(false);
@@ -73,6 +83,7 @@ export function InterviewSession({
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [showMobileWarning, setShowMobileWarning] = useState(false);
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+    const [isMobileTextMode, setIsMobileTextMode] = useState(false);
 
     // --- Company Mode Selection ---
     const [selectedCompany, setSelectedCompany] = useState<string | null>(searchParams.get('company'));
@@ -80,6 +91,10 @@ export function InterviewSession({
 
     // --- Kai Memory (fetched once on mount, sent with every request) ---
     const [kaiMemory, setKaiMemory] = useState<string | null>(null);
+
+    // --- Silent Observer ---
+    const observerRef = React.useRef(new SilentObserver());
+    const [nudge, setNudge] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user || isGuest) return;
@@ -155,12 +170,29 @@ export function InterviewSession({
     // Track if transcript has been loaded to prevent infinite loops
     const transcriptLoadedRef = React.useRef(false);
 
-
-    // Debugging and Reset on Problem Change
-    // Logs removed for production cleanliness
-
     // Sync optimistic state with real state
     // Handled by useInterview hook now
+
+    // --- Silent Observer Tick Loop ---
+    useEffect(() => {
+        if (!observerEnabled || !hasStarted || readOnly) return;
+        if (state === 'completed' || state === 'idle' || isAnalyzing) return;
+
+        const interval = setInterval(async () => {
+            const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            const tip = await observerRef.current.analyze({
+                recentTurns: messages.slice(-3).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+                interviewState: state as InterviewState, // State falls into defined union boundaries safely
+                elapsedSeconds: currentElapsed,
+            });
+
+            if (tip) {
+                setNudge(tip);
+            }
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing, messages]);
 
     useEffect(() => {
         // Reset local and hook state when problem changes
@@ -169,6 +201,8 @@ export function InterviewSession({
         resetInterview();
         transcriptLoadedRef.current = false;
         guestTrial.reset();
+        observerRef.current.reset();
+        setNudge(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [problem.id]);
 
@@ -323,7 +357,7 @@ export function InterviewSession({
     }, [showBadge]);
 
     if (result) {
-        return <ReportCard assessment={result} onClose={resetAssessment} />;
+        return <ReportCard assessment={result!} onClose={resetAssessment} />;
     }
 
     // --- Sub-components to avoid code duplication between Mobile/Desktop ---
@@ -438,7 +472,33 @@ export function InterviewSession({
             "bg-slate-900/20 backdrop-blur-md border-slate-800/50 shadow-xl overflow-hidden relative flex flex-col",
             !isMobile ? "flex-1 h-full min-h-0 lg:min-h-[300px]" : "h-auto min-h-[400px] shrink-0"
         )} data-tour="chat-panel">
-            <CardContent className="p-0 flex-1 flex flex-col h-full">
+            <CardContent className="p-0 flex-1 flex flex-col h-full relative">
+                <SilentObserverNudge nudge={nudge} onDismiss={() => setNudge(null)} />
+
+                {/* Mobile Text Mode Toggle */}
+                {isMobile && hasStarted && !readOnly && !showCodeEditor && (
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[60] flex bg-slate-900/80 backdrop-blur-md p-1 rounded-full border border-slate-700/50 shadow-lg">
+                        <button
+                            onClick={() => setIsMobileTextMode(false)}
+                            className={cn(
+                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all",
+                                !isMobileTextMode ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                            )}
+                        >
+                            <Mic className="w-3 h-3" /> Voice
+                        </button>
+                        <button
+                            onClick={() => setIsMobileTextMode(true)}
+                            className={cn(
+                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all",
+                                isMobileTextMode ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                            )}
+                        >
+                            <MessageSquare className="w-3 h-3" /> Text
+                        </button>
+                    </div>
+                )}
+
                 {/* Mode Toggle (when interview started) */}
                 {hasStarted && !readOnly && !isMobile && renderCodeEditorToggle()}
 
@@ -462,7 +522,7 @@ export function InterviewSession({
                 ) : (
                     <>
                         {/* Voice Interaction Mode */}
-                        {!showCodeEditor && (
+                        {!showCodeEditor && !isMobileTextMode && (
                             <div className="flex-1 relative flex flex-col items-center justify-center p-4 lg:p-10 h-full">
                                 <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
                                     <MicPulse
@@ -637,6 +697,17 @@ export function InterviewSession({
                             </div>
                         )}
 
+                        {/* Text Interaction Mode (Mobile) */}
+                        {!showCodeEditor && isMobileTextMode && (
+                            <TextInterviewMode
+                                messages={messages}
+                                isProcessing={isProcessing}
+                                isAISpeaking={voice.isSpeaking}
+                                onSendMessage={(content) => submitUserResponse(content, { title: problem.title, content: problem.description, ragContext })}
+                                className="flex-1"
+                            />
+                        )}
+
                         {/* Code Editor Mode */}
                         {showCodeEditor && (
                             <div className="flex-1 flex flex-col gap-3 p-4 h-full">
@@ -770,9 +841,9 @@ export function InterviewSession({
             {isAnalyzing && <AssessmentLoader />}
             {error && (
                 <ErrorBanner
-                    message={error}
+                    message={error || ''}
                     onClose={() => setError(null)}
-                    data-testid={error.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
+                    data-testid={error?.includes('VAD Initialization Failed') ? 'vad-error-banner' : undefined}
                 />
             )}
             {voice.error && !voiceErrorDismissed && (

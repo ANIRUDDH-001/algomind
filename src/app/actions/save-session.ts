@@ -5,6 +5,7 @@ import { AssessmentResult } from '@/lib/assessment/analyzer';
 import { ConversationTurn } from '@/lib/assessment/prompts';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { updateKaiMemory } from '@/lib/ai/memory-generator';
+import { addToQueue } from '@/lib/spaced-repetition/queue';
 
 export async function saveInterviewSession(
     userId: string,
@@ -70,6 +71,21 @@ export async function saveInterviewSession(
         }
 
         void updateKaiMemory(userId);
+
+        // Retrieve problem difficulty for the spaced repetition queue
+        const { data: prob } = await supabase
+            .from('problems')
+            .select('difficulty')
+            .eq('id', problemId)
+            .maybeSingle();
+
+        void addToQueue({
+            userId,
+            problemId,
+            problemTitle,
+            problemDifficulty: prob?.difficulty || 'medium',
+            overallScore: sessionData.overall_score
+        });
 
         return { success: true };
     } catch (e) {
