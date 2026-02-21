@@ -143,6 +143,7 @@ export class ResponseChunker {
         let buffer = '';
         let chunkIndex = 0;
         let firstChunkTime = 0;
+        let lastYieldedChunk: ResponseChunk | null = null;
 
         for await (const token of aiStream) {
             // Check for abort
@@ -159,13 +160,15 @@ export class ResponseChunker {
                 const now = performance.now() - streamStart;
                 if (chunkIndex === 0) firstChunkTime = now;
 
-                yield {
+                const chunk: ResponseChunk = {
                     id: `chunk-${chunkIndex}`,
                     text: sentence,
                     isFinal: false,
                     index: chunkIndex,
                     timing: { generatedAt: now },
                 };
+                lastYieldedChunk = chunk;
+                yield chunk;
                 chunkIndex++;
             }
 
@@ -185,9 +188,9 @@ export class ResponseChunker {
                 index: chunkIndex,
                 timing: { generatedAt: now },
             };
-        } else if (chunkIndex > 0) {
-            // Mark the last yielded chunk as final — we can't retroactively modify it,
-            // but consumers can treat the end of the generator as the final signal.
+        } else if (lastYieldedChunk && !this.signal?.aborted) {
+            // Mark the last yielded chunk as final, modifying the reference returned to consumer.
+            lastYieldedChunk.isFinal = true;
         }
     }
 
@@ -267,34 +270,77 @@ export class ResponseChunker {
         let current = '';
         let i = 0;
 
+        let inCodeBlock = false;
+
         while (i < buffer.length) {
             current += buffer[i];
             i++;
 
+            // Recalculate inCodeBlock for the current state
+            const codeMatches = current.match(/```/g);
+            const wasInCodeBlock = inCodeBlock;
+            inCodeBlock = codeMatches ? codeMatches.length % 2 === 1 : false;
+
             const ch = buffer[i - 1];
             const nextCh = buffer[i] ?? '';
-            const isEnd = ch === '.' || ch === '!' || ch === '?';
-            const isFollowedBySpace = /\s/.test(nextCh) || i === buffer.length;
 
-            if (isEnd && isFollowedBySpace) {
-                // Potential sentence boundary
-                if (isSentenceBoundary(current)) {
+            // If we just exited a code block, yield the entire block immediately
+            if (wasInCodeBlock && !inCodeBlock) {
+                sentences.push(current.trim());
+                current = '';
+                continue;
+            }
+
+            if (inCodeBlock) {
+                continue; // Do not apply prose splitting inside code block
+            }
+
+            // Check if current is building a bullet list item
+            const lines = current.split('\n');
+            const activeLine = current.endsWith('\n') ? lines[lines.length - 2] : lines[lines.length - 1];
+            const isBulletLine = /^\s*([-*+]|\d+\.)\s/.test(activeLine || '');
+
+            if (isBulletLine) {
+                // Bullet items end exclusively upon newline
+                if (ch === '\n') {
                     const wordCount = countWords(current);
-
-                    // Enforce max chunk size: if current exceeds max, split at last space
-                    if (wordCount > this.opts.maxWords) {
-                        const split = this.splitAtMaxWords(current);
-                        sentences.push(...split.chunks);
-                        current = split.remainder;
-                    } else if (wordCount >= this.opts.minWords) {
-                        // Good sentence — yield it
+                    if (wordCount >= this.opts.minWords) {
                         sentences.push(current.trim());
                         current = '';
                     }
-                    // If too few words, keep accumulating
+                }
+                continue; // Bypass standard prose rules and force splits
+            }
+
+            // Normal prose
+            const isEnd = ch === '.' || ch === '!' || ch === '?';
+            const isFollowedBySpace = /\s/.test(nextCh) || i === buffer.length;
+
+            let shouldYield = false;
+
+            if (isEnd && isFollowedBySpace) {
+                if (isSentenceBoundary(current)) {
+                    shouldYield = true;
+                }
+            }
+
+            if (shouldYield) {
+                const wordCount = countWords(current);
+
+                // For prose exceeding max words, split
+                if (wordCount > this.opts.maxWords) {
+                    const split = this.splitAtMaxWords(current);
+                    sentences.push(...split.chunks);
+                    current = split.remainder;
+                } else if (wordCount >= this.opts.minWords) {
+                    sentences.push(current.trim());
+                    current = '';
+                } else if (i === buffer.length && greedy) {
+                    sentences.push(current.trim());
+                    current = '';
                 }
             } else if (!greedy && countWords(current) > this.opts.maxWords) {
-                // Force-split long runs without sentence boundaries
+                // Force split overly long prose (which doesn't apply to code blocks or bullets due to `continue`)
                 const split = this.splitAtMaxWords(current);
                 sentences.push(...split.chunks);
                 current = split.remainder;

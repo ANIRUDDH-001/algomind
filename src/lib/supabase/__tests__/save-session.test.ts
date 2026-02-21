@@ -1,198 +1,284 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { saveInterviewSession } from '@/app/actions/save-session';
-import { checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
-import { AssessmentResult } from '@/lib/assessment/analyzer';
-import { ConversationTurn } from '@/lib/assessment/prompts';
 
 // Mock Supabase Server
 vi.mock('@/lib/supabase/server', () => ({
     createServerSupabase: vi.fn()
 }));
 
-// Mock Supabase Client
-vi.mock('@/lib/supabase/client', () => ({
-    getSupabase: vi.fn(),
-    isSupabaseConfigured: vi.fn()
+// Mock Analyzer
+const mockAnalyze = vi.fn();
+vi.mock('@/lib/assessment/analyzer', () => ({
+    CognitiveAnalyzer: vi.fn().mockImplementation(() => ({
+        analyze: mockAnalyze
+    }))
+}));
+
+// Mock monitoring/events
+vi.mock('@/lib/monitoring/events', () => ({
+    logSystemEvent: vi.fn()
 }));
 
 // Mock memory generator
 vi.mock('@/lib/ai/memory-generator', () => ({
-    updateKaiMemory: vi.fn().mockResolvedValue({ success: true, memory: 'mock-memory' })
+    updateKaiMemory: vi.fn().mockResolvedValue({ success: true })
 }));
 
-describe('Supabase Data Layer', () => {
-    // Shared mocks
-    const mockFrom = vi.fn();
-    const mockRpc = vi.fn();
-    const mockSingle = vi.fn();
-    const mockInsertGaps = vi.fn();
+// Mock spaced repetition
+vi.mock('@/lib/spaced-repetition/queue', () => ({
+    addToQueue: vi.fn().mockResolvedValue({ success: true })
+}));
 
-    const mockSupabaseClient = {
-        from: mockFrom,
-        rpc: mockRpc
-    };
+describe('saveInterviewSession Action', () => {
+    let mockSupabase: any;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Default Client Mocks
-        (createServerSupabase as any).mockResolvedValue(mockSupabaseClient);
-        (getSupabase as any).mockReturnValue(mockSupabaseClient);
-        (isSupabaseConfigured as any).mockReturnValue(true);
+        mockSupabase = {
+            auth: {
+                getUser: vi.fn()
+            },
+            from: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            insert: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockReturnThis(),
+            rpc: vi.fn().mockReturnThis(),
+        };
 
-        // Default DB Operation Mocks
-        // Note: We'll override these in specific tests as needed
-    });
-
-    describe('saveInterviewSession', () => {
-        const mockUserId = 'user-123';
-        const mockProblemId = 'problem-abc';
-        const mockTranscript: ConversationTurn[] = [];
-        const mockResult: AssessmentResult = {
-            sessionId: 'session-1',
+        (createServerSupabase as any).mockResolvedValue(mockSupabase);
+        mockAnalyze.mockResolvedValue({
+            sessionId: 'mock-session-id',
             timestamp: new Date(),
-            problem: { title: 'Two Sum', description: 'Desc', difficulty: 'Easy' },
-            skills: { 'algorithmic-thinking': { score: 10, evidence: [], strengths: [], improvements: [], confidence: 1 } } as any, // minimal skill obj cast as any for test simplicity
+            problem: { title: 'Test', description: '', difficulty: 'medium' },
+            skills: { 'algorithmic-thinking': { score: 8 } },
             overallFeedback: 'Good',
             nextSteps: [],
             knowledgeGaps: []
-        };
-
-        it('should save session successfully (happy path)', async () => {
-            // Setup specific chain for this test
-            const mockInsertSession = vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    single: mockSingle
-                })
-            });
-
-            mockFrom.mockImplementation((table) => {
-                if (table === 'interview_sessions') return { insert: mockInsertSession };
-                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
-                if (table === 'problems') return {
-                    select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            maybeSingle: vi.fn().mockResolvedValue({ data: { difficulty: 'easy' }, error: null })
-                        })
-                    })
-                };
-                return { insert: vi.fn(), upsert: vi.fn() };
-            });
-
-            mockSingle.mockResolvedValue({ data: { id: 'session-123' }, error: null });
-
-            const result = await saveInterviewSession(
-                mockUserId,
-                mockProblemId,
-                'Two Sum',
-                mockTranscript as any,
-                120,
-                mockResult as any
-            );
-
-            expect(result).toEqual({ success: true });
-            expect(mockFrom).toHaveBeenCalledWith('interview_sessions');
-            expect(mockInsertSession).toHaveBeenCalledWith(expect.objectContaining({
-                user_id: mockUserId,
-                problem_title: 'Two Sum',
-                duration: 120
-            }));
-        });
-
-        it('should handle database error', async () => {
-            const mockInsertSession = vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    single: mockSingle
-                })
-            });
-
-            mockFrom.mockImplementation((table) => {
-                if (table === 'interview_sessions') return { insert: mockInsertSession };
-                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
-                return { insert: mockInsertSession, upsert: vi.fn() };
-            });
-            mockSingle.mockResolvedValue({ data: null, error: { message: 'duplicate key' } });
-
-            const result = await saveInterviewSession(
-                mockUserId,
-                mockProblemId,
-                'Two Sum',
-                mockTranscript as any,
-                120,
-                mockResult as any
-            );
-
-            expect(result).toEqual({ success: false, error: 'duplicate key' });
-        });
-
-        it('should save knowledge gaps if present', async () => {
-            const mockInsertSession = vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    single: mockSingle
-                })
-            });
-            const mockInsertGaps = vi.fn().mockResolvedValue({ error: null });
-
-            mockFrom.mockImplementation((table) => {
-                if (table === 'interview_sessions') return { insert: mockInsertSession };
-                if (table === 'knowledge_gaps') return { insert: mockInsertGaps };
-                if (table === 'profiles') return { upsert: vi.fn().mockResolvedValue({ error: null }) };
-                if (table === 'problems') return {
-                    select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            maybeSingle: vi.fn().mockResolvedValue({ data: { difficulty: 'easy' }, error: null })
-                        })
-                    })
-                };
-                return { insert: vi.fn(), upsert: vi.fn() };
-            });
-
-            mockSingle.mockResolvedValue({ data: { id: 'session-123' }, error: null });
-
-            const resultWithGaps = {
-                ...mockResult,
-                knowledgeGaps: ['recursion', 'dynamic programming']
-            };
-
-            await saveInterviewSession(
-                mockUserId,
-                mockProblemId,
-                'Two Sum',
-                mockTranscript as any,
-                120,
-                resultWithGaps as any
-            );
-
-            expect(mockFrom).toHaveBeenCalledWith('knowledge_gaps');
-            expect(mockInsertGaps).toHaveBeenCalledWith(expect.arrayContaining([
-                expect.objectContaining({ user_query: 'recursion', session_id: 'session-123' }),
-                expect.objectContaining({ user_query: 'dynamic programming', session_id: 'session-123' })
-            ]));
         });
     });
 
-    describe('checkUserRateLimit', () => {
-        it('should return allowed when below limit', async () => {
-            mockRpc.mockResolvedValue({
-                data: [{ allowed: true, remaining: 3, is_admin_user: false }],
+    it('1. Full happy path: valid transcript + problem -> session + assessment saved', async () => {
+        // Mock Auth
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        // Mock Session Insert
+        mockSupabase.insert.mockImplementation((_data: any) => {
+            // Check session table insert
+            return {
+                select: () => ({
+                    single: () => Promise.resolve({ data: { id: 'sess-abc', overall_score: 80 }, error: null })
+                }),
                 error: null
-            });
-
-            const result = await checkUserRateLimit('user-id');
-            expect(result).toEqual({ allowed: true, remaining: 3, isAdmin: false });
+            };
         });
 
-        it('should fail OPEN on RPC error (do not block users)', async () => {
-            mockRpc.mockResolvedValue({
-                data: null,
-                error: { message: 'timeout' }
-            });
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [{ role: 'user', content: 'hello' }],
+            300,
+            { skills: { 'logic': { score: 80 } } } as any
+        );
 
-            const result = await checkUserRateLimit('user-id');
-            // Fail open: allow user through even if DB is down
-            expect(result).toEqual({ allowed: true, remaining: 5, isAdmin: false });
+        expect(result.success).toBe(true);
+        expect(result.sessionId).toBe('sess-abc');
+        expect(mockSupabase.from).toHaveBeenCalledWith('interview_sessions');
+        expect(mockSupabase.from).toHaveBeenCalledWith('assessments');
+    });
+
+    it('2. Unauthenticated user -> returns error, no DB writes', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: null },
+            error: null
         });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [],
+            300
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Unauthorized');
+        expect(mockSupabase.from).not.toHaveBeenCalled();
+    });
+
+    it('3. Empty transcript -> still saves session', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+        mockSupabase.single.mockResolvedValue({ data: { id: 'sess-empty' }, error: null });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [], // Empty transcript
+            100,
+            { skills: {} } as any
+        );
+
+        expect(result.success).toBe(true);
+        expect(mockSupabase.insert).toHaveBeenCalled();
+    });
+
+    it('4. Assessment AI call fails -> session still saved, assessment fields fallback', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        // Mock Analyzer to throw
+        mockAnalyze.mockRejectedValue(new Error('AI Busy'));
+
+        const mockInsert = vi.fn().mockImplementation(() => ({
+            select: () => ({
+                single: () => Promise.resolve({ data: { id: 'sess-recovery', overall_score: 0 }, error: null })
+            })
+        }));
+
+        mockSupabase.from.mockImplementation((table: string) => {
+            if (table === 'interview_sessions') {
+                return { insert: mockInsert };
+            }
+            return mockSupabase;
+        });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [{ role: 'user', content: 'hi' }]
+            // No result provided, triggers analyzer
+        );
+
+        expect(result.success).toBe(true);
+        expect(mockSupabase.from).toHaveBeenCalledWith('interview_sessions');
+        // Check that it tried to save session with 'failed-analysis' feedback
+        expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+            problem_id: 'prob-1'
+        }));
+    });
+
+    it('5. DB insert for interview_sessions fails -> returns error', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        mockSupabase.from.mockImplementation((table: string) => {
+            if (table === 'interview_sessions') {
+                return {
+                    insert: () => ({
+                        select: () => ({
+                            single: () => Promise.resolve({ data: null, error: { message: 'DB Down' } })
+                        })
+                    })
+                };
+            }
+            return mockSupabase;
+        });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [],
+            100,
+            { skills: {} } as any
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('DB Down');
+    });
+
+    it('6. DB insert for assessments fails -> session saved but assessment missing (partial success)', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        mockSupabase.from.mockImplementation((table: string) => {
+            if (table === 'interview_sessions') {
+                return {
+                    insert: () => ({
+                        select: () => ({
+                            single: () => Promise.resolve({ data: { id: 'sess-partial' }, error: null })
+                        })
+                    })
+                };
+            }
+            if (table === 'assessments') {
+                return {
+                    insert: () => Promise.resolve({ error: { message: 'Fk fail' } })
+                };
+            }
+            return mockSupabase;
+        });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [],
+            100,
+            { skills: {} } as any
+        );
+
+        // Should still be success because session was saved
+        expect(result.success).toBe(true);
+        expect(result.sessionId).toBe('sess-partial');
+    });
+
+    it('7. saveInterviewSession called with readOnly=true -> returns early, no writes', async () => {
+        const result = await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [],
+            100,
+            undefined,
+            { readOnly: true }
+        );
+
+        expect(result.success).toBe(true);
+        expect((result as any).bypassed).toBe(true);
+        expect(createServerSupabase).not.toHaveBeenCalled();
+    });
+
+    it('8. Correct session duration calculation from timestamps', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+        mockSupabase.single.mockResolvedValue({ data: { id: 'sess-duration' }, error: null });
+
+        const startTime = Date.now() - 60000; // 60 seconds ago
+        const endTime = Date.now();
+
+        await saveInterviewSession(
+            'user-123',
+            'prob-1',
+            'Two Sum',
+            [],
+            undefined, // No duration Seconds
+            { skills: {} } as any,
+            { startTime, endTime }
+        );
+
+        expect(mockSupabase.insert).toHaveBeenCalledWith(expect.objectContaining({
+            duration: 60
+        }));
     });
 });

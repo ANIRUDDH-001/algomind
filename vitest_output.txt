@@ -1,0 +1,25 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+[90mstdout[2m | src/lib/supabase/__tests__/progress-store.test.ts[2m > [22m[2mSupabaseProgressStore[2m > [22m[2m9. saveProgress(): calls correct upsert with correct fields
+[22m[39m­ƒÆ¥ [SupabaseProgressStore] Starting save...
+­ƒÆ¥ [SupabaseProgressStore] User ID: user-1
+­ƒÆ¥ [SupabaseProgressStore] Session: { problemId: [32m'test'[39m, difficulty: [32m'hard'[39m, overallScore: [33m80[39m }
+
+ [31mÔØ»[39m src/lib/supabase/__tests__/progress-store.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 35[2mms[22m[39m
+     [32mÔ£ô[39m 1. Transcript extraction when content is a plain string -> passes through[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m 2. Transcript extraction when content is { text: "..." } -> extracts .text[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 3. Transcript extraction when content is { sentence: "..." } -> extracts .sentence[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 4. Transcript extraction when content is { content: "..." } -> extracts .content[32m 2[2mms[22m[39m
+[31m     [31m├ù[31m 5. Transcript extraction when content is a nested object -> returns stringified or fallback[39m[32m 13[2mms[22m[39m
+     [32mÔ£ô[39m 6. Transcript extraction when content is null/undefined -> returns empty string[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 7. getProgress(userId): correct shape returned when DB has sessions[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 8. getProgress(userId): returns empty array when DB has no sessions for user[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 9. saveProgress(): calls correct upsert with correct fields[32m 7[2mms[22m[39m
+     [32mÔ£ô[39m 10. Session with missing assessment -> loads without crash, overall_score defaults to 0[32m 1[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m9 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 21:51:24
+[2m   Duration [22m 627ms[2m (transform 188ms, setup 0ms, import 241ms, tests 35ms, environment 0ms)[22m
+

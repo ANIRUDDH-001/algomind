@@ -34,7 +34,6 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
-import { MobileWarning } from './MobileWarning';
 import { isMobileDevice } from '@/lib/utils/device-detection';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
@@ -83,7 +82,6 @@ export function InterviewSession({
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
-    const [showMobileWarning, setShowMobileWarning] = useState(false);
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
     const [isMobileTextMode, setIsMobileTextMode] = useState(false);
 
@@ -844,21 +842,6 @@ export function InterviewSession({
             aria-label="Interview"
             data-testid="interview-panel"
         >
-            {/* Mobile Warning Modal */}
-            {showMobileWarning && (
-                <MobileWarning
-                    onContinue={() => {
-                        setShowMobileWarning(false);
-                        // Force switch if they insist, but warning was shown
-                        // Note: Code editor is mostly unusable on mobile but we let them try
-                        setShowCodeEditor(true);
-                        // For mobile tab switching, we might handle differently if using Tabs
-                        // But for now let's just close warning
-                    }}
-                    onExit={() => setShowMobileWarning(false)}
-                />
-            )}
-
             {isAnalyzing && <AssessmentLoader />}
             {error && (
                 error.includes('VAD Initialization Failed') ||
@@ -1042,12 +1025,6 @@ export function InterviewSession({
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="code"
-                                    onClick={(e) => {
-                                        if (isMobileDevice()) {
-                                            e.preventDefault();
-                                            setShowMobileWarning(true);
-                                        }
-                                    }}
                                     className="flex flex-col items-center justify-center gap-1 h-full text-slate-500 data-[state=active]:bg-slate-900 data-[state=active]:text-blue-400 rounded-xl transition-all data-[state=active]:shadow-lg hover:text-slate-300"
                                 >
                                     <Code className="w-4 h-4" />
@@ -1067,12 +1044,12 @@ export function InterviewSession({
             <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-[calc(100dvh-64px)]">
                 <ResizablePanelGroup
                     direction="horizontal"
-                    id="interview_panels_v1"
+                    id="interview_panels_v2"
                     className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30"
                 >
 
                     {/* Left Panel: Problem */}
-                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-problem">
+                    <ResizablePanel defaultSize={24} minSize={18} maxSize={38} id="panel-problem">
                         <div className="flex flex-col gap-4 h-full p-2">
                             <div className="flex-1 min-h-0 overflow-hidden">
                                 {renderProblemCardContent()}
@@ -1084,7 +1061,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
 
                     {/* Center Panel: Interaction */}
-                    <ResizablePanel defaultSize={50} minSize={30} id="panel-interaction">
+                    <ResizablePanel defaultSize={52} minSize={30} id="panel-interaction">
                         <div className="h-full p-2" data-testid="panel-interaction">
                             {renderInteractionArea()}
                         </div>
@@ -1093,7 +1070,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
 
                     {/* Right Panel: History */}
-                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40} id="panel-history">
+                    <ResizablePanel defaultSize={24} minSize={18} maxSize={38} id="panel-history">
                         <div className="h-full p-2">
                             {renderHistoryArea()}
                         </div>

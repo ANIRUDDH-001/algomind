@@ -1,0 +1,18 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+ [31mÔØ»[39m src/lib/supabase/__tests__/save-session.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 95[2mms[22m[39m
+     [32mÔ£ô[39m 1. Full happy path: valid transcript + problem -> session + assessment saved[32m 68[2mms[22m[39m
+     [32mÔ£ô[39m 2. Unauthenticated user -> returns error, no DB writes[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m 3. Empty transcript -> still saves session[32m 1[2mms[22m[39m
+[31m     [31m├ù[31m 4. Assessment AI call fails -> session still saved, assessment fields fallback[39m[32m 10[2mms[22m[39m
+     [32mÔ£ô[39m 5. DB insert for interview_sessions fails -> returns error[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m 6. DB insert for assessments fails -> session saved but assessment missing (partial success)[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m 7. saveInterviewSession called with readOnly=true -> returns early, no writes[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 8. Correct session duration calculation from timestamps[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m7 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 22:03:21
+[2m   Duration [22m 906ms[2m (transform 219ms, setup 0ms, import 242ms, tests 95ms, environment 0ms)[22m
+

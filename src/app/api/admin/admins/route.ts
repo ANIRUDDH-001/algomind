@@ -1,36 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
-
-async function verifyAdminForApi() {
-    const supabase = await createServerSupabase();
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (!user || error) {
-        return null;
-    }
-
-    const { data: adminRecord } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('email', user.email!)
-        .single();
-
-    if (!adminRecord) {
-        return null;
-    }
-
-    return user;
-}
 
 
 
 export async function GET() {
     try {
-        const user = await verifyAdminForApi();
-        if (!user) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { user, errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
         const supabaseAdmin = getServiceClient();
         const { data: admins, error } = await supabaseAdmin
@@ -51,10 +28,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const user = await verifyAdminForApi();
-        if (!user) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { user, errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
         const body = await request.json();
         const { email } = body as { email?: string };
@@ -92,10 +67,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const user = await verifyAdminForApi();
-        if (!user) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { user, errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
         const body = await request.json();
         const { email } = body as { email?: string };

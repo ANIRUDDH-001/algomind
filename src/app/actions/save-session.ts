@@ -12,76 +12,141 @@ export async function saveInterviewSession(
     problemId: string,
     problemTitle: string,
     transcript: ConversationTurn[],
-    durationSeconds: number,
-    result: AssessmentResult
+    durationSeconds?: number,
+    result?: AssessmentResult,
+    options?: {
+        readOnly?: boolean;
+        startTime?: number;
+        endTime?: number;
+    }
 ) {
+    if (options?.readOnly) {
+        return { success: true, bypassed: true };
+    }
 
     const supabase = await createClient();
 
+    // 1. Auth Check (Requirement 2)
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser || authUser.id !== userId) {
+        console.error('❌ [ACTION] Auth validation failed:', { authError, userId });
+        return { success: false, error: 'Unauthorized', status: 401 };
+    }
+
     try {
-        // Profile creation is handled by the handle_new_user trigger.
-        // If trigger failed, the session insert will surface the actual FK error.
+        // Calculate duration if not provided but timestamps are (Requirement 8)
+        let finalDuration = durationSeconds ?? 0;
+        if (!durationSeconds && options?.startTime && options?.endTime) {
+            finalDuration = Math.floor((options.endTime - options.startTime) / 1000);
+        }
+
+        // 2. Assessment Logic (Requirement 4)
+        let finalResult = result;
+        if (!finalResult && transcript.length > 0) {
+            try {
+                const { CognitiveAnalyzer } = await import('@/lib/assessment/analyzer');
+                const analyzer = new CognitiveAnalyzer();
+                // We need the problem description/difficulty to analyze properly
+                const { data: prob } = await supabase
+                    .from('problems')
+                    .select('description, difficulty')
+                    .eq('id', problemId)
+                    .single();
+
+                finalResult = await analyzer.analyze(
+                    crypto.randomUUID(),
+                    { title: problemTitle, description: prob?.description || '', difficulty: prob?.difficulty || 'medium' },
+                    transcript
+                );
+            } catch (err) {
+                console.error('⚠️ [ACTION] AI Assessment failed, saving session without full assessment:', err);
+                // Fallback result for Requirement 4
+                finalResult = {
+                    sessionId: 'failed-analysis',
+                    timestamp: new Date(),
+                    problem: { title: problemTitle, description: '', difficulty: 'medium' },
+                    skills: {},
+                    overallFeedback: 'AI analysis failed during save.',
+                    nextSteps: [],
+                    knowledgeGaps: []
+                } as unknown as AssessmentResult;
+            }
+        }
+
+        // Profile mapping
         await supabase.rpc('ensure_learner_profile', { p_user_id: userId });
 
+        // Calculate score
+        const skillValues = Object.values(finalResult?.skills || {});
+        const overallScore = skillValues.length > 0
+            ? skillValues.reduce((acc, s) => acc + (s as any).score, 0) / skillValues.length
+            : 0;
+
+        // 3. Save Session (Requirement 5)
         const { data: sessionData, error } = await supabase
             .from('interview_sessions')
             .insert({
                 user_id: userId,
                 problem_id: problemId,
                 problem_title: problemTitle,
-                transcript: transcript,
-                duration: durationSeconds,
-                feedback: result,
-                overall_score: Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length,
+                transcript: transcript, // Requirement 3: handles empty transcript via db constraint or null
+                duration: finalDuration,
+                feedback: finalResult,
+                overall_score: overallScore,
                 created_at: new Date().toISOString(),
                 status: 'completed',
                 completed_at: new Date().toISOString(),
                 is_candidate_session: false,
             })
-            .select() // Select to return the inserted row
+            .select()
             .single();
 
         if (error) {
             console.error('❌ [ACTION] Failed to save session:', error);
             void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
-            return { success: false, error: error.message };
+            return { success: false, error: error.message, status: 500 };
         }
 
-        // Save knowledge gaps if any
-        if (result.knowledgeGaps && result.knowledgeGaps.length > 0) {
+        // 4. Save assessment details (Requirement 6)
+        if (finalResult) {
+            const { error: assessmentError } = await supabase
+                .from('assessments')
+                .insert({
+                    session_id: sessionData.id,
+                    user_id: userId,
+                    overall_score: overallScore,
+                    overall_feedback: finalResult.overallFeedback,
+                    next_steps: finalResult.nextSteps,
+                    skill_evidence: finalResult.skills
+                });
 
+            if (assessmentError) {
+                console.error('⚠️ [ACTION] Failed to save assessment object (partial success):', assessmentError);
+                // Requirement 6: We return success: true because the session itself is saved
+            }
+        }
 
-            // Map gaps to table structure
-            // We use the new session ID we just got
-            const gapsToInsert = result.knowledgeGaps.map(gap => ({
-                user_query: gap, // Using the gap text as the 'query' for now
+        // Knowledge Gaps
+        if (finalResult?.knowledgeGaps && finalResult.knowledgeGaps.length > 0) {
+            const gapsToInsert = finalResult.knowledgeGaps.map(gap => ({
+                user_query: gap,
                 gap_reason: 'Identified during AI assessment',
                 session_id: sessionData.id,
                 user_id: userId,
-                status: 'new',       // 'new' as per schema implies pending review
+                status: 'new',
                 priority: 'medium',
                 upvotes: 1
             }));
 
-            const { error: gapError } = await supabase
-                .from('knowledge_gaps')
-                .insert(gapsToInsert);
-
-            if (gapError) {
-                console.error('⚠️ [ACTION] Failed to save knowledge gaps:', gapError);
-                // We don't fail the whole request because the primary session was saved
-            }
+            await supabase.from('knowledge_gaps').insert(gapsToInsert);
         }
 
+        // Memory & Spaced Rep
         try {
             await updateKaiMemory(userId);
-        } catch (err) {
-            console.error('[save-session] updateKaiMemory failed — user memory not updated:', err);
-            // Non-fatal: session is already saved, log and continue
-        }
+        } catch (err) { console.error('[save-session] Memory update failed:', err); }
 
-        // Retrieve problem difficulty for the spaced repetition queue
-        const { data: prob } = await supabase
+        const { data: probDiff } = await supabase
             .from('problems')
             .select('difficulty')
             .eq('id', problemId)
@@ -92,27 +157,22 @@ export async function saveInterviewSession(
                 userId,
                 problemId,
                 problemTitle,
-                problemDifficulty: prob?.difficulty || 'medium',
-                overallScore: sessionData.overall_score
+                problemDifficulty: probDiff?.difficulty || 'medium',
+                overallScore: overallScore
             });
-        } catch (err) {
-            console.error('[save-session] addToQueue failed — spaced repetition not updated:', err);
-            // Non-fatal: session is already saved, log and continue
-        }
+        } catch (err) { console.error('[save-session] addToQueue failed:', err); }
 
         try {
             const { invalidateDashboardCache } = await import('@/lib/cache/dashboardCache');
             await invalidateDashboardCache(userId);
-        } catch (err) {
-            console.error('[save-session] cache invalidation failed:', err);
-        }
+        } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
 
-        return { success: true };
+        return { success: true, sessionId: sessionData.id };
     } catch (e) {
         const error = e as unknown;
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('❌ [ACTION] Unexpected error:', error);
+        console.error('❌ [ACTION] Unexpected error in saveInterviewSession:', error);
         void logSystemEvent({ type: 'db_error', errorMessage, metadata: { operation: 'save_session' } });
-        return { success: false, error: errorMessage };
+        return { success: false, error: errorMessage, status: 500 };
     }
 }

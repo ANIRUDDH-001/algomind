@@ -154,6 +154,45 @@ ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 -- Policy already exists but let's be sure
 DROP POLICY IF EXISTS "Anyone can check admin status" ON public.admin_users;
 CREATE POLICY "Anyone can check admin status"
-  ON public.admin_users FOR SELECT
   TO authenticated
   USING (true);
+
+-- ============================================================
+-- 4. COMPANY PROFILES
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.company_profiles (
+    id             TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    emoji          TEXT,
+    theme_color    TEXT DEFAULT 'slate',
+    persona_prompt TEXT,
+    created_at     TIMESTAMPTZ DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default company profiles
+INSERT INTO public.company_profiles (id, name, emoji, theme_color, persona_prompt)
+VALUES
+('google',  'Google',  '🔍', 'blue',        'You are interviewing for Google. Focus heavily on algorithmic efficiency, Big-O complexity (time and space), and scaling considerations. Expect candidates to find the most optimal solution. Be rigorous but collaborative.'),
+('meta',    'Meta',    '♾️', 'blue-purple', 'You are interviewing for Meta. Prioritize speed, bug-free coding on the first try, and handling edge cases perfectly. Push the candidate to move quickly and implement the solution without hesitation once the approach is agreed upon.'),
+('amazon',  'Amazon',  '📦', 'amber',       'You are interviewing for Amazon. Emphasize Leadership Principles, especially "Deliver Results" and "Dive Deep". Focus on practical, maintainable code, object-oriented design where applicable, and dealing with ambiguous requirements.'),
+('startup', 'Startup', '🚀', 'green',       'You are interviewing for a fast-growing YC Startup. Value "getting things done", pragmatism, and full-stack awareness over micro-optimizations. Ask about how they would organize the code for quick iterations and handle changing requirements.')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    emoji = EXCLUDED.emoji,
+    theme_color = EXCLUDED.theme_color,
+    persona_prompt = EXCLUDED.persona_prompt,
+    updated_at = NOW();
+
+-- RLS for company_profiles
+ALTER TABLE public.company_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view company profiles"
+    ON public.company_profiles FOR SELECT
+    TO authenticated, anon
+    USING (true);
+
+CREATE POLICY "Admins can manage company profiles"
+    ON public.company_profiles FOR ALL
+    USING (EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()));

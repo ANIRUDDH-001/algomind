@@ -42,7 +42,11 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
 
         if (error) {
             console.error('❌ [Rate Limit] Check failed:', error);
-            // Fail OPEN - allow on error so missing RPCs or DB issues don't block users
+            if (error.code === 'PGRST202') {
+                console.error('🚨 [SECURITY] Missing RPC function "check_user_rate_limit". Blocking request to prevent silent bypass.');
+                return { allowed: false, remaining: 0, isAdmin: false };
+            }
+            // Fail OPEN - allow on other transient errors so DB issues don't block users
             return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
         }
 
