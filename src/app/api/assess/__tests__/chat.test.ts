@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../chat/route';
 import { getAIClient } from '@/lib/ai/client';
 import { getRedis } from '@/lib/upstash/client';
+import { getServiceClient } from '@/lib/supabase/service';
 import { NextRequest } from 'next/server';
 import * as jose from 'jose';
 
 vi.mock('@/lib/ai/client');
 vi.mock('@/lib/upstash/client');
+vi.mock('@/lib/supabase/service');
 vi.mock('@/lib/startup/validateEnv', () => ({
     validateEnv: vi.fn(),
 }));
@@ -14,6 +16,7 @@ vi.mock('@/lib/startup/validateEnv', () => ({
 describe('Assess Chat API (/api/assess/chat)', () => {
     let mockAIClient: any;
     let mockRedis: any;
+    let mockSupabaseAdmin: any;
     let validToken: string;
 
     beforeEach(async () => {
@@ -46,6 +49,13 @@ describe('Assess Chat API (/api/assess/chat)', () => {
             expire: vi.fn().mockResolvedValue(1),
         };
         vi.mocked(getRedis).mockReturnValue(mockRedis);
+
+        mockSupabaseAdmin = {
+            from: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ error: null }),
+        };
+        vi.mocked(getServiceClient).mockReturnValue(mockSupabaseAdmin);
     });
 
     afterEach(() => {

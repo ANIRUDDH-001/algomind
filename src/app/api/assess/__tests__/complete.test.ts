@@ -116,6 +116,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     it('1. Valid session -> saves assessment, returns report', async () => {
         const mockSupa = buildSupabaseMock();
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupa as any);
+        vi.mocked(getServiceClient).mockReturnValue(mockSupa as any);
 
         const req = createRequest({
             sessionToken: validToken,
@@ -139,6 +140,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
             },
         });
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupa as any);
+        vi.mocked(getServiceClient).mockReturnValue(mockSupa as any);
 
         const req = createRequest({
             sessionToken: validToken,

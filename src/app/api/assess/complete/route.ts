@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
         const campaignId = payload.campaignId as string;
 
         // 2. Ensure submission hasn't already been completed
-        const { data: submission, error: subError } = await supabase
+        const { data: submission, error: subError } = await supabaseAdmin
             .from('candidate_submissions')
-            .select('status, campaign_id')
+            .select('status, campaign_id, assigned_problem_id')
             .eq('id', submissionId)
             .single();
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Fetch Campaign and Problem to feed the analyzer
-        const { data: campaign } = await supabase
+        const { data: campaign } = await supabaseAdmin
             .from('assessment_campaigns')
             .select('created_by, problem_id')
             .eq('id', campaignId)
@@ -71,10 +71,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
         }
 
-        const { data: problem } = await supabase
+        const actualProblemId = submission.assigned_problem_id || campaign.problem_id;
+
+        const { data: problem } = await supabaseAdmin
             .from('problems')
             .select('title, description, difficulty')
-            .eq('id', campaign.problem_id)
+            .eq('id', actualProblemId)
             .single();
 
         if (!problem) {
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest) {
             .insert({
                 user_id: null,              // Candidate sessions are not owned by any user
                 is_candidate_session: true, // Explicit flag for candidate-specific queries
-                problem_id: campaign.problem_id,
+                problem_id: actualProblemId,
                 problem_title: problem.title,
                 transcript: transcript,
                 duration: duration || 0,
