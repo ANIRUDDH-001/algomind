@@ -47,17 +47,19 @@ export async function validateDB(): Promise<void> {
     try {
         const supabase = await createServerSupabase();
 
-        const criticalRPCs = [
-            'check_is_admin',
-            'get_model_rate_stats',
-            'check_user_rate_limit',
-            'get_user_sessions_with_assessment',
+        const dummyId = '00000000-0000-0000-0000-000000000000';
+        const rpcChecks = [
+            { name: 'check_is_admin', args: { user_id: dummyId } },
+            { name: 'get_model_rate_stats', args: {} },
+            { name: 'check_user_rate_limit', args: { p_user_id: dummyId, p_limit: 5 } },
+            { name: 'get_user_sessions_with_assessment', args: { p_user_id: dummyId, p_limit: 1 } },
         ];
 
-        for (const rpc of criticalRPCs) {
-            const { error } = await (supabase.rpc as (...args: any[]) => any)(rpc);
+        for (const { name, args } of rpcChecks) {
+            const { error } = await supabase.rpc(name, args);
+            // PGRST202 is "Function not found", which is the only one that truly means it's missing.
             if (error?.code === 'PGRST202') {
-                console.error(`[DB VALIDATION] MISSING RPC: ${rpc} — run supabase/migrations/001_master.sql`);
+                console.error(`[DB VALIDATION] MISSING RPC: ${name} — run supabase/migrations/001_master.sql`);
             }
         }
 
