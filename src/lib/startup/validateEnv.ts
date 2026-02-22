@@ -49,7 +49,7 @@ export async function validateDB(): Promise<void> {
 
         const dummyId = '00000000-0000-0000-0000-000000000000';
         const rpcChecks = [
-            { name: 'check_is_admin', args: { user_id: dummyId } },
+            { name: 'check_is_admin', args: {} },
             { name: 'get_model_rate_stats', args: {} },
             { name: 'check_user_rate_limit', args: { p_user_id: dummyId, p_limit: 5 } },
             { name: 'get_user_sessions_with_assessment', args: { p_user_id: dummyId, p_limit: 1 } },

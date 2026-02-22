@@ -24,6 +24,7 @@ interface Message {
     id: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
+    timestamp: Date;
 }
 
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -113,7 +114,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
             // Add initial system intro if needed, or wait for candidate to say "Hi"
             setMessages([
-                { id: '1', role: 'assistant', content: `Hello ${name}! Welcome to the interview for ${campaign.title}. I am your AI interviewer. When you're ready, please introduce yourself or ask for the problem statement.` }
+                { id: '1', role: 'assistant', content: `Hello ${name}! Welcome to the interview for ${campaign.title}. I am your AI interviewer. When you're ready, please introduce yourself or ask for the problem statement.`, timestamp: new Date() }
             ]);
 
             setPhase('interview');
@@ -127,7 +128,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     const handleSendMessage = async (content: string) => {
         if (!content.trim() || !sessionToken) return;
 
-        const userMsg: Message = { id: Date.now().toString(), role: 'user', content };
+        const userMsg: Message = { id: Date.now().toString(), role: 'user', content, timestamp: new Date() };
         const newHistory = [...messages, userMsg];
         setMessages(newHistory);
         setIsAISpeaking(true);
@@ -156,7 +157,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
                         role: 'system',
-                        content: `⚠️ You've reached the ${MESSAGE}-message limit for this session. Please submit your assessment using the "Finish Early" button.`
+                        content: `⚠️ You've reached the ${MESSAGE}-message limit for this session. Please submit your assessment using the "Finish Early" button.`,
+                        timestamp: new Date()
                     }]);
                     return;
                 }
@@ -170,7 +172,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 role: 'assistant',
-                content: data.response
+                content: data.response,
+                timestamp: new Date()
             }]);
 
         } catch (_err) {
@@ -178,7 +181,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 role: 'system',
-                content: 'Error: Failed to connect to the interviewer. Please try again.'
+                content: 'Error: Failed to connect to the interviewer. Please try again.',
+                timestamp: new Date()
             }]);
         } finally {
             setIsAISpeaking(false);
@@ -367,7 +371,6 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     {/* Right Panel: Chat Interface */}
                     <div className="flex-1 min-w-0">
                         <TextInterviewMode
-                            // @ts-expect-error - TextInterviewMode interface mapping
                             messages={messages.map(m => ({ ...m, isError: false }))}
                             isProcessing={isAISpeaking}
                             isAISpeaking={isAISpeaking}
