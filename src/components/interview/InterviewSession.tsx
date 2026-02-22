@@ -1086,7 +1086,7 @@ export function InterviewSession({
                 >
 
                     {/* Left Panel: Problem */}
-                    <ResizablePanel defaultSize={24} minSize={18} maxSize={38} id="panel-problem">
+                    <ResizablePanel defaultSize={30} minSize={20} maxSize={45} id="panel-problem">
                         <div className="flex flex-col gap-4 h-full p-2">
                             <div className="flex-1 min-h-0 overflow-hidden">
                                 {renderProblemCardContent()}
@@ -1098,7 +1098,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle />
 
                     {/* Center Panel: Interaction */}
-                    <ResizablePanel defaultSize={52} minSize={30} id="panel-interaction">
+                    <ResizablePanel defaultSize={40} minSize={20} id="panel-interaction">
                         <div className="h-full p-2" data-testid="panel-interaction">
                             {renderInteractionArea()}
                         </div>
@@ -1107,7 +1107,7 @@ export function InterviewSession({
                     <ResizableHandle withHandle />
 
                     {/* Right Panel: History */}
-                    <ResizablePanel defaultSize={24} minSize={18} maxSize={38} id="panel-history">
+                    <ResizablePanel defaultSize={30} minSize={20} maxSize={45} id="panel-history">
                         <div className="h-full p-2">
                             {renderHistoryArea()}
                         </div>
