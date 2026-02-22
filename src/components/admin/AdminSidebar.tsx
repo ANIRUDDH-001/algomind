@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
     Flag, Database, ShieldAlert, BarChart,
-    MessageSquare, Settings, Activity, ServerCrash
+    MessageSquare, Settings, Activity, ServerCrash, Briefcase
 } from 'lucide-react';
 
 const STATIC_NAV_ITEMS = [
@@ -16,6 +16,7 @@ const STATIC_NAV_ITEMS = [
     { name: 'Knowledge Base', href: '/admin/knowledge', icon: Database },
     { name: 'Voice Debug', href: '/admin/voice-debug', icon: MessageSquare },
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
+    { name: 'Employers', href: '/admin/employers', icon: Briefcase },
 ];
 
 export function AdminSidebar() {
