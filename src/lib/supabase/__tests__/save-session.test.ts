@@ -10,9 +10,9 @@ vi.mock('@/lib/supabase/server', () => ({
 // Mock Analyzer
 const mockAnalyze = vi.fn();
 vi.mock('@/lib/assessment/analyzer', () => ({
-    CognitiveAnalyzer: vi.fn().mockImplementation(() => ({
-        analyze: mockAnalyze
-    }))
+    CognitiveAnalyzer: class {
+        analyze = mockAnalyze;
+    }
 }));
 
 // Mock monitoring/events

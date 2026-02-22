@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { isDemoMode } from '@/lib/demo/manager';
@@ -26,6 +26,27 @@ export function Navbar() {
     const [isDemo, setIsDemo] = useState(false);
     const { isAdmin } = useAdmin();
     const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
+    const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin'>('candidate');
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchAccountType = async () => {
+            try {
+                const res = await fetch('/api/user/account-type');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAccountType(data.accountType);
+                }
+            } catch { }
+        };
+        fetchAccountType();
+    }, [user?.id]);
+
+    const dashboardHref = accountType === 'employer'
+        ? '/employer/dashboard'
+        : accountType === 'admin'
+            ? '/admin/knowledge'
+            : '/dashboard';
 
     useEffect(() => {
         setIsDemo(isDemoMode());
@@ -93,8 +114,8 @@ export function Navbar() {
                                         Home
                                     </Link>
                                     <Link
-                                        href="/dashboard"
-                                        className={`flex items-center gap-2 text-sm font-bold transition-colors ${pathname === '/dashboard' ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+                                        href={dashboardHref}
+                                        className={`flex items-center gap-2 text-sm font-bold transition-colors ${pathname === dashboardHref ? 'text-blue-400' : 'text-slate-400 hover:text-white'
                                             }`}
                                     >
                                         <BarChart className="w-4 h-4" />
@@ -140,12 +161,22 @@ export function Navbar() {
                                             <DropdownMenuSeparator className="bg-slate-800 my-1" />
 
                                             <DropdownMenuItem
-                                                onClick={() => router.push('/dashboard')}
+                                                onClick={() => router.push(dashboardHref)}
                                                 className="text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer focus:bg-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
                                             >
                                                 <BarChart className="mr-2 h-4 w-4" />
                                                 Dashboard
                                             </DropdownMenuItem>
+
+                                            {accountType === 'employer' && (
+                                                <DropdownMenuItem
+                                                    onClick={() => router.push('/employer/dashboard')}
+                                                    className="text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer focus:bg-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                                >
+                                                    <Briefcase className="mr-2 h-4 w-4" />
+                                                    Employer Dashboard
+                                                </DropdownMenuItem>
+                                            )}
 
                                             <DropdownMenuItem
                                                 onClick={() => router.push('/settings')}

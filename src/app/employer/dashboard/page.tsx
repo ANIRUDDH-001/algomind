@@ -33,13 +33,6 @@ export default async function EmployerDashboardPage() {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8 relative">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Campaign Management</h1>
-                        <p className="text-slate-400">Manage technical assessments and review candidate performance.</p>
-                    </div>
-                </div>
-
                 <EmployerDashboard
                     initialCampaigns={initialCampaigns}
                     availableProblems={availableProblems}

@@ -16,6 +16,7 @@ export default function EmployerPage() {
 
     // Upgrade state
     const [companyName, setCompanyName] = useState('');
+    const [inviteCode, setInviteCode] = useState('');
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [upgradeError, setUpgradeError] = useState('');
 
@@ -70,7 +71,7 @@ export default function EmployerPage() {
             const res = await fetch('/api/employer/upgrade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ companyName: trimmed })
+                body: JSON.stringify({ companyName: trimmed, inviteCode: inviteCode.trim() })
             });
 
             if (res.ok) {
@@ -129,6 +130,22 @@ export default function EmployerPage() {
                                 required
                                 minLength={2}
                                 maxLength={100}
+                                disabled={isUpgrading}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="inviteCode" className="block text-sm font-medium text-slate-300 mb-1">
+                                Invite Code
+                            </label>
+                            <input
+                                id="inviteCode"
+                                type="text"
+                                value={inviteCode}
+                                onChange={(e) => setInviteCode(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter invite code from admin"
+                                required
                                 disabled={isUpgrading}
                             />
                         </div>
