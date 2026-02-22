@@ -46,6 +46,9 @@ function DashboardContent() {
     const [allTimeData, setAllTimeData] = useState<Record<string, number> | undefined>(undefined);
     const [showAllTime, setShowAllTime] = useState(true);
 
+    // LeetCode Profile State
+    const [leetcodeUsername, setLeetcodeUsername] = useState<string | null>(null);
+
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
         if (!session?.sessionId) return; // Guard: don't navigate with a null session
@@ -55,10 +58,33 @@ function DashboardContent() {
     // State for asynchronous recommendations (memoized to avoid render cycle issues)
     const recommendations = React.useMemo(() => {
         if (!progress) return [];
-        // Note: this returns a Promise, but since recommendations is currently unused 
-        // in the JSX of page.tsx, it's just kept here for future/reference use.
         return new RecommendationEngine().analyze(progress);
     }, [progress]);
+
+    // Fetch LeetCode Profile
+    useEffect(() => {
+        const fetchLeetcodeProfile = async () => {
+            if (!progress?.userId) return;
+            try {
+                const supabase = getSupabase();
+                if (!supabase) return;
+
+                const { data, error } = await supabase
+                    .from('leetcode_profiles')
+                    .select('username')
+                    .eq('user_id', progress.userId)
+                    .single();
+
+                if (!error && data) {
+                    setLeetcodeUsername(data.username);
+                }
+            } catch (err) {
+                console.error('Failed to load LeetCode profile', err);
+            }
+        };
+
+        fetchLeetcodeProfile();
+    }, [progress?.userId]);
 
     // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions (cached)
     useEffect(() => {
@@ -127,12 +153,14 @@ function DashboardContent() {
     const latestSession = progress?.sessions[0];
     const previousSession = progress?.sessions[1];
 
-
     return (
         <div {...handlers} className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
             <LeetCodePrompt />
             <div className="max-w-7xl mx-auto">
-                <DashboardHeader progress={progress} />
+                <DashboardHeader
+                    progress={progress}
+                    leetcodeUsername={leetcodeUsername}
+                />
 
                 <DashboardNav activeTab={activeTab} onTabChange={handleTabChange} />
 

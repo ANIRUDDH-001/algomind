@@ -449,7 +449,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                         <div className="p-6 border-b border-slate-800">
                             <h3 className="text-xl font-bold text-white">Create New Campaign</h3>
                         </div>
-                        <form onSubmit={handleCreateCampaign} className="p-6 space-y-4">
+                        <form onSubmit={handleCreateCampaign} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Campaign Title *</label>
                                 <Input

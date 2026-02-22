@@ -4,15 +4,16 @@ import React from 'react';
 import { UserProgress } from '@/types/assessment';
 import { Button } from '@/components/ui/button';
 import { ExportReportButton } from './ExportReportButton';
-import { Brain, PlusCircle, Calendar } from 'lucide-react';
+import { Brain, PlusCircle, Calendar, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
 interface DashboardHeaderProps {
     progress: UserProgress | null;
+    leetcodeUsername?: string | null;
 }
 
-export function DashboardHeader({ progress }: DashboardHeaderProps) {
+export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderProps) {
     const latestSession = progress?.sessions[0];
     const avgScore = progress?.averageScore || 0;
 
@@ -50,6 +51,37 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                             </div>
                         </>
                     )}
+
+                    {/* LeetCode Sync Section */}
+                    <div className="w-px h-8 bg-slate-800" />
+                    <div className="flex flex-col">
+                        <span className="text-slate-500 uppercase tracking-widest text-[10px] font-black">LeetCode Link</span>
+                        {leetcodeUsername ? (
+                            <div className="flex items-center gap-2 group">
+                                <div className="w-5 h-5 bg-amber-500/10 rounded-md flex items-center justify-center border border-amber-500/20 group-hover:border-amber-500/40 transition-colors">
+                                    <img
+                                        src="/leetcode.png"
+                                        alt="LC"
+                                        className="w-3 h-3 opacity-80 group-hover:opacity-100"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://leetcode.com/favicon.ico';
+                                        }}
+                                    />
+                                </div>
+                                <span className="text-slate-200 font-bold group-hover:text-amber-400 transition-colors cursor-default">
+                                    {leetcodeUsername}
+                                </span>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/settings"
+                                className="text-xs font-bold text-amber-500/60 hover:text-amber-400 transition-colors flex items-center gap-1 group"
+                            >
+                                Connect Profile
+                                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
 
