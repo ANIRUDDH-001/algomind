@@ -159,11 +159,11 @@ export function Navbar() {
                                             <DropdownMenuSeparator className="bg-slate-800 my-1" />
 
                                             <DropdownMenuItem
-                                                onClick={() => router.push(dashboardHref)}
+                                                onClick={() => router.push('/dashboard')}
                                                 className="text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer focus:bg-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
                                             >
                                                 <BarChart className="mr-2 h-4 w-4" />
-                                                Dashboard
+                                                My Progress Dashboard
                                             </DropdownMenuItem>
 
                                             {accountType === 'employer' && (
