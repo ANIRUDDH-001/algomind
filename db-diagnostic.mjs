@@ -17,7 +17,7 @@ function log(...args) {
 async function safeRpc(name) {
     try {
         return await sb.rpc(name);
-    } catch (e) {
+    } catch (_e) {
         return { data: null };
     }   
 }
@@ -27,7 +27,7 @@ async function safeFrom(table, select, eqCol, eqVal) {
         let q = sb.from(table).select(select);
         if (eqCol) q = q.eq(eqCol, eqVal);
         return await q;
-    } catch (e) {
+    } catch (_e) {
         return { data: null };
     }
 }
@@ -36,8 +36,8 @@ async function run() {
     log('=== DB DIAGNOSTIC REPORT ===\n');
 
     // 1. All public tables
-    const { data: tables } = await safeRpc('get_tables');
-    const { data: tablesRaw } = await safeFrom('information_schema.tables', 'table_name', 'table_schema', 'public');
+    const { data: _tables } = await safeRpc('get_tables');
+    const { data: _tablesRaw } = await safeFrom('information_schema.tables', 'table_name', 'table_schema', 'public');
 
     // Use direct query via fetch instead
     const headers = {
@@ -46,7 +46,7 @@ async function run() {
         'Content-Type': 'application/json'
     };
 
-    const query = async (sql) => {
+    const _query = async (sql) => {
         try {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
                 method: 'POST',
@@ -54,7 +54,7 @@ async function run() {
                 body: JSON.stringify({ sql })
             });
             return await res.json();
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     };

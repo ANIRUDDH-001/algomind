@@ -8,7 +8,7 @@ export async function getDashboardAveragesAction(userId: string): Promise<Dashbo
     if (!userId) return null;
 
     try {
-        let averages = await getCachedDashboardAverages(userId);
+        const averages = await getCachedDashboardAverages(userId);
         if (averages) {
             return averages;
         }

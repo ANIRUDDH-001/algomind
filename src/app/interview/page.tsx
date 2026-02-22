@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InterviewSession } from '@/components/interview/InterviewSession';
+import { InterviewErrorBoundary } from '@/components/interview/InterviewErrorBoundary';
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
@@ -150,22 +151,24 @@ function InterviewContent() {
 
     return (
         <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
-            <InterviewSession
-                problem={problem}
-                initialTranscript={initialTranscript}
-                readOnly={!!sessionId}
-                isGuest={isGuest}
-                ragContext={problem.ragContext}
-                remainingQuestions={rateLimitInfo?.remaining}
-                isReviewMode={isReviewMode}
-            />
+            <InterviewErrorBoundary>
+                <InterviewSession
+                    problem={problem}
+                    initialTranscript={initialTranscript}
+                    readOnly={!!sessionId}
+                    isGuest={isGuest}
+                    ragContext={problem.ragContext}
+                    remainingQuestions={rateLimitInfo?.remaining}
+                    isReviewMode={isReviewMode}
+                />
+            </InterviewErrorBoundary>
         </div>
     );
 }
 
 export default function InterviewPage() {
     return (
-        <Suspense fallback={<div className="fixed inset-0 top-16 bg-slate-950" />}>
+        <Suspense fallback={<div className="fixed inset-0 top-16 bg-slate-950 overflow-hidden" />}>
             <InterviewContent />
         </Suspense>
     );

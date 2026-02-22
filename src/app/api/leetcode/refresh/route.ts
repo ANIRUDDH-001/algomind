@@ -3,7 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { fetchAndSaveLeetCodeProfile } from '@/lib/leetcode/client';
 import { getRedis } from '@/lib/upstash/client';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
     try {
         const supabase = await createServerSupabase();
         const { data: { user } } = await supabase.auth.getUser();

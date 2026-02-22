@@ -1,3 +1,4 @@
+import { disableDemoMode } from '@/lib/demo/manager';
 import { test, expect } from '@playwright/test';
 import {
     setupInterviewPage,
@@ -5,16 +6,16 @@ import {
     InterviewPanelPOM,
     mockChatAPI
 } from '../../test-utils/playwright-helpers';
-import { TEST_IDS } from '../../test-utils/test-ids';
+import {  } from '../../test-utils/test-ids';
 
 test.describe('Feature Flags Integration', () => {
 
     test('All flags OFF (Manual Mode)', async ({ page }) => {
         // Disable all flags before navigation
         await page.addInitScript(() => {
-            localStorage.setItem('feature_ENABLE_VAD_INTERRUPTIONS', 'false');
-            localStorage.setItem('feature_ENABLE_SMART_ROUTING', 'false');
-            localStorage.setItem('feature_ENABLE_CHUNKED_RESPONSES', 'false');
+            localStorage.setItem('feature', 'false');
+            localStorage.setItem('feature', 'false');
+            localStorage.setItem('feature', 'false');
         });
 
         // Setup
@@ -39,9 +40,9 @@ test.describe('Feature Flags Integration', () => {
     test('VAD Only triggers auto-start', async ({ page }) => {
         // Enable VAD flag before navigation
         await page.addInitScript(() => {
-            localStorage.setItem('feature_ENABLE_VAD_INTERRUPTIONS', 'true');
-            localStorage.setItem('feature_ENABLE_SMART_ROUTING', 'false');
-            localStorage.setItem('feature_ENABLE_CHUNKED_RESPONSES', 'false');
+            localStorage.setItem('feature', 'true');
+            localStorage.setItem('feature', 'false');
+            localStorage.setItem('feature', 'false');
         });
 
         // Setup

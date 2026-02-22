@@ -14,7 +14,7 @@ export function useSessionPersistence(): void {
 
         // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event: string, session: unknown) => {
+            async (event: string, _session: unknown) => {
                 console.log('🔐 [SESSION] Auth event:', event);
 
                 if (event === 'SIGNED_OUT') {

@@ -7,7 +7,7 @@ export function extractEvidence(
     transcript: ConversationTurn[],
     skill: CognitiveSkill
 ): string[] {
-    const userTurns = transcript.filter(t => t.role === 'user');
+    const _userTurns = transcript.filter(t => t.role === 'user');
 
     const skillKeywords: Record<CognitiveSkill, string[]> = {
         'problem-decomposition': ['break down', 'subproblems', 'part', 'first', 'second', 'step', 'divide'],

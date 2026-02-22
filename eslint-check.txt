@@ -1,8 +1,4 @@
 ﻿
-> algomind@0.1.0 lint
-> eslint
-
-
 D:\algomind\coverage\lcov-report\block-navigation.js
   1:1  warning  Unused eslint-disable directive (no problems were reported)
 
@@ -86,6 +82,9 @@ D:\algomind\scripts\validate-ai-integration.ts
   8:10  warning  'UnifiedAIClient' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
   9:10  warning  'IntelligentRateLimiter' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
+D:\algomind\scripts\verify-migrations.mjs
+  89:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
 D:\algomind\src\__tests__\integration\feature-flags.test.tsx
   8:10  warning  'TEST_IDS' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
@@ -126,7 +125,12 @@ D:\algomind\src\app\admin\voice-debug\client.tsx
   123:9  warning  'timer' is never reassigned. Use 'const' instead  prefer-const
 
 D:\algomind\src\app\api\__tests__\chat.test.ts
-  1:48  warning  'afterEach' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  80:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\app\api\admin\__tests__\integration.test.ts
+   65:40  warning  'table' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  104:40  warning  'table' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  131:15  warning  'req' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
 D:\algomind\src\app\api\admin\admins\route.ts
    9:17  warning  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
@@ -147,6 +151,9 @@ D:\algomind\src\app\api\leetcode\refresh\route.ts
 
 D:\algomind\src\app\api\leetcode\status\route.ts
   4:27  warning  'req' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\app\dashboard\__tests__\dashboard.test.tsx
+  79:33  warning  'onTabChange' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
 
 D:\algomind\src\app\dashboard\page.tsx
   19:10  warning  'RecommendationsPanel' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
@@ -196,6 +203,34 @@ D:\algomind\src\components\interview\CompanyModeSelector.tsx
 
 D:\algomind\src\components\interview\InterviewSession.tsx
   203:9  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+D:\algomind\src\components\interview\__tests__\CodeEditor.height.test.tsx
+   9:48  warning  'afterEach' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  12:5   warning  'capturedEditorProps' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  18:19  warning  'loader' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  21:17  error    Error: Cannot reassign variables declared outside of the component/hook
+
+Variable `capturedEditorProps` is declared outside of the component/hook. Reassigning this value during render is a form of side effect, which can cause unpredictable behavior depending on when the component happens to re-render. If this variable is used in rendering, use useState instead. Otherwise, consider updating it in an effect. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#side-effects-must-run-outside-of-render).
+
+D:\algomind\src\components\interview\__tests__\CodeEditor.height.test.tsx:21:17
+  19 |             // Return a component that renders a stub and captures props
+  20 |             const MockDynamic = (props: Record<string, unknown>) => {
+> 21 |                 capturedEditorProps = props;
+     |                 ^^^^^^^^^^^^^^^^^^^ `capturedEditorProps` cannot be reassigned
+  22 |                 return (
+  23 |                     <div
+  24 |                         data-testid="mock-monaco-editor"  react-hooks/globals
+
+D:\algomind\src\components\interview\__tests__\CompanyModeSelector.test.tsx
+  17:16  warning  'table' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\interview\__tests__\ConversationView.content.test.tsx
+  7:26  warning  'within' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  8:36  warning  'beforeAll' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\src\components\interview\__tests__\InterviewSession.mobile.test.tsx
+  2:17  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  3:37  warning  'waitFor' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
 
 D:\algomind\src\components\layout\Navbar.tsx
   76:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
@@ -267,7 +302,7 @@ D:\algomind\src\lib\interview\state-machine.ts
   29:15  warning  'previous' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
 D:\algomind\src\lib\rate-limit\user-rate-limiter.ts
-  97:15  warning  'today' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  98:15  warning  'today' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
 D:\algomind\src\lib\recommendations\engine.ts
   1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')
@@ -279,13 +314,8 @@ D:\algomind\src\lib\spaced-repetition\queue.ts
   128:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 D:\algomind\src\lib\startup\validateEnv.ts
-  58:54  error  The `Function` type accepts any function-like value.
-Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
-
-D:\algomind\src\lib\supabase\__tests__\save-session.test.ts
-   4:10  warning  'CognitiveAnalyzer' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
-  36:9   warning  'mockAnalyzer' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
-  74:49  warning  'data' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  58:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:74  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 D:\algomind\src\lib\tour\steps.ts
   1:10  warning  'disableDemoMode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
@@ -293,6 +323,24 @@ D:\algomind\src\lib\tour\steps.ts
 D:\algomind\src\lib\voice\__tests__\vad-manager.test.ts
   2:42  warning  'VADManager' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
 
-Ô£û 147 problems (1 error, 146 warnings)
+D:\algomind\tests\e2e\interview.spec.ts
+   8:5  warning  'setupInterviewPage' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+   9:5  warning  'waitForInterviewReady' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  11:5  warning  'dismissOnboardingModal' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  12:5  warning  'InterviewPanelPOM' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+D:\algomind\tests\e2e\settings.spec.ts
+  212:15  warning  'hasError' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\algomind\tests\performance\interview-load.spec.ts
+   63:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 171 problems (1 error, 170 warnings)
   0 errors and 8 warnings potentially fixable with the `--fix` option.
 

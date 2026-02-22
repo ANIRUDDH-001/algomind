@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
-import { incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
+import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function POST(req: NextRequest) {
@@ -50,6 +50,12 @@ export async function POST(req: NextRequest) {
         if (user) {
             if (process.env.NODE_ENV === 'development') {
                 console.log(`👤 [Chat API] Authenticated user: ${user.id}`);
+            }
+            if (!guestMode) {
+                const rateLimit = await checkUserRateLimit(user.id);
+                if (!rateLimit.allowed) {
+                    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+                }
             }
         } else if (guestMode) {
             console.log('👀 [Chat API] Guest mode access');
@@ -168,6 +174,10 @@ export async function POST(req: NextRequest) {
 
     } catch (error: unknown) {
         console.error('❌ [Chat API] Error:', error);
+        void logSystemEvent({
+            type: 'model_error',
+            errorMessage: error instanceof Error ? error.message : String(error)
+        });
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

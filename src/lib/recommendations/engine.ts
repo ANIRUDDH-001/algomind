@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 import { UserProgress, CognitiveSkill } from '@/types/assessment';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 

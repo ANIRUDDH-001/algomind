@@ -1,0 +1,147 @@
+/**
+ * Tests for src/lib/startup/validateEnv.ts
+ * Covers validateEnv() and validateDB() functions.
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// ── Mocks ──
+vi.mock('@/lib/supabase/server');
+import { createServerSupabase } from '@/lib/supabase/server';
+
+// Import after mock setup
+import { validateEnv, validateDB } from '../validateEnv';
+
+// ═══════════════════════════════════════════════
+//  validateDB()
+// ═══════════════════════════════════════════════
+describe('validateDB', () => {
+    let mockSupabase: any;
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+        mockSupabase = {
+            rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+            from: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+                }),
+            }),
+        };
+        vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
+    });
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
+    });
+
+    it('1. All RPCs present → no console.error calls, resolves cleanly', async () => {
+        await validateDB();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('2. check_is_admin missing (PGRST202) → console.error with message containing "MISSING RPC: check_is_admin"', async () => {
+        mockSupabase.rpc.mockImplementation((rpcName: string) => {
+            if (rpcName === 'check_is_admin') {
+                return Promise.resolve({ data: null, error: { code: 'PGRST202' } });
+            }
+            return Promise.resolve({ data: true, error: null });
+        });
+
+        await validateDB();
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('MISSING RPC: check_is_admin')
+        );
+    });
+
+    it('3. All 4 critical RPCs missing → 4 console.error calls', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202' } });
+
+        await validateDB();
+
+        const rpcErrors = consoleErrorSpy.mock.calls.filter(
+            (call: unknown[]) => typeof call[0] === 'string' && (call[0] as string).includes('MISSING RPC')
+        );
+        expect(rpcErrors).toHaveLength(4);
+    });
+
+    it('4. DB connection fails entirely → logs warning, does not throw', async () => {
+        vi.mocked(createServerSupabase).mockRejectedValue(new Error('Connection refused'));
+
+        await expect(validateDB()).resolves.toBeUndefined();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('[DB VALIDATION]'),
+            expect.any(Error)
+        );
+    });
+
+    it('5. admin_users table missing → console.error with "MISSING TABLE: admin_users"', async () => {
+        mockSupabase.from.mockImplementation((table: string) => ({
+            select: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: table === 'admin_users' ? { code: '42P01' } : null,
+                }),
+            }),
+        }));
+
+        await validateDB();
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('MISSING TABLE: admin_users')
+        );
+    });
+});
+
+// ═══════════════════════════════════════════════
+//  validateEnv()
+// ═══════════════════════════════════════════════
+describe('validateEnv', () => {
+    const REQUIRED_VARS: Record<string, string> = {
+        NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
+        UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
+        UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
+    };
+
+    let originalEnv: NodeJS.ProcessEnv;
+    let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+        originalEnv = { ...process.env };
+        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+        // Set all required vars
+        for (const [key, value] of Object.entries(REQUIRED_VARS)) {
+            process.env[key] = value;
+        }
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
+        consoleWarnSpy.mockRestore();
+    });
+
+    it('1. All required env vars present → resolves without error', () => {
+        expect(() => validateEnv()).not.toThrow();
+    });
+
+    it('2. Missing NEXT_PUBLIC_SUPABASE_URL → throws critical error', () => {
+        process.env.NEXT_PUBLIC_SUPABASE_URL = undefined as unknown as string;
+        expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: NEXT_PUBLIC_SUPABASE_URL');
+    });
+
+    it('3. Missing CRON_SECRET (high var) → warns but does not throw', () => {
+        delete process.env.CRON_SECRET;
+        expect(() => validateEnv()).not.toThrow();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('HIGH ENV VAR MISSING: CRON_SECRET')
+        );
+    });
+});

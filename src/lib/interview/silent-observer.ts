@@ -71,7 +71,7 @@ Output ONLY the tip text or PASS. Nothing else.`;
             this.lastNudgeAt = Date.now();
             return cleanTip;
 
-        } catch (err) {
+        } catch (_err) {
             // Hot path failure, suppress and die gracefully
             return null;
         }
