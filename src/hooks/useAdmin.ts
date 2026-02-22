@@ -30,7 +30,9 @@ export function useAdmin() {
         setError(null);
 
         // E2E Test Bypass
-        if (typeof document !== 'undefined' && document.cookie.includes('playwright-e2e=true')) {
+        if (process.env.NODE_ENV !== 'production' &&
+            typeof document !== 'undefined' &&
+            document.cookie.includes('playwright-e2e=true')) {
             setIsAdmin(true);
             setLoading(false);
             return;

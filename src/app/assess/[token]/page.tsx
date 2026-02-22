@@ -11,7 +11,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ tok
 
     const { data: campaign, error } = await supabase
         .from('assessment_campaigns')
-        .select('id, title, description, problem_id, time_limit_mins, max_uses, show_score_to_candidate, public_token, expires_at, uses_count, is_active')
+        .select('id, title, problem_id, time_limit_mins, max_uses, show_score_to_candidate, public_token, expires_at, uses_count, is_active')
         .eq('public_token', token)
         .single();
 

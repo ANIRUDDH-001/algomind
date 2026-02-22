@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import * as jose from 'jose';
 import { CognitiveAnalyzer } from '@/lib/assessment/analyzer';
 import { validateEnv } from '@/lib/startup/validateEnv';
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
         const secret = new TextEncoder().encode(serviceKey);
 
         const supabase = await createServerSupabase();
+        const supabaseAdmin = getServiceClient();
 
         // 1. Validate candidate JWT securely
         let payload;
@@ -107,7 +109,7 @@ export async function POST(req: NextRequest) {
         // 5. Insert Interview Session with null user_id so it never appears in employer
         //    dashboard queries (which filter by user_id). Link back to employer is via
         //    candidate_submissions.session_id set in step 7.
-        const { data: sessionData, error: sessionError } = await supabase
+        const { data: sessionData, error: sessionError } = await supabaseAdmin
             .from('interview_sessions')
             .insert({
                 user_id: null,              // Candidate sessions are not owned by any user
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 6. Insert detailed Assessment
-        const { data: _assessmentData, error: assessmentError } = await supabase
+        const { data: _assessmentData, error: assessmentError } = await supabaseAdmin
             .from('assessments')
             .insert({
                 session_id: sessionData.id,
@@ -154,13 +156,12 @@ export async function POST(req: NextRequest) {
         }
 
         // 7. Update Candidate Submission status
-        const { error: finalSubError } = await supabase
+        const { error: finalSubError } = await supabaseAdmin
             .from('candidate_submissions')
             .update({
                 status: 'completed',
                 session_id: sessionData.id,
-                overall_score: overallScore,
-                completed_at: new Date().toISOString()
+                overall_score: overallScore
             })
             .eq('id', submissionId);
 

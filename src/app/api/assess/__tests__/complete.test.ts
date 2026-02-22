@@ -5,9 +5,11 @@ import { NextRequest } from 'next/server';
 import * as jose from 'jose';
 
 vi.mock('@/lib/supabase/server');
+vi.mock('@/lib/supabase/service');
 vi.mock('@/lib/startup/validateEnv', () => ({
     validateEnv: vi.fn(),
 }));
+import { getServiceClient } from '@/lib/supabase/service';
 
 const mockAnalyze = vi.fn();
 vi.mock('@/lib/assessment/analyzer', () => ({
@@ -97,6 +99,8 @@ describe('Assess Complete API (/api/assess/complete)', () => {
             overallFeedback: 'Good job',
             nextSteps: 'Keep practicing',
         });
+
+        vi.mocked(getServiceClient).mockReturnValue(buildSupabaseMock() as any);
     });
 
     afterEach(() => {

@@ -108,7 +108,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         } catch (err) {
             console.error('Failed to load submissions', err);
         } finally {
-            setIsLoadingSubmissions(true);
+            setIsLoadingSubmissions(false);
         }
     };
 

@@ -7,7 +7,8 @@ import { cookies } from 'next/headers';
 export async function requireAdmin(): Promise<User> {
     // E2E Test Bypass
     const cookieStore = await cookies();
-    if (cookieStore.get('playwright-e2e')?.value === 'true') {
+    if (process.env.NODE_ENV !== 'production' &&
+        cookieStore.get('playwright-e2e')?.value === 'true') {
         return { id: 'test-user', email: 'admin@algomind.dev' } as User;
     }
 

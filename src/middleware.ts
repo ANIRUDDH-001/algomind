@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -37,6 +37,7 @@ export async function proxy(request: NextRequest) {
     const isSettings = pathname.startsWith('/settings');
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
+    const isEmployerDash = pathname.startsWith('/employer/dashboard');
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -55,9 +56,10 @@ export async function proxy(request: NextRequest) {
 
     // Redirect to login if accessing protected route without user
     // Bypass for Playwright E2E testing to allow client-side mocking
-    const isE2ETest = request.cookies.get('playwright-e2e')?.value === 'true';
+    const isE2ETest = process.env.NODE_ENV !== 'production' &&
+        request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
-        if (isDashboard || isSettings || isAdmin) {
+        if (isDashboard || isSettings || isAdmin || isEmployerDash) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             return NextResponse.redirect(url);

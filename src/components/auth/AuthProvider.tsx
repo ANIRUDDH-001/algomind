@@ -48,7 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Get initial session
         const initSession = async () => {
             // E2E Test Bypass
-            if (typeof document !== 'undefined' && document.cookie.includes('playwright-e2e=true')) {
+            if (process.env.NODE_ENV !== 'production' &&
+                typeof document !== 'undefined' &&
+                document.cookie.includes('playwright-e2e=true')) {
                 if (mounted) {
                     // Provide a fake session so routing works
                     setSession({} as Session);
