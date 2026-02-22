@@ -26,7 +26,7 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
 
     filtered.forEach(voice => {
         // Normalize name: "Google US English" -> "googleusenglish"
-        const cleanName = voice.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanName = voice.name.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
 
 
         // If we already have a voice with this "clean name", usually keep the shorter one
