@@ -1,69 +1,285 @@
 "use client"
 
-import React from "react"
-import { GripVertical } from "lucide-react"
-import { Panel, Group, Separator } from "react-resizable-panels"
+/**
+ * ZERO-DEPENDENCY resizable panels.
+ * Replaces react-resizable-panels entirely — the v4 library API is incompatible
+ * and causes panels to render at near-zero width regardless of defaultSize.
+ *
+ * Drop-in replacement: same export names, same prop names, no other files change.
+ */
 
+import React, {
+    useRef,
+    useState,
+    useCallback,
+    useEffect,
+    useId,
+    createContext,
+    useContext,
+    type CSSProperties,
+    type ReactNode,
+} from "react"
+import { GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const ResizablePanelGroup = ({
-    className,
+// ─── Context ──────────────────────────────────────────────────────────────────
+
+interface PanelMeta {
+    defaultSize: number
+    minSize: number
+    maxSize: number
+}
+
+interface GroupCtx {
+    direction: "horizontal" | "vertical"
+    sizes: number[]
+    setSizes: React.Dispatch<React.SetStateAction<number[]>>
+    containerRef: React.RefObject<HTMLDivElement | null>
+    registerPanel: (id: string, meta: PanelMeta) => void
+    getIndex: (id: string) => number
+}
+
+const GroupCtx = createContext<GroupCtx | null>(null)
+
+function useGroupCtx() {
+    const ctx = useContext(GroupCtx)
+    if (!ctx) throw new Error("ResizablePanel must be inside ResizablePanelGroup")
+    return ctx
+}
+
+// ─── ResizablePanelGroup ──────────────────────────────────────────────────────
+
+interface ResizablePanelGroupProps {
+    direction?: "horizontal" | "vertical"
+    className?: string
+    style?: CSSProperties
+    children?: ReactNode
+    id?: string
+    onLayout?: (sizes: number[]) => void
+}
+
+function ResizablePanelGroup({
     direction = "horizontal",
-    style,
-    ...props
-}: React.ComponentProps<typeof Group> & { direction?: "horizontal" | "vertical" }) => (
-    <Group
-        className={cn(
-            "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
-            className
-        )}
-        // v4 API: direction is a CSS custom property, NOT a JSX prop.
-        // The library reads --panel-group-direction from the element's style to
-        // determine layout, set data-panel-group-direction, and wire drag handles.
-        style={{
-            "--panel-group-direction": direction,
-            ...style,
-        } as React.CSSProperties}
-        {...props}
-    />
-)
-
-const ResizablePanel = Panel
-
-const ResizableHandle = ({
-    withHandle,
     className,
-    ...props
-}: React.ComponentProps<typeof Separator> & {
-    withHandle?: boolean
-}) => (
-    <Separator
-        className={cn(
-            // 8px wide hit area — wide enough to grab without hunting for 1px
-            "relative flex w-2 shrink-0 items-center justify-center bg-transparent",
-            // Inner visible divider via ::before so the hit area stays full-width
-            "before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-slate-800 before:transition-colors",
-            // Hover: widen the visible bar
-            "hover:before:w-0.5 hover:before:bg-slate-600",
-            // Active drag state
-            "data-[resize-handle-active]:before:bg-blue-500",
-            // Keyboard focus ring
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
-            // Correct cursors per direction
-            "data-[panel-group-direction=vertical]:h-2 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:cursor-row-resize",
-            "data-[panel-group-direction=horizontal]:cursor-col-resize",
-            // Rotate grip icon for vertical panels
-            "[&[data-panel-group-direction=vertical]>div]:rotate-90",
-            className
-        )}
-        {...props}
-    >
-        {withHandle && (
-            <div className="z-10 flex h-6 w-3 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 shadow-md">
-                <GripVertical className="h-3 w-3 text-slate-500" />
+    style,
+    children,
+}: ResizablePanelGroupProps) {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const orderRef = useRef<string[]>([])
+    const metaRef = useRef<Map<string, PanelMeta>>(new Map())
+    const [sizes, setSizes] = useState<number[]>([])
+    const initialised = useRef(false)
+
+    const registerPanel = useCallback((id: string, meta: PanelMeta) => {
+        if (!metaRef.current.has(id)) {
+            metaRef.current.set(id, meta)
+            orderRef.current.push(id)
+        }
+    }, [])
+
+    const getIndex = useCallback((id: string) => orderRef.current.indexOf(id), [])
+
+    // Initialise sizes after first render (all panels registered)
+    useEffect(() => {
+        if (initialised.current || orderRef.current.length === 0) return
+        initialised.current = true
+        const ids = orderRef.current
+        let total = 0
+        const raw = ids.map((id) => {
+            const d = metaRef.current.get(id)?.defaultSize ?? 33
+            total += d
+            return d
+        })
+        setSizes(raw.map((s) => (s / total) * 100))
+    })
+
+    return (
+        <GroupCtx.Provider value={{ direction, sizes, setSizes, containerRef, registerPanel, getIndex }}>
+            <div
+                ref={containerRef}
+                className={cn(
+                    "flex h-full w-full overflow-hidden",
+                    direction === "horizontal" ? "flex-row" : "flex-col",
+                    className
+                )}
+                style={style}
+            >
+                {children}
             </div>
-        )}
-    </Separator>
-)
+        </GroupCtx.Provider>
+    )
+}
+
+// ─── ResizablePanel ───────────────────────────────────────────────────────────
+
+interface ResizablePanelProps {
+    defaultSize?: number
+    minSize?: number
+    maxSize?: number
+    id?: string
+    className?: string
+    style?: CSSProperties
+    children?: ReactNode
+    collapsible?: boolean
+    collapsedSize?: number
+    onCollapse?: () => void
+    onExpand?: () => void
+    onResize?: (size: number) => void
+}
+
+function ResizablePanel({
+    defaultSize = 33,
+    minSize = 10,
+    maxSize = 90,
+    id: idProp,
+    className,
+    style,
+    children,
+}: ResizablePanelProps) {
+    const autoId = useId()
+    const id = idProp ?? autoId
+    const { registerPanel, getIndex, sizes, direction } = useGroupCtx()
+
+    // Register synchronously before render — only once
+    const didRegister = useRef(false)
+    if (!didRegister.current) {
+        didRegister.current = true
+        registerPanel(id, { defaultSize, minSize, maxSize })
+    }
+
+    const index = getIndex(id)
+    const pct = sizes[index]
+
+    const sizeStyle: CSSProperties =
+        pct !== undefined
+            ? direction === "horizontal"
+                ? { width: `${pct}%`, minWidth: `${minSize}%`, maxWidth: `${maxSize}%`, flexShrink: 0 }
+                : { height: `${pct}%`, minHeight: `${minSize}%`, maxHeight: `${maxSize}%`, flexShrink: 0 }
+            : { flex: "1 1 0" }
+
+    return (
+        <div
+            data-panel-id={id}
+            className={cn("overflow-hidden", className)}
+            style={{ ...sizeStyle, ...style }}
+        >
+            {children}
+        </div>
+    )
+}
+
+// ─── ResizableHandle ─────────────────────────────────────────────────────────
+
+interface ResizableHandleProps {
+    withHandle?: boolean
+    className?: string
+    id?: string
+}
+
+function ResizableHandle({ withHandle, className }: ResizableHandleProps) {
+    const { direction, sizes, setSizes, containerRef } = useGroupCtx()
+    const handleRef = useRef<HTMLDivElement>(null)
+    const dragState = useRef<{ startPos: number; startSizes: number[]; handleIdx: number } | null>(null)
+
+    // Determine this handle's index among all handles in the container
+    const getHandleIndex = useCallback(() => {
+        if (!handleRef.current || !containerRef.current) return -1
+        const handles = Array.from(containerRef.current.querySelectorAll("[data-resize-handle]"))
+        return handles.indexOf(handleRef.current)
+    }, [containerRef])
+
+    const onMouseDown = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault()
+            const hi = getHandleIndex()
+            if (hi === -1) return
+
+            dragState.current = {
+                startPos: direction === "horizontal" ? e.clientX : e.clientY,
+                startSizes: [...sizes],
+                handleIdx: hi,
+            }
+
+            if (handleRef.current) {
+                handleRef.current.setAttribute("data-resize-handle-active", "true")
+            }
+
+            const onMove = (ev: MouseEvent) => {
+                if (!dragState.current || !containerRef.current) return
+                const { startPos, startSizes, handleIdx } = dragState.current
+
+                const totalPx =
+                    direction === "horizontal"
+                        ? containerRef.current.getBoundingClientRect().width
+                        : containerRef.current.getBoundingClientRect().height
+                if (totalPx === 0) return
+
+                const curPos = direction === "horizontal" ? ev.clientX : ev.clientY
+                const deltaPct = ((curPos - startPos) / totalPx) * 100
+
+                const leftIdx = handleIdx
+                const rightIdx = handleIdx + 1
+
+                setSizes((prev) => {
+                    if (leftIdx >= prev.length || rightIdx >= prev.length) return prev
+                    const newLeft = startSizes[leftIdx] + deltaPct
+                    const newRight = startSizes[rightIdx] - deltaPct
+                    // Hard floor of 5% to prevent total collapse
+                    if (newLeft < 5 || newRight < 5) return prev
+                    const next = [...prev]
+                    next[leftIdx] = newLeft
+                    next[rightIdx] = newRight
+                    return next
+                })
+            }
+
+            const onUp = () => {
+                dragState.current = null
+                if (handleRef.current) {
+                    handleRef.current.removeAttribute("data-resize-handle-active")
+                }
+                window.removeEventListener("mousemove", onMove)
+                window.removeEventListener("mouseup", onUp)
+            }
+
+            window.addEventListener("mousemove", onMove)
+            window.addEventListener("mouseup", onUp)
+        },
+        [direction, sizes, setSizes, containerRef, getHandleIndex]
+    )
+
+    const isHoriz = direction === "horizontal"
+
+    return (
+        <div
+            ref={handleRef}
+            data-resize-handle=""
+            role="separator"
+            tabIndex={0}
+            aria-orientation={isHoriz ? "vertical" : "horizontal"}
+            onMouseDown={onMouseDown}
+            className={cn(
+                "relative flex shrink-0 select-none items-center justify-center bg-transparent",
+                "before:absolute before:bg-slate-800 before:transition-colors",
+                "hover:before:bg-slate-600",
+                "[&[data-resize-handle-active]]:before:bg-blue-500",
+                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+                isHoriz
+                    ? "w-2 cursor-col-resize flex-col before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2"
+                    : "h-2 w-full cursor-row-resize flex-row before:inset-x-0 before:top-1/2 before:h-px before:-translate-y-1/2",
+                className
+            )}
+        >
+            {withHandle && (
+                <div className={cn(
+                    "z-10 flex items-center justify-center rounded-sm border border-slate-700 bg-slate-900 shadow-md",
+                    isHoriz ? "h-6 w-3" : "h-3 w-6"
+                )}>
+                    <GripVertical className={cn("h-3 w-3 text-slate-500", !isHoriz && "rotate-90")} />
+                </div>
+            )}
+        </div>
+    )
+}
 
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
