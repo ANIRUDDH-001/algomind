@@ -44,9 +44,7 @@ export function Navbar() {
 
     const dashboardHref = accountType === 'employer'
         ? '/employer/dashboard'
-        : accountType === 'admin'
-            ? '/admin/knowledge'
-            : '/dashboard';
+        : '/dashboard';
 
     useEffect(() => {
         setIsDemo(isDemoMode());
