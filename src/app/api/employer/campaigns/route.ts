@@ -32,7 +32,29 @@ export async function GET(_req: NextRequest) {
             throw error;
         }
 
-        return NextResponse.json({ campaigns: data });
+        const campaignIds = data?.map(c => c.id) || [];
+        const countsMap: Record<string, number> = {};
+
+        if (campaignIds.length > 0) {
+            const { data: subData, error: subError } = await supabase
+                .from('candidate_submissions')
+                .select('campaign_id')
+                .in('campaign_id', campaignIds)
+                .eq('status', 'completed');
+
+            if (!subError && subData) {
+                subData.forEach(sub => {
+                    countsMap[sub.campaign_id] = (countsMap[sub.campaign_id] || 0) + 1;
+                });
+            }
+        }
+
+        const campaignsWithCounts = data?.map(c => ({
+            ...c,
+            completed_count: countsMap[c.id] || 0
+        })) || [];
+
+        return NextResponse.json({ campaigns: campaignsWithCounts });
     } catch (error: unknown) {
         console.error('[CAMPAIGNS_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

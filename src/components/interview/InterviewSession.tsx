@@ -52,6 +52,14 @@ interface InterviewSessionProps {
     ragContext?: string;
     remainingQuestions?: number;
     isReviewMode?: boolean;
+
+    // Assessment capabilities
+    isAssessment?: boolean;
+    assessmentSessionToken?: string;
+    assessmentApiEndpoint?: string;
+    timeLimitMins?: number;
+    startTimeOffsetSeconds?: number;
+    onAssessmentComplete?: (durationSecs: number, transcript: { speaker: string, text: string }[]) => Promise<void>;
 }
 
 export function InterviewSession({
@@ -61,7 +69,13 @@ export function InterviewSession({
     isGuest = false,
     ragContext,
     remainingQuestions,
-    isReviewMode = false
+    isReviewMode = false,
+    isAssessment = false,
+    assessmentSessionToken,
+    assessmentApiEndpoint,
+    timeLimitMins,
+    startTimeOffsetSeconds,
+    onAssessmentComplete
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -127,7 +141,10 @@ export function InterviewSession({
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
-    const limits = useInterviewLimits();
+    const limits = useInterviewLimits({
+        maxDurationMins: timeLimitMins,
+        startTimeOffsetSeconds
+    });
     const guestTrial = useGuestTrial(isGuest);
 
     // --- 3. Interview Logic & Callbacks ---
@@ -169,6 +186,8 @@ export function InterviewSession({
     } = useInterview({
         vadEnabled,
         isReviewMode,
+        apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
+        sessionToken: isAssessment ? assessmentSessionToken : undefined,
         onUserMessage: handleUserMessage
     });
 
@@ -206,7 +225,7 @@ export function InterviewSession({
 
         return () => clearInterval(interval);
         // messages intentionally removed — accessed via messagesRef to prevent interval restart on each turn
-         
+
     }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing]);
 
     useEffect(() => {
@@ -300,12 +319,12 @@ export function InterviewSession({
         }
     }, [user, problem, isGuest, messages]);
 
-    // Trigger save when assessment is complete
+    // Trigger save when assessment is complete (standard users only, assessments handle saving externally)
     useEffect(() => {
-        if (state === 'completed' && result && !isGuest && !readOnly) {
+        if (state === 'completed' && result && !isGuest && !readOnly && !isAssessment) {
             handleSaveSession(result);
         }
-    }, [state, result, isGuest, readOnly, handleSaveSession]);
+    }, [state, result, isGuest, readOnly, isAssessment, handleSaveSession]);
 
 
     // Adds user code to the interview context so AI can critique it
@@ -332,27 +351,39 @@ export function InterviewSession({
 
         setError(null); // Clear any previous errors
 
-        // Trigger Analysis
+        // Trigger Analysis for standard users OR call onAssessmentComplete for assessments
         const transcript = messages.map(m => ({ role: m.role, content: m.content }));
+        const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
 
-        try {
-            const assessment = await analyzeSession(
-                `sess-${Date.now()}`,
-                { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
-                transcript
-            );
-
-            if (!assessment) {
-                console.error("❌ Analysis returned null - check assessmentError state");
-                setError("Assessment failed. Please try again or check the console for details.");
-                return;
+        if (isAssessment && onAssessmentComplete) {
+            try {
+                // Assessment logic
+                await onAssessmentComplete(durationSecs, transcript.map(m => ({
+                    speaker: m.role === 'assistant' ? 'ai' : 'user',
+                    text: m.content
+                })));
+            } catch (err: unknown) {
+                console.error("❌ Assessment error:", err);
+                setError(err instanceof Error ? err.message : "Failed to submit assessment.");
             }
+        } else {
+            try {
+                // Standard analysis logic
+                const assessment = await analyzeSession(
+                    `sess-${Date.now()}`,
+                    { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
+                    transcript
+                );
 
-            // Session saving is handled by the server action (handleSaveSession)
-            // triggered by the useEffect watching state === 'completed'
-        } catch (err: unknown) {
-            console.error("❌ Assessment error:", err);
-            setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
+                if (!assessment) {
+                    console.error("❌ Analysis returned null - check assessmentError state");
+                    setError("Assessment failed. Please try again or check the console for details.");
+                    return;
+                }
+            } catch (err: unknown) {
+                console.error("❌ Assessment error:", err);
+                setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
+            }
         }
 
         // Stop timer

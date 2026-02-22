@@ -26,6 +26,9 @@ describe('Assess Start API (/api/assess/start)', () => {
                 data: [{ id: 'campaign-123', problem_id: 'prob-123', time_limit_mins: 45 }],
                 error: null
             }),
+            auth: {
+                getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+            },
             from: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),

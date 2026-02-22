@@ -40,73 +40,114 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Atomically claim a campaign slot using internal id.
-        //    claim_campaign_slot() return type includes all columns we need.
-        const { data: campaign, error: claimError } = await supabase
-            .rpc('claim_campaign_slot', { p_campaign_id: campaignRef.id });
+        // Get authenticated user for the submission
+        const { data: { user } } = await supabase.auth.getUser();
 
-        if (claimError || !campaign || campaign.length === 0) {
-            return NextResponse.json(
-                { error: 'This assessment link has reached its maximum number of uses or is no longer available.' },
-                { status: 403 }
-            );
-        }
+        let submissionId;
+        let selectedProblemId;
+        let campaignData;
+        let startedAt;
+        let existingTranscript;
 
-        const campaignData = campaign[0]; // RPC returns a table — take the first row
+        // 2. Check for an existing in-progress session for this user + campaign
+        if (user) {
+            const { data: existingSub } = await supabase
+                .from('candidate_submissions')
+                .select('id, assigned_problem_id, created_at, current_transcript')
+                .eq('campaign_id', campaignRef.id)
+                .eq('candidate_id', user.id)
+                .eq('status', 'in_progress')
+                .single();
 
-        // Ensure we handle missing assignment_mode gracefully (fall back to fixed)
-        const mode = campaignData.assignment_mode || 'fixed';
-        let selectedProblemId = campaignData.problem_id;
+            if (existingSub) {
+                submissionId = existingSub.id;
+                selectedProblemId = existingSub.assigned_problem_id;
+                startedAt = existingSub.created_at;
+                existingTranscript = existingSub.current_transcript || [];
 
-        if (mode === 'pool' && Array.isArray(campaignData.question_pool) && campaignData.question_pool.length > 0) {
-            // Pick a random problem ID from the pool
-            const pool = campaignData.question_pool;
-            selectedProblemId = pool[Math.floor(Math.random() * pool.length)];
-        } else if (mode === 'random_difficulty' && campaignData.pool_difficulty) {
-            // Fetch all problem IDs matching the difficulty and select one randomly
-            const { data: difficultyMatch, error: difficultyError } = await supabase
-                .from('problems')
-                .select('id')
-                .eq('difficulty', campaignData.pool_difficulty);
-
-            if (!difficultyError && difficultyMatch && difficultyMatch.length > 0) {
-                selectedProblemId = difficultyMatch[Math.floor(Math.random() * difficultyMatch.length)].id;
+                // Fetch campaign details without claiming a slot
+                const { data: existingCampaign } = await supabase
+                    .from('assessment_campaigns')
+                    .select('*')
+                    .eq('id', campaignRef.id)
+                    .single();
+                campaignData = existingCampaign;
             }
         }
 
-        if (!selectedProblemId) {
-            return NextResponse.json({ error: 'Campaign misconfigured: No valid problem could be selected' }, { status: 400 });
+        // 3. If no existing session, claim a slot and create a new submission
+        if (!submissionId) {
+            const { data: campaign, error: claimError } = await supabase
+                .rpc('claim_campaign_slot', { p_campaign_id: campaignRef.id });
+
+            if (claimError || !campaign || campaign.length === 0) {
+                return NextResponse.json(
+                    { error: 'This assessment link has reached its maximum number of uses or is no longer available.' },
+                    { status: 403 }
+                );
+            }
+
+            campaignData = campaign[0];
+
+            // Ensure we handle missing assignment_mode gracefully (fall back to fixed)
+            const mode = campaignData.assignment_mode || 'fixed';
+            selectedProblemId = campaignData.problem_id;
+
+            if (mode === 'pool' && Array.isArray(campaignData.question_pool) && campaignData.question_pool.length > 0) {
+                // Pick a random problem ID from the pool
+                const pool = campaignData.question_pool;
+                selectedProblemId = pool[Math.floor(Math.random() * pool.length)];
+            } else if (mode === 'random_difficulty' && campaignData.pool_difficulty) {
+                // Fetch all problem IDs matching the difficulty and select one randomly
+                const { data: difficultyMatch, error: difficultyError } = await supabase
+                    .from('problems')
+                    .select('id')
+                    .eq('difficulty', campaignData.pool_difficulty);
+
+                if (!difficultyError && difficultyMatch && difficultyMatch.length > 0) {
+                    selectedProblemId = difficultyMatch[Math.floor(Math.random() * difficultyMatch.length)].id;
+                }
+            }
+
+            if (!selectedProblemId) {
+                return NextResponse.json({ error: 'Campaign misconfigured: No valid problem could be selected' }, { status: 400 });
+            }
+
+            // Fallback for older existing submissions missing an assigned problem
+            // If they had an old session but no assigned_problem_id, we wouldn't reach here normally, 
+            // but if we do, this will insert correctly.
+
+            const { data: newSubmission, error: submissionError } = await supabase
+                .from('candidate_submissions')
+                .insert({
+                    campaign_id: campaignData.id,
+                    candidate_id: user?.id || null,
+                    candidate_name: candidateName,
+                    candidate_email: candidateEmail || null,
+                    status: 'in_progress',
+                    assigned_problem_id: selectedProblemId // Save dynamically assigned problem
+                })
+                .select('id, created_at')
+                .single();
+
+            if (submissionError) {
+                throw submissionError;
+            }
+            submissionId = newSubmission.id;
+            startedAt = newSubmission.created_at;
+            existingTranscript = [];
         }
 
-        // 3. Fetch Selected Problem Details
+        // 4. Fetch Selected Problem Details
+        const actualProblemId = selectedProblemId || campaignData?.problem_id;
         const { data: problem, error: problemError } = await supabase
             .from('problems')
             .select('*')
-            .eq('id', selectedProblemId)
+            .eq('id', actualProblemId)
             .single();
 
         if (problemError || !problem) {
             return NextResponse.json({ error: 'Associated problem not found' }, { status: 404 });
-        }
-
-        // Get authenticated user for the submission
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // 3. Create Submission record
-        const { data: submission, error: submissionError } = await supabase
-            .from('candidate_submissions')
-            .insert({
-                campaign_id: campaignData.id,
-                candidate_id: user?.id || null, // Link to the authenticated user
-                candidate_name: candidateName,
-                candidate_email: candidateEmail || null,
-                status: 'in_progress'
-            })
-            .select('id')
-            .single();
-
-        if (submissionError) {
-            throw submissionError;
         }
 
         // 4. Create local session JWT
@@ -117,7 +158,7 @@ export async function POST(req: NextRequest) {
         const exp = Math.floor(Date.now() / 1000) + (expiryTimeMins * 60);
 
         const sessionToken = await new jose.SignJWT({
-            submissionId: submission.id,
+            submissionId: submissionId,
             campaignId: campaignData.id,
         })
             .setProtectedHeader({ alg })
@@ -128,7 +169,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             sessionToken,
             problem,
-            submissionId: submission.id
+            submissionId: submissionId,
+            startedAt,
+            existingTranscript,
+            timeLimitMins: campaignData.time_limit_mins
         });
 
     } catch (error: unknown) {

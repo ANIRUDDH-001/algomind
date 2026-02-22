@@ -84,6 +84,9 @@ function DashboardContent() {
         };
 
         fetchLeetcodeProfile();
+
+        window.addEventListener('leetcode-connected', fetchLeetcodeProfile);
+        return () => window.removeEventListener('leetcode-connected', fetchLeetcodeProfile);
     }, [progress?.userId]);
 
     // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions (cached)
