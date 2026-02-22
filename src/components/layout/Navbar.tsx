@@ -184,6 +184,16 @@ export function Navbar() {
                                                 Settings
                                             </DropdownMenuItem>
 
+                                            {accountType === 'candidate' && (
+                                                <DropdownMenuItem
+                                                    onClick={() => router.push('/employer')}
+                                                    className="text-green-400 hover:bg-green-900/30 hover:text-green-300 cursor-pointer focus:bg-green-900/40 rounded-xl px-3 py-2 text-xs font-bold"
+                                                >
+                                                    <Briefcase className="mr-2 h-4 w-4" />
+                                                    Employer Invite?
+                                                </DropdownMenuItem>
+                                            )}
+
                                             {/* Admin button - only visible to admins */}
                                             {isAdmin && (
                                                 <DropdownMenuItem
