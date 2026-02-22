@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { GripVertical } from "lucide-react"
 import { Panel, Group, Separator } from "react-resizable-panels"
 
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils"
 const ResizablePanelGroup = ({
     className,
     direction = "horizontal",
+    style,
     ...props
 }: React.ComponentProps<typeof Group> & { direction?: "horizontal" | "vertical" }) => (
     <Group
@@ -15,7 +17,13 @@ const ResizablePanelGroup = ({
             "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
             className
         )}
-        orientation={direction}
+        // v4 API: direction is a CSS custom property, NOT a JSX prop.
+        // The library reads --panel-group-direction from the element's style to
+        // determine layout, set data-panel-group-direction, and wire drag handles.
+        style={{
+            "--panel-group-direction": direction,
+            ...style,
+        } as React.CSSProperties}
         {...props}
     />
 )
