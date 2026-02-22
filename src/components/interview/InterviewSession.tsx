@@ -1081,7 +1081,6 @@ export function InterviewSession({
             <div className="hidden lg:flex flex-1 flex-col p-4 min-h-0">
                 <ResizablePanelGroup
                     direction="horizontal"
-                    id="interview_panels_v2"
                     className="h-full rounded-xl border border-slate-800/50 bg-slate-950/30"
                 >
 
