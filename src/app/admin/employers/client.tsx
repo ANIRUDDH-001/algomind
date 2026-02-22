@@ -162,7 +162,7 @@ export default function EmployersClient() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-400 mb-1">Email (Optional)</label>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">Email *</label>
                                 <input
                                     type="email"
                                     value={email}
@@ -170,6 +170,7 @@ export default function EmployersClient() {
                                     placeholder="ceo@acme.com"
                                     className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     disabled={isCreating}
+                                    required
                                 />
                             </div>
                             <div>

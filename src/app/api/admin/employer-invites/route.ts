@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'companyName is required' }, { status: 400 });
     }
 
+    if (!email || typeof email !== 'string') {
+        return NextResponse.json({ error: 'Email is required to generate an employer invite' }, { status: 400 });
+    }
+
     const inviteCode = nanoid(10);
     const serviceClient = getServiceClient();
 
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest) {
         .from('employer_invites')
         .insert({
             invite_code: inviteCode,
-            email: email || null,
+            email: email.trim().toLowerCase(),
             company_name: companyName.trim(),
             expires_at: expiresAt || null,
             created_by: user.id
