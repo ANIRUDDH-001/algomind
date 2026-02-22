@@ -2,21 +2,20 @@ import { NextResponse } from "next/server";
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
 
-
+const MASTER_ADMIN_EMAIL = 'aniruddhvijay2k7@gmail.com';
 
 export async function GET() {
     try {
-        const { user, errorResponse } = await requireAdminForApi();
+        const { errorResponse } = await requireAdminForApi();
         if (errorResponse) return errorResponse;
 
         const supabaseAdmin = getServiceClient();
         const { data: admins, error } = await supabaseAdmin
-            .from('adminusers')
-            .select('id, email, added_at')
+            .from('admin_users') // ← FIXED: was 'adminusers'
+            .select('id, email, name, added_at, added_by')
             .order('added_at', { ascending: false });
 
         if (error) throw error;
-
         return NextResponse.json(admins || []);
     } catch (error) {
         return NextResponse.json(
@@ -41,7 +40,7 @@ export async function POST(request: Request) {
         const supabaseAdmin = getServiceClient();
 
         const { data: existing } = await supabaseAdmin
-            .from('adminusers')
+            .from('admin_users') // ← FIXED
             .select('id')
             .eq('email', email)
             .maybeSingle();
@@ -51,11 +50,10 @@ export async function POST(request: Request) {
         }
 
         const { error } = await supabaseAdmin
-            .from('adminusers')
-            .insert({ email, added_by: user.email });
+            .from('admin_users') // ← FIXED
+            .insert({ email, added_by: user!.email });
 
         if (error) throw error;
-
         return NextResponse.json({ success: true, email });
     } catch (error) {
         return NextResponse.json(
@@ -67,7 +65,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const { user, errorResponse } = await requireAdminForApi();
+        const { errorResponse } = await requireAdminForApi();
         if (errorResponse) return errorResponse;
 
         const body = await request.json();
@@ -77,10 +75,18 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
+        // ← NEW: Protect master admin
+        if (email === MASTER_ADMIN_EMAIL) {
+            return NextResponse.json(
+                { error: "Cannot delete master admin" },
+                { status: 403 }
+            );
+        }
+
         const supabaseAdmin = getServiceClient();
 
         const { count, error: countError } = await supabaseAdmin
-            .from('adminusers')
+            .from('admin_users') // ← FIXED
             .select('*', { count: 'exact', head: true });
 
         if (countError) throw countError;
@@ -90,12 +96,11 @@ export async function DELETE(request: Request) {
         }
 
         const { error } = await supabaseAdmin
-            .from('adminusers')
+            .from('admin_users') // ← FIXED
             .delete()
             .eq('email', email);
 
         if (error) throw error;
-
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json(

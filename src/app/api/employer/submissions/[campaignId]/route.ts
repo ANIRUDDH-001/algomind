@@ -25,28 +25,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             return NextResponse.json({ error: 'Campaign not found or unauthorized' }, { status: 404 });
         }
 
-        // 2. Fetch all submissions matching the campaign
+        // 2. Fetch all submissions matching the campaign (Step 1 of two-step query)
         const { data: submissions, error: submissionsError } = await supabase
             .from('candidate_submissions')
-            .select(`
-                id,
-                candidate_name,
-                candidate_email,
-                status,
-                overall_score,
-                created_at,
-                assessments (
-                    problem_decomposition,
-                    pattern_recognition,
-                    algorithmic_thinking,
-                    complexity_analysis,
-                    communication_clarity,
-                    edge_case_awareness,
-                    optimization_mindset,
-                    debugging_approach,
-                    overall_feedback
-                )
-            `)
+            .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at')
             .eq('campaign_id', campaignId)
             .order('overall_score', { ascending: false, nullsFirst: false });
 
@@ -54,34 +36,51 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             throw submissionsError;
         }
 
-        // Compute rank based on sorted order. Items without an overall score fall to the bottom.
+        // 3. Fetch related assessments (Step 2 of two-step query)
+        const sessionIds = (submissions || [])
+            .map(s => s.session_id)
+            .filter(Boolean) as string[];
+
+        let assessments: any[] = [];
+        if (sessionIds.length > 0) {
+            const { data: assessmentsData, error: assessmentsError } = await supabase
+                .from('assessments')
+                .select('*')
+                .in('session_id', sessionIds);
+
+            if (assessmentsError) throw assessmentsError;
+            assessments = assessmentsData || [];
+        }
+
+        const assessmentMap = new Map(assessments.map(a => [a.session_id, a]));
+
+        // 4. Compute rank and flatten data structure
         let currentRank = 1;
-        const rankedSubmissions = submissions.map((sub, _index) => {
+        const rankedSubmissions = (submissions || []).map((sub) => {
             const hasScore = typeof sub.overall_score === 'number' || !isNaN(Number(sub.overall_score));
             const rank = hasScore && sub.overall_score !== null ? currentRank++ : null;
 
-            // Extract embedded assessment details safely
-            const assessment = Array.isArray(sub.assessments) ? sub.assessments[0] : sub.assessments;
+            const assessment = sub.session_id ? assessmentMap.get(sub.session_id) : null;
 
             return {
                 id: sub.id,
+                campaign_id: campaignId,
                 candidate_name: sub.candidate_name,
                 candidate_email: sub.candidate_email,
                 status: sub.status,
                 overall_score: sub.overall_score,
                 created_at: sub.created_at,
                 rank,
-                skills: assessment ? {
-                    problem_decomposition: assessment.problem_decomposition,
-                    pattern_recognition: assessment.pattern_recognition,
-                    algorithmic_thinking: assessment.algorithmic_thinking,
-                    complexity_analysis: assessment.complexity_analysis,
-                    communication_clarity: assessment.communication_clarity,
-                    edge_case_awareness: assessment.edge_case_awareness,
-                    optimization_mindset: assessment.optimization_mindset,
-                    debugging_approach: assessment.debugging_approach
-                } : null,
-                feedback: assessment?.overall_feedback || null
+                feedback: assessment?.overall_feedback || null,
+                // Flatten skill scores directly onto the object
+                problem_decomposition: assessment?.problem_decomposition ?? null,
+                pattern_recognition: assessment?.pattern_recognition ?? null,
+                algorithmic_thinking: assessment?.algorithmic_thinking ?? null,
+                complexity_analysis: assessment?.complexity_analysis ?? null,
+                communication_clarity: assessment?.communication_clarity ?? null,
+                edge_case_awareness: assessment?.edge_case_awareness ?? null,
+                optimization_mindset: assessment?.optimization_mindset ?? null,
+                debugging_approach: assessment?.debugging_approach ?? null,
             };
         });
 

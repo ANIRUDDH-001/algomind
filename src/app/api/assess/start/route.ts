@@ -26,12 +26,26 @@ export async function POST(req: NextRequest) {
 
         const supabase = await createServerSupabase();
 
-        // 1. Atomically claim a campaign slot.
+        // 1. Resolve public_token → internal id
+        const { data: campaignRef, error: lookupError } = await supabase
+            .from('assessment_campaigns')
+            .select('id')
+            .eq('public_token', campaignToken)
+            .single();
+
+        if (lookupError || !campaignRef) {
+            return NextResponse.json(
+                { error: 'Assessment link not found or no longer available.' },
+                { status: 404 }
+            );
+        }
+
+        // 2. Atomically claim a campaign slot using internal id.
         //    claim_campaign_slot() increments uses_count only if the campaign is active,
         //    not expired, and hasn't hit max_uses — all in a single DB transaction.
         //    Returns the campaign row on success, empty array if at capacity / inactive / not found.
         const { data: campaign, error: claimError } = await supabase
-            .rpc('claim_campaign_slot', { p_campaign_id: campaignToken });
+            .rpc('claim_campaign_slot', { p_campaign_id: campaignRef.id });
 
         if (claimError || !campaign || campaign.length === 0) {
             return NextResponse.json(
