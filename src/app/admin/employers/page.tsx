@@ -1,5 +1,5 @@
 import { requireAdmin } from '@/lib/auth/is-admin';
-import EmployersClient from './client';
+import EmployersClient from './client'; // Refresh TS server
 
 export const dynamic = 'force-dynamic';
 

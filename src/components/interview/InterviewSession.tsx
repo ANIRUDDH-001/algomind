@@ -110,13 +110,19 @@ export function InterviewSession({
         setSelectedCompany(id);
         setCompanyPersona(persona);
 
-        const newParams = new URLSearchParams(searchParams.toString());
-        if (id) {
-            newParams.set('company', id);
-        } else {
-            newParams.delete('company');
+        // Update URL param without triggering Suspense re-mount.
+        // router.replace() with useSearchParams() inside Suspense can cause
+        // the boundary to flush and remount InterviewContent, resetting all state.
+        // Using window.history.replaceState avoids the Next.js navigation entirely.
+        if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            if (id) {
+                url.searchParams.set('company', id);
+            } else {
+                url.searchParams.delete('company');
+            }
+            window.history.replaceState(null, '', url.toString());
         }
-        router.replace(`?${newParams.toString()}`, { scroll: false });
     };
 
     // --- 2. Supporting Hooks ---
@@ -1041,7 +1047,7 @@ export function InterviewSession({
             </div>
 
             {/* DESKTOP LAYOUT (>= 1024px) - Draggable Resizable Interface */}
-            <div className="hidden lg:flex flex-1 flex-col p-4 overflow-hidden h-[calc(100dvh-64px)]">
+            <div className="hidden lg:flex flex-1 flex-col p-4 min-h-0">
                 <ResizablePanelGroup
                     direction="horizontal"
                     id="interview_panels_v2"
@@ -1058,7 +1064,7 @@ export function InterviewSession({
                         </div>
                     </ResizablePanel>
 
-                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
+                    <ResizableHandle withHandle />
 
                     {/* Center Panel: Interaction */}
                     <ResizablePanel defaultSize={52} minSize={30} id="panel-interaction">
@@ -1067,7 +1073,7 @@ export function InterviewSession({
                         </div>
                     </ResizablePanel>
 
-                    <ResizableHandle withHandle className="bg-slate-800/50 hover:bg-blue-500/50 transition-colors w-2 min-w-[8px] mx-1 z-50" />
+                    <ResizableHandle withHandle />
 
                     {/* Right Panel: History */}
                     <ResizablePanel defaultSize={24} minSize={18} maxSize={38} id="panel-history">
