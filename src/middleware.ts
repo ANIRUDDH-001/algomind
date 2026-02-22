@@ -37,7 +37,7 @@ export default async function middleware(request: NextRequest) {
     const isSettings = pathname.startsWith('/settings');
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
-    const isEmployerDash = pathname.startsWith('/employer/dashboard');
+    const isEmployer = pathname.startsWith('/employer');
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -59,7 +59,7 @@ export default async function middleware(request: NextRequest) {
     const isE2ETest = process.env.NODE_ENV !== 'production' &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
-        if (isDashboard || isSettings || isAdmin || isEmployerDash) {
+        if (isDashboard || isSettings || isAdmin || isEmployer) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             return NextResponse.redirect(url);

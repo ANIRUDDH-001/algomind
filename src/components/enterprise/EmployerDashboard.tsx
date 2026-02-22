@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { useRouter } from 'next/navigation';
@@ -69,11 +70,14 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCampaign, setNewCampaign] = useState({
         title: '',
-        problemId: availableProblems[0]?.id || '',
         timeLimit: '45',
         maxUses: '',
         expiresAt: '',
-        showScoreToCandidate: false
+        showScoreToCandidate: false,
+        assignmentMode: 'fixed' as 'fixed' | 'pool' | 'random_difficulty',
+        problemId: availableProblems[0]?.id || '',
+        problemPool: [] as string[],
+        poolDifficulty: 'medium' as 'easy' | 'medium' | 'hard',
     });
     const [isCreating, setIsCreating] = useState(false);
 
@@ -116,16 +120,27 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         e.preventDefault();
         setIsCreating(true);
         try {
+            const payload: Record<string, unknown> = {
+                title: newCampaign.title,
+                timeLimitMins: parseInt(newCampaign.timeLimit),
+                maxUses: newCampaign.maxUses ? parseInt(newCampaign.maxUses) : undefined,
+                expiresAt: newCampaign.expiresAt ? new Date(newCampaign.expiresAt).toISOString() : undefined,
+                showScoreToCandidate: newCampaign.showScoreToCandidate,
+                assignmentMode: newCampaign.assignmentMode,
+            };
+
+            if (newCampaign.assignmentMode === 'fixed') {
+                payload.problemId = newCampaign.problemId;
+            } else if (newCampaign.assignmentMode === 'pool') {
+                payload.questionPool = newCampaign.problemPool;
+            } else {
+                payload.poolDifficulty = newCampaign.poolDifficulty;
+            }
+
             const res = await fetchWithAuthCheck('/api/employer/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: newCampaign.title,
-                    problemId: newCampaign.problemId,
-                    timeLimitMins: parseInt(newCampaign.timeLimit),
-                    maxUses: newCampaign.maxUses ? parseInt(newCampaign.maxUses) : undefined,
-                    expiresAt: newCampaign.expiresAt ? new Date(newCampaign.expiresAt).toISOString() : undefined
-                })
+                body: JSON.stringify(payload)
             });
 
             if (!res) return; // 401 redirect handled inside fetchWithAuthCheck
@@ -135,7 +150,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             setCampaigns([data.campaign, ...campaigns]);
             setIsCreateModalOpen(false);
             setNewCampaign({
-                title: '', problemId: availableProblems[0]?.id || '', timeLimit: '45', maxUses: '', expiresAt: '', showScoreToCandidate: false
+                title: '', problemId: availableProblems[0]?.id || '', timeLimit: '45', maxUses: '', expiresAt: '', showScoreToCandidate: false, assignmentMode: 'fixed', problemPool: [], poolDifficulty: 'medium'
             });
 
             if (!selectedCampaignId) {
@@ -143,7 +158,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             }
         } catch (error) {
             console.error(error);
-            alert("Failed to create campaign");
+            toast.error("Failed to create campaign");
         } finally {
             setIsCreating(false);
         }
@@ -168,7 +183,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const copyLink = (token: string) => {
         const url = `${window.location.origin}/assess/${token}`;
         navigator.clipboard.writeText(url);
-        alert('Assessment link copied to clipboard!');
+        toast.success('Assessment link copied to clipboard!');
     };
 
     const toggleCompareSubmission = (id: string) => {
@@ -187,6 +202,21 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
 
     return (
         <div className="space-y-6">
+            {/* Header section with Create Campaign Button */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Campaign Management</h1>
+                    <p className="text-slate-400">Manage technical assessments and review candidate performance.</p>
+                </div>
+                <Button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Campaign
+                </Button>
+            </div>
+
             {/* Tabs & Controls */}
             <div className="flex border-b border-slate-800">
                 <button
@@ -211,16 +241,6 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                 >
                     Submissions Ranking
                 </button>
-
-                <div className="ml-auto pb-2 pl-4">
-                    <Button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Campaign
-                    </Button>
-                </div>
             </div>
 
             {/* TAB 1: CAMPAIGNS */}
@@ -408,7 +428,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
 
                                             <td className="px-4 py-3 text-right">
                                                 <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300"
-                                                    onClick={() => alert('PDF Downloads interface via PDFReport coming soon in upcoming modules.')}
+                                                    onClick={() => toast.info('PDF Downloads interface via PDFReport coming soon in upcoming modules.')}
                                                 >
                                                     <Download className="w-4 h-4" />
                                                 </Button>
@@ -440,20 +460,63 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     className="bg-slate-950 border-slate-800"
                                 />
                             </div>
+                            {/* Assignment Mode Tabs */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Assessment Problem *</label>
-                                <select
-                                    required
-                                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={newCampaign.problemId}
-                                    onChange={e => setNewCampaign({ ...newCampaign, problemId: e.target.value })}
-                                >
-                                    {availableProblems.map(p => (
-                                        <option key={p.id} value={p.id}>
-                                            [{p.difficulty.toUpperCase()}] {p.title}
-                                        </option>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Assignment Type</label>
+                                <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                                    {(['fixed', 'pool', 'random_difficulty'] as const).map(mode => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => setNewCampaign({ ...newCampaign, assignmentMode: mode })}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${newCampaign.assignmentMode === mode
+                                                ? 'bg-blue-600 border-blue-500 text-white'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                }`}
+                                        >
+                                            {mode === 'fixed' ? '📌 Fixed Problem'
+                                                : mode === 'pool' ? '🎯 Problem Pool (up to 3)'
+                                                    : '🎲 Random by Difficulty'}
+                                        </button>
                                     ))}
-                                </select>
+                                </div>
+
+                                {/* Fixed mode */}
+                                {newCampaign.assignmentMode === 'fixed' && (
+                                    <ProblemSearchSelect
+                                        problems={availableProblems}
+                                        value={newCampaign.problemId}
+                                        onChange={(id) => setNewCampaign({ ...newCampaign, problemId: id })}
+                                    />
+                                )}
+
+                                {/* Pool mode */}
+                                {newCampaign.assignmentMode === 'pool' && (
+                                    <ProblemPoolSelector
+                                        problems={availableProblems}
+                                        selected={newCampaign.problemPool}
+                                        max={3}
+                                        onChange={(pool) => setNewCampaign({ ...newCampaign, problemPool: pool })}
+                                    />
+                                )}
+
+                                {/* Random difficulty mode */}
+                                {newCampaign.assignmentMode === 'random_difficulty' && (
+                                    <div>
+                                        <label className="text-sm text-slate-400 mb-2 block">
+                                            System will randomly assign any problem at this difficulty level to each candidate
+                                        </label>
+                                        <select
+                                            value={newCampaign.poolDifficulty}
+                                            onChange={e => setNewCampaign({ ...newCampaign, poolDifficulty: e.target.value as any })}
+                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        >
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -598,6 +661,148 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     </div>
                 );
             })()}
+        </div>
+    );
+}
+
+function ProblemSearchSelect({ problems, value, onChange }: {
+    problems: ProblemData[], value: string, onChange: (id: string) => void
+}) {
+    const [search, setSearch] = useState('');
+    const [diffFilter, setDiffFilter] = useState('');
+
+    const filtered = problems.filter(p => {
+        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+        const matchDiff = !diffFilter || p.difficulty === diffFilter;
+        return matchSearch && matchDiff;
+    });
+
+    return (
+        <div className="space-y-2">
+            <div className="flex gap-2">
+                <Input
+                    placeholder="Search problems..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="flex-1 bg-slate-950 border-slate-800"
+                />
+                <select
+                    value={diffFilter}
+                    onChange={e => setDiffFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm"
+                >
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <select
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                size={6}
+            >
+                {filtered.map(p => (
+                    <option key={p.id} value={p.id}>
+                        [{p.difficulty.toUpperCase()}] {p.title}
+                    </option>
+                ))}
+            </select>
+            <p className="text-xs text-slate-500">{filtered.length} of {problems.length} problems shown</p>
+        </div>
+    );
+}
+
+function ProblemPoolSelector({ problems, selected, max, onChange }: {
+    problems: ProblemData[], selected: string[], max: number, onChange: (pool: string[]) => void
+}) {
+    const [search, setSearch] = useState('');
+    const [diffFilter, setDiffFilter] = useState('');
+
+    const filtered = problems.filter(p => {
+        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+        const matchDiff = !diffFilter || p.difficulty === diffFilter;
+        return matchSearch && matchDiff;
+    });
+
+    const toggle = (id: string) => {
+        if (selected.includes(id)) {
+            onChange(selected.filter(s => s !== id));
+        } else if (selected.length < max) {
+            onChange([...selected, id]);
+        }
+    };
+
+    const selectedProblems = problems.filter(p => selected.includes(p.id));
+
+    return (
+        <div className="space-y-2">
+            <p className="text-sm text-slate-400">
+                Select up to {max} problems. Each candidate gets a randomly assigned one.
+                ({selected.length}/{max} selected)
+            </p>
+            {/* Selected problems pills */}
+            {selectedProblems.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                    {selectedProblems.map(p => (
+                        <span key={p.id} className="flex items-center gap-1 px-2 py-1 bg-blue-900/40 border border-blue-700 rounded text-xs text-blue-300">
+                            {p.title}
+                            <button type="button" onClick={() => toggle(p.id)} className="text-blue-400 hover:text-red-400 ml-1">×</button>
+                        </span>
+                    ))}
+                </div>
+            )}
+            {/* Search + filter */}
+            <div className="flex gap-2">
+                <Input
+                    placeholder="Search problems..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="flex-1 bg-slate-950 border-slate-800"
+                />
+                <select
+                    value={diffFilter}
+                    onChange={e => setDiffFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm"
+                >
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            {/* Problem list */}
+            <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-800 rounded-lg p-2 bg-slate-950">
+                {filtered.map(p => {
+                    const isSelected = selected.includes(p.id);
+                    const isDisabled = !isSelected && selected.length >= max;
+                    return (
+                        <button
+                            key={p.id}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => toggle(p.id)}
+                            className={`w-full text-left px-3 py-2 rounded text-sm transition-all flex items-center justify-between ${isSelected ? 'bg-blue-900/50 text-blue-300 border border-blue-700'
+                                : isDisabled ? 'opacity-40 cursor-not-allowed text-slate-500 border border-transparent'
+                                    : 'text-slate-300 hover:bg-slate-800 border border-transparent'
+                                }`}
+                        >
+                            <div>
+                                <span className={`font-bold mr-2 text-xs uppercase tracking-wider ${p.difficulty === 'easy' ? 'text-green-400'
+                                    : p.difficulty === 'medium' ? 'text-amber-400'
+                                        : 'text-red-400'
+                                    }`}>{p.difficulty}</span>
+                                {p.title}
+                            </div>
+                            {isSelected && <span className="text-blue-400 font-bold">✓</span>}
+                        </button>
+                    );
+                })}
+                {filtered.length === 0 && (
+                    <div className="text-center py-4 text-slate-500 text-sm">No problems match your filters.</div>
+                )}
+            </div>
         </div>
     );
 }

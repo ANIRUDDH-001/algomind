@@ -47,15 +47,23 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, problemId, timeLimitMins = 45, expiresAt, maxUses, showScoreToCandidate = false } = body;
+        const { title, problemId, questionPool, poolDifficulty, assignmentMode = 'fixed', timeLimitMins = 45, expiresAt, maxUses, showScoreToCandidate = false } = body;
 
         // Validation
         if (!title || typeof title !== 'string' || title.length < 5 || title.length > 100) {
             return NextResponse.json({ error: 'Title must be between 5 and 100 characters' }, { status: 400 });
         }
 
-        if (!problemId || typeof problemId !== 'string') {
-            return NextResponse.json({ error: 'problemId is required' }, { status: 400 });
+        if (assignmentMode === 'fixed' && (!problemId || typeof problemId !== 'string')) {
+            return NextResponse.json({ error: 'problemId is required for fixed assignment mode' }, { status: 400 });
+        }
+
+        if (assignmentMode === 'pool' && (!questionPool || !Array.isArray(questionPool) || questionPool.length === 0 || questionPool.length > 3)) {
+            return NextResponse.json({ error: 'questionPool (1-3 items) is required for pool assignment mode' }, { status: 400 });
+        }
+
+        if (assignmentMode === 'random_difficulty' && (!poolDifficulty || !['easy', 'medium', 'hard'].includes(poolDifficulty))) {
+            return NextResponse.json({ error: 'Valid poolDifficulty is required for random_difficulty assignment mode' }, { status: 400 });
         }
 
         const timeLimit = Number(timeLimitMins);
@@ -65,25 +73,30 @@ export async function POST(req: NextRequest) {
 
         const supabase = await createServerSupabase();
 
-        // Verify problem exists
-        const { data: problem, error: problemError } = await supabase
-            .from('problems')
-            .select('id')
-            .eq('id', problemId)
-            .single();
+        // Validate problem IDs depending on mode
+        if (assignmentMode === 'fixed') {
+            const { data: problem, error: problemError } = await supabase
+                .from('problems')
+                .select('id')
+                .eq('id', problemId)
+                .single();
 
-        if (problemError || !problem) {
-            return NextResponse.json({ error: 'Invalid problemId' }, { status: 404 });
+            if (problemError || !problem) {
+                return NextResponse.json({ error: 'Invalid problemId' }, { status: 404 });
+            }
         }
 
         // Create campaign
         const insertData: Record<string, unknown> = {
             created_by: auth.user.id,
             title,
-            problem_id: problemId,
             time_limit_mins: timeLimit,
             is_active: true,
-            show_score_to_candidate: showScoreToCandidate
+            show_score_to_candidate: showScoreToCandidate,
+            assignment_mode: assignmentMode,
+            problem_id: assignmentMode === 'fixed' ? problemId : null,
+            question_pool: assignmentMode === 'pool' ? questionPool : null,
+            pool_difficulty: assignmentMode === 'random_difficulty' ? poolDifficulty : null
         };
 
         if (expiresAt) insertData.expires_at = expiresAt;
