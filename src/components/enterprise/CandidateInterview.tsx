@@ -26,7 +26,10 @@ interface Message {
     content: string;
 }
 
+import { useAuth } from '@/components/auth/AuthProvider';
+
 export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
+    const { user } = useAuth();
     // 1. Setup Phase
     const [phase, setPhase] = useState<'setup' | 'interview' | 'submitting' | 'complete'>('setup');
     const [isProblemDrawerOpen, setIsProblemDrawerOpen] = useState(false);
@@ -47,6 +50,14 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     // Timer
     const [timeLeft, setTimeLeft] = useState(campaign.time_limit_mins * 60);
     const startTimeRef = useRef<number>(0);
+
+    // Auto-fill from auth if available
+    useEffect(() => {
+        if (user) {
+            setName(user.user_metadata?.full_name || user.email?.split('@')[0] || '');
+            setEmail(user.email || '');
+        }
+    }, [user]);
 
     // Auto-scroll logic happens inside TextInterviewMode usually, but we manage the chat loop here.
 

@@ -18,11 +18,15 @@ function LoginContent() {
 
     useEffect(() => {
         if (user) {
-            const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+            // Priority: URL redirect param > sessionStorage > default dashboard
+            const urlRedirect = searchParams.get('redirect');
+            const storedRedirect = sessionStorage.getItem('redirectAfterLogin');
+            const target = urlRedirect || storedRedirect || '/dashboard';
+
             sessionStorage.removeItem('redirectAfterLogin');
-            router.push(redirectUrl);
+            router.push(target);
         }
-    }, [user, router]);
+    }, [user, router, searchParams]);
 
     useEffect(() => {
         if (authError) {
