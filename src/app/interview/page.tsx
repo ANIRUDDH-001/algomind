@@ -37,6 +37,17 @@ function InterviewContent() {
         // console.log('[InterviewPage] History updated:', history.length, 'sessions');
     }, [history, sessionId, session]);
 
+    // One-time eviction of stale panel layout saved under the old group id.
+    // The group id was removed so the library no longer persists sizes, but
+    // any browser that visited before still has the old 24/52/24 layout cached.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const STALE_KEY = 'react-resizable-panels:interview_panels_v2';
+        if (localStorage.getItem(STALE_KEY) !== null) {
+            localStorage.removeItem(STALE_KEY);
+        }
+    }, []);
+
     useEffect(() => {
         async function loadData() {
             setLoading(true);
