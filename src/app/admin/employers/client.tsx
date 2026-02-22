@@ -21,7 +21,7 @@ interface EmployerInvite {
 interface EmployerProfile {
     id: string;
     email: string;
-    display_name: string | null;
+    full_name: string | null;
     company_name: string | null;
     created_at: string;
 }
@@ -219,7 +219,7 @@ export default function EmployersClient() {
                                         <div>
                                             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">User Details</p>
                                             <div className="space-y-0.5">
-                                                <p className="text-sm text-slate-300">{emp.display_name || 'No Name'}</p>
+                                                <p className="text-sm text-slate-300">{emp.full_name || 'No Name'}</p>
                                                 <p className="text-xs text-slate-400">{emp.email}</p>
                                             </div>
                                         </div>
