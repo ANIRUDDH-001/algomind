@@ -45,7 +45,8 @@ export async function fetchLeetCodeProfile(username: string): Promise<LeetCodePr
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Referer': 'https://leetcode.com'
+                'Referer': 'https://leetcode.com',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
             },
             body: JSON.stringify({
                 query: LEETCODE_PROFILE_QUERY,
@@ -55,7 +56,7 @@ export async function fetchLeetCodeProfile(username: string): Promise<LeetCodePr
         });
 
         if (!response.ok) {
-            return null;
+            throw new Error(`LeetCode API returned ${response.status} ${response.statusText}`);
         }
 
         const json = await response.json();

@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2 } from 'lucide-react';
+import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { useRouter } from 'next/navigation';
+import { CandidateTranscriptViewer } from './CandidateTranscriptViewer';
 
 interface ProblemData {
     id: string;
@@ -27,11 +28,13 @@ interface CampaignData {
     is_active: boolean;
     public_token: string;
     show_score_to_candidate: boolean;
+    completed_count?: number;
     created_at: string;
 }
 
 interface SubmissionData {
     id: string;
+    session_id?: string;
     campaign_id: string;
     candidate_name: string;
     candidate_email: string;
@@ -84,6 +87,10 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     // Compare State
     const [compareSelection, setCompareSelection] = useState<string[]>([]);
     const [showCompareModal, setShowCompareModal] = useState(false);
+
+    // Transcript Viewer State
+    const [viewTranscriptSessionId, setViewTranscriptSessionId] = useState<string | null>(null);
+    const [viewTranscriptCandidateName, setViewTranscriptCandidateName] = useState<string>('');
 
     const fetchWithAuthCheck = async (url: string, options?: RequestInit) => {
         const res = await fetch(url, options);
@@ -274,7 +281,10 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                         <div className="space-y-3 text-sm text-slate-400 mb-6">
                                             <div className="flex items-center gap-2">
                                                 <Users className="w-4 h-4" />
-                                                <span>{campaign.uses_count} {campaign.max_uses ? `/ ${campaign.max_uses}` : ''} responses</span>
+                                                <span>{campaign.completed_count !== undefined ? campaign.completed_count : campaign.uses_count} completed</span>
+                                                <span className="text-slate-500 text-[10px] ml-1">
+                                                    ({campaign.uses_count} {campaign.max_uses ? `/ ${campaign.max_uses}` : ''} started)
+                                                </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Clock className="w-4 h-4" />
@@ -427,11 +437,25 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                             })}
 
                                             <td className="px-4 py-3 text-right">
-                                                <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300"
-                                                    onClick={() => toast.info('PDF Downloads interface via PDFReport coming soon in upcoming modules.')}
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </Button>
+                                                <div className="flex gap-1 justify-end">
+                                                    {sub.session_id ? (
+                                                        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300"
+                                                            onClick={() => {
+                                                                setViewTranscriptSessionId(sub.session_id!);
+                                                                setViewTranscriptCandidateName(sub.candidate_name || 'Anonymous');
+                                                            }}
+                                                            title="View Transcript"
+                                                        >
+                                                            <MessageSquare className="w-4 h-4" />
+                                                        </Button>
+                                                    ) : null}
+                                                    <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-300"
+                                                        onClick={() => toast.info('PDF Downloads interface via PDFReport coming soon in upcoming modules.')}
+                                                        title="Download Report"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -661,6 +685,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     </div>
                 );
             })()}
+
+            {/* Transcript Viewer Modal */}
+            {viewTranscriptSessionId && (
+                <CandidateTranscriptViewer
+                    sessionId={viewTranscriptSessionId}
+                    candidateName={viewTranscriptCandidateName}
+                    onClose={() => setViewTranscriptSessionId(null)}
+                />
+            )}
         </div>
     );
 }

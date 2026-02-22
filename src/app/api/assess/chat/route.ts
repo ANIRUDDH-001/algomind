@@ -3,6 +3,7 @@ import { getAIClient } from '@/lib/ai/client';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { getRedis } from '@/lib/upstash/client';
+import { getServiceClient } from '@/lib/supabase/service';
 
 validateEnv();
 
@@ -121,6 +122,16 @@ export async function POST(req: NextRequest) {
             response.headers.set('X-Messages-Used', String(currentCount));
             response.headers.set('X-Messages-Limit', String(MESSAGE_LIMIT));
         }
+
+        // Fire-and-forget: Save transcript to DB so it persists on refresh
+        const newTranscript = [...messages, { role: 'assistant', content: result.response }];
+        const supabaseAdmin = getServiceClient();
+        supabaseAdmin.from('candidate_submissions')
+            .update({ current_transcript: newTranscript })
+            .eq('id', submissionId)
+            .then(({ error }) => {
+                if (error) console.error('[Assess Chat API] Failed to update transcript', error);
+            });
 
         return response;
 

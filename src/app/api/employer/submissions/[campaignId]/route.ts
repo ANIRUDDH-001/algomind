@@ -25,11 +25,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             return NextResponse.json({ error: 'Campaign not found or unauthorized' }, { status: 404 });
         }
 
-        // 2. Fetch all submissions matching the campaign (Step 1 of two-step query)
+        // 2. Fetch all completed submissions matching the campaign (Step 1 of two-step query)
         const { data: submissions, error: submissionsError } = await supabase
             .from('candidate_submissions')
             .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at')
             .eq('campaign_id', campaignId)
+            .eq('status', 'completed')
             .order('overall_score', { ascending: false, nullsFirst: false });
 
         if (submissionsError) {
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
 
             return {
                 id: sub.id,
+                session_id: sub.session_id,
                 campaign_id: campaignId,
                 candidate_name: sub.candidate_name,
                 candidate_email: sub.candidate_email,
@@ -81,6 +83,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 edge_case_awareness: assessment?.edge_case_awareness ?? null,
                 optimization_mindset: assessment?.optimization_mindset ?? null,
                 debugging_approach: assessment?.debugging_approach ?? null,
+                skill_evidence: assessment?.skill_evidence ?? null,
             };
         });
 

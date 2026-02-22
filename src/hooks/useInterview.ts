@@ -42,6 +42,8 @@ interface ProblemContext {
 export function useInterview(options: {
     vadEnabled?: boolean;
     isReviewMode?: boolean;
+    apiEndpoint?: string;
+    sessionToken?: string;
     onUserMessage?: (msg: Message, messageCount: number) => void;
 } = {}) {
     // State
@@ -124,7 +126,8 @@ export function useInterview(options: {
 
     const callChatApi = useCallback(async (prompt: string, systemPrompt: string, problemContext: ProblemContext) => {
         try {
-            const data = await fetchWithRetry('/api/chat', {
+            const endpoint = options.apiEndpoint || '/api/chat';
+            const data = await fetchWithRetry(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -137,7 +140,8 @@ export function useInterview(options: {
                     systemPrompt,
                     problemContext,
                     companyPersona: problemContext.companyPersona,
-                    kaiMemory: problemContext.kaiMemory
+                    kaiMemory: problemContext.kaiMemory,
+                    sessionToken: options.sessionToken
                 })
             });
 
