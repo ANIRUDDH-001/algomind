@@ -38,6 +38,7 @@ export default async function middleware(request: NextRequest) {
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
     const isEmployer = pathname.startsWith('/employer');
+    const isAssess = pathname.startsWith('/assess');
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -59,9 +60,11 @@ export default async function middleware(request: NextRequest) {
     const isE2ETest = process.env.NODE_ENV !== 'production' &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
-        if (isDashboard || isSettings || isAdmin || isEmployer) {
+        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
+            // Optionally append a redirect so they come back to the assesment link after login
+            url.searchParams.set('redirect', pathname);
             return NextResponse.redirect(url);
         }
 
