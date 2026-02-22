@@ -32,14 +32,28 @@ const ResizableHandle = ({
 }) => (
     <Separator
         className={cn(
-            "relative flex w-px items-center justify-center bg-slate-800 after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90 data-[panel-group-direction=horizontal]:cursor-col-resize data-[panel-group-direction=vertical]:cursor-row-resize cursor-col-resize z-50",
+            // 8px wide hit area — wide enough to grab without hunting for 1px
+            "relative flex w-2 shrink-0 items-center justify-center bg-transparent",
+            // Inner visible divider via ::before so the hit area stays full-width
+            "before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-slate-800 before:transition-colors",
+            // Hover: widen the visible bar
+            "hover:before:w-0.5 hover:before:bg-slate-600",
+            // Active drag state
+            "data-[resize-handle-active]:before:bg-blue-500",
+            // Keyboard focus ring
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+            // Correct cursors per direction
+            "data-[panel-group-direction=vertical]:h-2 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:cursor-row-resize",
+            "data-[panel-group-direction=horizontal]:cursor-col-resize",
+            // Rotate grip icon for vertical panels
+            "[&[data-panel-group-direction=vertical]>div]:rotate-90",
             className
         )}
         {...props}
     >
         {withHandle && (
-            <div className="z-10 flex h-4 w-3 items-center justify-center rounded-sm border border-slate-800 bg-slate-950">
-                <GripVertical className="h-2.5 w-2.5" />
+            <div className="z-10 flex h-6 w-3 items-center justify-center rounded-sm border border-slate-700 bg-slate-900 shadow-md">
+                <GripVertical className="h-3 w-3 text-slate-500" />
             </div>
         )}
     </Separator>
