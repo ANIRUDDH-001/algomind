@@ -42,7 +42,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isAISpeaking, setIsAISpeaking] = useState(false);
     const [messagesUsed, setMessagesUsed] = useState(0);
-    const MESSAGE_LIMIT = 30;
+    const MESSAGE = 30;
 
     // Timer
     const [timeLeft, setTimeLeft] = useState(campaign.time_limit_mins * 60);
@@ -107,7 +107,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
             setPhase('interview');
         } catch (err: any) {
-            setError(err.message);
+            setError(err.message || 'Failed to start interview');
         } finally {
             setIsStarting(false);
         }
@@ -145,7 +145,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
                         role: 'system',
-                        content: `⚠️ You've reached the ${MESSAGE_LIMIT}-message limit for this session. Please submit your assessment using the "Finish Early" button.`
+                        content: `⚠️ You've reached the ${MESSAGE}-message limit for this session. Please submit your assessment using the "Finish Early" button.`
                     }]);
                     return;
                 }
@@ -162,7 +162,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                 content: data.response
             }]);
 
-        } catch (err) {
+        } catch (_err) {
             // Add a temporary system message to indicate failure
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
@@ -300,10 +300,10 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
                     <div className="flex items-center gap-4">
                         {/* Messages remaining warning — show when ≤ 5 left */}
-                        {messagesUsed > 0 && (MESSAGE_LIMIT - messagesUsed) <= 5 && (MESSAGE_LIMIT - messagesUsed) >= 0 && (
+                        {messagesUsed > 0 && (MESSAGE - messagesUsed) <= 5 && (MESSAGE - messagesUsed) >= 0 && (
                             <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium bg-amber-400/10 px-2.5 py-1 rounded-full">
                                 <MessageSquare className="w-3.5 h-3.5" />
-                                <span>{MESSAGE_LIMIT - messagesUsed} message{MESSAGE_LIMIT - messagesUsed === 1 ? '' : 's'} remaining</span>
+                                <span>{MESSAGE - messagesUsed} message{MESSAGE - messagesUsed === 1 ? '' : 's'} remaining</span>
                             </div>
                         )}
                         <div className={`font-mono text-lg font-bold flex items-center gap-2 ${timeLeft < 300 ? 'text-red-400' : 'text-slate-300'}`}>

@@ -108,7 +108,13 @@ We go beyond "passing test cases". Use our proprietary scoring engine to measure
     
     Fill in your API keys for **Gemini**, **Groq**, and **Supabase**.
 
-4.  **Run the Development Server**
+4.  **Database Migration**
+    Run the master setup script to configure Supabase tables and RPCs:
+    ```bash
+    npm run db:migrate
+    ```
+
+5.  **Run the Development Server**
     ```bash
     npm run dev
     ```

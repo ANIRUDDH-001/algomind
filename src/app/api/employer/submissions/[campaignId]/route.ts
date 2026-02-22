@@ -56,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
 
         // Compute rank based on sorted order. Items without an overall score fall to the bottom.
         let currentRank = 1;
-        const rankedSubmissions = submissions.map((sub, index) => {
+        const rankedSubmissions = submissions.map((sub, _index) => {
             const hasScore = typeof sub.overall_score === 'number' || !isNaN(Number(sub.overall_score));
             const rank = hasScore && sub.overall_score !== null ? currentRank++ : null;
 

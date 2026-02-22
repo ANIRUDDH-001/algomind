@@ -25,7 +25,7 @@ async function migrateTable(tableName, batchSize = 100) {
     let totalExported = 0;
     let totalInserted = 0;
     let start = 0;
-    let errors = [];
+    const errors = [];
 
     while (true) {
         // Fetch from old DB

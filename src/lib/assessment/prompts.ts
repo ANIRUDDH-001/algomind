@@ -30,7 +30,7 @@ Analyze this interview session and score the candidate across 8 cognitive skills
 For each skill, provide an objective score based on the rubric, supporting evidence from the transcript, and actionable feedback.
 
 COGNITIVE SKILLS TO EVALUATE:
-${Object.entries(skillDefinitions).map(([id, def]) => `
+${Object.entries(skillDefinitions).map(([_id, def]) => `
 - ${def.name}: ${def.description}
   Rubric:
   1-2 (Level 1): ${def.rubric.level1}

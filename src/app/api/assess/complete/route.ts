@@ -9,7 +9,7 @@ validateEnv();
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { sessionToken, transcript, duration, finalCode } = body;
+        const { sessionToken, transcript, duration, _finalCode } = body;
 
         if (!sessionToken || !Array.isArray(transcript) || transcript.length === 0) {
             return NextResponse.json(
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 6. Insert detailed Assessment
-        const { data: assessmentData, error: assessmentError } = await supabase
+        const { data: _assessmentData, error: assessmentError } = await supabase
             .from('assessments')
             .insert({
                 session_id: sessionData.id,

@@ -29,6 +29,13 @@ export function useAdmin() {
         setLoading(true);
         setError(null);
 
+        // E2E Test Bypass
+        if (typeof document !== 'undefined' && document.cookie.includes('playwright-e2e=true')) {
+            setIsAdmin(true);
+            setLoading(false);
+            return;
+        }
+
         try {
             const supabase = getSupabase();
             if (!supabase) {

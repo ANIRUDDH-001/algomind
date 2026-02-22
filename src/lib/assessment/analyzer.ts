@@ -1,4 +1,4 @@
-import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
+import { CognitiveSkill } from '@/types/assessment';
 import { SKILL_DEFINITIONS } from './skill-registry';
 import { ConversationTurn, generateAssessmentPrompt } from './prompts';
 import { calculateConfidence } from './confidence-calculator';

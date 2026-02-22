@@ -11,7 +11,7 @@ export async function GET() {
 
         const supabaseAdmin = getServiceClient();
         const { data: admins, error } = await supabaseAdmin
-            .from('admin_users')
+            .from('adminusers')
             .select('id, email, added_at')
             .order('added_at', { ascending: false });
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         const supabaseAdmin = getServiceClient();
 
         const { data: existing } = await supabaseAdmin
-            .from('admin_users')
+            .from('adminusers')
             .select('id')
             .eq('email', email)
             .maybeSingle();
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         }
 
         const { error } = await supabaseAdmin
-            .from('admin_users')
+            .from('adminusers')
             .insert({ email, added_by: user.email });
 
         if (error) throw error;
@@ -80,7 +80,7 @@ export async function DELETE(request: Request) {
         const supabaseAdmin = getServiceClient();
 
         const { count, error: countError } = await supabaseAdmin
-            .from('admin_users')
+            .from('adminusers')
             .select('*', { count: 'exact', head: true });
 
         if (countError) throw countError;
@@ -90,7 +90,7 @@ export async function DELETE(request: Request) {
         }
 
         const { error } = await supabaseAdmin
-            .from('admin_users')
+            .from('adminusers')
             .delete()
             .eq('email', email);
 

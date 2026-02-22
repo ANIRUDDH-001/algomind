@@ -26,7 +26,7 @@ export class InterviewStateMachine {
     }
 
     transition(event: InterviewEvent): InterviewState {
-        const previous = this.state;
+        const _previous = this.state;
 
         switch (this.state) {
             case 'idle':

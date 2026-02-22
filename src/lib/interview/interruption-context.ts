@@ -20,7 +20,7 @@ const MAX_PARTIAL_LENGTH = 150;
  */
 export function buildInterruptionContext(
     partialResponse: string,
-    interruptedAt: number,
+    _interruptedAt: number,
 ): string {
     if (!partialResponse || partialResponse.trim().length === 0) {
         return '';
