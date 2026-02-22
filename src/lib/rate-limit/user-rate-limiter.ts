@@ -9,6 +9,7 @@ export interface RateLimitResult {
     allowed: boolean;
     remaining: number;
     isAdmin: boolean;
+    error?: boolean;
 }
 
 interface LocalUsage {
@@ -41,19 +42,19 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         });
 
         if (error) {
-            console.error('❌ [Rate Limit] Check failed:', error);
+            console.error('❌ [Rate Limit] Check failed:', error.message || error);
             if (error.code === 'PGRST202') {
-                console.error('🚨 [SECURITY] Missing RPC function "check_user_rate_limit". Blocking request to prevent silent bypass.');
-                return { allowed: false, remaining: 0, isAdmin: false };
+                console.error('🚨 [CRITICAL SECURITY] Missing RPC function "check_user_rate_limit". Blocking request to prevent silent bypass. PLEASE RUN MIGRATIONS!');
             }
-            // Fail OPEN - allow on other transient errors so DB issues don't block users
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+            // Fail CLOSED safely
+            return { allowed: false, remaining: 0, isAdmin: false, error: true };
         }
 
         const result = data?.[0];
         if (!result) {
-            // No data returned - fail open
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+            // No data returned - fail CLOSED safely
+            console.error('❌ [Rate Limit] No data returned from RPC.');
+            return { allowed: false, remaining: 0, isAdmin: false, error: true };
         }
 
         if (!result.allowed && !result.is_admin_user) {
@@ -71,8 +72,8 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         };
     } catch (error: unknown) {
         console.error('❌ [Rate Limit] Unexpected error:', error);
-        // Fail open - don't block users on unexpected errors
-        return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
+        // Fail CLOSED safely
+        return { allowed: false, remaining: 0, isAdmin: false, error: true };
     }
 }
 
@@ -94,7 +95,7 @@ export async function incrementUserUsage(userId: string, supabaseClient?: Supaba
     }
 
     try {
-        const today = new Date().toISOString().split('T')[0];
+        const _today = new Date().toISOString().split('T')[0];
 
         // We use upsert to simplify the logic: 
         // if row exists, we want to increment. 

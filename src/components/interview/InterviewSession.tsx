@@ -200,7 +200,7 @@ export function InterviewSession({
 
         return () => clearInterval(interval);
         // messages intentionally removed — accessed via messagesRef to prevent interval restart on each turn
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing]);
 
     useEffect(() => {

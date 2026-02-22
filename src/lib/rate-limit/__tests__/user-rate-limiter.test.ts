@@ -63,7 +63,7 @@ describe('User Rate Limiter', () => {
         const result = await checkUserRateLimit('user-123');
 
         // Assert security constraint preventing implicit bypasses
-        expect(result).toEqual({ allowed: false, remaining: 0, isAdmin: false });
+        expect(result).toEqual({ allowed: false, remaining: 0, isAdmin: false, error: true });
     });
 
     it('4. Admin user: bypass check -> always returns { allowed: true, isAdmin: true }', async () => {

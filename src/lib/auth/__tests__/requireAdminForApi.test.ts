@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { requireAdminForApi } from '../requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import {  } from 'next/server';
 
 // Mock Supabase server
 vi.mock('@/lib/supabase/server', () => ({

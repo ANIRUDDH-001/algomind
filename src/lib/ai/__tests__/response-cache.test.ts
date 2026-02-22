@@ -39,7 +39,7 @@ describe('ResponseCache (Redis integrated)', () => {
     describe('Cache Hit & Miss', () => {
         it('returns cached value on hit', async () => {
             await cache.set('What is an array?', 'An array is...', 'groq', 150);
-            
+
             // Should be in memory, so redisGet doesn't even need to be called
             const entry = await cache.get('What is an array?');
             expect(entry).not.toBeNull();
@@ -63,18 +63,18 @@ describe('ResponseCache (Redis integrated)', () => {
             // Mock Date.now to control time
             vi.useFakeTimers();
             const cacheWithShortTTL = new ResponseCache({ ttlMs: 5000 });
-            
+
             await cacheWithShortTTL.set('hello', 'world', 'groq', 100);
-            
+
             // Advance time past TTL (5000ms)
             vi.advanceTimersByTime(6000);
-            
+
             // Redis also needs to return null or expired data to fully test eviction
             (redisGet as Mock).mockResolvedValue(null);
 
             const entry = await cacheWithShortTTL.get('hello');
             expect(entry).toBeNull();
-            
+
             vi.useRealTimers();
         });
     });
@@ -82,7 +82,7 @@ describe('ResponseCache (Redis integrated)', () => {
     describe('Redis Fallback', () => {
         it('hydrates in-memory cache from Redis if missing locally', async () => {
             const simulatedTimestamp = Date.now();
-            
+
             // Setup Redis to return a valid cached entry
             const redisEntry = {
                 query: 'what is redis',
@@ -100,11 +100,11 @@ describe('ResponseCache (Redis integrated)', () => {
 
             // Fetch
             const entry = await cache.get('what is redis');
-            
+
             expect(entry).not.toBeNull();
             expect(entry!.response).toBe('Redis is an in-memory datastore.');
             expect(redisGet).toHaveBeenCalledTimes(1);
-            
+
             // It should now be warmed in memory
             expect(cache.size).toBe(1);
         });
@@ -117,18 +117,18 @@ describe('ResponseCache (Redis integrated)', () => {
             const entry = await cache.get('connection test');
             expect(entry).toBeNull();
         });
-        
+
         it('handles invalid JSON from Redis gracefully', async () => {
-             (redisGet as Mock).mockResolvedValue('invalid{json');
-             const entry = await cache.get('json test');
-             expect(entry).toBeNull();
+            (redisGet as Mock).mockResolvedValue('invalid{json');
+            const entry = await cache.get('json test');
+            expect(entry).toBeNull();
         });
     });
 
     describe('LRU Eviction', () => {
         it('evicts least used entry when maxEntries is reached', async () => {
             const smallCache = new ResponseCache({ maxEntries: 3 });
-            
+
             await smallCache.set('query apple', 'r1', 'groq', 100);
             await smallCache.set('query banana', 'r2', 'groq', 100);
             await smallCache.set('query cherry', 'r3', 'groq', 100);
@@ -142,7 +142,7 @@ describe('ResponseCache (Redis integrated)', () => {
 
             // apple is evicted from memory. (Mock Redis to return null so we know it's gone)
             (redisGet as Mock).mockResolvedValue(null);
-            
+
             expect(await smallCache.get('query apple')).toBeNull();
             expect(await smallCache.get('query banana')).not.toBeNull();
             expect(await smallCache.get('query date')).not.toBeNull();
@@ -153,16 +153,16 @@ describe('ResponseCache (Redis integrated)', () => {
         it('evicts entries when memory limit is reached', async () => {
             // Tiny memory limit (100 bytes)
             const memCache = new ResponseCache({ maxMemoryBytes: 100 });
-            
+
             await memCache.set('a', 'short', 'groq', 100); // approx 14 bytes
-            
+
             // Add a massive entry that blows the limit
             const hugeResponse = 'x'.repeat(200);
             await memCache.set('b', hugeResponse, 'groq', 100); // 400+ bytes
-            
+
             // Memory should never exceed bounds. EITHER it evicts everything, OR it refuses to cache 'b'
             expect(memCache.size).toBeLessThanOrEqual(1);
-            
+
             const stats = memCache.getStats();
             expect(stats.memorySizeBytes).toBeLessThanOrEqual(100);
         });
@@ -179,20 +179,20 @@ describe('ResponseCache (Redis integrated)', () => {
             const stats = cache.getStats();
             expect(typeof stats.entries).toBe('number');
             expect(stats.entries).toBe(1);
-            
+
             expect(typeof stats.totalHits).toBe('number');
             expect(stats.totalHits).toBe(1);
-            
+
             expect(typeof stats.totalMisses).toBe('number');
             expect(stats.totalMisses).toBe(1);
-            
+
             expect(typeof stats.hitRate).toBe('number');
             expect(stats.hitRate).toBe(50); // 1 hit, 1 miss = 50%
-            
+
             expect(typeof stats.memorySizeBytes).toBe('number');
             expect(typeof stats.maxMemoryBytes).toBe('number');
             expect(typeof stats.avgLatencySaved).toBe('number');
-            
+
             expect(Array.isArray(stats.topQueries)).toBe(true);
             expect(stats.topQueries.length).toBe(1);
             expect(stats.topQueries[0]).toHaveProperty('query', 'stat query');
@@ -204,7 +204,7 @@ describe('ResponseCache (Redis integrated)', () => {
     describe('Pre-warming', () => {
         it('pre-warms the cache sequentially and caches results', async () => {
             const queries = ['warm up alpha phase', 'warm up beta phase'];
-            
+
             const generator = vi.fn().mockImplementation(async (query: string) => {
                 return { response: `response for ${query}`, model: 'groq', latencyMs: 50 };
             });
@@ -213,7 +213,7 @@ describe('ResponseCache (Redis integrated)', () => {
             (redisGet as Mock).mockResolvedValue(null);
 
             const result = await cache.preWarm(queries, generator);
-            
+
             expect(result.warmed).toBe(2);
             expect(result.failed).toBe(0);
             expect(generator).toHaveBeenCalledTimes(2);

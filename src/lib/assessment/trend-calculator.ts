@@ -1,4 +1,4 @@
-import { CognitiveSkill } from '@/types/assessment';
+import {  } from '@/types/assessment';
 
 export interface TrendAnalysis {
     trend: 'improving' | 'stable' | 'declining';

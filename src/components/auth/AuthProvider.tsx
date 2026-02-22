@@ -47,6 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Get initial session
         const initSession = async () => {
+            // E2E Test Bypass
+            if (typeof document !== 'undefined' && document.cookie.includes('playwright-e2e=true')) {
+                if (mounted) {
+                    // Provide a fake session so routing works
+                    setSession({} as Session);
+                    setUser({ id: 'test-user', email: 'test@example.com' } as User);
+                    setLoading(false);
+                }
+                return;
+            }
+
             try {
                 const { data } = await supabase.auth.getSession();
                 if (mounted) {

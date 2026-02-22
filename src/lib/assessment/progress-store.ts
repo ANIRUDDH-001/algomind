@@ -29,11 +29,11 @@ export interface UserProgressOverview {
 }
 
 export class ProgressStore {
-    private readonly MAX_SESSIONS = 50;
-    private readonly STORAGE_KEY_PREFIX = 'algomind_progress_';
+    private readonly MAX = 50;
+    private readonly STORAGE = 'algomind_progress_';
 
     async saveSession(session: SessionHistory): Promise<void> {
-        const key = `${this.STORAGE_KEY_PREFIX}${session.userId}`;
+        const key = `${this.STORAGE}${session.userId}`;
 
         try {
             const existingData = this.getRawProgress(session.userId);
@@ -61,7 +61,7 @@ export class ProgressStore {
     }
 
     private getRawProgress(userId: string): SessionHistory[] {
-        const key = `${this.STORAGE_KEY_PREFIX}${userId}`;
+        const key = `${this.STORAGE}${userId}`;
         const data = localStorage.getItem(key);
         if (!data) return [];
         try {
@@ -72,22 +72,22 @@ export class ProgressStore {
     }
 
     private pruneOldSessions(sessions: SessionHistory[]): SessionHistory[] {
-        if (sessions.length <= this.MAX_SESSIONS) return sessions;
-        return sessions.slice(0, this.MAX_SESSIONS);
+        if (sessions.length <= this.MAX) return sessions;
+        return sessions.slice(0, this.MAX);
     }
 
     private forceClearOldest(userId: string): void {
         const sessions = this.getRawProgress(userId);
         if (sessions.length > 10) {
             const pruned = sessions.slice(0, Math.floor(sessions.length / 2));
-            localStorage.setItem(`${this.STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(pruned));
+            localStorage.setItem(`${this.STORAGE}${userId}`, JSON.stringify(pruned));
         } else {
-            localStorage.removeItem(`${this.STORAGE_KEY_PREFIX}${userId}`);
+            localStorage.removeItem(`${this.STORAGE}${userId}`);
         }
     }
 
     getStorageSize(userId: string): number {
-        const data = localStorage.getItem(`${this.STORAGE_KEY_PREFIX}${userId}`);
+        const data = localStorage.getItem(`${this.STORAGE}${userId}`);
         return data ? new Blob([data]).size : 0;
     }
 

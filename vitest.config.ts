@@ -12,7 +12,15 @@ export default defineConfig({
         environment: 'node',
 
         // Include pattern
-        include: ['src/**/__tests__/**/*.test.ts', 'src/**/*.test.ts'],
+        include: ['src/**/__tests__/**/*.test.ts', 'src/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx', 'src/**/*.test.tsx'],
+
+        // Exclude Playwright integration tests (they use Playwright's test.describe API)
+        exclude: [
+            'src/__tests__/integration/error-recovery.test.tsx',
+            'src/__tests__/integration/feature-flags.test.tsx',
+            'src/__tests__/integration/voice-interview.test.tsx',
+            'node_modules/**',
+        ],
 
         // Coverage configuration
         coverage: {
