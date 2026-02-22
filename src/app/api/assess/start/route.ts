@@ -89,11 +89,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Associated problem not found' }, { status: 404 });
         }
 
+        // Get authenticated user for the submission
+        const { data: { user } } = await supabase.auth.getUser();
+
         // 3. Create Submission record
         const { data: submission, error: submissionError } = await supabase
             .from('candidate_submissions')
             .insert({
                 campaign_id: campaignData.id,
+                candidate_id: user?.id || null, // Link to the authenticated user
                 candidate_name: candidateName,
                 candidate_email: candidateEmail || null,
                 status: 'in_progress'
