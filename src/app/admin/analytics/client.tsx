@@ -76,7 +76,7 @@ export default function AnalyticsAdminClient() {
     };
 
     // Panel 1: Transform Analytics for Chart (Stacked Bar)
-    const chartData = analytics.reduce((acc, curr) => {
+    const chartData = (Array.isArray(analytics) ? analytics : []).reduce((acc, curr) => {
         const dateString = curr.event_date;
         let dayData = acc.find((d: any) => d.name === dateString);
         if (!dayData) {
@@ -100,18 +100,18 @@ export default function AnalyticsAdminClient() {
     };
 
     // Collect all unique event types from the chart data to build Bars
-    const chartKeys = Array.from(new Set(analytics.map(a => a.event_type)));
+    const chartKeys = Array.from(new Set((Array.isArray(analytics) ? analytics : []).map(a => a.event_type)));
 
     // Panel 2: Model Rate Limits (last 24h)
-    const rateLimitedModels = models
+    const rateLimitedModels = (Array.isArray(models) ? models : [])
         .filter(m => m.rateLimitHits24h > 0)
         .sort((a, b) => b.rateLimitHits24h - a.rateLimitHits24h);
 
     // Panel 3: DB Errors
-    const dbErrors = events.filter(e => e.type === 'db_error').slice(0, 20);
+    const dbErrors = (Array.isArray(events) ? events : []).filter(e => e.type === 'db_error').slice(0, 20);
 
     // Panel 4: User Rate Limits
-    const userRateLimits = events.filter(e => e.type === 'user_rate_limit');
+    const userRateLimits = (Array.isArray(events) ? events : []).filter(e => e.type === 'user_rate_limit');
 
     // Derived chart for user rate limits (by hour)
     const userRateLimitsByHour = userRateLimits.reduce((acc, curr) => {
