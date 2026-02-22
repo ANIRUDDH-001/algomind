@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'This invite code has expired' }, { status: 403 });
     }
 
-    // Check if invite is locked to a specific email
-    if (invite.email && invite.email !== user.email) {
+    // Strictly check if the invite email matches the user email
+    if (!invite.email || invite.email.toLowerCase() !== user.email?.toLowerCase()) {
         return NextResponse.json({ error: 'This invite code is for a different email address' }, { status: 403 });
     }
 
