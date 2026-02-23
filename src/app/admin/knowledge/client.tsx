@@ -38,6 +38,7 @@ export default function KnowledgeAdminPage() {
     const [chunks, setChunks] = useState<KnowledgeChunk[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('gaps');
+    const [prefillContent, setPrefillContent] = useState('');
 
     const tabs = ['gaps', 'chunks', 'add'];
     const handlers = useSwipeable({
@@ -281,8 +282,8 @@ export default function KnowledgeAdminPage() {
                                                         variant="outline"
                                                         className="border-green-600 text-green-400 hover:bg-green-900/20 text-xs"
                                                         onClick={() => {
-                                                            // Switch to add tab with prefilled query context
-                                                            alert('Create knowledge chunk for:\n\n' + gap.user_query.slice(0, 200));
+                                                            setPrefillContent(gap.user_query);
+                                                            setActiveTab('add');
                                                         }}
                                                     >
                                                         Create Chunk
@@ -347,7 +348,7 @@ export default function KnowledgeAdminPage() {
 
                                     {/* List Rows */}
                                     {chunks.map((chunk) => (
-                                        <ChunkRow key={chunk.id} chunk={chunk} />
+                                        <ChunkRow key={chunk.id} chunk={chunk} onSuccess={loadData} />
                                     ))}
                                 </div>
                             )}
@@ -356,7 +357,7 @@ export default function KnowledgeAdminPage() {
 
                     {/* Tab 3: Add New Chunk */}
                     <TabsContent value="add">
-                        <AddKnowledgeChunkForm onSuccess={loadData} />
+                        <AddKnowledgeChunkForm onSuccess={loadData} prefillContent={prefillContent} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -364,7 +365,7 @@ export default function KnowledgeAdminPage() {
     );
 }
 
-function ChunkRow({ chunk }: { chunk: KnowledgeChunk }) {
+function ChunkRow({ chunk, onSuccess }: { chunk: KnowledgeChunk; onSuccess: () => void }) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -445,10 +446,47 @@ function ChunkRow({ chunk }: { chunk: KnowledgeChunk }) {
                             </div>
 
                             <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-800/50">
-                                <Button variant="outline" size="sm" className="border-slate-700 hover:bg-slate-800 gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-slate-700 hover:bg-slate-800 gap-2"
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        const newContent = window.prompt('Edit content:', chunk.content);
+                                        if (newContent !== null && newContent !== chunk.content) {
+                                            const supabase = getSupabase();
+                                            if (supabase) {
+                                                const { error } = await supabase
+                                                    .from('knowledge_chunks')
+                                                    .update({ content: newContent })
+                                                    .eq('id', chunk.id);
+                                                if (error) alert('Failed to update: ' + error.message);
+                                                else onSuccess();
+                                            }
+                                        }
+                                    }}
+                                >
                                     <Edit className="w-3 h-3" /> Edit
                                 </Button>
-                                <Button variant="destructive" size="sm" className="bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 gap-2">
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 gap-2"
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Are you sure you want to archive this chunk?')) {
+                                            const supabase = getSupabase();
+                                            if (supabase) {
+                                                const { error } = await supabase
+                                                    .from('knowledge_chunks')
+                                                    .update({ status: 'archived' })
+                                                    .eq('id', chunk.id);
+                                                if (error) alert('Failed to archive: ' + error.message);
+                                                else onSuccess();
+                                            }
+                                        }
+                                    }}
+                                >
                                     <Trash2 className="w-3 h-3" /> Archive
                                 </Button>
                             </div>
@@ -461,7 +499,7 @@ function ChunkRow({ chunk }: { chunk: KnowledgeChunk }) {
 }
 
 // Form component for adding new knowledge chunks
-function AddKnowledgeChunkForm({ onSuccess }: { onSuccess: () => void }) {
+function AddKnowledgeChunkForm({ onSuccess, prefillContent }: { onSuccess: () => void; prefillContent?: string }) {
     const [formData, setFormData] = useState({
         topic: '',
         subtopic: '',
@@ -469,6 +507,12 @@ function AddKnowledgeChunkForm({ onSuccess }: { onSuccess: () => void }) {
         keywords: '',
         difficulty: 'medium',
     });
+
+    useEffect(() => {
+        if (prefillContent) {
+            setFormData(prev => ({ ...prev, content: prefillContent }));
+        }
+    }, [prefillContent]);
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
