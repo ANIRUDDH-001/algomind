@@ -10,8 +10,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import type { CacheStats } from '@/lib/ai/response-cache';
-import { toast } from 'sonner';
 import { getFeatureFlag } from '@/lib/feature-flags';
+import { toast } from 'sonner';
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -46,6 +46,8 @@ export default function CacheStatsPage() {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setStats(data.stats ?? null);
+            // Read the feature flag from localStorage (client-side only — server always returns default=false)
+            setEnabled(getFeatureFlag('ENABLE_RESPONSE_CACHE'));
             setLastRefreshed(new Date());
             if (manual) toast.success('Cache stats refreshed');
         } catch (err) {
@@ -70,10 +72,6 @@ export default function CacheStatsPage() {
             setIsClearing(false);
         }
     };
-
-    useEffect(() => {
-        setEnabled(getFeatureFlag('ENABLE_RESPONSE_CACHE'));
-    }, []);
 
     useEffect(() => {
         refresh();

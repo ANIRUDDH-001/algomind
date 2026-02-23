@@ -19,7 +19,6 @@ const STATIC_NAV_ITEMS = [
     { name: 'Knowledge Base', href: '/admin/knowledge', icon: Database },
     { name: 'Voice Debug', href: '/admin/voice-debug', icon: MessageSquare },
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
-    { name: 'Employers', href: '/admin/employers', icon: Briefcase },
 ];
 
 export function AdminSidebar() {
@@ -30,10 +29,25 @@ export function AdminSidebar() {
     useEffect(() => {
         const checkModels = async () => {
             try {
+                // Check for deprecated models in last 24h (fix: was data.count, should be totalCount)
                 const res = await fetch('/api/admin/events?type=model_deprecated&days=1&limit=1');
                 if (res.ok) {
                     const data = await res.json();
-                    setHasDeprecatedModels(data.count > 0);
+                    const hasDeprecated = (data.totalCount ?? data.events?.length ?? 0) > 0;
+
+                    // Also check health for degraded (rate-limited) models
+                    if (!hasDeprecated) {
+                        const healthRes = await fetch('/api/admin/health');
+                        if (healthRes.ok) {
+                            const health = await healthRes.json();
+                            setHasDeprecatedModels(
+                                (health.models?.deprecated ?? 0) > 0 ||
+                                (health.models?.degraded ?? 0) > 0
+                            );
+                        }
+                    } else {
+                        setHasDeprecatedModels(true);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch model deprecation status:", error);
@@ -145,6 +159,22 @@ export function AdminSidebar() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                    </div>
+                    {/* Enterprise Section - Separate from Admin Tools */}
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3 mb-2">Enterprise</p>
+                        <Link
+                            href="/admin/employers"
+                            className={cn(
+                                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all border border-transparent hover:border-blue-500/20",
+                                pathname === '/admin/employers'
+                                    ? "bg-blue-600/10 text-blue-400 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                            )}
+                        >
+                            <Briefcase className={cn("w-4 h-4", pathname === '/admin/employers' ? "text-blue-400" : "text-slate-500")} />
+                            Employer Accounts
+                        </Link>
                     </div>
                 </nav>
             </div>

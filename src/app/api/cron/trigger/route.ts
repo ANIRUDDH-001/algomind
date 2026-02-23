@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
         // 3. Return success and log it
         await logSystemEvent({
-            type: 'cron_completed',
+            type: 'cron_triggered',
             metadata: {
                 message: 'Successfully triggered nightly batch workflow',
             },
