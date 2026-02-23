@@ -26,9 +26,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
         }
 
-        const campaign = Array.isArray(submission.assessment_campaigns) ? submission.assessment_campaigns[0] : submission.assessment_campaigns;
+        const campaignData = submission.assessment_campaigns;
+        const campaign = Array.isArray(campaignData) ? campaignData[0] : campaignData;
 
-        if (!campaign.show_score_to_candidate) {
+        if (!campaign || !campaign.show_score_to_candidate) {
             return NextResponse.json({ error: 'Results are not available to candidates for this campaign' }, { status: 403 });
         }
 

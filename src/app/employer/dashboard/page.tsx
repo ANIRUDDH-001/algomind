@@ -27,7 +27,6 @@ export default async function EmployerDashboardPage() {
         supabase
             .from('candidate_submissions')
             .select('campaign_id')
-            .eq('status', 'completed')
     ]);
 
     const countsMap = (countsRes.data || []).reduce((acc: Record<string, number>, curr: any) => {
