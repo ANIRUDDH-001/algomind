@@ -70,6 +70,18 @@ export interface FeatureFlagValue {
  * Get feature flag value from localStorage with fallback to default
  */
 export function getFeatureFlag(flag: FeatureFlagKey): boolean {
+    // Special case for environment variable overrides
+    if (flag === 'ENABLE_SMART_ROUTING') {
+        const envVal = process.env.NEXT_PUBLIC_FF_ENABLE_SMART_ROUTING;
+        if (envVal !== undefined) {
+            // Default to env var if localStorage is empty
+            if (typeof window === 'undefined') return envVal === 'true';
+            const stored = localStorage.getItem(FEATURE_FLAGS[flag].storageKey);
+            if (stored === null) return envVal === 'true';
+            return stored === 'true';
+        }
+    }
+
     if (typeof window === 'undefined') {
         return FEATURE_FLAGS[flag].defaultValue;
     }
