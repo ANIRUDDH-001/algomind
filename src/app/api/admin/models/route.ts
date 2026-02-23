@@ -81,6 +81,58 @@ export async function GET() {
     }
 }
 
+export async function POST(request: Request) {
+    try {
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
+        const supabase = await createServerSupabase();
+
+        const body = await request.json();
+        const { modelId, provider, tier, rpm, tpm, rpd, contextWindow, notes } = body;
+
+        if (!modelId || !provider) {
+            return NextResponse.json({ error: 'Missing modelId or provider' }, { status: 400 });
+        }
+
+        const { error } = await supabase
+            .from('model_registry')
+            .insert({
+                model_id: modelId,
+                provider,
+                tier: tier || 5,
+                rpm: rpm || 0,
+                tpm: tpm || 0,
+                rpd: rpd || 0,
+                context_window: contextWindow || 0,
+                notes: notes || '',
+                is_active: true,
+                is_verified: false,
+                is_preview: false
+            });
+
+        if (error) {
+            console.error('[Admin Models] Error adding model:', error);
+            if (error.code === '23505') {
+                return NextResponse.json({ error: 'Model ID already exists' }, { status: 409 });
+            }
+            return NextResponse.json({ error: 'Failed to add model' }, { status: 500 });
+        }
+
+        await invalidateModelCache();
+
+        void logSystemEvent({
+            type: 'admin_action',
+            metadata: { action: 'add_model', modelId, provider }
+        });
+
+        return NextResponse.json({ success: true });
+
+    } catch (error) {
+        console.error('[Admin Models API] POST Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
 export async function PATCH(request: Request) {
     try {
         const { errorResponse } = await requireAdminForApi();
