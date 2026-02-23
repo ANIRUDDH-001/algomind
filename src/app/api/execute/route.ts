@@ -3,6 +3,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { redisIncr } from '@/lib/upstash/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
+export const maxDuration = 10;
+
 // Piston API types
 export type SupportedLanguage = 'python' | 'javascript' | 'java' | 'cpp';
 
@@ -93,8 +95,8 @@ export async function POST(req: NextRequest) {
             version: config.version,
             files: [{ name: 'main', content: code }],
             stdin: stdin || '',
-            run_timeout: 10000,
-            compile_timeout: 10000,
+            run_timeout: 5000,
+            compile_timeout: 5000,
             compile_memory_limit: -1,
             run_memory_limit: 65536
         };
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest) {
         try {
             const abortController = new AbortController();
             const signal = abortController.signal;
-            const timeoutId = setTimeout(() => abortController.abort(), 15000);
+            const timeoutId = setTimeout(() => abortController.abort(), 8000);
 
             const result = await fetch(pistonExecuteUrl, {
                 method: 'POST',
