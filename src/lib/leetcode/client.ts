@@ -31,8 +31,8 @@ query getUserProfile($username: String!) {
     submitStats {
       acSubmissionNum { difficulty count }
     }
-    userContestRanking { rating }
   }
+  userContestRanking(username: $username) { rating }
   recentAcSubmissionList(username: $username, limit: 20) {
     title titleSlug timestamp statusDisplay lang
   }
@@ -66,7 +66,7 @@ export async function fetchLeetCodeProfile(username: string): Promise<LeetCodePr
             return null; // Expected if username doesn't exist, don't log as system error
         }
 
-        const { matchedUser, recentAcSubmissionList } = json.data;
+        const { matchedUser, recentAcSubmissionList, userContestRanking } = json.data;
 
         let totalSolved = 0;
         let easySolved = 0;
@@ -88,7 +88,7 @@ export async function fetchLeetCodeProfile(username: string): Promise<LeetCodePr
             mediumSolved,
             hardSolved,
             ranking: matchedUser.profile?.ranking || null,
-            contestRating: matchedUser.userContestRanking?.rating || null,
+            contestRating: userContestRanking?.rating || null,
             recentSubmissions: recentAcSubmissionList || [],
             fetchedAt: new Date().toISOString()
         };
