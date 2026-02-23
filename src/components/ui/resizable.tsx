@@ -140,12 +140,11 @@ function ResizablePanel({
     const id = idProp ?? autoId
     const { registerPanel, getIndex, sizes, direction } = useGroupCtx()
 
-    // Register synchronously before render — only once
-    const didRegister = useRef(false)
-    if (!didRegister.current) {
-        didRegister.current = true
+    // Register synchronously during first render — only once
+    useState(() => {
         registerPanel(id, { defaultSize, minSize, maxSize })
-    }
+        return true
+    })
 
     const index = getIndex(id)
     const pct = sizes[index]
