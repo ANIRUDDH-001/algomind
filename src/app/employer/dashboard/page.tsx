@@ -14,27 +14,31 @@ export default async function EmployerDashboardPage() {
     const supabase = await createServerSupabase();
 
     // Prefetch campaigns and available problems for the modal to reduce initial loading flashes
-    const [campaignRes, problemRes] = await Promise.all([
+    const [campaignRes, problemRes, countsRes] = await Promise.all([
         supabase
             .from('assessment_campaigns')
-            .select(`
-                *,
-                entry_code,
-                campaign_questions,
-                default_easy_mins,
-                default_medium_mins,
-                default_hard_mins
-            `)
+            .select('*')
             .eq('created_by', user.id)
             .order('created_at', { ascending: false }),
-
         supabase
             .from('problems')
             .select('id, title, difficulty')
-            .order('title')
+            .order('title'),
+        supabase
+            .from('candidate_submissions')
+            .select('campaign_id')
+            .eq('status', 'completed')
     ]);
 
-    const initialCampaigns = campaignRes.data || [];
+    const countsMap = (countsRes.data || []).reduce((acc: Record<string, number>, curr: any) => {
+        acc[curr.campaign_id] = (acc[curr.campaign_id] || 0) + 1;
+        return acc;
+    }, {});
+
+    const initialCampaigns = (campaignRes.data || []).map(c => ({
+        ...c,
+        completed_count: countsMap[c.id] || 0
+    }));
     const availableProblems = problemRes.data || [];
 
     return (

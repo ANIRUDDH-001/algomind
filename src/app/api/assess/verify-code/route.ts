@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         // 2. Call verify_campaign_entry_code RPC
         const { data: rpcData, error: rpcError } = await supabase.rpc('verify_campaign_entry_code', {
             p_public_token: publicToken,
-            p_entry_code: entryCode
+            p_entry_code: entryCode.trim().toUpperCase()
         });
 
         // 3. Check validity

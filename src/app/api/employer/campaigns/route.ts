@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
             show_score_to_candidate: showScoreToCandidate,
             assignment_mode: 'fixed',               // kept for compat
             problem_id: uuidRegex.test(campaignQuestions[0].problem_id) ? campaignQuestions[0].problem_id : null,  // legacy field = first question
-            entry_code: entryCode,
+            entry_code: entryCode.toUpperCase(),
             expires_at: expiresAt,
             max_uses: maxUses ?? null,
         };
