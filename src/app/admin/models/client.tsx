@@ -24,6 +24,7 @@ interface ModelStat {
     rateLimitHits24h: number;
     lastRateLimitHit: string | null;
     status: 'active' | 'degraded' | 'deprecated';
+    modelType: 'audio' | 'text';
 }
 
 interface NewModelForm {
@@ -271,6 +272,11 @@ export default function ModelsAdminClient() {
                                             >
                                                 {model.modelId} <Copy className="w-3 h-3 opacity-50" />
                                             </button>
+                                            {model.modelType === 'audio' && (
+                                                <Badge variant="outline" className="mt-1 border-blue-500/30 text-blue-400 bg-blue-500/5 px-1 py-0 h-4 text-[9px] uppercase font-bold">
+                                                    Audio
+                                                </Badge>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-slate-300 capitalize">{model.provider}</td>
                                         <td className="px-4 py-3 text-slate-300">{model.tier}</td>
@@ -342,7 +348,7 @@ export default function ModelsAdminClient() {
                                                                 disabled={verifyingModel === model.modelId}
                                                             >
                                                                 {verifyingModel === model.modelId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
-                                                                Verify
+                                                                {model.modelType === 'audio' ? 'Mark OK' : 'Verify'}
                                                             </Button>
                                                             <Button size="sm" variant="outline" className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => handleDeprecate(model.modelId)}>
                                                                 Deprecate
