@@ -113,8 +113,8 @@ export async function GET() {
             alerts.push(`Encountered ${eventsSummary.dbErrors24h} database error(s) in the last 24h.`);
         }
 
-        if (!cronSummary.lastRunAt || (Date.now() - new Date(cronSummary.lastRunAt).getTime() > 26 * 60 * 60 * 1000)) {
-            alerts.push(`Cron jobs have not run successfully in over 26 hours.`);
+        if (!cronSummary.lastRunAt || (Date.now() - new Date(cronSummary.lastRunAt).getTime() > 36 * 60 * 60 * 1000)) {
+            alerts.push(`Cron jobs have not run successfully in over 36 hours.`);
         } else if (cronSummary.lastRunStatus === 'failed') {
             alerts.push(`The last scheduled cron job failed.`);
         }
