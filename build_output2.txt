@@ -1,0 +1,53 @@
+﻿
+> algomind@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env.production
+- Experiments (use with caution):
+  ┬À serverActions
+
+node.exe : ÔÜá The "middleware" file convention is 
+deprecated. Please use "proxy" instead. Learn more: 
+https://nextjs.org/docs/messages/middleware-to-proxy
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ÔÜá The " 
+   middle...leware-to-proxy:String) [], RemoteExcepti  
+  on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 7.2s
+  Running TypeScript ...
+Failed to compile.
+
+./src/components/enterprise/EmployerDashboard.tsx:680:2
+1
+Type error: Type '{ sessionId: string; candidateName: 
+string; onClose: () => void; }' is not assignable to 
+type 'IntrinsicAttributes & 
+CandidateTranscriptViewerProps'.
+  Property 'sessionId' does not exist on type 
+'IntrinsicAttributes & CandidateTranscriptViewerProps'.
+
+[0m [90m 678 |[39m             
+{viewTranscriptSessionId [33m&&[39m (
+ [90m 679 |[39m                 
+[33m<[39m[33mCandidateTranscriptViewer[39m
+[31m[1m>[22m[39m[90m 680 |[39m                   
+  sessionId[33m=[39m{viewTranscriptSessionId}
+ [90m     |[39m                     
+[31m[1m^[22m[39m
+ [90m 681 |[39m                     
+candidateName[33m=[39m{viewTranscriptCandidateName}
+ [90m 682 |[39m                     
+onClose[33m=[39m{() [33m=>[39m 
+setViewTranscriptSessionId([36mnull[39m)}
+ [90m 683 |[39m                 
+[33m/[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: 
+null

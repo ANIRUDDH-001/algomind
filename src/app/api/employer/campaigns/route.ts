@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
 
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         for (const q of campaignQuestions) {
-            if (!q.problem_id || !uuidRegex.test(q.problem_id)) {
+            const isRandom = typeof q.problem_id === 'string' && q.problem_id.startsWith('random-');
+            if (!q.problem_id || (!uuidRegex.test(q.problem_id) && !isRandom)) {
                 return NextResponse.json({ error: `Invalid problem_id: ${q.problem_id}` }, { status: 400 });
             }
             if (!q.time_limit_mins || q.time_limit_mins < 5 || q.time_limit_mins > 120) {
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
             is_active: true,
             show_score_to_candidate: showScoreToCandidate,
             assignment_mode: 'fixed',               // kept for compat
-            problem_id: campaignQuestions[0].problem_id,  // legacy field = first question
+            problem_id: uuidRegex.test(campaignQuestions[0].problem_id) ? campaignQuestions[0].problem_id : null,  // legacy field = first question
             entry_code: entryCode,
             expires_at: expiresAt,
             max_uses: maxUses ?? null,

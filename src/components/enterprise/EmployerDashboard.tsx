@@ -675,9 +675,9 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             })()}
 
             {/* Transcript Viewer Modal */}
-            {viewTranscriptSessionId && (
+            {viewTranscriptSessionId && reportData && (
                 <CandidateTranscriptViewer
-                    sessionId={viewTranscriptSessionId}
+                    reportData={reportData}
                     candidateName={viewTranscriptCandidateName}
                     onClose={() => setViewTranscriptSessionId(null)}
                 />
