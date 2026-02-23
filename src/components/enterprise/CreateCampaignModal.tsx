@@ -1,0 +1,602 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    Plus,
+    X,
+    Clock,
+    Search,
+    Check,
+    GripVertical,
+    ArrowUp,
+    ArrowDown,
+    ChevronRight,
+    ChevronLeft,
+    Calendar,
+    Layers,
+    CheckCircle2,
+    Copy,
+    ExternalLink,
+    ChevronDown,
+    ChevronUp,
+    Info
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { CampaignQuestion } from '@/types/campaign';
+
+interface ProblemData {
+    id: string;
+    title: string;
+    difficulty: string;
+}
+
+interface CreateCampaignModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    availableProblems: ProblemData[];
+    onSuccess: (campaign: any) => void;
+}
+
+export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSuccess }: CreateCampaignModalProps) {
+    const [step, setStep] = useState(1);
+    const [isCreating, setIsCreating] = useState(false);
+    const [createdCampaign, setCreatedCampaign] = useState<any | null>(null);
+
+    // Form State
+    const [title, setTitle] = useState('');
+    const [selectedQuestions, setSelectedQuestions] = useState<{ problem: ProblemData, time_limit_mins: number }[]>([]);
+    const [maxUses, setMaxUses] = useState('');
+    const [expiresAt, setExpiresAt] = useState(() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow.toISOString().slice(0, 16); // Format for datetime-local
+    });
+    const [showScoreToCandidate, setShowScoreToCandidate] = useState(false);
+
+    // Timing Defaults State
+    const [defaultEasyMins, setDefaultEasyMins] = useState(15);
+    const [defaultMediumMins, setDefaultMediumMins] = useState(25);
+    const [defaultHardMins, setDefaultHardMins] = useState(45);
+    const [showAdvancedTiming, setShowAdvancedTiming] = useState(false);
+
+    const totalTime = selectedQuestions.reduce((sum, q) => sum + q.time_limit_mins, 0);
+
+    const getDefaultTime = (difficulty: string) => {
+        if (difficulty === 'easy') return defaultEasyMins;
+        if (difficulty === 'medium') return defaultMediumMins;
+        if (difficulty === 'hard') return defaultHardMins;
+        return defaultMediumMins;
+    };
+
+    const handleAddQuestion = (problem: ProblemData) => {
+        if (selectedQuestions.length >= 3) {
+            toast.error("Maximum 3 questions allowed");
+            return;
+        }
+        if (selectedQuestions.some(q => q.problem.id === problem.id)) {
+            toast.error("Question already added");
+            return;
+        }
+        setSelectedQuestions([...selectedQuestions, {
+            problem,
+            time_limit_mins: getDefaultTime(problem.difficulty)
+        }]);
+    };
+
+    const handleRemoveQuestion = (idx: number) => {
+        setSelectedQuestions(selectedQuestions.filter((_, i) => i !== idx));
+    };
+
+    const handleMoveQuestion = (idx: number, direction: 'up' | 'down') => {
+        const newQuestions = [...selectedQuestions];
+        const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= newQuestions.length) return;
+
+        [newQuestions[idx], newQuestions[targetIdx]] = [newQuestions[targetIdx], newQuestions[idx]];
+        setSelectedQuestions(newQuestions);
+    };
+
+    const handleUpdateQuestionTime = (idx: number, time: number) => {
+        const newQuestions = [...selectedQuestions];
+        newQuestions[idx].time_limit_mins = Math.max(5, Math.min(120, time));
+        setSelectedQuestions(newQuestions);
+    };
+
+    const handleSubmit = async () => {
+        setIsCreating(true);
+        try {
+            const payload = {
+                title,
+                campaignQuestions: selectedQuestions.map(q => ({
+                    problem_id: q.problem.id,
+                    time_limit_mins: q.time_limit_mins
+                })),
+                defaultEasyMins,
+                defaultMediumMins,
+                defaultHardMins,
+                maxUses: maxUses ? parseInt(maxUses) : undefined,
+                expiresAt: new Date(expiresAt).toISOString(),
+                showScoreToCandidate
+            };
+
+            const res = await fetch('/api/employer/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error("Failed to create campaign");
+            const data = await res.json();
+            setCreatedCampaign(data.campaign);
+            onSuccess(data.campaign);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to create campaign");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    if (createdCampaign) {
+        return (
+            <SuccessModal
+                campaign={createdCampaign}
+                onClose={() => {
+                    onClose();
+                    setCreatedCampaign(null);
+                    setStep(1);
+                    setTitle('');
+                    setSelectedQuestions([]);
+                }}
+            />
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <Card className="bg-slate-900 border-slate-700/50 w-full max-w-2xl shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Layers className="w-5 h-5 text-blue-400" />
+                            {step === 1 ? 'Step 1: Select Questions' : 'Step 2: Adjust Timing'}
+                        </h3>
+                        <p className="text-sm text-slate-400">
+                            {step === 1 ? 'Choose up to 3 problems for this assessment.' : 'Customize the time limit for each question.'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                {/* Wizard Progress */}
+                <div className="flex w-full bg-slate-950 h-1">
+                    <div
+                        className={cn("h-full bg-blue-500 transition-all duration-500", step === 1 ? 'w-1/2' : 'w-full')}
+                    />
+                </div>
+
+                <div className="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    {step === 1 ? (
+                        <div className="space-y-6">
+                            {/* Campaign Title */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-300">Campaign Title *</label>
+                                <Input
+                                    required
+                                    placeholder="e.g. SDE-2 Final Round"
+                                    value={title}
+                                    onChange={e => setTitle(e.target.value)}
+                                    className="bg-slate-950 border-slate-800"
+                                />
+                            </div>
+
+                            {/* Problem Selection */}
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium text-slate-300 flex justify-between">
+                                    <span>Add Questions (1-3)</span>
+                                    <span className={cn("text-xs font-mono", selectedQuestions.length === 3 ? "text-amber-400" : "text-slate-500")}>
+                                        {selectedQuestions.length}/3 selected
+                                    </span>
+                                </label>
+
+                                <ProblemSearchSelect
+                                    problems={availableProblems}
+                                    onSelect={handleAddQuestion}
+                                    selectedIds={selectedQuestions.map(q => q.problem.id)}
+                                />
+
+                                {/* Selected Questions List */}
+                                {selectedQuestions.length > 0 && (
+                                    <div className="space-y-2 mt-4">
+                                        {selectedQuestions.map((sq, i) => (
+                                            <div key={sq.problem.id} className="flex items-center gap-3 bg-slate-950 border border-slate-800 p-2 rounded-lg group animate-in slide-in-from-left-2">
+                                                <div className="bg-slate-900 rounded-md p-1 font-mono text-xs text-slate-500 w-6 h-6 flex items-center justify-center">
+                                                    {i + 1}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-slate-200 truncate">{sq.problem.title}</span>
+                                                        <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded",
+                                                            sq.problem.difficulty === 'easy' ? 'bg-green-500/10 text-green-400' :
+                                                                sq.problem.difficulty === 'medium' ? 'bg-amber-500/10 text-amber-400' :
+                                                                    'bg-red-500/10 text-red-400'
+                                                        )}>
+                                                            {sq.problem.difficulty}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-300"
+                                                        onClick={() => handleMoveQuestion(i, 'up')}
+                                                        disabled={i === 0}
+                                                    >
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-300"
+                                                        onClick={() => handleMoveQuestion(i, 'down')}
+                                                        disabled={i === selectedQuestions.length - 1}
+                                                    >
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-400"
+                                                        onClick={() => handleRemoveQuestion(i)}
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Additional Settings */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Link Expiry</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <Input
+                                            type="datetime-local"
+                                            value={expiresAt}
+                                            onChange={e => setExpiresAt(e.target.value)}
+                                            className="pl-10 bg-slate-950 border-slate-800 [color-scheme:dark]"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Max Uses</label>
+                                    <div className="relative">
+                                        <Plus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <Input
+                                            type="number"
+                                            placeholder="Optional"
+                                            value={maxUses}
+                                            onChange={e => setMaxUses(e.target.value)}
+                                            className="pl-10 bg-slate-950 border-slate-800"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <input
+                                    id="showScore"
+                                    type="checkbox"
+                                    checked={showScoreToCandidate}
+                                    onChange={e => setShowScoreToCandidate(e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500"
+                                />
+                                <label htmlFor="showScore" className="text-sm text-slate-300 cursor-pointer">
+                                    Show score to candidate after completion
+                                </label>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                            <h4 className="text-lg font-semibold text-white">Review & Customize Timing</h4>
+
+                            {/* Advanced Timing Defaults */}
+                            <div className="bg-slate-950/50 border border-slate-800 rounded-xl overflow-hidden">
+                                <button
+                                    onClick={() => setShowAdvancedTiming(!showAdvancedTiming)}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-slate-900/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-blue-400" />
+                                        <span className="text-sm font-medium text-slate-200">Global Timing Defaults (Advanced)</span>
+                                    </div>
+                                    {showAdvancedTiming ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                                {showAdvancedTiming && (
+                                    <div className="p-4 border-t border-slate-800 grid grid-cols-3 gap-4 bg-slate-900/30">
+                                        <div className="space-y-1.5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Easy</span>
+                                            <Input
+                                                type="number" value={defaultEasyMins}
+                                                onChange={e => setDefaultEasyMins(parseInt(e.target.value))}
+                                                className="h-8 bg-slate-950 border-slate-800 text-xs text-center"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Medium</span>
+                                            <Input
+                                                type="number" value={defaultMediumMins}
+                                                onChange={e => setDefaultMediumMins(parseInt(e.target.value))}
+                                                className="h-8 bg-slate-950 border-slate-800 text-xs text-center"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Hard</span>
+                                            <Input
+                                                type="number" value={defaultHardMins}
+                                                onChange={e => setDefaultHardMins(parseInt(e.target.value))}
+                                                className="h-8 bg-slate-950 border-slate-800 text-xs text-center"
+                                            />
+                                        </div>
+                                        <p className="col-span-3 text-[10px] text-slate-500 flex items-center gap-1 px-1">
+                                            <Info className="w-3 h-3" />
+                                            These defaults apply when creating future campaigns
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Questions List with Specific Timing */}
+                            <div className="space-y-4">
+                                {selectedQuestions.map((sq, i) => (
+                                    <div key={sq.problem.id} className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="bg-slate-900 rounded-md p-1 font-mono text-xs text-slate-500 w-6 h-6 flex items-center justify-center shrink-0">
+                                                #{i + 1}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-sm font-semibold text-white">{sq.problem.title}</span>
+                                                    <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded",
+                                                        sq.problem.difficulty === 'easy' ? 'bg-green-500/10 text-green-400' :
+                                                            sq.problem.difficulty === 'medium' ? 'bg-amber-500/10 text-amber-400' :
+                                                                'bg-red-500/10 text-red-400'
+                                                    )}>
+                                                        {sq.problem.difficulty}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-slate-500">Default for {sq.problem.difficulty}: {getDefaultTime(sq.problem.difficulty)} min</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+                                            <span className="text-xs text-slate-400">Time limit:</span>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    value={sq.time_limit_mins}
+                                                    onChange={(e) => handleUpdateQuestionTime(i, parseInt(e.target.value))}
+                                                    className="w-16 h-8 bg-slate-950 border-slate-800 p-0 text-center text-sm font-mono"
+                                                    min={5}
+                                                    max={120}
+                                                />
+                                                <span className="text-xs text-slate-500 font-medium">min</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Summary */}
+                            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-sm">
+                                <span className="text-slate-400 font-medium">Total interview time:</span>
+                                <div className="flex items-center gap-2 text-blue-400 font-bold">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{totalTime} minutes</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-800 bg-slate-950/30 flex justify-between items-center">
+                    {step === 1 ? (
+                        <>
+                            <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => setStep(2)}
+                                disabled={!title || selectedQuestions.length === 0}
+                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                            >
+                                Next: Adjust Timing
+                                <ChevronRight className="w-4 h-4" />
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="ghost" onClick={() => setStep(1)} className="text-slate-400 hover:text-white gap-2">
+                                <ChevronLeft className="w-4 h-4" />
+                                Back
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={isCreating}
+                                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                            >
+                                {isCreating ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    <>
+                                        Create Campaign
+                                        <CheckCircle2 className="w-4 h-4" />
+                                    </>
+                                )}
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </Card>
+        </div>
+    );
+}
+
+function ProblemSearchSelect({ problems, onSelect, selectedIds }: {
+    problems: ProblemData[], onSelect: (p: ProblemData) => void, selectedIds: string[]
+}) {
+    const [search, setSearch] = useState('');
+    const [diffFilter, setDiffFilter] = useState('');
+
+    const filtered = problems.filter(p => {
+        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+        const matchDiff = !diffFilter || p.difficulty === diffFilter;
+        const notSelected = !selectedIds.includes(p.id);
+        return matchSearch && matchDiff && notSelected;
+    });
+
+    return (
+        <div className="space-y-3">
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Input
+                        placeholder="Search problems..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="pl-9 bg-slate-950 border-slate-800"
+                    />
+                </div>
+                <select
+                    value={diffFilter}
+                    onChange={e => setDiffFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto space-y-1 border border-slate-800 rounded-lg p-2 bg-slate-950/50 custom-scrollbar">
+                {filtered.map(p => (
+                    <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onSelect(p)}
+                        className="w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-between group hover:bg-slate-800/50 border border-transparent"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className={cn("w-2 h-2 rounded-full",
+                                p.difficulty === 'easy' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]' :
+                                    p.difficulty === 'medium' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]' :
+                                        'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'
+                            )} />
+                            <span className="font-medium text-slate-300 group-hover:text-white">{p.title}</span>
+                        </div>
+                        <Plus className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                ))}
+                {filtered.length === 0 && (
+                    <div className="text-center py-6 text-slate-500 text-xs italic">
+                        {search || diffFilter ? "No matching problems found." : "All problems selected."}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function SuccessModal({ campaign, onClose }: { campaign: any, onClose: () => void }) {
+    const [copiedCode, setCopiedCode] = useState(false);
+    const [copiedLink, setCopiedLink] = useState(false);
+
+    const link = `${window.location.origin}/assess/${campaign.public_token}`;
+
+    const handleCopyCode = () => {
+        navigator.clipboard.writeText(campaign.entry_code);
+        setCopiedCode(true);
+        setTimeout(() => setCopiedCode(false), 2000);
+        toast.success("Entry code copied!");
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(link);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+        toast.success("Assessment link copied!");
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-in zoom-in-95 duration-300">
+            <Card className="bg-slate-900 border-slate-700 w-full max-w-md shadow-2xl overflow-hidden glass-morphism p-8 text-center space-y-6">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
+                    <CheckCircle2 className="w-10 h-10 text-green-400" />
+                </div>
+
+                <div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Campaign Created!</h3>
+                    <p className="text-slate-400 text-sm">
+                        Share these details with candidates to start the assessment.
+                    </p>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                    {/* Entry Code Box */}
+                    <div className="space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Candidate Entry Code</span>
+                        <div className="bg-slate-950 border-2 border-slate-800 rounded-xl p-6 relative group overflow-hidden">
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-500 transition-all group-hover:h-full group-hover:opacity-5" />
+                            <div className="text-3xl font-mono font-bold tracking-[0.2em] text-white">
+                                {campaign.entry_code}
+                            </div>
+                            <button
+                                onClick={handleCopyCode}
+                                className="absolute right-3 top-3 p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-md transition-all active:scale-95"
+                            >
+                                {copiedCode ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Link Box */}
+                    <div className="space-y-2 text-left">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest block text-center">Assessment Link</span>
+                        <div className="flex gap-2">
+                            <div className="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-400 truncate font-mono flex items-center">
+                                {link}
+                            </div>
+                            <Button size="icon" variant="ghost" className="shrink-0 text-blue-400 hover:bg-blue-500/10" onClick={handleCopyLink}>
+                                {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 text-left flex gap-3">
+                    <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-amber-500/80 leading-relaxed">
+                        Candidates will need <b>BOTH</b> the link and the entry code to begin their assessment session.
+                    </p>
+                </div>
+
+                <Button onClick={onClose} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-11">
+                    Done
+                </Button>
+            </Card>
+        </div>
+    );
+}

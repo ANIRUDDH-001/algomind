@@ -4,12 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare, Search, Check } from 'lucide-react';
+import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare, Search, Check, Copy, Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { useRouter } from 'next/navigation';
 import { CandidateTranscriptViewer } from './CandidateTranscriptViewer';
+import { CreateCampaignModal } from './CreateCampaignModal';
+import { CampaignData as CampaignType, CampaignQuestion } from '@/types/campaign';
 
 interface ProblemData {
     id: string;
@@ -27,10 +29,13 @@ interface CampaignData {
     uses_count: number;
     is_active: boolean;
     public_token: string;
+    entry_code: string;
     show_score_to_candidate: boolean;
     completed_count?: number;
     created_at: string;
+    campaign_questions?: CampaignQuestion[];
 }
+
 
 interface SubmissionData {
     id: string;
@@ -41,6 +46,10 @@ interface SubmissionData {
     status: string;
     overall_score: number;
     completed_at: string;
+    created_at: string;
+    updated_at: string;
+    question_states: any[];
+    current_problem_id: string | null;
     rank?: number;
 
     // Joined from assessments
@@ -66,23 +75,18 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const router = useRouter();
 
     // Submissions State
+    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [submissions, setSubmissions] = useState<SubmissionData[]>([]);
+    const [submissionsSummary, setSubmissionsSummary] = useState<any>(null);
     const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+    const [viewDetailsSubmissionId, setViewDetailsSubmissionId] = useState<string | null>(null);
+    const [reportData, setReportData] = useState<any>(null);
+    const [isLoadingReport, setIsLoadingReport] = useState(false);
 
     // Create Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newCampaign, setNewCampaign] = useState({
-        title: '',
-        timeLimit: '45',
-        maxUses: '',
-        expiresAt: '',
-        showScoreToCandidate: false,
-        assignmentMode: 'fixed' as 'fixed' | 'pool' | 'random_difficulty',
-        problemId: availableProblems[0]?.id || '',
-        problemPool: [] as string[],
-        poolDifficulty: 'medium' as 'easy' | 'medium' | 'hard',
-    });
     const [isCreating, setIsCreating] = useState(false);
+
 
     // Compare State
     const [compareSelection, setCompareSelection] = useState<string[]>([]);
@@ -91,6 +95,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     // Transcript Viewer State
     const [viewTranscriptSessionId, setViewTranscriptSessionId] = useState<string | null>(null);
     const [viewTranscriptCandidateName, setViewTranscriptCandidateName] = useState<string>('');
+    const [viewTranscriptProblemTitle, setViewTranscriptProblemTitle] = useState<string>('');
 
     const fetchWithAuthCheck = async (url: string, options?: RequestInit) => {
         const res = await fetch(url, options);
@@ -106,15 +111,20 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         if (activeTab === 'submissions' && selectedCampaignId) {
             loadSubmissions(selectedCampaignId);
         }
-    }, [activeTab, selectedCampaignId]);
+    }, [activeTab, selectedCampaignId, statusFilter]);
 
     const loadSubmissions = async (campaignId: string) => {
         setIsLoadingSubmissions(true);
         try {
-            const res = await fetchWithAuthCheck(`/api/employer/submissions/${campaignId}`);
+            const url = new URL(`/api/employer/submissions/${campaignId}`, window.location.origin);
+            if (statusFilter !== 'all') {
+                url.searchParams.set('status', statusFilter);
+            }
+            const res = await fetchWithAuthCheck(url.toString());
             if (res && res.ok) {
                 const data = await res.json();
                 setSubmissions(data.submissions || []);
+                setSubmissionsSummary(data.summary || null);
             }
         } catch (err) {
             console.error('Failed to load submissions', err);
@@ -123,51 +133,31 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         }
     };
 
-    const handleCreateCampaign = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsCreating(true);
+    useEffect(() => {
+        if (viewDetailsSubmissionId && selectedCampaignId) {
+            loadReport(selectedCampaignId, viewDetailsSubmissionId);
+        } else {
+            setReportData(null);
+        }
+    }, [viewDetailsSubmissionId, selectedCampaignId]);
+
+    const loadReport = async (campaignId: string, submissionId: string) => {
+        setIsLoadingReport(true);
         try {
-            const payload: Record<string, unknown> = {
-                title: newCampaign.title,
-                timeLimitMins: parseInt(newCampaign.timeLimit),
-                maxUses: newCampaign.maxUses ? parseInt(newCampaign.maxUses) : undefined,
-                expiresAt: newCampaign.expiresAt ? new Date(newCampaign.expiresAt).toISOString() : undefined,
-                showScoreToCandidate: newCampaign.showScoreToCandidate,
-                assignmentMode: newCampaign.assignmentMode,
-            };
-
-            if (newCampaign.assignmentMode === 'fixed') {
-                payload.problemId = newCampaign.problemId;
-            } else if (newCampaign.assignmentMode === 'pool') {
-                payload.questionPool = newCampaign.problemPool;
+            const res = await fetchWithAuthCheck(`/api/employer/submissions/${campaignId}/report/${submissionId}`);
+            if (res && res.ok) {
+                const data = await res.json();
+                setReportData(data);
             } else {
-                payload.poolDifficulty = newCampaign.poolDifficulty;
+                toast.error('Failed to load report');
+                setViewDetailsSubmissionId(null);
             }
-
-            const res = await fetchWithAuthCheck('/api/employer/campaigns', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res) return; // 401 redirect handled inside fetchWithAuthCheck
-            if (!res.ok) throw new Error("Failed to create campaign");
-
-            const data = await res.json();
-            setCampaigns([data.campaign, ...campaigns]);
-            setIsCreateModalOpen(false);
-            setNewCampaign({
-                title: '', problemId: availableProblems[0]?.id || '', timeLimit: '45', maxUses: '', expiresAt: '', showScoreToCandidate: false, assignmentMode: 'fixed', problemPool: [], poolDifficulty: 'medium'
-            });
-
-            if (!selectedCampaignId) {
-                setSelectedCampaignId(data.campaign.id);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to create campaign");
+        } catch (err) {
+            console.error('Failed to load report', err);
+            toast.error('Error loading report');
+            setViewDetailsSubmissionId(null);
         } finally {
-            setIsCreating(false);
+            setIsLoadingReport(false);
         }
     };
 
@@ -176,16 +166,42 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
 
         try {
             const res = await fetchWithAuthCheck(`/api/employer/campaigns/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'deactivate' })
             });
 
             if (res && res.ok) {
                 setCampaigns(campaigns.map(c => c.id === id ? { ...c, is_active: false } : c));
+                toast.success('Campaign deactivated');
             }
         } catch (err) {
             console.error('Failed to deactivate', err);
+            toast.error('Failed to deactivate campaign');
         }
     };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('PERMANENT DELETE: This will remove the campaign and ALL associated candidate submissions. This cannot be undone. Proceed?')) return;
+
+        try {
+            const res = await fetchWithAuthCheck(`/api/employer/campaigns/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete' })
+            });
+
+            if (res && res.ok) {
+                setCampaigns(campaigns.filter(c => c.id !== id));
+                toast.success('Campaign deleted permanently');
+                if (selectedCampaignId === id) setSelectedCampaignId(null);
+            }
+        } catch (err) {
+            console.error('Failed to delete', err);
+            toast.error('Failed to delete campaign');
+        }
+    };
+
 
     const copyLink = (token: string) => {
         const url = `${window.location.origin}/assess/${token}`;
@@ -202,9 +218,29 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     };
 
     const getScoreColor = (score: number) => {
+        if (!score && score !== 0) return 'text-slate-500 bg-slate-800';
         if (score >= 7.0) return 'text-green-400 bg-green-400/10';
         if (score >= 4.0) return 'text-amber-400 bg-amber-400/10';
         return 'text-red-400 bg-red-400/10';
+    };
+
+    const renderStatusBadge = (status: string, updatedAtStr?: string) => {
+        switch (status) {
+            case 'completed': return <span className="px-2 py-1 rounded bg-green-500/10 text-green-400 font-bold border border-green-500/20 text-[10px] uppercase">Completed</span>;
+            case 'in_progress':
+                const minsAgo = updatedAtStr ? Math.floor((Date.now() - new Date(updatedAtStr).getTime()) / 60000) : 0;
+                return (
+                    <div className="flex flex-col gap-1">
+                        <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 text-[10px] uppercase flex items-center gap-1.5 w-max">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> In Progress
+                        </span>
+                        {minsAgo < 60 ? <span className="text-[10px] text-slate-500">Active {minsAgo}m ago</span> : <span className="text-[10px] text-slate-500">Active {Math.floor(minsAgo / 60)}h ago</span>}
+                    </div>
+                );
+            case 'dropped_out': return <span className="px-2 py-1 rounded bg-red-500/10 text-red-400 font-bold border border-red-500/20 text-[10px] uppercase">Dropped Out</span>;
+            case 'time_expired': return <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400 font-bold border border-orange-500/20 text-[10px] uppercase">Time Expired</span>;
+            default: return <span className="px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700 text-[10px] uppercase">{status}</span>;
+        }
     };
 
     return (
@@ -266,6 +302,9 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                             const status = !campaign.is_active ? 'Deactivated' : (isExpired ? 'Expired' : (isMax ? 'Full' : 'Active'));
                             const statusColor = status === 'Active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-slate-800 text-slate-400 border-slate-700';
 
+                            const qCount = campaign.campaign_questions?.length || 1;
+                            const totalTime = campaign.time_limit_mins;
+
                             return (
                                 <Card key={campaign.id} className="bg-slate-900 border-slate-800 flex flex-col hover:border-blue-500/30 transition-all">
                                     <div className="p-6 flex-1">
@@ -288,51 +327,83 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Clock className="w-4 h-4" />
-                                                <span>{campaign.time_limit_mins} mins</span>
+                                                <span>{qCount} {qCount === 1 ? 'question' : 'questions'} · {totalTime} mins total</span>
                                             </div>
-                                            <div className="text-xs text-slate-500 mt-4">
+
+                                            {/* Entry Code Section */}
+                                            <div className="bg-slate-950/50 border border-slate-800/50 rounded-lg p-2 flex items-center justify-between mt-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider leading-none mb-1">Entry Code</span>
+                                                    <span className="font-mono text-white text-xs">{campaign.entry_code || '---'}</span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-blue-400"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigator.clipboard.writeText(campaign.entry_code);
+                                                        toast.success('Code copied!');
+                                                    }}
+                                                >
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="text-xs text-slate-500 pt-2">
                                                 Created {new Date(campaign.created_at).toLocaleDateString()}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-950 px-4 py-3 border-t border-slate-800 flex flex-wrap gap-2 justify-between">
+                                    <div className="bg-slate-950 px-3 py-3 border-t border-slate-800 grid grid-cols-2 gap-2">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-slate-300 hover:text-white hover:bg-slate-800"
+                                            className="text-slate-300 hover:text-white hover:bg-slate-800 justify-start"
                                             onClick={() => {
                                                 setSelectedCampaignId(campaign.id);
                                                 setActiveTab('submissions');
                                             }}
                                         >
                                             <BarChart2 className="w-4 h-4 mr-2" />
-                                            Results
+                                            View Results
                                         </Button>
 
-                                        <div className="flex gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 justify-start"
+                                            onClick={() => copyLink(campaign.public_token)}
+                                        >
+                                            <LinkIcon className="w-4 h-4 mr-2" />
+                                            Copy Link
+                                        </Button>
+
+                                        {campaign.is_active ? (
                                             <Button
                                                 variant="ghost"
-                                                size="icon"
-                                                title="Copy Link"
-                                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                                                onClick={() => copyLink(campaign.public_token)}
+                                                size="sm"
+                                                className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 justify-start"
+                                                onClick={() => handleDeactivate(campaign.id)}
                                             >
-                                                <LinkIcon className="w-4 h-4" />
+                                                <PowerOff className="w-4 h-4 mr-2" />
+                                                Deactivate
                                             </Button>
+                                        ) : (
+                                            <div className="flex items-center px-3 text-xs text-slate-600 gap-2">
+                                                <Power className="w-3.5 h-3.5" />
+                                                Inactive
+                                            </div>
+                                        )}
 
-                                            {campaign.is_active && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    title="Deactivate"
-                                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                                    onClick={() => handleDeactivate(campaign.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            )}
-                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 justify-start"
+                                            onClick={() => handleDelete(campaign.id)}
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete Campaign
+                                        </Button>
                                     </div>
                                 </Card>
                             );
@@ -344,7 +415,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             {/* TAB 2: SUBMISSIONS */}
             {activeTab === 'submissions' && (
                 <div className="space-y-6">
-                    {/* Filter & Compare Header */}
+                    {/* ... (rest of submissions tab remains the same) */}
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
                         <div className="flex items-center gap-3">
                             <span className="text-slate-400 text-sm">Campaign:</span>
@@ -372,15 +443,70 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                         {compareSelection.length === 1 && (
                             <span className="text-sm text-slate-500 italic">Select one more candidate to compare</span>
                         )}
+
+                        {selectedCampaignId && (
+                            <div className="ml-auto">
+                                <Button
+                                    variant="outline"
+                                    className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetchWithAuthCheck(`/api/employer/submissions/${selectedCampaignId}/export`);
+                                            if (res && res.ok) {
+                                                const blob = await res.blob();
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                // Try to get filename from content-disposition if possible
+                                                const disp = res.headers.get('Content-Disposition');
+                                                let filename = 'campaign-export.csv';
+                                                if (disp) {
+                                                    const match = disp.match(/filename="?([^"]+)"?/);
+                                                    if (match && match[1]) filename = match[1];
+                                                }
+                                                a.download = filename;
+                                                a.click();
+                                                URL.revokeObjectURL(url);
+                                            } else {
+                                                toast.error('Failed to export CSV');
+                                            }
+                                        } catch (e) {
+                                            toast.error('Error downloading CSV');
+                                        }
+                                    }}
+                                >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download CSV
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Table */}
+                    <div className="flex flex-wrap gap-2 text-sm border-b border-slate-800 pb-4">
+                        <button onClick={() => setStatusFilter('all')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'all' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            All {submissionsSummary ? `(${submissionsSummary.total})` : ''}
+                        </button>
+                        <button onClick={() => setStatusFilter('completed')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'completed' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            Completed {submissionsSummary ? `(${submissionsSummary.completed})` : ''}
+                        </button>
+                        <button onClick={() => setStatusFilter('in_progress')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'in_progress' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            In Progress {submissionsSummary ? `(${submissionsSummary.in_progress})` : ''}
+                        </button>
+                        <button onClick={() => setStatusFilter('dropped_out')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'dropped_out' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            Dropped Out {submissionsSummary ? `(${submissionsSummary.dropped_out})` : ''}
+                        </button>
+                        <button onClick={() => setStatusFilter('time_expired')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'time_expired' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            Time Expired {submissionsSummary ? `(${submissionsSummary.time_expired})` : ''}
+                        </button>
+                    </div>
+
                     <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden overflow-x-auto">
                         <table className="w-full text-sm text-left text-slate-300 whitespace-nowrap">
                             <thead className="text-xs text-slate-400 uppercase bg-slate-950/50 border-b border-slate-800">
                                 <tr>
                                     <th scope="col" className="px-4 py-3 w-10">Comp</th>
                                     <th scope="col" className="px-4 py-3">Rank</th>
+                                    <th scope="col" className="px-4 py-3">Status</th>
                                     <th scope="col" className="px-6 py-3">Candidate</th>
                                     <th scope="col" className="px-4 py-3">Overall</th>
                                     <th scope="col" className="px-3 py-3 text-center" title="Problem Decomposition">Decomp</th>
@@ -413,18 +539,18 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                     className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-700 rounded focus:ring-blue-500 focus:ring-2 focus:ring-offset-slate-900"
                                                 />
                                             </td>
-                                            <td className="px-4 py-3 font-mono font-bold text-slate-200">#{i + 1}</td>
+                                            <td className="px-4 py-3 font-mono font-bold text-slate-200">{sub.rank ? `#${sub.rank}` : '-'}</td>
+                                            <td className="px-4 py-3">{renderStatusBadge(sub.status, sub.updated_at)}</td>
                                             <td className="px-6 py-3">
                                                 <div className="font-semibold text-white">{sub.candidate_name || 'Anonymous'}</div>
                                                 <div className="text-xs text-slate-500">{sub.candidate_email || 'No email provided'}</div>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`px-2 py-1 rounded font-bold ${getScoreColor(sub.overall_score)}`}>
-                                                    {sub.overall_score?.toFixed(1) || 'N/A'}
+                                                    {sub.overall_score ? sub.overall_score.toFixed(1) : '-'}
                                                 </span>
                                             </td>
 
-                                            {/* Skill Columns */}
                                             {['problem_decomposition', 'pattern_recognition', 'algorithmic_thinking', 'complexity_analysis', 'communication_clarity', 'edge_case_awareness', 'optimization_mindset', 'debugging_approach'].map((skill) => {
                                                 const score = (sub as any)[skill] || 0;
                                                 return (
@@ -438,22 +564,11 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
 
                                             <td className="px-4 py-3 text-right">
                                                 <div className="flex gap-1 justify-end">
-                                                    {sub.session_id ? (
-                                                        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300"
-                                                            onClick={() => {
-                                                                setViewTranscriptSessionId(sub.session_id!);
-                                                                setViewTranscriptCandidateName(sub.candidate_name || 'Anonymous');
-                                                            }}
-                                                            title="View Transcript"
-                                                        >
-                                                            <MessageSquare className="w-4 h-4" />
-                                                        </Button>
-                                                    ) : null}
-                                                    <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-300"
-                                                        onClick={() => toast.info('PDF Downloads interface via PDFReport coming soon in upcoming modules.')}
-                                                        title="Download Report"
+                                                    <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300"
+                                                        onClick={() => setViewDetailsSubmissionId(sub.id)}
+                                                        title="View Details"
                                                     >
-                                                        <Download className="w-4 h-4" />
+                                                        Details
                                                     </Button>
                                                 </div>
                                             </td>
@@ -467,164 +582,22 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             )}
 
             {/* Create Campaign Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <Card className="bg-slate-900/90 border-slate-700/50 w-full max-w-lg shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
-                        <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/40">
-                            <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-blue-400" />
-                                Create New Campaign
-                            </h3>
-                            <button
-                                onClick={() => setIsCreateModalOpen(false)}
-                                className="text-slate-500 hover:text-white transition-colors"
-                            >
-                                <Users className="w-5 h-5" /> {/* Close icon placeholder if needed, but usually just 'X' or similar */}
-                            </button>
-                        </div>
-                        <form onSubmit={handleCreateCampaign} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Campaign Title *</label>
-                                <Input
-                                    required
-                                    placeholder="e.g. SDE-2 Final Round"
-                                    value={newCampaign.title}
-                                    onChange={e => setNewCampaign({ ...newCampaign, title: e.target.value })}
-                                    className="bg-slate-950 border-slate-800"
-                                />
-                            </div>
-                            {/* Assignment Mode Tabs */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Assignment Type</label>
-                                <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                                    {(['fixed', 'pool', 'random_difficulty'] as const).map(mode => (
-                                        <button
-                                            key={mode}
-                                            type="button"
-                                            onClick={() => setNewCampaign({ ...newCampaign, assignmentMode: mode })}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${newCampaign.assignmentMode === mode
-                                                ? 'bg-blue-600 border-blue-500 text-white'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
-                                                }`}
-                                        >
-                                            {mode === 'fixed' ? '📌 Fixed Problem'
-                                                : mode === 'pool' ? '🎯 Problem Pool (up to 3)'
-                                                    : '🎲 Random by Difficulty'}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Fixed mode */}
-                                {newCampaign.assignmentMode === 'fixed' && (
-                                    <ProblemSearchSelect
-                                        problems={availableProblems}
-                                        value={newCampaign.problemId}
-                                        onChange={(id) => setNewCampaign({ ...newCampaign, problemId: id })}
-                                    />
-                                )}
-
-                                {/* Pool mode */}
-                                {newCampaign.assignmentMode === 'pool' && (
-                                    <ProblemPoolSelector
-                                        problems={availableProblems}
-                                        selected={newCampaign.problemPool}
-                                        max={3}
-                                        onChange={(pool) => setNewCampaign({ ...newCampaign, problemPool: pool })}
-                                    />
-                                )}
-
-                                {/* Random difficulty mode */}
-                                {newCampaign.assignmentMode === 'random_difficulty' && (
-                                    <div>
-                                        <label className="text-sm text-slate-400 mb-2 block">
-                                            System will randomly assign any problem at this difficulty level to each candidate
-                                        </label>
-                                        <select
-                                            value={newCampaign.poolDifficulty}
-                                            onChange={e => setNewCampaign({ ...newCampaign, poolDifficulty: e.target.value as any })}
-                                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        >
-                                            <option value="easy">Easy</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="hard">Hard</option>
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Time Limit *</label>
-                                    <div className="relative">
-                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                                        <select
-                                            className="w-full bg-slate-950/50 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
-                                            value={newCampaign.timeLimit}
-                                            onChange={e => setNewCampaign({ ...newCampaign, timeLimit: e.target.value })}
-                                        >
-                                            <option value="30">30 minutes</option>
-                                            <option value="45">45 minutes</option>
-                                            <option value="60">60 minutes</option>
-                                            <option value="90">90 minutes</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Max Responses</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="Optional (e.g. 50)"
-                                        min="1"
-                                        value={newCampaign.maxUses}
-                                        onChange={e => setNewCampaign({ ...newCampaign, maxUses: e.target.value })}
-                                        className="bg-slate-950/50 border-slate-800 focus:ring-blue-500/50"
-                                    />
-                                </div>
-                            </div>
-                            <div className="pt-2">
-                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Expiration Date</label>
-                                <div className="relative">
-                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                                    <Input
-                                        type="datetime-local"
-                                        value={newCampaign.expiresAt}
-                                        onChange={e => setNewCampaign({ ...newCampaign, expiresAt: e.target.value })}
-                                        className="bg-slate-950/50 border-slate-800 pl-10 [color-scheme:dark] focus:ring-blue-500/50 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center mt-4">
-                                <input
-                                    id="showScoreToggle"
-                                    type="checkbox"
-                                    checked={newCampaign.showScoreToCandidate}
-                                    onChange={e => setNewCampaign({ ...newCampaign, showScoreToCandidate: e.target.checked })}
-                                    className="w-4 h-4 text-blue-600 bg-slate-950 border-slate-800 rounded focus:ring-blue-500 focus:ring-2"
-                                />
-                                <label htmlFor="showScoreToggle" className="ml-2 text-sm text-slate-300">
-                                    Show calculated score to candidate upon completion
-                                </label>
-                            </div>
-
-                            <div className="pt-4 flex justify-end gap-3 border-t border-slate-800 mt-6">
-                                <Button type="button" variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700">
-                                    {isCreating ? 'Creating...' : 'Create Campaign'}
-                                </Button>
-                            </div>
-                        </form>
-                    </Card>
-                </div>
-            )}
+            <CreateCampaignModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                availableProblems={availableProblems}
+                onSuccess={(campaign) => {
+                    setCampaigns([campaign, ...campaigns]);
+                    setIsCreateModalOpen(false);
+                    if (!selectedCampaignId) setSelectedCampaignId(campaign.id);
+                }}
+            />
 
             {/* Compare Modal */}
             {showCompareModal && compareSelection.length === 2 && (() => {
                 const c1 = submissions.find(s => s.id === compareSelection[0])!;
                 const c2 = submissions.find(s => s.id === compareSelection[1])!;
 
-                // Map the row columns back into the shape RadarChart expects
                 const scores1: Record<string, number> = {
                     problem_decomposition: c1.problem_decomposition,
                     pattern_recognition: c1.pattern_recognition,
@@ -661,21 +634,21 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                             </div>
 
                             <div className="p-6 space-y-8">
-                                {/* Summary Cards */}
                                 <div className="grid grid-cols-2 gap-6">
-                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-                                        <div className="text-sm text-blue-400 font-medium mb-1 line-clamp-1">{c1.candidate_name || 'Candidate 1'}</div>
-                                        <div className="text-3xl font-bold text-slate-100">{c1.overall_score.toFixed(1)}</div>
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center text-center">
+                                        <div className="text-sm text-blue-400 font-medium mb-2 line-clamp-1">{c1.candidate_name || 'Candidate 1'}</div>
+                                        <div className="mb-3">{renderStatusBadge(c1.status, c1.updated_at)}</div>
+                                        <div className="text-3xl font-bold text-slate-100">{c1.overall_score ? c1.overall_score.toFixed(1) : '-'}</div>
                                         <div className="text-xs text-slate-500 mt-1">Overall Vector</div>
                                     </div>
-                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-center">
-                                        <div className="text-sm text-purple-400 font-medium mb-1 line-clamp-1">{c2.candidate_name || 'Candidate 2'}</div>
-                                        <div className="text-3xl font-bold text-slate-100">{c2.overall_score.toFixed(1)}</div>
+                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center text-center">
+                                        <div className="text-sm text-purple-400 font-medium mb-2 line-clamp-1">{c2.candidate_name || 'Candidate 2'}</div>
+                                        <div className="mb-3">{renderStatusBadge(c2.status, c2.updated_at)}</div>
+                                        <div className="text-3xl font-bold text-slate-100">{c2.overall_score ? c2.overall_score.toFixed(1) : '-'}</div>
                                         <div className="text-xs text-slate-500 mt-1">Overall Vector</div>
                                     </div>
                                 </div>
 
-                                {/* Radar Comparison Chart */}
                                 <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/50 relative">
                                     <RadarChart
                                         currentData={scores1}
@@ -709,168 +682,149 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     onClose={() => setViewTranscriptSessionId(null)}
                 />
             )}
-        </div>
-    );
-}
 
-function ProblemSearchSelect({ problems, value, onChange }: {
-    problems: ProblemData[], value: string, onChange: (id: string) => void
-}) {
-    const [search, setSearch] = useState('');
-    const [diffFilter, setDiffFilter] = useState('');
-
-    const filtered = problems.filter(p => {
-        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
-        const matchDiff = !diffFilter || p.difficulty === diffFilter;
-        return matchSearch && matchDiff;
-    });
-
-    return (
-        <div className="space-y-3">
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <Input
-                        placeholder="Search problems..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="pl-9 bg-slate-950/50 border-slate-800 focus:ring-blue-500/50"
-                    />
-                </div>
-                <select
-                    value={diffFilter}
-                    onChange={e => setDiffFilter(e.target.value)}
-                    className="bg-slate-950/50 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                >
-                    <option value="">All Levels</option>
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-            </div>
-
-            <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-800/50 rounded-lg p-2 bg-slate-950/30 custom-scrollbar">
-                {filtered.map(p => (
-                    <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => onChange(p.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group ${value === p.id
-                            ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50'
-                            : 'text-slate-400 hover:bg-slate-800/50 border border-transparent'
-                            }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <span className={`w-2 h-2 rounded-full ${p.difficulty === 'easy' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]'
-                                : p.difficulty === 'medium' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
-                                    : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'
-                                }`} />
-                            <span className="font-medium group-hover:text-slate-200 transition-colors">{p.title}</span>
+            {/* Submission Details Side Panel */}
+            {viewDetailsSubmissionId && (
+                <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-right duration-300">
+                    {isLoadingReport || !reportData ? (
+                        <div className="flex items-center justify-center flex-1">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                         </div>
-                        {value === p.id && <Check className="w-4 h-4 text-blue-400 animate-in zoom-in duration-200" />}
-                    </button>
-                ))}
-                {filtered.length === 0 && (
-                    <div className="text-center py-6 text-slate-500 text-xs italic">No matching problems found.</div>
-                )}
-            </div>
-            <p className="text-[10px] text-slate-500 font-medium px-1 flex items-center justify-between">
-                <span>{filtered.length} of {problems.length} problems</span>
-                <span className="text-blue-500/70 select-none">Scroll for more</span>
-            </p>
-        </div>
-    );
-}
+                    ) : (
+                        <>
+                            <div className="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-900">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-1">{reportData.candidate.name || 'Anonymous'}</h3>
+                                    <p className="text-sm text-slate-400">{reportData.candidate.email || 'No email provided'}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => window.print()} className="text-slate-300 border-slate-700 hover:text-white hover:bg-slate-800">
+                                        <Download className="w-4 h-4 mr-2" />
+                                        Print / PDF
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => setViewDetailsSubmissionId(null)} className="text-slate-400 hover:text-white">
+                                        Close
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-8 report-print-area">
+                                {/* Summary section */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</div>
+                                        <div>{renderStatusBadge(
+                                            submissions.find(s => s.id === viewDetailsSubmissionId)?.status || 'unknown',
+                                            reportData.candidate.lastActiveAt
+                                        )}</div>
+                                    </div>
+                                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Overall Vector</div>
+                                        <div className={`text-2xl font-bold ${getScoreColor(reportData.scores?.overall).split(' ')[0]}`}>
+                                            {reportData.scores?.overall ? reportData.scores.overall.toFixed(1) : 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
 
-function ProblemPoolSelector({ problems, selected, max, onChange }: {
-    problems: ProblemData[], selected: string[], max: number, onChange: (pool: string[]) => void
-}) {
-    const [search, setSearch] = useState('');
-    const [diffFilter, setDiffFilter] = useState('');
+                                {/* Timing section */}
+                                <div className="text-sm text-slate-400 space-y-2">
+                                    <div className="flex justify-between">
+                                        <span>Started:</span>
+                                        <span className="text-slate-200">{new Date(reportData.candidate.startedAt).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Last Active:</span>
+                                        <span className="text-slate-200">{new Date(reportData.candidate.lastActiveAt).toLocaleString()}</span>
+                                    </div>
+                                </div>
 
-    const filtered = problems.filter(p => {
-        const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
-        const matchDiff = !diffFilter || p.difficulty === diffFilter;
-        return matchSearch && matchDiff;
-    });
+                                {/* Radar Chart (if scores available) */}
+                                {reportData.scores && (
+                                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                        <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+                                            <BarChart2 className="w-4 h-4 text-purple-400" /> Skill Breakdown
+                                        </h4>
+                                        <RadarChart
+                                            currentData={reportData.scores}
+                                            showAllTime={false}
+                                            size="medium"
+                                        />
+                                    </div>
+                                )}
 
-    const toggle = (id: string) => {
-        if (selected.includes(id)) {
-            onChange(selected.filter(s => s !== id));
-        } else if (selected.length < max) {
-            onChange([...selected, id]);
-        }
-    };
+                                {/* Overall Feedback */}
+                                {reportData.overallFeedback && (
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                                        <h4 className="text-blue-400 font-bold mb-2">Overall Feedback</h4>
+                                        <p className="text-slate-300 text-sm">{reportData.overallFeedback}</p>
+                                    </div>
+                                )}
 
-    const selectedProblems = problems.filter(p => selected.includes(p.id));
+                                {/* Questions Breakdown */}
+                                <div>
+                                    <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+                                        <BarChart2 className="w-4 h-4 text-blue-400" /> Question Breakdown
+                                    </h4>
+                                    <div className="space-y-4">
+                                        {(reportData.questions || []).map((qs: any, index: number) => {
+                                            return (
+                                                <div key={index} className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <div className="font-bold text-slate-200">{qs.title}</div>
+                                                        <div className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
+                                                            {qs.status}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm text-slate-400 mb-3">
+                                                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {qs.timeSpentMins} / {qs.timeLimitMins} mins</span>
+                                                        <span>{qs.status === 'completed' && reportData.scores?.overall ? 'Scored' : 'Not scored'}</span>
+                                                    </div>
 
-    return (
-        <div className="space-y-2">
-            <p className="text-sm text-slate-400">
-                Select up to {max} problems. Each candidate gets a randomly assigned one.
-                ({selected.length}/{max} selected)
-            </p>
-            {/* Selected problems pills */}
-            {selectedProblems.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                    {selectedProblems.map(p => (
-                        <span key={p.id} className="flex items-center gap-1 px-2 py-1 bg-blue-900/40 border border-blue-700 rounded text-xs text-blue-300">
-                            {p.title}
-                            <button type="button" onClick={() => toggle(p.id)} className="text-blue-400 hover:text-red-400 ml-1">×</button>
-                        </span>
-                    ))}
+                                                    {qs.status !== 'not_started' && qs.transcript && qs.transcript.length > 0 && (
+                                                        <div className="mt-4 pt-4 border-t border-slate-800">
+                                                            <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Transcript Preview</div>
+                                                            <div className="bg-slate-900 rounded p-3 font-mono text-xs text-slate-300 max-h-32 overflow-hidden relative">
+                                                                <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                                                                {qs.transcript.map((t: any, i: number) => (
+                                                                    <div key={i} className="mb-2">
+                                                                        <strong className={t.speaker === 'user' ? 'text-blue-400' : 'text-purple-400'}>{t.speaker === 'user' ? reportData.candidate.name || 'Candidate' : 'AI'}:</strong> {t.text}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Full Transcript Viewer Button */}
+                                <div className="pt-4 border-t border-slate-800 pb-8">
+                                    <Button
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white"
+                                        onClick={() => {
+                                            const sub = submissions.find(s => s.id === viewDetailsSubmissionId);
+                                            if (sub && sub.session_id) {
+                                                setViewTranscriptSessionId(sub.session_id);
+                                                setViewTranscriptCandidateName(sub.candidate_name || 'Anonymous');
+                                            } else {
+                                                toast.info("No recorded assessment session ID available for the full viewer yet.");
+                                            }
+                                        }}
+                                        disabled={!(submissions.find(s => s.id === viewDetailsSubmissionId)?.session_id)}
+                                    >
+                                        <MessageSquare className="w-4 h-4 mr-2" />
+                                        Launch Full Transcript Viewer
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
-            {/* Search + filter */}
-            <div className="flex gap-2">
-                <Input
-                    placeholder="Search problems..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="flex-1 bg-slate-950 border-slate-800"
-                />
-                <select
-                    value={diffFilter}
-                    onChange={e => setDiffFilter(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm"
-                >
-                    <option value="">All Levels</option>
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-            </div>
-            {/* Problem list */}
-            <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-800 rounded-lg p-2 bg-slate-950">
-                {filtered.map(p => {
-                    const isSelected = selected.includes(p.id);
-                    const isDisabled = !isSelected && selected.length >= max;
-                    return (
-                        <button
-                            key={p.id}
-                            type="button"
-                            disabled={isDisabled}
-                            onClick={() => toggle(p.id)}
-                            className={`w-full text-left px-3 py-2 rounded text-sm transition-all flex items-center justify-between ${isSelected ? 'bg-blue-900/50 text-blue-300 border border-blue-700'
-                                : isDisabled ? 'opacity-40 cursor-not-allowed text-slate-500 border border-transparent'
-                                    : 'text-slate-300 hover:bg-slate-800 border border-transparent'
-                                }`}
-                        >
-                            <div>
-                                <span className={`font-bold mr-2 text-xs uppercase tracking-wider ${p.difficulty === 'easy' ? 'text-green-400'
-                                    : p.difficulty === 'medium' ? 'text-amber-400'
-                                        : 'text-red-400'
-                                    }`}>{p.difficulty}</span>
-                                {p.title}
-                            </div>
-                            {isSelected && <span className="text-blue-400 font-bold">✓</span>}
-                        </button>
-                    );
-                })}
-                {filtered.length === 0 && (
-                    <div className="text-center py-4 text-slate-500 text-sm">No problems match your filters.</div>
-                )}
-            </div>
         </div>
     );
 }
+
+// ProblemSearchSelect and ProblemPoolSelector removed as they are now in CreateCampaignModal.tsx
+

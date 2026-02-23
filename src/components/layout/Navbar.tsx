@@ -127,6 +127,14 @@ export function Navbar() {
                                         <Mic className="w-4 h-4" />
                                         Practice
                                     </Link>
+                                    <Link
+                                        href="/dashboard/interview-history"
+                                        className={`flex items-center gap-2 text-sm font-bold transition-colors ${pathname === '/dashboard/interview-history' ? 'text-blue-400' : 'text-slate-400 hover:text-white'
+                                            }`}
+                                    >
+                                        <Flag className="w-4 h-4" />
+                                        Assessments
+                                    </Link>
                                 </div>
                             )}
 
@@ -164,6 +172,14 @@ export function Navbar() {
                                             >
                                                 <BarChart className="mr-2 h-4 w-4" />
                                                 My Progress Dashboard
+                                            </DropdownMenuItem>
+
+                                            <DropdownMenuItem
+                                                onClick={() => router.push('/dashboard/interview-history')}
+                                                className="text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer focus:bg-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                            >
+                                                <Flag className="mr-2 h-4 w-4" />
+                                                My Assessments
                                             </DropdownMenuItem>
 
                                             {accountType === 'employer' && (

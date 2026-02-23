@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader2, Briefcase, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { InterviewSession } from '@/components/interview/InterviewSession';
+// Remove InterviewSession import
+import { CampaignInterviewSession, type QuestionState, type ProblemWithTiming } from '@/components/enterprise/CampaignInterviewSession';
 import { VoiceSettings } from '@/components/settings/VoiceSettings';
+import { formatEntryCode } from '@/lib/campaign/entry-code';
 
 interface CampaignData {
     id: string;
@@ -26,18 +28,31 @@ interface ProblemData {
 
 export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     const { user } = useAuth();
-    const [phase, setPhase] = useState<'setup' | 'interview' | 'submitting'>('setup');
+    const [phase, setPhase] = useState<'entry_code' | 'setup' | 'interview' | 'submitting'>('entry_code');
+
+    // Entry Code Phase State
+    const [entryCode, setEntryCode] = useState('');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verifyError, setVerifyError] = useState('');
+    const [failedAttempts, setFailedAttempts] = useState(0);
+    const [lockoutTimer, setLockoutTimer] = useState(0);
+
+    // Setup & Interview Phase State
     const [isStarting, setIsStarting] = useState(false);
-    const [error, setError] = useState('');
+    const [startError, setStartError] = useState('');
 
     // Assessment State received from API
     const [sessionToken, setSessionToken] = useState<string | null>(null);
-    const [problem, setProblem] = useState<ProblemData | null>(null);
     const [startedAt, setStartedAt] = useState<string | null>(null);
-    const [existingTranscript, setExistingTranscript] = useState<any[]>([]);
-    const [timeLimitMins, setTimeLimitMins] = useState<number>(campaign.time_limit_mins);
+    const [submissionId, setSubmissionId] = useState<string>('');
+    const [questionStates, setQuestionStates] = useState<QuestionState[]>([]);
+    const [showScore, setShowScore] = useState<boolean>(false);
+
+    // New Multi-Question State
+    const [campaignQuestions, setCampaignQuestions] = useState<any[]>([]);
+    const [totalTimeLimitMins, setTotalTimeLimitMins] = useState<number>(0);
 
     // Auto-fill from auth if available
     useEffect(() => {
@@ -47,20 +62,79 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         }
     }, [user]);
 
-    const handleStart = async (e: React.FormEvent) => {
+    // Handle Lockout countdown
+    useEffect(() => {
+        if (lockoutTimer > 0) {
+            const timer = setTimeout(() => setLockoutTimer(v => v - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (failedAttempts >= 3 && lockoutTimer === 0) {
+            // Reset after lockout expires
+            setFailedAttempts(0);
+            setVerifyError('');
+        }
+    }, [lockoutTimer, failedAttempts]);
+
+    const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        if (lockoutTimer > 0) return;
+
+        setVerifyError('');
 
         if (!name.trim()) {
-            setError('Name is required');
+            setVerifyError('Name is required');
             return;
         }
 
         if (!email.trim() || !email.includes('@')) {
-            setError('A valid email address is required');
+            setVerifyError('A valid email address is required');
             return;
         }
 
+        if (!entryCode.trim() || entryCode.length < 11) { // A L G - 4 8 2 - X K T is 11 chars
+            setVerifyError('Please enter a complete 9-character entry code');
+            return;
+        }
+
+        setIsVerifying(true);
+        try {
+            const res = await fetch('/api/assess/verify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    publicToken: campaign.public_token,
+                    entryCode: entryCode,
+                    candidateName: name.trim(),
+                    candidateEmail: email.trim()
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.valid) {
+                throw new Error(data.reason || 'Invalid entry code. Check for typos.');
+            }
+
+            // Success! Store multi-question data if available
+            setCampaignQuestions(data.questions || []);
+            setTotalTimeLimitMins(data.campaign?.time_limit_mins || campaign.time_limit_mins);
+
+            setPhase('setup');
+        } catch (err: any) {
+            const msg = err.message || 'Verification failed';
+            setVerifyError(msg);
+
+            const newAttempts = failedAttempts + 1;
+            setFailedAttempts(newAttempts);
+            if (newAttempts >= 3) {
+                setLockoutTimer(300); // 5 minutes = 300 seconds
+            }
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    const handleStart = async () => {
+        setStartError('');
         setIsStarting(true);
         try {
             const res = await fetch('/api/assess/start', {
@@ -69,7 +143,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                 body: JSON.stringify({
                     campaignToken: campaign.public_token,
                     candidateName: name.trim(),
-                    candidateEmail: email.trim() || undefined
+                    candidateEmail: email.trim() || undefined,
+                    entryCodeVerified: true
                 })
             });
 
@@ -80,19 +155,20 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
             const data = await res.json();
             setSessionToken(data.sessionToken);
-            setProblem(data.problem);
+            setCampaignQuestions(data.questions || []);
+            setQuestionStates(data.questionStates || []);
             setStartedAt(data.startedAt);
-            setExistingTranscript(data.existingTranscript || []);
-            if (data.timeLimitMins) setTimeLimitMins(data.timeLimitMins);
+            setSubmissionId(data.submissionId);
+            setShowScore(data.showScoreToCandidate);
 
             setPhase('interview');
         } catch (err: any) {
-            setError(err.message || 'Failed to start interview');
+            setStartError(err.message || 'Failed to start interview');
             setIsStarting(false);
         }
     };
 
-    const handleComplete = async (durationSecs: number, transcript: { speaker: string, text: string }[]) => {
+    const handleComplete = async (finalQuestionStates: QuestionState[], totalDurationSecs: number) => {
         if (!sessionToken) return;
 
         setPhase('submitting');
@@ -103,8 +179,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sessionToken,
-                    transcript,
-                    duration: durationSecs
+                    questionStates: finalQuestionStates,
+                    totalDuration: totalDurationSecs
                 })
             });
 
@@ -127,7 +203,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         }
     };
 
-    if (phase === 'setup') {
+    if (phase === 'entry_code') {
+        const isLocked = lockoutTimer > 0;
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
                 <Card className="max-w-md w-full p-8 bg-slate-900 border-slate-800">
@@ -138,67 +215,209 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     </div>
 
                     <h1 className="text-2xl font-bold text-center text-white mb-2">{campaign.title}</h1>
-                    <div className="flex items-center justify-center gap-2 text-slate-400 mb-8">
-                        <Clock className="w-4 h-4" />
-                        <span>Estimated time: {campaign.time_limit_mins} minutes</span>
-                    </div>
+                    <p className="text-slate-400 text-sm text-center mb-8">
+                        To access this assessment, enter the entry code provided by your employer.
+                    </p>
 
-                    <form onSubmit={handleStart} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">
-                                Full Name *
+                    <form onSubmit={handleVerify} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                    Name
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    placeholder="Jane Doe"
+                                    disabled={isVerifying || isLocked || !!user}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    placeholder="jane@example.com"
+                                    disabled={isVerifying || isLocked || !!user}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-2">
+                            <label className="block text-sm font-medium text-slate-300 mb-2 text-center">
+                                Entry Code
                             </label>
                             <input
                                 type="text"
                                 required
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                                placeholder="Jane Doe"
-                                disabled={isStarting}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">
-                                Email *
-                            </label>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-                                placeholder="jane@example.com"
-                                disabled={isStarting}
+                                value={entryCode}
+                                onChange={e => {
+                                    const formatted = formatEntryCode(e.target.value);
+                                    if (formatted.length <= 11) { // 9 chars + 2 dashes
+                                        setEntryCode(formatted);
+                                    }
+                                }}
+                                className="w-full bg-slate-950 border-2 border-slate-700 focus:border-blue-500 rounded-lg px-4 py-3 text-white text-center font-mono text-xl tracking-[0.2em] transition-colors uppercase disabled:opacity-50"
+                                placeholder="XXX-XXX-XXX"
+                                disabled={isVerifying || isLocked}
                             />
                         </div>
 
-                        {error && (
-                            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg">
+                        {verifyError && (
+                            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg justify-center mt-2">
                                 <AlertCircle className="w-4 h-4 shrink-0" />
-                                <span>{error}</span>
+                                <span>{verifyError}</span>
                             </div>
                         )}
 
                         <div className="pt-4">
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6"
-                                disabled={isStarting}
+                                className={`w-full py-6 font-semibold shadow-lg ${isLocked ? 'bg-slate-800 text-slate-500' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                                disabled={isVerifying || isLocked || !entryCode || !name || !email}
                             >
-                                {isStarting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Start Interview →"}
+                                {isVerifying ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> :
+                                    isLocked ? `Try again in ${Math.ceil(lockoutTimer / 60)}m ${lockoutTimer % 60}s` :
+                                        "Verify & Continue"}
                             </Button>
                         </div>
                     </form>
 
-                    <p className="text-xs text-slate-500 mt-6 text-center">
-                        This interview will be recorded and reviewed by the hiring team.
-                    </p>
+                    <div className="mt-8 p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                        <div className="flex gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="text-sm text-amber-200/80">
+                                <p className="font-medium text-amber-500 mb-1">Before you start:</p>
+                                <p>Once you click Verify & Continue, you will see a summary of the assessment before the timer begins. Make sure you're in a quiet place.</p>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
+
+    if (phase === 'setup') {
+        const difficultyColors: Record<string, string> = {
+            easy: 'text-green-400',
+            medium: 'text-amber-400',
+            hard: 'text-red-400'
+        };
+
+        const difficultyLabels: Record<string, string> = {
+            easy: '🟢',
+            medium: '🟡',
+            hard: '🔴'
+        };
+
+        // If it's an old campaign without campaign_questions populated yet or dynamic pool:
+        const hasQuestions = campaignQuestions && campaignQuestions.length > 0;
+        const displayQuestions = hasQuestions ? campaignQuestions : [{ title: "Coding Challenge", time_limit_mins: totalTimeLimitMins, difficulty: 'medium' }];
+
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 py-12 overflow-y-auto">
+                <Card className="max-w-lg w-full p-8 bg-slate-900 border-slate-800 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-6">
+                        <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
+                            <Briefcase className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white leading-tight">Assessment Overview</h2>
+                            <p className="text-slate-400 text-sm mt-0.5">{campaign.title}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div>
+                            <p className="text-slate-300 font-medium mb-3">You will complete {displayQuestions.length} coding question{displayQuestions.length > 1 ? 's' : ''}:</p>
+
+                            <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800/50">
+                                {displayQuestions.map((q: any, idx: number) => (
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-800/50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-slate-500 font-mono text-xs w-5 font-bold">#{idx + 1}</span>
+                                            <span className="font-medium text-slate-200">{q.title}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-sm font-mono">
+                                            <span className={difficultyColors[q.difficulty || 'medium']} title={q.difficulty}>
+                                                {difficultyLabels[q.difficulty || 'medium']}
+                                            </span>
+                                            <span className="text-slate-400 flex items-center gap-1.5 min-w-[60px] justify-end">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                {q.time_limit_mins}m
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex justify-between items-center text-sm font-semibold">
+                                    <span className="text-slate-400 uppercase tracking-wider text-xs ml-2">Total Time</span>
+                                    <span className="text-blue-400 mr-2">{totalTimeLimitMins} mins</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-800/30 rounded-xl p-5 border border-slate-700/50">
+                            <h3 className="text-slate-200 font-bold mb-3 flex items-center gap-2">
+                                <span className="bg-blue-500 text-xs px-2 py-0.5 rounded text-white font-mono">RULES</span>
+                            </h3>
+                            <ul className="text-sm text-slate-400 space-y-2.5">
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>Timer starts when you click "<strong className="text-slate-300">Begin Assessment</strong>"</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>You can choose question order</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>Each question has its own timer</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>When a question timer ends, it saves automatically and you move to the next</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>You may exit early — answers so far will be submitted</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>Scores shown after completion: <strong className="text-slate-300">{campaign.show_score_to_candidate ? 'Yes' : 'No'}</strong></span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {startError && (
+                            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg justify-center mt-4">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>{startError}</span>
+                            </div>
+                        )}
+
+                        <div className="pt-2">
+                            <Button
+                                onClick={handleStart}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 shadow-xl shadow-blue-500/10 text-lg font-semibold tracking-wide"
+                                disabled={isStarting}
+                            >
+                                {isStarting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Begin Assessment"}
+                            </Button>
+                        </div>
+                    </div>
                 </Card>
 
-                <div className="max-w-md w-full space-y-4">
-                    <p className="text-sm font-medium text-slate-400 text-center mt-4">Optional: Configure Voice Interviewer</p>
-                    <VoiceSettings />
+                <div className="max-w-lg w-full mt-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 text-center mb-4">Optional Voice Settings</p>
+                    <VoiceSettings inline />
                 </div>
             </div>
         );
@@ -217,22 +436,17 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     }
 
     // phase === 'interview'
-    if (!problem || !sessionToken) return null;
-
-    const offsetSeconds = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000) : 0;
+    if (!campaignQuestions.length || !sessionToken || !startedAt) return null;
 
     return (
-        <main className="h-screen w-full bg-slate-950 overflow-hidden flex flex-col">
-            <InterviewSession
-                problem={problem as any}
-                initialTranscript={existingTranscript}
-                isAssessment={true}
-                assessmentSessionToken={sessionToken}
-                assessmentApiEndpoint="/api/assess/chat"
-                timeLimitMins={timeLimitMins}
-                startTimeOffsetSeconds={offsetSeconds}
-                onAssessmentComplete={handleComplete}
-            />
-        </main>
+        <CampaignInterviewSession
+            sessionToken={sessionToken}
+            submissionId={submissionId}
+            questions={campaignQuestions as ProblemWithTiming[]}
+            initialQuestionStates={questionStates}
+            startedAt={startedAt}
+            showScoreToCandidate={showScore}
+            onComplete={handleComplete}
+        />
     );
 }

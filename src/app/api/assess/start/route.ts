@@ -8,7 +8,7 @@ validateEnv();
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { campaignToken, candidateName, candidateEmail } = body;
+        const { campaignToken, candidateName, candidateEmail, entryCodeVerified } = body;
 
         if (!campaignToken || !candidateName) {
             return NextResponse.json({ error: 'campaignToken and candidateName are required' }, { status: 400 });
@@ -47,13 +47,13 @@ export async function POST(req: NextRequest) {
         let selectedProblemId;
         let campaignData;
         let startedAt;
-        let existingTranscript;
+        let questionStates: any[] = [];
 
         // 2. Check for an existing in-progress session for this user + campaign
         if (user) {
             const { data: existingSub } = await supabase
                 .from('candidate_submissions')
-                .select('id, assigned_problem_id, created_at, current_transcript')
+                .select('id, assigned_problem_id, created_at, question_states')
                 .eq('campaign_id', campaignRef.id)
                 .eq('candidate_id', user.id)
                 .eq('status', 'in_progress')
@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
                 submissionId = existingSub.id;
                 selectedProblemId = existingSub.assigned_problem_id;
                 startedAt = existingSub.created_at;
-                existingTranscript = existingSub.current_transcript || [];
 
                 // Fetch campaign details without claiming a slot
                 const { data: existingCampaign } = await supabase
@@ -72,6 +71,10 @@ export async function POST(req: NextRequest) {
                     .eq('id', campaignRef.id)
                     .single();
                 campaignData = existingCampaign;
+
+                if (existingSub.question_states && Array.isArray(existingSub.question_states)) {
+                    questionStates = existingSub.question_states;
+                }
             }
         }
 
@@ -89,33 +92,58 @@ export async function POST(req: NextRequest) {
 
             campaignData = campaign[0];
 
-            // Ensure we handle missing assignment_mode gracefully (fall back to fixed)
-            const mode = campaignData.assignment_mode || 'fixed';
-            selectedProblemId = campaignData.problem_id;
+            // Build questionStates based on campaign details
+            const campaignQs = campaignData.campaign_questions || [];
 
-            if (mode === 'pool' && Array.isArray(campaignData.question_pool) && campaignData.question_pool.length > 0) {
-                // Pick a random problem ID from the pool
-                const pool = campaignData.question_pool;
-                selectedProblemId = pool[Math.floor(Math.random() * pool.length)];
-            } else if (mode === 'random_difficulty' && campaignData.pool_difficulty) {
-                // Fetch all problem IDs matching the difficulty and select one randomly
-                const { data: difficultyMatch, error: difficultyError } = await supabase
-                    .from('problems')
-                    .select('id')
-                    .eq('difficulty', campaignData.pool_difficulty);
+            if (campaignQs.length > 0) {
+                questionStates = campaignQs.map((q: any, i: number) => ({
+                    problem_id: q.problem_id,
+                    order: i,
+                    time_limit_mins: q.time_limit_mins,
+                    status: 'not_started',
+                    started_at: null,
+                    completed_at: null,
+                    elapsed_secs: 0,
+                    transcript: [],
+                    final_code: null
+                }));
+                // Safe to assume the first ordered problem is assigned first
+                selectedProblemId = questionStates[0]?.problem_id || campaignData.problem_id;
+            } else {
+                // Backwards compatibility for old campaigns
+                const mode = campaignData.assignment_mode || 'fixed';
+                selectedProblemId = campaignData.problem_id;
 
-                if (!difficultyError && difficultyMatch && difficultyMatch.length > 0) {
-                    selectedProblemId = difficultyMatch[Math.floor(Math.random() * difficultyMatch.length)].id;
+                if (mode === 'pool' && Array.isArray(campaignData.question_pool) && campaignData.question_pool.length > 0) {
+                    const pool = campaignData.question_pool;
+                    selectedProblemId = pool[Math.floor(Math.random() * pool.length)];
+                } else if (mode === 'random_difficulty' && campaignData.pool_difficulty) {
+                    const { data: difficultyMatch, error: difficultyError } = await supabase
+                        .from('problems')
+                        .select('id')
+                        .eq('difficulty', campaignData.pool_difficulty);
+
+                    if (!difficultyError && difficultyMatch && difficultyMatch.length > 0) {
+                        selectedProblemId = difficultyMatch[Math.floor(Math.random() * difficultyMatch.length)].id;
+                    }
                 }
-            }
 
-            if (!selectedProblemId) {
-                return NextResponse.json({ error: 'Campaign misconfigured: No valid problem could be selected' }, { status: 400 });
-            }
+                if (!selectedProblemId) {
+                    return NextResponse.json({ error: 'Campaign misconfigured: No valid problem could be selected' }, { status: 400 });
+                }
 
-            // Fallback for older existing submissions missing an assigned problem
-            // If they had an old session but no assigned_problem_id, we wouldn't reach here normally, 
-            // but if we do, this will insert correctly.
+                questionStates = [{
+                    problem_id: selectedProblemId,
+                    order: 0,
+                    time_limit_mins: campaignData.time_limit_mins || 45,
+                    status: 'not_started',
+                    started_at: null,
+                    completed_at: null,
+                    elapsed_secs: 0,
+                    transcript: [],
+                    final_code: null
+                }];
+            }
 
             const { data: newSubmission, error: submissionError } = await supabase
                 .from('candidate_submissions')
@@ -125,7 +153,9 @@ export async function POST(req: NextRequest) {
                     candidate_name: candidateName,
                     candidate_email: candidateEmail || null,
                     status: 'in_progress',
-                    assigned_problem_id: selectedProblemId // Save dynamically assigned problem
+                    assigned_problem_id: selectedProblemId, // Keep for backward compat
+                    question_states: questionStates,
+                    entry_code_verified: !!entryCodeVerified
                 })
                 .select('id, created_at')
                 .single();
@@ -135,25 +165,45 @@ export async function POST(req: NextRequest) {
             }
             submissionId = newSubmission.id;
             startedAt = newSubmission.created_at;
-            existingTranscript = [];
         }
 
-        // 4. Fetch Selected Problem Details
-        const actualProblemId = selectedProblemId || campaignData?.problem_id;
-        const { data: problem, error: problemError } = await supabase
-            .from('problems')
-            .select('*')
-            .eq('id', actualProblemId)
-            .single();
-
-        if (problemError || !problem) {
-            return NextResponse.json({ error: 'Associated problem not found' }, { status: 404 });
+        // If we still don't have questionStates here (e.g. from an old existing submission format), fallback
+        if (!questionStates || questionStates.length === 0) {
+            questionStates = [{
+                problem_id: selectedProblemId || campaignData?.problem_id,
+                order: 0,
+                time_limit_mins: campaignData?.time_limit_mins || 45,
+                status: 'in_progress', // It was existing but missing new array
+                started_at: startedAt,
+                completed_at: null,
+                elapsed_secs: 0,
+                transcript: [],
+                final_code: null
+            }];
         }
 
-        // 4. Create local session JWT
+        // 4. Fetch Details for all assigned problems
+        const problemIds = questionStates.map(qs => qs.problem_id).filter(Boolean);
+        let problems: any[] = [];
+
+        if (problemIds.length > 0) {
+            const { data: problemsData, error: problemError } = await supabase
+                .from('problems')
+                .select('*')
+                .in('id', problemIds);
+
+            if (problemError || !problemsData || problemsData.length === 0) {
+                return NextResponse.json({ error: 'Associated problem(s) not found' }, { status: 404 });
+            }
+
+            // Re-order problems to match the order in questionStates
+            problems = questionStates.map(qs => problemsData.find(p => p.id === qs.problem_id)).filter(Boolean);
+        }
+
+        // 5. Create local session JWT
         const alg = 'HS256';
 
-        // Expiry = time limit + 30 min grace period
+        // Expiry = total time limit + 30 min grace period
         const expiryTimeMins = (campaignData.time_limit_mins || 45) + 30;
         const exp = Math.floor(Date.now() / 1000) + (expiryTimeMins * 60);
 
@@ -168,11 +218,12 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             sessionToken,
-            problem,
             submissionId: submissionId,
             startedAt,
-            existingTranscript,
-            timeLimitMins: campaignData.time_limit_mins
+            questionStates,
+            questions: problems,
+            timeLimitMins: campaignData.time_limit_mins,
+            showScoreToCandidate: !!campaignData.show_score_to_candidate
         });
 
     } catch (error: unknown) {
