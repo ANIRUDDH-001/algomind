@@ -40,18 +40,31 @@ export function AdminHealthBanner() {
         try {
             const res = await fetch('/api/admin/health');
             if (res.ok) {
-                const data = await res.json();
+                const data = await res.json() as HealthSummary;
                 setHealth(data);
 
-                // If it becomes healthy or gets new alerts, un-dismiss
-                if (data.system && !data.system.isHealthy) {
-                    // Keep track of alerts to un-dismiss if they change? For now, we'll just show it.
+                // Check sessionStorage for previous dismissal of these specific alerts
+                const alertsJson = JSON.stringify(data.system.alerts);
+                const dismissedAlerts = sessionStorage.getItem('healthBannerDismissedAlerts');
+                if (dismissedAlerts === alertsJson) {
+                    setIsDismissed(true);
+                } else if (!data.system.isHealthy) {
+                    // If alerts changed or we are unhealthy and no match, show banner
+                    setIsDismissed(false);
                 }
             }
         } catch (error) {
             console.error('Failed to fetch admin health:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDismiss = () => {
+        if (health) {
+            const alertsJson = JSON.stringify(health.system.alerts);
+            sessionStorage.setItem('healthBannerDismissedAlerts', alertsJson);
+            setIsDismissed(true);
         }
     };
 
@@ -93,7 +106,7 @@ export function AdminHealthBanner() {
         <div className="bg-red-900/30 border-b border-red-500/50 px-6 py-4 shrink-0 shadow-[0_4px_20px_-4px_rgba(220,38,38,0.2)]">
             <div className="max-w-[1400px] mx-auto relative pr-8">
                 <button
-                    onClick={() => setIsDismissed(true)}
+                    onClick={handleDismiss}
                     className="absolute top-0 right-0 text-red-400/60 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors"
                     aria-label="Dismiss health warnings"
                 >

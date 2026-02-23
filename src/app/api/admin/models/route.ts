@@ -23,6 +23,7 @@ export async function GET() {
         const { data: models, error: modelsError } = await supabase
             .from('model_registry')
             .select('*')
+            .order('is_active', { ascending: false })
             .order('tier', { ascending: true });
 
         if (modelsError) {
