@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Mic, Play, Settings, Volume2 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '@/lib/supabase/user-preferences';
 
-export function VoiceSettings() {
+export function VoiceSettings({ inline }: { inline?: boolean }) {
     const { user } = useAuth();
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<string>('');

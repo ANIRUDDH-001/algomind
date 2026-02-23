@@ -89,7 +89,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             .update(updateData)
             .eq('id', id)
             .eq('created_by', auth.user.id)
-            .select()
+            .select(`
+                *,
+                entry_code,
+                campaign_questions
+            `)
             .single();
 
         if (error) {
@@ -113,18 +117,49 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         const supabase = await createServerSupabase();
 
-        // Soft delete
-        const { error } = await supabase
+        // Security: verify ownership
+        const { data: campaign } = await supabase
+            .from('assessment_campaigns')
+            .select('id, title')
+            .eq('id', id)
+            .eq('created_by', auth.user.id)
+            .single();
+
+        if (!campaign) {
+            return NextResponse.json({ error: 'Campaign not found or unauthorized' }, { status: 404 });
+        }
+
+        const body = await req.json().catch(() => ({}));
+        const { action } = body;  // 'deactivate' or 'delete'
+
+        if (action === 'delete') {
+            // Hard delete — also deletes candidate_submissions via CASCADE if FK exists,
+            // otherwise delete submissions first
+            await supabase.from('candidate_submissions').delete().eq('campaign_id', id);
+            const { error: deleteError } = await supabase
+                .from('assessment_campaigns')
+                .delete()
+                .eq('id', id)
+                .eq('created_by', auth.user.id);
+
+            if (deleteError) {
+                return NextResponse.json({ error: 'Failed to delete campaign' }, { status: 400 });
+            }
+            return NextResponse.json({ success: true, action: 'deleted' });
+        }
+
+        // Default: deactivate (soft delete)
+        const { error: deactivateError } = await supabase
             .from('assessment_campaigns')
             .update({ is_active: false })
             .eq('id', id)
             .eq('created_by', auth.user.id);
 
-        if (error) {
+        if (deactivateError) {
             return NextResponse.json({ error: 'Failed to deactivate campaign' }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, message: 'Campaign deactivated' });
+        return NextResponse.json({ success: true, action: 'deactivated' });
     } catch (error: unknown) {
         console.error('[CAMPAIGN_DELETE_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

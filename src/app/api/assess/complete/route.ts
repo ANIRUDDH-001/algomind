@@ -10,11 +10,20 @@ validateEnv();
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { sessionToken, transcript, duration, _finalCode } = body;
+        let { sessionToken, transcript, duration, questionStates, totalDuration } = body;
 
-        if (!sessionToken || !Array.isArray(transcript) || transcript.length === 0) {
+        // Normalize if old format was sent
+        if (!questionStates && transcript) {
+            questionStates = [{
+                transcript: transcript,
+                elapsed_secs: duration || 0
+            }];
+            totalDuration = duration || 0;
+        }
+
+        if (!sessionToken || !Array.isArray(questionStates) || questionStates.length === 0) {
             return NextResponse.json(
-                { error: 'Invalid transcript: must be a non-empty array' },
+                { error: 'Invalid payload: missing sessionToken or questionStates' },
                 { status: 400 }
             );
         }
@@ -60,7 +69,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Assessment already completed' }, { status: 400 });
         }
 
-        // 3. Fetch Campaign and Problem to feed the analyzer
+        // 3. Fetch Campaign to know who it belongs to
         const { data: campaign } = await supabaseAdmin
             .from('assessment_campaigns')
             .select('created_by, problem_id')
@@ -71,55 +80,105 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
         }
 
-        const actualProblemId = submission.assigned_problem_id || campaign.problem_id;
+        // 4. Run Assessment on Each Question
+        let totalScoreSum = 0;
+        let totalWeightSum = 0;
 
-        const { data: problem } = await supabaseAdmin
-            .from('problems')
-            .select('title, description, difficulty')
-            .eq('id', actualProblemId)
-            .single();
+        let aggProblemDecomp = 0;
+        let aggPatternRecog = 0;
+        let aggAlgThinking = 0;
+        let aggComplexity = 0;
+        let aggCommClarity = 0;
+        let aggEdgeCase = 0;
+        let aggOptimization = 0;
+        let aggDebugging = 0;
 
-        if (!problem) {
-            return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
-        }
+        let allFeedbacks: string[] = [];
+        let allNextSteps: string[] = [];
 
-        // 4. Run Assessment
-        // Normalize transcript from CandidateInterview format { speaker, text }
-        // to CognitiveAnalyzer format { role, content }
-        const normalizedTranscript = (transcript as Array<{ speaker: string; text: string }>).map((turn) => ({
-            role: (turn.speaker === 'ai' ? 'assistant' : turn.speaker) as 'user' | 'assistant' | 'system',
-            content: turn.text,
-        }));
+        // For backwards compatibility and saving the interview session properly:
+        // We will combine transcripts or find the primary problem context.
+        let combinedTranscript: any[] = [];
+        let primaryProblemId = submission.assigned_problem_id || campaign.problem_id;
+        let primaryProblemTitle = "Multiple Problems";
 
         const analyzer = new CognitiveAnalyzer();
-        // Generate a temporary UUID for the analyzer output format
-        const tempSessionId = crypto.randomUUID();
-        let result;
-        try {
-            result = await analyzer.analyze(tempSessionId, problem, normalizedTranscript);
-        } catch (analyzeError) {
-            console.error('[Assess Complete] CognitiveAnalyzer.analyze() failed:', analyzeError);
-            return NextResponse.json(
-                { error: 'Failed to analyze assessment. Please try again.' },
-                { status: 500 }
-            );
+
+        for (const qs of questionStates) {
+            if (!qs.problem_id) continue;
+
+            const turnTranscript = qs.transcript || [];
+            if (turnTranscript.length === 0) continue; // Skip if they didn't do anything
+
+            combinedTranscript = combinedTranscript.concat(turnTranscript);
+
+            const { data: problem } = await supabaseAdmin
+                .from('problems')
+                .select('title, description, difficulty')
+                .eq('id', qs.problem_id)
+                .single();
+
+            if (!problem) continue;
+
+            primaryProblemTitle = problem.title; // Will just take the last active one if multiple, which is fine for the simplified row
+
+            const normalizedTranscript = turnTranscript.map((turn: any) => ({
+                role: (turn.speaker === 'ai' ? 'assistant' : turn.speaker) as 'user' | 'assistant' | 'system',
+                content: turn.text,
+            }));
+
+            // Generate a temporary UUID for the analyzer output format
+            const tempSessionId = crypto.randomUUID();
+            let result;
+            try {
+                result = await analyzer.analyze(tempSessionId, problem, normalizedTranscript);
+            } catch (analyzeError) {
+                console.error(`[Assess Complete] analyzer failed for problem ${qs.problem_id}:`, analyzeError);
+                continue; // Skip this one, keep analyzing others
+            }
+
+            // Calculate overall score for this question
+            const qsScore = Object.values(result.skills).reduce((acc: any, s: any) => acc + s.score, 0) / Object.keys(result.skills).length;
+
+            // Weight can be elapsed_secs, if 0 fallback to 1 
+            const weight = Math.max(qs.elapsed_secs || 1, 1);
+
+            totalScoreSum += qsScore * weight;
+            totalWeightSum += weight;
+
+            const skills = result.skills as Record<string, { score: number }>;
+            aggProblemDecomp += (skills.problem_decomposition?.score || 0) * weight;
+            aggPatternRecog += (skills.pattern_recognition?.score || 0) * weight;
+            aggAlgThinking += (skills.algorithmic_thinking?.score || 0) * weight;
+            aggComplexity += (skills.complexity_analysis?.score || 0) * weight;
+            aggCommClarity += (skills.communication_clarity?.score || 0) * weight;
+            aggEdgeCase += (skills.edge_case_awareness?.score || 0) * weight;
+            aggOptimization += (skills.optimization_mindset?.score || 0) * weight;
+            aggDebugging += (skills.debugging_approach?.score || 0) * weight;
+
+            allFeedbacks.push(`**Problem: ${problem.title}**\n${result.overallFeedback}`);
+            if (result.nextSteps?.length) {
+                allNextSteps = allNextSteps.concat(result.nextSteps);
+            }
         }
 
-        // Calculate overall score
-        const overallScore = Object.values(result.skills).reduce((acc, s) => acc + s.score, 0) / Object.keys(result.skills).length;
+        if (totalWeightSum === 0) {
+            // Failsafe if we somehow evaluated nothing
+            totalWeightSum = 1;
+        }
 
-        // 5. Insert Interview Session with null user_id so it never appears in employer
-        //    dashboard queries (which filter by user_id). Link back to employer is via
-        //    candidate_submissions.session_id set in step 7.
+        const overallScore = totalScoreSum / totalWeightSum;
+
+        // 5. Insert Interview Session 
         const { data: sessionData, error: sessionError } = await supabaseAdmin
             .from('interview_sessions')
             .insert({
-                user_id: null,              // Candidate sessions are not owned by any user
-                is_candidate_session: true, // Explicit flag for candidate-specific queries
-                problem_id: actualProblemId,
-                problem_title: problem.title,
-                transcript: transcript,
-                duration: duration || 0,
+                user_id: null,
+                is_candidate_session: true,
+                problem_id: primaryProblemId,
+                problem_title: primaryProblemTitle,
+                transcript: combinedTranscript,
+                duration: totalDuration || 0,
                 status: 'completed',
                 overall_score: overallScore,
                 completed_at: new Date().toISOString()
@@ -136,19 +195,19 @@ export async function POST(req: NextRequest) {
             .from('assessments')
             .insert({
                 session_id: sessionData.id,
-                user_id: null, // Candidate session — not attributed to any user
+                user_id: null,
                 overall_score: overallScore,
-                problem_decomposition: (result.skills as Record<string, { score: number }>).problem_decomposition?.score || 0,
-                pattern_recognition: (result.skills as Record<string, { score: number }>).pattern_recognition?.score || 0,
-                algorithmic_thinking: (result.skills as Record<string, { score: number }>).algorithmic_thinking?.score || 0,
-                complexity_analysis: (result.skills as Record<string, { score: number }>).complexity_analysis?.score || 0,
-                communication_clarity: (result.skills as Record<string, { score: number }>).communication_clarity?.score || 0,
-                edge_case_awareness: (result.skills as Record<string, { score: number }>).edge_case_awareness?.score || 0,
-                optimization_mindset: (result.skills as Record<string, { score: number }>).optimization_mindset?.score || 0,
-                debugging_approach: (result.skills as Record<string, { score: number }>).debugging_approach?.score || 0,
-                overall_feedback: result.overallFeedback,
-                next_steps: result.nextSteps,
-                skill_evidence: result.skills // Storing the full rich JSON with evidence/strengths
+                problem_decomposition: aggProblemDecomp / totalWeightSum,
+                pattern_recognition: aggPatternRecog / totalWeightSum,
+                algorithmic_thinking: aggAlgThinking / totalWeightSum,
+                complexity_analysis: aggComplexity / totalWeightSum,
+                communication_clarity: aggCommClarity / totalWeightSum,
+                edge_case_awareness: aggEdgeCase / totalWeightSum,
+                optimization_mindset: aggOptimization / totalWeightSum,
+                debugging_approach: aggDebugging / totalWeightSum,
+                overall_feedback: allFeedbacks.join('\n\n'),
+                next_steps: allNextSteps.slice(0, 5), // Keep it reasonable
+                skill_evidence: {} // We clear this out or can implement a merged version
             })
             .select()
             .single();
