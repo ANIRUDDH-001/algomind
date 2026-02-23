@@ -166,6 +166,8 @@ async function main() {
         type: 'cron_completed',
         metadata: {
             duration_ms: duration,
+            completedSteps: Object.keys(results).filter(k => results[k] === 'ok'),
+            failedSteps: Object.keys(results).filter(k => results[k] === 'error'),
             results
         }
     });
