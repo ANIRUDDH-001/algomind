@@ -38,7 +38,15 @@ export default async function AssessmentHistoryPage() {
         .eq('candidate_id', user.id)
         .order('created_at', { ascending: false });
 
-    const submissionsData = submissions as unknown as any[];
+    const submissionsData = (submissions || []).map(sub => {
+        const campaign = Array.isArray(sub.assessment_campaigns)
+            ? sub.assessment_campaigns[0]
+            : sub.assessment_campaigns;
+        return {
+            ...sub,
+            assessment_campaigns: campaign
+        };
+    });
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
