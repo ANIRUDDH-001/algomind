@@ -101,20 +101,26 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
         setSelectedQuestions(newQuestions);
     };
 
-    const handleUpdateQuestionTime = (idx: number, time: number) => {
+    const handleUpdateQuestionTime = (idx: number, timeStr: string) => {
         const newQuestions = [...selectedQuestions];
-        newQuestions[idx].time_limit_mins = Math.max(5, Math.min(120, time));
+        const val = parseInt(timeStr);
+        newQuestions[idx].time_limit_mins = isNaN(val) ? (timeStr as any) : val;
         setSelectedQuestions(newQuestions);
     };
 
     const handleSubmit = async () => {
+        if (selectedQuestions.some(q => !q.time_limit_mins || q.time_limit_mins < 5 || q.time_limit_mins > 120)) {
+            toast.error("Time limit for all questions must be between 5 and 120 minutes.");
+            return;
+        }
+
         setIsCreating(true);
         try {
             const payload = {
                 title,
                 campaignQuestions: selectedQuestions.map(q => ({
                     problem_id: q.problem.id,
-                    time_limit_mins: q.time_limit_mins
+                    time_limit_mins: typeof q.time_limit_mins === 'string' ? parseInt(q.time_limit_mins) : q.time_limit_mins
                 })),
                 defaultEasyMins,
                 defaultMediumMins,
@@ -136,7 +142,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
             onSuccess(data.campaign);
         } catch (err) {
             console.error(err);
-            toast.error("Failed to create campaign");
+            toast.error("Failed to create campaign. Ensure all fields are valid.");
         } finally {
             setIsCreating(false);
         }
@@ -161,7 +167,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
 
     return (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <Card className="bg-slate-900 border-slate-700/50 w-full max-w-2xl shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
+            <Card className="flex flex-col bg-slate-900 border-slate-700/50 w-full max-w-2xl max-h-[90vh] min-h-0 shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <div>
@@ -185,7 +191,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                     />
                 </div>
 
-                <div className="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                     {step === 1 ? (
                         <div className="space-y-6">
                             {/* Campaign Title */}
@@ -382,11 +388,9 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                                             <div className="flex items-center gap-2">
                                                 <Input
                                                     type="number"
-                                                    value={sq.time_limit_mins}
-                                                    onChange={(e) => handleUpdateQuestionTime(i, parseInt(e.target.value))}
-                                                    className="w-16 h-8 bg-slate-950 border-slate-800 p-0 text-center text-sm font-mono"
-                                                    min={5}
-                                                    max={120}
+                                                    value={sq.time_limit_mins === undefined || isNaN(sq.time_limit_mins as any) ? '' : sq.time_limit_mins}
+                                                    onChange={(e) => handleUpdateQuestionTime(i, e.target.value)}
+                                                    className={cn("w-16 h-8 bg-slate-950 border-slate-800 p-0 text-center text-sm font-mono", (!sq.time_limit_mins || sq.time_limit_mins < 5 || sq.time_limit_mins > 120) ? "border-red-500 text-red-400" : "")}
                                                 />
                                                 <span className="text-xs text-slate-500 font-medium">min</span>
                                             </div>
@@ -467,6 +471,14 @@ function ProblemSearchSelect({ problems, onSelect, selectedIds }: {
         return matchSearch && matchDiff && notSelected;
     });
 
+    const randomOptions = [
+        { id: 'random-easy', title: 'Random Single Easy (Any Category)', difficulty: 'easy' },
+        { id: 'random-medium', title: 'Random Single Medium (Any Category)', difficulty: 'medium' },
+        { id: 'random-hard', title: 'Random Single Hard (Any Category)', difficulty: 'hard' }
+    ].filter(r => (!diffFilter || r.difficulty === diffFilter) && !selectedIds.includes(r.id) && (!search || r.title.toLowerCase().includes(search.toLowerCase())));
+
+    const displayList = [...randomOptions, ...filtered];
+
     return (
         <div className="space-y-3">
             <div className="flex gap-2">
@@ -492,7 +504,7 @@ function ProblemSearchSelect({ problems, onSelect, selectedIds }: {
             </div>
 
             <div className="max-h-56 overflow-y-auto space-y-1 border border-slate-800 rounded-lg p-2 bg-slate-950/50 custom-scrollbar">
-                {filtered.map(p => (
+                {displayList.map(p => (
                     <button
                         key={p.id}
                         type="button"
@@ -505,12 +517,12 @@ function ProblemSearchSelect({ problems, onSelect, selectedIds }: {
                                     p.difficulty === 'medium' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]' :
                                         'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'
                             )} />
-                            <span className="font-medium text-slate-300 group-hover:text-white">{p.title}</span>
+                            <span className={cn("font-medium group-hover:text-white transition-colors", p.id.startsWith('random-') ? 'text-blue-300/80 italic' : 'text-slate-300')}>{p.title}</span>
                         </div>
                         <Plus className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                 ))}
-                {filtered.length === 0 && (
+                {displayList.length === 0 && (
                     <div className="text-center py-6 text-slate-500 text-xs italic">
                         {search || diffFilter ? "No matching problems found." : "All problems selected."}
                     </div>
