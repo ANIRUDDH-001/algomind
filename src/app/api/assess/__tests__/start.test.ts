@@ -36,6 +36,19 @@ describe('Assess Start API (/api/assess/start)', () => {
             insert: vi.fn().mockReturnThis(),
         };
 
+        // Setup select -> in -> mock problems
+        const mockProblemsData = [{ id: 'prob-123', title: 'Two Sum', description: 'desc', difficulty: 'easy' }];
+
+        mockSupabase.in = vi.fn().mockReturnValue(mockProblemsData);
+
+        mockSupabase.select.mockImplementation(() => {
+            return {
+                eq: mockSupabase.eq,
+                single: mockSupabase.single,
+                in: vi.fn().mockResolvedValue({ data: mockProblemsData, error: null })
+            }
+        });
+
         // Setup insert to chain to select -> single
         mockSupabase.insert.mockImplementation(() => {
             return {
@@ -71,7 +84,7 @@ describe('Assess Start API (/api/assess/start)', () => {
 
         expect(res.status).toBe(200);
         expect(data).toHaveProperty('sessionToken');
-        expect(data.problem).toEqual({ id: 'prob-123', title: 'Two Sum' });
+        expect(data.questions[0]).toEqual({ id: 'prob-123', title: 'Two Sum', description: 'desc', difficulty: 'easy' });
         expect(data.submissionId).toBe('sub-123');
 
         // Verify the JWT was signed correctly

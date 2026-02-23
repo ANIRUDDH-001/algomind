@@ -4,6 +4,8 @@ import { requireEmployer } from '@/lib/auth/require-employer';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ campaignId: string }> }) {
     try {
+        const url = new URL(req.url);
+        const statusFilter = url.searchParams.get('status');
         const { campaignId } = await params;
         const auth = await requireEmployer();
 
@@ -25,13 +27,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             return NextResponse.json({ error: 'Campaign not found or unauthorized' }, { status: 404 });
         }
 
-        // 2. Fetch all completed submissions matching the campaign (Step 1 of two-step query)
-        const { data: submissions, error: submissionsError } = await supabase
+        // 2. Fetch submissions matching the campaign
+        let query = supabase
             .from('candidate_submissions')
-            .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at')
+            .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at, updated_at, question_states, current_problem_id')
             .eq('campaign_id', campaignId)
-            .eq('status', 'completed')
             .order('overall_score', { ascending: false, nullsFirst: false });
+
+        if (statusFilter) {
+            query = query.eq('status', statusFilter);
+        }
+
+        const { data: submissions, error: submissionsError } = await query;
 
         if (submissionsError) {
             throw submissionsError;
@@ -57,9 +64,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
 
         // 4. Compute rank and flatten data structure
         let currentRank = 1;
+
+        const summary = {
+            total: 0,
+            completed: 0,
+            in_progress: 0,
+            dropped_out: 0,
+            invited: 0,
+            time_expired: 0
+        };
+
         const rankedSubmissions = (submissions || []).map((sub) => {
+            // Update summary
+            summary.total++;
+            const statusKey = sub.status as keyof typeof summary;
+            if (summary[statusKey] !== undefined) {
+                summary[statusKey]++;
+            }
+
             const hasScore = typeof sub.overall_score === 'number' || !isNaN(Number(sub.overall_score));
-            const rank = hasScore && sub.overall_score !== null ? currentRank++ : null;
+            const rank = hasScore && sub.overall_score !== null && sub.status === 'completed' ? currentRank++ : null;
 
             const assessment = sub.session_id ? assessmentMap.get(sub.session_id) : null;
 
@@ -72,6 +96,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 status: sub.status,
                 overall_score: sub.overall_score,
                 created_at: sub.created_at,
+                updated_at: sub.updated_at,
+                question_states: sub.question_states,
+                current_problem_id: sub.current_problem_id,
                 rank,
                 feedback: assessment?.overall_feedback || null,
                 // Flatten skill scores directly onto the object
@@ -87,7 +114,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             };
         });
 
-        return NextResponse.json({ submissions: rankedSubmissions });
+        return NextResponse.json({ submissions: rankedSubmissions, summary });
     } catch (error: unknown) {
         console.error('[SUBMISSIONS_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

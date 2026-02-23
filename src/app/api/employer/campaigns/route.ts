@@ -69,65 +69,80 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, problemId, questionPool, poolDifficulty, assignmentMode = 'fixed', timeLimitMins = 45, expiresAt, maxUses, showScoreToCandidate = false } = body;
+        const {
+            title,
+            campaignQuestions,
+            defaultEasyMins,
+            defaultMediumMins,
+            defaultHardMins,
+            maxUses,
+            expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            showScoreToCandidate = false
+        } = body;
 
         // Validation
         if (!title || typeof title !== 'string' || title.length < 5 || title.length > 100) {
             return NextResponse.json({ error: 'Title must be between 5 and 100 characters' }, { status: 400 });
         }
 
-        if (assignmentMode === 'fixed' && (!problemId || typeof problemId !== 'string')) {
-            return NextResponse.json({ error: 'problemId is required for fixed assignment mode' }, { status: 400 });
+        if (!campaignQuestions || !Array.isArray(campaignQuestions) || campaignQuestions.length < 1 || campaignQuestions.length > 3) {
+            return NextResponse.json({ error: 'campaignQuestions (1-3 items) is required' }, { status: 400 });
         }
 
-        if (assignmentMode === 'pool' && (!questionPool || !Array.isArray(questionPool) || questionPool.length === 0 || questionPool.length > 3)) {
-            return NextResponse.json({ error: 'questionPool (1-3 items) is required for pool assignment mode' }, { status: 400 });
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        for (const q of campaignQuestions) {
+            if (!q.problem_id || !uuidRegex.test(q.problem_id)) {
+                return NextResponse.json({ error: `Invalid problem_id: ${q.problem_id}` }, { status: 400 });
+            }
+            if (!q.time_limit_mins || q.time_limit_mins < 5 || q.time_limit_mins > 120) {
+                return NextResponse.json({ error: 'time_limit_mins must be between 5 and 120' }, { status: 400 });
+            }
         }
 
-        if (assignmentMode === 'random_difficulty' && (!poolDifficulty || !['easy', 'medium', 'hard'].includes(poolDifficulty))) {
-            return NextResponse.json({ error: 'Valid poolDifficulty is required for random_difficulty assignment mode' }, { status: 400 });
-        }
-
-        const timeLimit = Number(timeLimitMins);
-        if (isNaN(timeLimit) || timeLimit < 15 || timeLimit > 120) {
-            return NextResponse.json({ error: 'timeLimitMins must be between 15 and 120' }, { status: 400 });
+        const validateTime = (val: any) => val === undefined || (Number(val) >= 5 && Number(val) <= 120);
+        if (!validateTime(defaultEasyMins) || !validateTime(defaultMediumMins) || !validateTime(defaultHardMins)) {
+            return NextResponse.json({ error: 'Default time limits must be between 5 and 120' }, { status: 400 });
         }
 
         const supabase = await createServerSupabase();
 
-        // Validate problem IDs depending on mode
-        if (assignmentMode === 'fixed') {
-            const { data: problem, error: problemError } = await supabase
-                .from('problems')
-                .select('id')
-                .eq('id', problemId)
-                .single();
-
-            if (problemError || !problem) {
-                return NextResponse.json({ error: 'Invalid problemId' }, { status: 404 });
-            }
+        // 3. Generate entry code via RPC
+        const { data: entryCode, error: rpcError } = await supabase.rpc('generate_campaign_entry_code');
+        if (rpcError) {
+            console.error('[RPC_ERROR]', rpcError);
+            throw new Error('Failed to generate entry code');
         }
 
-        // Create campaign
-        const insertData: Record<string, unknown> = {
+        // 4. Insert shape
+        const insertData = {
             created_by: auth.user.id,
             title,
-            time_limit_mins: timeLimit,
+            time_limit_mins: campaignQuestions.reduce((sum: number, q: any) => sum + q.time_limit_mins, 0),
+            campaign_questions: campaignQuestions.map((q: any, idx: number) => ({
+                problem_id: q.problem_id,
+                time_limit_mins: q.time_limit_mins,
+                order: idx + 1
+            })),
+            default_easy_mins: defaultEasyMins ?? 15,
+            default_medium_mins: defaultMediumMins ?? 25,
+            default_hard_mins: defaultHardMins ?? 45,
             is_active: true,
             show_score_to_candidate: showScoreToCandidate,
-            assignment_mode: assignmentMode,
-            problem_id: assignmentMode === 'fixed' ? problemId : null,
-            question_pool: assignmentMode === 'pool' ? questionPool : null,
-            pool_difficulty: assignmentMode === 'random_difficulty' ? poolDifficulty : null
+            assignment_mode: 'fixed',               // kept for compat
+            problem_id: campaignQuestions[0].problem_id,  // legacy field = first question
+            entry_code: entryCode,
+            expires_at: expiresAt,
+            max_uses: maxUses ?? null,
         };
-
-        if (expiresAt) insertData.expires_at = expiresAt;
-        if (maxUses) insertData.max_uses = maxUses;
 
         const { data: campaign, error: insertError } = await supabase
             .from('assessment_campaigns')
             .insert(insertData)
-            .select()
+            .select(`
+                *,
+                entry_code,
+                campaign_questions
+            `)
             .single();
 
         if (insertError) {
@@ -140,3 +155,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+

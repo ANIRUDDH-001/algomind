@@ -100,7 +100,7 @@ export function InterviewSession({
     const [isMobileTextMode, setIsMobileTextMode] = useState(false);
 
     // --- Company Mode Selection ---
-    const [selectedCompany, setSelectedCompany] = useState<string | null>(searchParams.get('company'));
+    const [selectedCompany, setSelectedCompany] = useState<string | null>(isAssessment ? null : searchParams.get('company'));
     const [companyPersona, setCompanyPersona] = useState<string | null>(null);
 
     // --- Kai Memory (fetched once on mount, sent with every request) ---
@@ -153,7 +153,7 @@ export function InterviewSession({
 
     const handleUserMessage = useCallback((_msg: Message, messageCount: number) => {
         // 1. Guest trial turn tracking
-        if (isGuest && hasStarted) {
+        if (isGuest && hasStarted && !isAssessment) {
             recordTurn();
             // Show login modal when trial is complete
             if (isTrialComplete && !showLoginModal) {
@@ -525,41 +525,19 @@ export function InterviewSession({
             <CardContent className="p-0 flex-1 flex flex-col h-full relative">
                 <SilentObserverNudge nudge={nudge} onDismiss={() => setNudge(null)} />
 
-                {/* Mobile Text Mode Toggle */}
-                {isMobile && hasStarted && !readOnly && !showCodeEditor && (
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[60] flex bg-slate-900/80 backdrop-blur-md p-1 rounded-full border border-slate-700/50 shadow-lg">
-                        <button
-                            onClick={() => setIsMobileTextMode(false)}
-                            className={cn(
-                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-                                !isMobileTextMode ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
-                            )}
-                        >
-                            <Mic className="w-3 h-3" /> Voice
-                        </button>
-                        <button
-                            onClick={() => setIsMobileTextMode(true)}
-                            className={cn(
-                                "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-                                isMobileTextMode ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
-                            )}
-                        >
-                            <MessageSquare className="w-3 h-3" /> Text
-                        </button>
-                    </div>
-                )}
-
                 {/* Mode Toggle (when interview started) */}
                 {hasStarted && !readOnly && !isMobile && renderCodeEditorToggle()}
 
                 {!hasStarted ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8">
-                        <div className="w-full max-w-2xl mb-8">
-                            <CompanyModeSelector
-                                selectedCompany={selectedCompany}
-                                onSelect={handleCompanySelect}
-                            />
-                        </div>
+                        {!isAssessment && (
+                            <div className="w-full max-w-2xl mb-8">
+                                <CompanyModeSelector
+                                    selectedCompany={selectedCompany}
+                                    onSelect={handleCompanySelect}
+                                />
+                            </div>
+                        )}
                         <Button
                             size="lg"
                             className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all duration-300"
@@ -601,20 +579,20 @@ export function InterviewSession({
                                             <span className="font-mono text-slate-500">20:00</span>
                                         </div>
                                         {/* Guest Trial Badge */}
-                                        {isGuest && (
+                                        {isGuest && !isAssessment && (
                                             <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
                                                 🌟 Trial Mode ({GUEST_TRIAL_LIMITS.MAX_TURNS - guestTrial.turnsUsed} turns left)
                                             </div>
                                         )}
                                         {/* Turn Warning */}
-                                        {limits.shouldShowTurnWarning && !isGuest && (
+                                        {limits.shouldShowTurnWarning && !isGuest && !isAssessment && (
                                             <div className="bg-orange-500/20 border border-orange-500/30 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
                                                 <AlertTriangle className="w-3 h-3" />
                                                 {limits.turnsRemaining} turns remaining
                                             </div>
                                         )}
                                         {/* Remaining Questions (authenticated users) */}
-                                        {!isGuest && remainingQuestions !== undefined && (
+                                        {!isGuest && remainingQuestions !== undefined && !isAssessment && (
                                             <div className="bg-slate-800/70 border border-slate-700 px-2 py-0.5 rounded text-[9px] text-slate-400">
                                                 {remainingQuestions}/{RATE_LIMIT.DAILY_LIMIT} questions remaining today
                                             </div>
@@ -679,7 +657,7 @@ export function InterviewSession({
 
                                     {/* Microphone / Interactions */}
                                     {!readOnly && (
-                                        <div className="flex justify-center pb-6">
+                                        <div className="flex flex-col items-center justify-center pb-6 gap-2">
                                             <MicrophoneButton
                                                 isListening={voice.isListening}
                                                 onClick={() => {
@@ -695,6 +673,14 @@ export function InterviewSession({
                                                     voice.isListening && "ring-4 lg:ring-8 ring-blue-500/10 shadow-[0_0_50px_rgba(59,130,246,0.6)]"
                                                 )}
                                             />
+                                            {isMobile && !voice.transcript && !voice.interimTranscript && messages.length <= 1 && (
+                                                <button
+                                                    onClick={() => setIsMobileTextMode(true)}
+                                                    className="mt-6 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 flex flex-row items-center gap-1.5 transition-all"
+                                                >
+                                                    <MessageSquare className="w-3.5 h-3.5" /> Switch to Text Mode
+                                                </button>
+                                            )}
                                         </div>
                                     )}
 
@@ -755,13 +741,25 @@ export function InterviewSession({
 
                         {/* Text Interaction Mode (Mobile) */}
                         {!showCodeEditor && isMobileTextMode && (
-                            <TextInterviewMode
-                                messages={messages}
-                                isProcessing={isProcessing}
-                                isAISpeaking={voice.isSpeaking}
-                                onSendMessage={(content) => submitUserResponse(content, { title: problem.title, content: problem.description, ragContext })}
-                                className="flex-1"
-                            />
+                            <div className="flex-1 flex flex-col h-full relative">
+                                {messages.length <= 1 && (
+                                    <div className="flex justify-center pt-2 pb-2 z-10">
+                                        <button
+                                            onClick={() => setIsMobileTextMode(false)}
+                                            className="px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 backdrop-blur-md border border-slate-700/50 hover:bg-slate-700/80 flex flex-row items-center gap-1.5 transition-all shadow-lg"
+                                        >
+                                            <Mic className="w-3.5 h-3.5" /> Switch to Voice Mode
+                                        </button>
+                                    </div>
+                                )}
+                                <TextInterviewMode
+                                    messages={messages}
+                                    isProcessing={isProcessing}
+                                    isAISpeaking={voice.isSpeaking}
+                                    onSendMessage={(content) => submitUserResponse(content, { title: problem.title, content: problem.description, ragContext })}
+                                    className="flex-1"
+                                />
+                            </div>
                         )}
 
                         {/* Code Editor Mode */}

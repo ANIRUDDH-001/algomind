@@ -112,7 +112,6 @@ describe('Assess Complete API (/api/assess/complete)', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
-
     it('1. Valid session -> saves assessment, returns report', async () => {
         const mockSupa = buildSupabaseMock();
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupa as any);
@@ -120,9 +119,10 @@ describe('Assess Complete API (/api/assess/complete)', () => {
 
         const req = createRequest({
             sessionToken: validToken,
-            transcript: [{ speaker: 'user', text: 'hello' }],
-            duration: 120,
-            finalCode: 'console.log("hello");',
+            questionStates: [
+                { problem_id: 'prob-1', transcript: [{ speaker: 'user', text: 'hello' }], elapsed_secs: 120 }
+            ],
+            totalDuration: 120,
         });
 
         const res = await POST(req);
@@ -130,15 +130,22 @@ describe('Assess Complete API (/api/assess/complete)', () => {
 
         expect(res.status).toBe(200);
         expect(data.success).toBe(true);
-        expect(data.overallScore).toBe(77.5); // (80 + 75) / 2
+        // Using mock calculation (80 problem decomp + 75 pattern recog) / 2 = 77.5
+        expect(data.overallScore).toBe(77.5);
     });
 
     it('2. Session already completed -> 400', async () => {
-        const mockSupa = buildSupabaseMock({
-            candidate_submissions: {
-                selectResult: { data: { status: 'completed', campaign_id: 'campaign-123' }, error: null },
-            },
+        const mockData = { data: { status: 'completed', campaign_id: 'campaign-123' }, error: null };
+        const mockFrom = vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue(mockData)
+                })
+            })
         });
+
+        const mockSupa = { from: mockFrom };
+
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupa as any);
         vi.mocked(getServiceClient).mockReturnValue(mockSupa as any);
 
@@ -158,20 +165,20 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     it('3. Invalid transcript (empty) -> 400', async () => {
         const req = createRequest({
             sessionToken: validToken,
-            transcript: [],
+            questionStates: [], // Needs to be populated
         });
 
         const res = await POST(req);
         const data = await res.json();
 
         expect(res.status).toBe(400);
-        expect(data.error).toContain('Invalid transcript');
+        expect(data.error).toContain('missing sessionToken or questionStates');
     });
 
     it('4. Invalid session format -> 401', async () => {
         const req = createRequest({
             sessionToken: 'bad.jwt.format',
-            transcript: [{ speaker: 'user', text: 'hello' }],
+            questionStates: [{ transcript: [{ speaker: 'user', text: 'hello' }], elapsed_secs: 120 }],
         });
 
         const res = await POST(req);
