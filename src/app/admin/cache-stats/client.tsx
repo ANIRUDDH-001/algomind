@@ -11,6 +11,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import type { CacheStats } from '@/lib/ai/response-cache';
 import { toast } from 'sonner';
+import { getFeatureFlag } from '@/lib/feature-flags';
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -45,7 +46,6 @@ export default function CacheStatsPage() {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setStats(data.stats ?? null);
-            setEnabled(data.enabled ?? false);
             setLastRefreshed(new Date());
             if (manual) toast.success('Cache stats refreshed');
         } catch (err) {
@@ -70,6 +70,10 @@ export default function CacheStatsPage() {
             setIsClearing(false);
         }
     };
+
+    useEffect(() => {
+        setEnabled(getFeatureFlag('ENABLE_RESPONSE_CACHE'));
+    }, []);
 
     useEffect(() => {
         refresh();
@@ -138,7 +142,7 @@ export default function CacheStatsPage() {
                         <div className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-widest ${enabled
                             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                             : 'bg-red-500/10 border-red-500/30 text-red-400'
-                        }`}>
+                            }`}>
                             {enabled ? '● Cache Enabled' : '○ Cache Disabled'}
                             {!enabled && (
                                 <span className="ml-2 font-normal normal-case text-slate-500">
