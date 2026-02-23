@@ -143,6 +143,44 @@ export default function ModelsAdminClient() {
         } catch (e) { }
     };
 
+    const handleAddModel = async () => {
+        if (!newModel.modelId || !newModel.provider) {
+            toast.error('Model ID and Provider are required');
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            const res = await fetch('/api/admin/models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newModel)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                toast.success('Model added');
+                setShowAddForm(false);
+                setNewModel({
+                    modelId: '',
+                    provider: 'groq',
+                    tier: 5,
+                    rpm: 30,
+                    tpm: 100000,
+                    rpd: 1000,
+                    notes: ''
+                });
+                loadData();
+            } else {
+                toast.error(data.error || 'Failed to add model');
+            }
+        } catch (e) {
+            toast.error('Network error');
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success('Copied to clipboard');
@@ -383,11 +421,21 @@ export default function ModelsAdminClient() {
                                 {/* Basic form structure to match spec */}
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Model ID</label>
-                                    <input type="text" className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none" placeholder="e.g. llama-3.1-8b" />
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        placeholder="e.g. llama-3.1-8b"
+                                        value={newModel.modelId}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, modelId: e.target.value }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Provider</label>
-                                    <select className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none">
+                                    <select
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        value={newModel.provider}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, provider: e.target.value }))}
+                                    >
                                         <option value="groq">Groq</option>
                                         <option value="gemini">Gemini</option>
                                         <option value="deepseek">DeepSeek</option>
@@ -395,26 +443,50 @@ export default function ModelsAdminClient() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tier (1-12)</label>
-                                    <input type="number" min="1" max="12" className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none" defaultValue={5} />
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        value={newModel.tier}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, tier: parseInt(e.target.value) || 0 }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">RPM (Req per min)</label>
-                                    <input type="number" className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none" defaultValue={30} />
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        value={newModel.rpm}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, rpm: parseInt(e.target.value) || 0 }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">TPM (Tokens per min)</label>
-                                    <input type="number" className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none" defaultValue={100000} />
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        value={newModel.tpm}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, tpm: parseInt(e.target.value) || 0 }))}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">RPD (Req per day)</label>
-                                    <input type="number" className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none" defaultValue={1000} />
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        value={newModel.rpd}
+                                        onChange={(e) => setNewModel(prev => ({ ...prev, rpd: parseInt(e.target.value) || 0 }))}
+                                    />
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-end">
                                 <Button
                                     className="bg-blue-600 hover:bg-blue-500 text-white font-bold"
-                                    onClick={() => toast.info('Model insertion API path pending. This UI matches specifications.')}
+                                    onClick={handleAddModel}
+                                    disabled={isAdding}
                                 >
+                                    {isAdding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                                     Verify & Add
                                 </Button>
                             </div>
