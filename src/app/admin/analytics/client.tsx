@@ -42,13 +42,16 @@ export default function AnalyticsAdminClient() {
     const [analytics, setAnalytics] = useState<AnalyticsRow[]>([]);
     const [models, setModels] = useState<ModelStat[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
     const [expandedDbErrors, setExpandedDbErrors] = useState<Record<string, boolean>>({});
 
-    const loadData = async () => {
+    const loadData = async (manual = false) => {
+        if (manual) setIsRefreshing(true);
         try {
             const [eventsRes, modelsRes] = await Promise.all([
-                fetch('/api/admin/events?days=7&limit=500'),
-                fetch('/api/admin/models')
+                fetch('/api/admin/events?days=7&limit=500', { cache: 'no-store' }),
+                fetch('/api/admin/models', { cache: 'no-store' })
             ]);
 
             const eventsData = await eventsRes.json();
@@ -57,17 +60,20 @@ export default function AnalyticsAdminClient() {
             setEvents(eventsData.events || []);
             setAnalytics(eventsData.analytics || []);
             setModels(modelsData.models || []);
+            setLastRefreshed(new Date());
+            if (manual) toast.success('Analytics refreshed');
         } catch (error) {
             console.error('Failed to load analytics data:', error);
             toast.error('Failed to load system analytics');
         } finally {
             setIsLoading(false);
+            if (manual) setIsRefreshing(false);
         }
     };
 
     useEffect(() => {
         loadData();
-        const interval = setInterval(loadData, 30000);
+        const interval = setInterval(() => loadData(), 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -155,13 +161,29 @@ export default function AnalyticsAdminClient() {
     return (
         <div className="text-white p-6 lg:p-10">
             <div className="max-w-[1400px] mx-auto space-y-8">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                        System Analytics
-                    </h1>
-                    <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
-                        <Activity className="w-4 h-4" /> Live failure rates and error feeds (auto-refreshing)
-                    </p>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                            System Analytics
+                        </h1>
+                        <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
+                            <Activity className="w-4 h-4" />
+                            Live failure rates and error feeds
+                            {lastRefreshed && (
+                                <span className="text-slate-600 text-xs font-normal">
+                                    · Updated {lastRefreshed.toLocaleTimeString()}
+                                </span>
+                            )}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => loadData(true)}
+                        disabled={isRefreshing}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Loader2 className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? 'Refreshing…' : 'Refresh Stats'}
+                    </button>
                 </div>
 
                 {isCronStale && (
@@ -373,7 +395,7 @@ export default function AnalyticsAdminClient() {
                                                             <XCircle className="w-3 h-3" /> Failed
                                                         </Badge>
                                                     )}
-                                                    <span className="sr-only">XCircle is not imported correctly, using fallback styling is fine as I'll assume lucide-react has it or fail silently on build. Oh wait I didn't import XCircle. I'll just use AlertCircle instead</span>
+
                                                 </td>
                                                 <td className="py-2.5 px-4 font-mono text-xs text-slate-400">
                                                     {e.metadata?.duration_ms ? `${(e.metadata.duration_ms / 1000).toFixed(1)}s` : '—'}
