@@ -34,6 +34,35 @@ export async function POST(request: Request) {
         let message = 'Verification failed';
         let isSuccess = false;
 
+        // Skip live ping for audio models (Whisper)
+        if (modelId.includes('whisper')) {
+            const { error: updateError } = await supabase
+                .from('model_registry')
+                .update({
+                    last_verified: new Date().toISOString(),
+                    is_verified: true,
+                    is_active: true,
+                    deprecated_at: null
+                })
+                .eq('model_id', modelId);
+
+            if (updateError) {
+                console.error(`Failed to update verification status for audio model ${modelId}:`, updateError);
+                return NextResponse.json({ error: 'Failed to update database' }, { status: 500 });
+            }
+
+            void logSystemEvent({
+                type: 'admin_action',
+                metadata: { action: 'verify_model', modelId, status: 'verified', message: 'Audio model — marked verified (no ping required)' }
+            });
+
+            return NextResponse.json({
+                modelId,
+                status: 'verified',
+                message: 'Audio model — marked verified (no ping required)'
+            });
+        }
+
         // 2. Ping the provider
         try {
             if (model.provider === 'groq') {

@@ -68,7 +68,8 @@ export async function GET() {
                 notes: m.notes,
                 rateLimitHits24h,
                 lastRateLimitHit,
-                status
+                status,
+                modelType: m.model_id.startsWith('whisper') ? 'audio' : 'text'
             };
         });
 
