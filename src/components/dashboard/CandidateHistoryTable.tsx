@@ -105,7 +105,7 @@ export function CandidateHistoryTable({ submissions }: { submissions: Submission
                                                     : '—'}
                                             </td>
                                             <td className="px-6 py-4 text-slate-400 text-xs">
-                                                {format(new Date(sub.created_at), 'MMM dd, yyyy')}
+                                                {sub.created_at ? format(new Date(sub.created_at), 'MMM dd, yyyy') : 'No Date'}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex gap-2 justify-end">
