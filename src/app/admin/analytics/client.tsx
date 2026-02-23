@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
     AlertCircle, AlertTriangle, CheckCircle2, ServerCrash,
-    Database, Users, Activity, Loader2, Clock, XCircle
+    Database, Users, Activity, Loader2, Clock, XCircle, RefreshCw, Play, Zap
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -37,14 +37,23 @@ interface ModelStat {
     status: string;
 }
 
+interface SystemStats {
+    total_users: number;
+    active_models: number;
+    total_sessions: number;
+}
+
 export default function AnalyticsAdminClient() {
     const [events, setEvents] = useState<SystemEvent[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsRow[]>([]);
     const [models, setModels] = useState<ModelStat[]>([]);
+    const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
     const [expandedDbErrors, setExpandedDbErrors] = useState<Record<string, boolean>>({});
+    const [isTriggeringCron, setIsTriggeringCron] = useState(false);
+    const [cronTriggerStatus, setCronTriggerStatus] = useState<'idle' | 'dispatched' | 'error'>('idle');
 
     const loadData = async (manual = false) => {
         if (manual) setIsRefreshing(true);
@@ -59,6 +68,7 @@ export default function AnalyticsAdminClient() {
 
             setEvents(eventsData.events || []);
             setAnalytics(eventsData.analytics || []);
+            setSystemStats(eventsData.systemStats || null);
             setModels(modelsData.models || []);
             setLastRefreshed(new Date());
             if (manual) toast.success('Analytics refreshed');
@@ -68,6 +78,24 @@ export default function AnalyticsAdminClient() {
         } finally {
             setIsLoading(false);
             if (manual) setIsRefreshing(false);
+        }
+    };
+
+    const handleTriggerCron = async () => {
+        if (!confirm('This will re-run ALL nightly batch jobs.\n\nNote: Some jobs (Kai Memory, Narratives) consume LLM API credits per active user.\n\nContinue?')) return;
+        setIsTriggeringCron(true);
+        setCronTriggerStatus('idle');
+        try {
+            const res = await fetch('/api/admin/trigger-cron', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Trigger failed');
+            setCronTriggerStatus('dispatched');
+            toast.success('Batch dispatched via GitHub Actions. Results appear in ~10–20 min as this page auto-refreshes.');
+        } catch (err) {
+            setCronTriggerStatus('error');
+            toast.error('Trigger failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        } finally {
+            setIsTriggeringCron(false);
         }
     };
 
@@ -94,15 +122,21 @@ export default function AnalyticsAdminClient() {
     }, [] as any[]).sort((a: any, b: any) => new Date(a.name).getTime() - new Date(b.name).getTime());
 
     const typeColors: Record<string, string> = {
-        'model_429': '#f59e0b', // amber
-        'model_deprecated': '#ef4444', // red
-        'db_error': '#7f1d1d', // red-dark
-        'user_rate_limit': '#3b82f6', // blue
+        'model_429': '#f59e0b',          // amber
+        'model_deprecated': '#ef4444',   // red
+        'model_error': '#f87171',        // red-light
+        'model_timeout': '#fb923c',      // orange
+        'model_verification_failed': '#fbbf24', // yellow
+        'db_error': '#7f1d1d',           // red-dark
+        'user_rate_limit': '#3b82f6',    // blue
         'leetcode_fetch_failed': '#a855f7', // purple
-        'piston_error': '#f97316', // orange
-        'embedding_failed': '#ec4899', // pink
-        'cron_completed': '#10b981', // emerald
-        'cron_failed': '#dc2626' // red
+        'piston_error': '#f97316',       // orange
+        'embedding_failed': '#ec4899',   // pink
+        'cron_completed': '#10b981',     // emerald
+        'cron_failed': '#dc2626',        // red
+        'cron_triggered': '#6366f1',     // indigo
+        'batch_job_complete': '#14b8a6', // teal
+        'admin_action': '#64748b',       // slate
     };
 
     // Collect all unique event types from the chart data to build Bars
@@ -131,8 +165,10 @@ export default function AnalyticsAdminClient() {
         return acc;
     }, [] as any[]).sort((a: any, b: any) => parseInt(a.hour) - parseInt(b.hour));
 
-    // Panel 5: Cron Health
-    const cronEvents = events.filter(e => e.type === 'cron_completed' || e.type === 'cron_failed').slice(0, 10);
+    // Panel 5: Cron Health — include triggered events too
+    const cronEvents = events.filter(e =>
+        e.type === 'cron_completed' || e.type === 'cron_failed' || e.type === 'cron_triggered'
+    ).slice(0, 10);
 
     const lastCronRun = cronEvents.length > 0 ? new Date(cronEvents[0].created_at).getTime() : 0;
     const isCronStale = lastCronRun > 0 && (Date.now() - lastCronRun) > (26 * 60 * 60 * 1000);
@@ -181,7 +217,10 @@ export default function AnalyticsAdminClient() {
                         disabled={isRefreshing}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Loader2 className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <RefreshCw className="w-4 h-4" />
+                        }
                         {isRefreshing ? 'Refreshing…' : 'Refresh Stats'}
                     </button>
                 </div>
@@ -195,29 +234,67 @@ export default function AnalyticsAdminClient() {
                     </Card>
                 )}
 
+                {/* System Overview Stats (from get_admin_analytics RPC) */}
+                {systemStats && (
+                    <div className="grid grid-cols-3 gap-4">
+                        <Card className="p-5 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                                <Users className="w-3.5 h-3.5" /> Total Users
+                            </div>
+                            <div className="text-3xl font-black text-white tabular-nums">
+                                {systemStats.total_users.toLocaleString()}
+                            </div>
+                        </Card>
+                        <Card className="p-5 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                                <ServerCrash className="w-3.5 h-3.5" /> Active Models
+                            </div>
+                            <div className="text-3xl font-black text-white tabular-nums">
+                                {systemStats.active_models.toLocaleString()}
+                            </div>
+                        </Card>
+                        <Card className="p-5 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                                <Activity className="w-3.5 h-3.5" /> Total Sessions
+                            </div>
+                            <div className="text-3xl font-black text-white tabular-nums">
+                                {systemStats.total_sessions.toLocaleString()}
+                            </div>
+                        </Card>
+                    </div>
+                )}
+
                 {/* Panel 1: Error Volume Chart */}
                 <Card className="p-6 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl">
                     <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-blue-400" />
                         System Events — Last 7 Days
                     </h3>
-                    <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickMargin={10} />
-                                <YAxis stroke="#94a3b8" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                                    itemStyle={{ fontSize: '12px' }}
-                                />
-                                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                                {chartKeys.map(key => (
-                                    <Bar key={key} dataKey={key} stackId="a" fill={typeColors[key] || '#94a3b8'} />
-                                ))}
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {chartData.length === 0 ? (
+                        <div className="h-[250px] flex flex-col items-center justify-center text-slate-600 gap-2">
+                            <Activity className="w-8 h-8 opacity-30" />
+                            <p className="text-sm font-medium">No system events in the last 7 days</p>
+                            <p className="text-xs">Events appear here as errors, rate limits, and cron runs are logged</p>
+                        </div>
+                    ) : (
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickMargin={10} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                                        itemStyle={{ fontSize: '12px' }}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                                    {chartKeys.map(key => (
+                                        <Bar key={key} dataKey={key} stackId="a" fill={typeColors[key] || '#94a3b8'} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -361,12 +438,36 @@ export default function AnalyticsAdminClient() {
 
                     {/* Panel 5: Cron Health */}
                     <Card className="p-6 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl">
-                        <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-emerald-400" />
-                            Nightly Batch Status
-                        </h3>
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                            <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-emerald-400" />
+                                Nightly Batch Status
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {cronTriggerStatus === 'dispatched' && (
+                                    <span className="text-xs text-indigo-400 font-medium flex items-center gap-1">
+                                        <Zap className="w-3 h-3" /> Dispatched — results in ~10–20 min
+                                    </span>
+                                )}
+                                <button
+                                    onClick={handleTriggerCron}
+                                    disabled={isTriggeringCron}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/20 hover:bg-emerald-900/40 border border-emerald-800/50 hover:border-emerald-700/70 text-emerald-400 hover:text-emerald-300 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Dispatches the GitHub Actions nightly-batch.yml workflow. Some steps use LLM API credits."
+                                >
+                                    {isTriggeringCron
+                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        : <Play className="w-3.5 h-3.5" />
+                                    }
+                                    {isTriggeringCron ? 'Dispatching…' : 'Trigger Now'}
+                                </button>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-600 mb-4">
+                            Auto-refreshes every 30s. Batch runs on GitHub Actions (~10–20 min) and logs here when complete.
+                        </p>
                         {cronEvents.length === 0 ? (
-                            <div className="text-slate-500 text-sm mt-4">No recent cron runs logged.</div>
+                            <div className="text-slate-500 text-sm">No recent cron runs logged.</div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
@@ -390,12 +491,15 @@ export default function AnalyticsAdminClient() {
                                                         <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 gap-1 pl-1">
                                                             <CheckCircle2 className="w-3 h-3" /> OK
                                                         </Badge>
+                                                    ) : e.type === 'cron_triggered' ? (
+                                                        <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/10 gap-1 pl-1">
+                                                            <Zap className="w-3 h-3" /> Dispatched
+                                                        </Badge>
                                                     ) : (
                                                         <Badge variant="outline" className="border-red-500/30 text-red-400 bg-red-500/10 gap-1 pl-1">
                                                             <XCircle className="w-3 h-3" /> Failed
                                                         </Badge>
                                                     )}
-
                                                 </td>
                                                 <td className="py-2.5 px-4 font-mono text-xs text-slate-400">
                                                     {e.metadata?.duration_ms ? `${(e.metadata.duration_ms / 1000).toFixed(1)}s` : '—'}
@@ -404,7 +508,9 @@ export default function AnalyticsAdminClient() {
                                                     {e.metadata?.usersProcessed || e.metadata?.syncedCount || e.metadata?.processedCount || '—'}
                                                 </td>
                                                 <td className="py-2.5 pl-4 text-right text-slate-300 text-xs truncate max-w-[120px]" title={JSON.stringify(e.metadata?.completedSteps || [])}>
-                                                    {Array.isArray(e.metadata?.completedSteps) ? e.metadata.completedSteps.join(', ') : '—'}
+                                                    {Array.isArray(e.metadata?.completedSteps)
+                                                        ? e.metadata.completedSteps.join(', ')
+                                                        : (e.metadata?.message || '—')}
                                                 </td>
                                             </tr>
                                         ))}
