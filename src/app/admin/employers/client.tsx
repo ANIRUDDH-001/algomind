@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Trash2, Briefcase, Plus, Copy, Check } from 'lucide-react';
+import { AlertCircle, Trash2, Briefcase, Plus, Copy, Check, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface EmployerInvite {
@@ -125,6 +125,21 @@ export default function EmployersClient() {
         navigator.clipboard.writeText(code);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    // TODO: Replace mailto: with POST /api/admin/send-invite-email once SMTP is configured via Supabase
+    const handleSendEmail = (invite: EmployerInvite) => {
+        const subject = encodeURIComponent(`Your AlgoMind Employer Access Code`);
+        const inviteUrl = `${window.location.origin}/employer`;
+        const expiryLine = invite.expires_at
+            ? `\nThis code expires on: ${format(new Date(invite.expires_at), 'PPP')}\n`
+            : '';
+        const body = encodeURIComponent(
+            `Hi,\n\nYour AlgoMind employer invite code is:\n\n  ${invite.invite_code}\n\n` +
+            `Use it at: ${inviteUrl}${expiryLine}\n` +
+            `Welcome aboard!\n\nThe AlgoMind Team`
+        );
+        window.open(`mailto:${invite.email || ''}?subject=${subject}&body=${body}`);
     };
 
     return (
@@ -309,15 +324,29 @@ export default function EmployersClient() {
                                         </div>
 
                                         {!isUsed && invite.is_active && !isExpired && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2 shrink-0"
-                                                onClick={() => handleDeactivate(invite.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                                <span className="hidden sm:inline">Deactivate</span>
-                                            </Button>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {invite.email && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-colors gap-2"
+                                                        onClick={() => handleSendEmail(invite)}
+                                                        title="Send invite code via email"
+                                                    >
+                                                        <Mail className="w-4 h-4" />
+                                                        <span className="hidden sm:inline">Send Email</span>
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2 shrink-0"
+                                                    onClick={() => handleDeactivate(invite.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">Deactivate</span>
+                                                </Button>
+                                            </div>
                                         )}
                                     </Card>
                                 );

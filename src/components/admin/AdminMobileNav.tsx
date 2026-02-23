@@ -19,7 +19,6 @@ const NAV_ITEMS = [
     { name: 'Knowledge Base', href: '/admin/knowledge', icon: Database },
     { name: 'Voice Debug', href: '/admin/voice-debug', icon: MessageSquare },
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
-    { name: 'Employers', href: '/admin/employers', icon: Briefcase },
 ];
 
 export function AdminMobileNav() {
@@ -102,6 +101,24 @@ export function AdminMobileNav() {
                                         );
                                     })}
                                 </div>
+                            </div>
+
+                            {/* Enterprise Section */}
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Enterprise</p>
+                                <Link
+                                    href="/admin/employers"
+                                    onClick={() => setOpen(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition-all",
+                                        pathname === '/admin/employers'
+                                            ? "bg-slate-800 text-white border-l-2 border-blue-500"
+                                            : "text-slate-400 hover:bg-slate-800/50"
+                                    )}
+                                >
+                                    <Briefcase className={cn("w-4 h-4", pathname === '/admin/employers' ? "text-blue-400" : "text-slate-500")} />
+                                    Employer Accounts
+                                </Link>
                             </div>
                         </div>
 

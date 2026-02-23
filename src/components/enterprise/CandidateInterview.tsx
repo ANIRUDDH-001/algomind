@@ -56,6 +56,11 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
             return;
         }
 
+        if (!email.trim() || !email.includes('@')) {
+            setError('A valid email address is required');
+            return;
+        }
+
         setIsStarting(true);
         try {
             const res = await fetch('/api/assess/start', {
@@ -155,10 +160,11 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1">
-                                Email (Optional)
+                                Email *
                             </label>
                             <input
                                 type="email"
+                                required
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"

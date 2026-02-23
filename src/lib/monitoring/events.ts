@@ -13,6 +13,8 @@ export type SystemEventType =
     | 'piston_error'
     | 'cron_completed'
     | 'cron_failed'
+    | 'cron_triggered'
+    | 'batch_job_complete'
     | 'admin_action';
 
 export interface SystemEventPayload {
