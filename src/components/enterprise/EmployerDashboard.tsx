@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare } from 'lucide-react';
+import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare, Search, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';
@@ -468,10 +468,19 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
 
             {/* Create Campaign Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <Card className="bg-slate-900 border-slate-700 w-full max-w-lg shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-slate-800">
-                            <h3 className="text-xl font-bold text-white">Create New Campaign</h3>
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <Card className="bg-slate-900/90 border-slate-700/50 w-full max-w-lg shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/40">
+                            <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 flex items-center gap-2">
+                                <Plus className="w-5 h-5 text-blue-400" />
+                                Create New Campaign
+                            </h3>
+                            <button
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="text-slate-500 hover:text-white transition-colors"
+                            >
+                                <Users className="w-5 h-5" /> {/* Close icon placeholder if needed, but usually just 'X' or similar */}
+                            </button>
                         </div>
                         <form onSubmit={handleCreateCampaign} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div>
@@ -542,40 +551,46 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">Time Limit *</label>
-                                    <select
-                                        className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={newCampaign.timeLimit}
-                                        onChange={e => setNewCampaign({ ...newCampaign, timeLimit: e.target.value })}
-                                    >
-                                        <option value="30">30 minutes</option>
-                                        <option value="45">45 minutes</option>
-                                        <option value="60">60 minutes</option>
-                                        <option value="90">90 minutes</option>
-                                    </select>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Time Limit *</label>
+                                    <div className="relative">
+                                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                                        <select
+                                            className="w-full bg-slate-950/50 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
+                                            value={newCampaign.timeLimit}
+                                            onChange={e => setNewCampaign({ ...newCampaign, timeLimit: e.target.value })}
+                                        >
+                                            <option value="30">30 minutes</option>
+                                            <option value="45">45 minutes</option>
+                                            <option value="60">60 minutes</option>
+                                            <option value="90">90 minutes</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">Max Responses</label>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Max Responses</label>
                                     <Input
                                         type="number"
-                                        placeholder="Optional"
+                                        placeholder="Optional (e.g. 50)"
                                         min="1"
                                         value={newCampaign.maxUses}
                                         onChange={e => setNewCampaign({ ...newCampaign, maxUses: e.target.value })}
-                                        className="bg-slate-950 border-slate-800"
+                                        className="bg-slate-950/50 border-slate-800 focus:ring-blue-500/50"
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Expiration Date</label>
-                                <Input
-                                    type="datetime-local"
-                                    value={newCampaign.expiresAt}
-                                    onChange={e => setNewCampaign({ ...newCampaign, expiresAt: e.target.value })}
-                                    className="bg-slate-950 border-slate-800 [color-scheme:dark]"
-                                />
+                            <div className="pt-2">
+                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Expiration Date</label>
+                                <div className="relative">
+                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                                    <Input
+                                        type="datetime-local"
+                                        value={newCampaign.expiresAt}
+                                        onChange={e => setNewCampaign({ ...newCampaign, expiresAt: e.target.value })}
+                                        className="bg-slate-950/50 border-slate-800 pl-10 [color-scheme:dark] focus:ring-blue-500/50 transition-all"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex items-center mt-4">
@@ -711,18 +726,21 @@ function ProblemSearchSelect({ problems, value, onChange }: {
     });
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
             <div className="flex gap-2">
-                <Input
-                    placeholder="Search problems..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="flex-1 bg-slate-950 border-slate-800"
-                />
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Input
+                        placeholder="Search problems..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="pl-9 bg-slate-950/50 border-slate-800 focus:ring-blue-500/50"
+                    />
+                </div>
                 <select
                     value={diffFilter}
                     onChange={e => setDiffFilter(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm"
+                    className="bg-slate-950/50 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 >
                     <option value="">All Levels</option>
                     <option value="easy">Easy</option>
@@ -730,19 +748,36 @@ function ProblemSearchSelect({ problems, value, onChange }: {
                     <option value="hard">Hard</option>
                 </select>
             </div>
-            <select
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                size={6}
-            >
+
+            <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-800/50 rounded-lg p-2 bg-slate-950/30 custom-scrollbar">
                 {filtered.map(p => (
-                    <option key={p.id} value={p.id}>
-                        [{p.difficulty.toUpperCase()}] {p.title}
-                    </option>
+                    <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onChange(p.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group ${value === p.id
+                            ? 'bg-blue-600/20 text-blue-300 border border-blue-500/50'
+                            : 'text-slate-400 hover:bg-slate-800/50 border border-transparent'
+                            }`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full ${p.difficulty === 'easy' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]'
+                                : p.difficulty === 'medium' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]'
+                                    : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.4)]'
+                                }`} />
+                            <span className="font-medium group-hover:text-slate-200 transition-colors">{p.title}</span>
+                        </div>
+                        {value === p.id && <Check className="w-4 h-4 text-blue-400 animate-in zoom-in duration-200" />}
+                    </button>
                 ))}
-            </select>
-            <p className="text-xs text-slate-500">{filtered.length} of {problems.length} problems shown</p>
+                {filtered.length === 0 && (
+                    <div className="text-center py-6 text-slate-500 text-xs italic">No matching problems found.</div>
+                )}
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium px-1 flex items-center justify-between">
+                <span>{filtered.length} of {problems.length} problems</span>
+                <span className="text-blue-500/70 select-none">Scroll for more</span>
+            </p>
         </div>
     );
 }
