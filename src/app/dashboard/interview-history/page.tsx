@@ -56,7 +56,7 @@ export default async function AssessmentHistoryPage() {
                     leetcodeUsername={leetcodeUsername}
                 />
 
-                <DashboardNav activeTab="campaigns" onTabChange={() => { }} isLinkMode={true} />
+                <DashboardNav activeTab="campaigns" isLinkMode={true} />
 
                 {(!submissions || submissions.length === 0) ? (
                     <EmptyState

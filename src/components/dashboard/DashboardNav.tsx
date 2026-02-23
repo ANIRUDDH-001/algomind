@@ -9,7 +9,7 @@ export type TabId = 'overview' | 'skills' | 'history' | 'insights' | 'campaigns'
 
 interface DashboardNavProps {
     activeTab: TabId;
-    onTabChange: (tab: TabId) => void;
+    onTabChange?: (tab: TabId) => void;
     isLinkMode?: boolean;
 }
 
@@ -34,7 +34,7 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode }: DashboardNa
             if (tabId === 'campaigns') {
                 router.push('/dashboard/interview-history');
             } else {
-                onTabChange(tabId);
+                onTabChange?.(tabId);
             }
         }
     };
