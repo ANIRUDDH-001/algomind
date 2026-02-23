@@ -38,6 +38,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
         const sessionIds = (submissions || []).map(s => s.session_id).filter(Boolean) as string[];
 
         let assessments: any[] = [];
+        let sessionsMap = new Map();
         if (sessionIds.length > 0) {
             const { data: assessmentsData, error: assessmentsError } = await supabase
                 .from('assessments')
@@ -46,6 +47,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
 
             if (assessmentsError) throw assessmentsError;
             assessments = assessmentsData || [];
+
+            const { data: sessionsData } = await supabase
+                .from('interview_sessions')
+                .select('id, duration')
+                .in('id', sessionIds);
+            if (sessionsData) {
+                sessionsMap = new Map(sessionsData.map(s => [s.id, s.duration]));
+            }
         }
 
         const assessmentMap = new Map(assessments.map(a => [a.session_id, a]));
@@ -72,17 +81,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             const started = sub.created_at ? formatTime(sub.created_at) : '';
             const updated = sub.updated_at ? formatTime(sub.updated_at) : '';
 
+            const originalSessionDuration = sub.session_id ? sessionsMap.get(sub.session_id) : 0;
+            const hasQuestionStates = sub.question_states && Array.isArray(sub.question_states) && sub.question_states.length > 0;
+
             // Total time spent across questions
-            const totalSecs = (sub.question_states || []).reduce((acc: number, q: any) => acc + (q.elapsed_secs || 0), 0);
-            const totalMins = (totalSecs / 60).toFixed(1);
+            let totalMins = '0.0';
+            if (hasQuestionStates) {
+                const totalSecs = sub.question_states.reduce((acc: number, q: any) => acc + (q.elapsed_secs || 0), 0);
+                totalMins = (totalSecs / 60).toFixed(1);
+            } else if (originalSessionDuration) {
+                totalMins = (originalSessionDuration / 60).toFixed(1);
+            }
 
             // Per-question timing (up to 3 questions initially)
-            const dQ = Array(3).fill({ status: '', time: '' });
-            (sub.question_states || []).forEach((qs: any, i: number) => {
-                if (i < 3) {
-                    dQ[i] = { status: qs.status || '', time: ((qs.elapsed_secs || 0) / 60).toFixed(1) };
-                }
-            });
+            const dQ = Array(3).fill({ status: 'not_started', time: '0.0' });
+            if (hasQuestionStates) {
+                sub.question_states.forEach((qs: any, i: number) => {
+                    if (i < 3) {
+                        dQ[i] = { status: qs.status || 'not_started', time: ((qs.elapsed_secs || 0) / 60).toFixed(1) };
+                    }
+                });
+            } else if (originalSessionDuration) {
+                dQ[0] = { status: sub.status, time: (originalSessionDuration / 60).toFixed(1) };
+            }
 
             const escapeCSV = (str: any) => {
                 if (str === null || str === undefined) return '';
@@ -95,15 +116,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 escapeCSV(sub.candidate_name),
                 escapeCSV(sub.candidate_email),
                 sub.status,
-                sub.overall_score && sub.status === 'completed' ? sub.overall_score.toFixed(1) : '',
-                assessment?.problem_decomposition ?? '',
-                assessment?.pattern_recognition ?? '',
-                assessment?.algorithmic_thinking ?? '',
-                assessment?.complexity_analysis ?? '',
-                assessment?.communication_clarity ?? '',
-                assessment?.edge_case_awareness ?? '',
-                assessment?.optimization_mindset ?? '',
-                assessment?.debugging_approach ?? '',
+                sub.overall_score && sub.status === 'completed' ? sub.overall_score.toFixed(1) : '0.0',
+                assessment?.problem_decomposition ?? '0',
+                assessment?.pattern_recognition ?? '0',
+                assessment?.algorithmic_thinking ?? '0',
+                assessment?.complexity_analysis ?? '0',
+                assessment?.communication_clarity ?? '0',
+                assessment?.edge_case_awareness ?? '0',
+                assessment?.optimization_mindset ?? '0',
+                assessment?.debugging_approach ?? '0',
                 started,
                 updated,
                 totalMins,

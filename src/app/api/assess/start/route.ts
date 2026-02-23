@@ -93,9 +93,33 @@ export async function POST(req: NextRequest) {
             campaignData = campaign[0];
 
             // Build questionStates based on campaign details
-            const campaignQs = campaignData.campaign_questions || [];
+            let campaignQs = campaignData.campaign_questions || [];
 
             if (campaignQs.length > 0) {
+                // Resolve random placeholders into actual UUIDs
+                const pickedIds = new Set<string>();
+                for (const q of campaignQs) {
+                    if (q.problem_id && q.problem_id.startsWith('random-')) {
+                        const difficulty = q.problem_id.split('-')[1];
+                        const { data: qPool, error: poolError } = await supabase
+                            .from('problems')
+                            .select('id')
+                            .eq('difficulty', difficulty);
+
+                        if (!poolError && qPool && qPool.length > 0) {
+                            // Filter out already picked problems, but fallback to entire pool if we run out (unlikely)
+                            let available = qPool.filter(p => !pickedIds.has(p.id));
+                            if (available.length === 0) available = qPool;
+
+                            const chosen = available[Math.floor(Math.random() * available.length)].id;
+                            q.problem_id = chosen;
+                            pickedIds.add(chosen);
+                        }
+                    } else {
+                        pickedIds.add(q.problem_id);
+                    }
+                }
+
                 questionStates = campaignQs.map((q: any, i: number) => ({
                     problem_id: q.problem_id,
                     order: i,
