@@ -84,6 +84,13 @@ export default function FeaturesAdminPage() {
                                         {flag.description}
                                     </p>
 
+                                    {(flag.key === 'ENABLE_SMART_ROUTING' || flag.key === 'ENABLE_RESPONSE_CACHE') && (
+                                        <div className="flex items-center gap-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-500 font-bold uppercase w-fit">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Server-side flag — must be set in Vercel env vars to take effect. Toggle only affects local preview.
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 pt-1">
                                         <span>Default: {flag.defaultValue ? 'Enabled' : 'Disabled'}</span>
                                         {flag.requiresBrowserSupport && (
