@@ -140,7 +140,7 @@ export async function PATCH(request: Request) {
         const supabase = await createServerSupabase();
 
         const body = await request.json();
-        const { modelId, rpm, tpm, rpd, notes } = body;
+        const { modelId, rpm, tpm, rpd, notes, isActive } = body;
 
         if (!modelId) {
             return NextResponse.json({ error: 'Missing modelId' }, { status: 400 });
@@ -151,6 +151,14 @@ export async function PATCH(request: Request) {
         if (tpm !== undefined) updates.tpm = tpm;
         if (rpd !== undefined) updates.rpd = rpd;
         if (notes !== undefined) updates.notes = notes;
+
+        if (isActive !== undefined) {
+            updates.is_active = isActive;
+            if (isActive === true) {
+                updates.deprecated_at = null;
+                updates.is_verified = false;
+            }
+        }
 
         // If no valid fields to update, return 400
         if (Object.keys(updates).length === 0) {

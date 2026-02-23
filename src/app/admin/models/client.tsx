@@ -135,12 +135,19 @@ export default function ModelsAdminClient() {
             const res = await fetch('/api/admin/models', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ modelId, isActive: true, notes: 'Restored by admin' }) // isActive logic handles via DB but API only takes basic fields for now, wait we need to fix PATCH to support isActive? Actually, PATCH in route.ts doesn't support isActive. Let's just trigger a Verify to restore it.
+                body: JSON.stringify({ modelId, isActive: true, notes: 'Restored by admin' })
             });
-            // Better to verify it, which auto-restores if successful.
-            toast.info('Initiating verification to restore...');
-            await handleVerify(modelId);
-        } catch (e) { }
+
+            if (res.ok) {
+                toast.success('Model restored — click Verify to confirm it still works');
+                loadData();
+            } else {
+                const data = await res.json();
+                toast.error(data.error || 'Failed to restore model');
+            }
+        } catch (e) {
+            toast.error('Network error');
+        }
     };
 
     const handleAddModel = async () => {
