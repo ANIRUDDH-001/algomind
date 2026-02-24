@@ -50,6 +50,9 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const shouldListenRef = useRef(false);
     const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const intentionalStopRef = useRef(false);
+    const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const startListeningRef = useRef<() => void>(() => { });
 
     const {
         language = 'en-US',
@@ -85,12 +88,15 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 recognitionRef.current = null;
             }
             if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+            if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
         };
     }, []);
 
     const stopListening = useCallback(() => {
         shouldListenRef.current = false;
+        intentionalStopRef.current = true;
         if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
 
         if (recognitionRef.current) {
             try {
@@ -198,11 +204,14 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 setIsListening(false);
                 if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
 
-                // Auto-restart logic handled by shouldListenRef in parent or here
-                // Note: We removed the aggressive auto-restart here to let useInterview control it
-                // via state. BUT if "continuous" is true, we might want to restart?
-                // Actually, relies on the `useEffect` in useInterview to restart it if needed.
-                // WE REMOVED THE INTERNAL AUTO-RESTART LOOP to avoid zombies.
+                // For continuous mode: if we should still be listening
+                // and the stop wasn't intentional, restart with a 200ms debounce
+                if (shouldListenRef.current && continuous && !intentionalStopRef.current) {
+                    restartTimerRef.current = setTimeout(() => {
+                        if (shouldListenRef.current) startListeningRef.current();
+                    }, 200);
+                }
+                intentionalStopRef.current = false;
             };
 
             recognition.start();
@@ -212,6 +221,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             setIsListening(false);
         }
     }, [isSupported, language, continuous, interimResults, isListening, stopListening]);
+    useEffect(() => { startListeningRef.current = startListening; }, [startListening]);
 
 
     const resetTranscript = useCallback(() => {
@@ -227,7 +237,9 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         stopListening,
         abortListening: useCallback(() => {
             shouldListenRef.current = false;
+            intentionalStopRef.current = true;
             if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
+            if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
             if (recognitionRef.current) {
                 try { recognitionRef.current.abort(); } catch { }
             }

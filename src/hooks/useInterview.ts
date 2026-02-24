@@ -3,7 +3,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useWhisperInput } from '@/hooks/useWhisperInput';
 import { useVoiceOutput } from '@/hooks/useVoiceOutput';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
+import { WhisperSTT } from '@/lib/voice/whisper-stt';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
 import { trackInterruption } from '@/lib/analytics/interruption-analytics';
 
@@ -59,7 +62,15 @@ export function useInterview(options: {
     const stateMachine = useRef(new InterviewStateMachine());
     const conversationHistoryRef = useRef<Message[]>([]);
 
-    // Voice Hooks
+    // ── STT provider selection ───────────────────────────────────────
+    const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT');
+
+    // Call BOTH hooks unconditionally (React rules), pick the active one
+    const whisperInput = useWhisperInput({ enabled: whisperEnabled });
+    const browserInput = useVoiceInput({ continuous: true, interimResults: true });
+
+    // Use Whisper if enabled AND supported, else browser STT
+    const useWhisper = whisperEnabled && WhisperSTT.isSupported();
     const {
         isListening,
         transcript,
@@ -70,7 +81,13 @@ export function useInterview(options: {
         resetTranscript,
         error: voiceError,
         lastResultTime
-    } = useVoiceInput();
+    } = useWhisper ? whisperInput : browserInput;
+
+    // ── Stable refs for values read inside timers / effects ──────────
+    const isListeningRef = useRef(false);
+    useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
+
+    const micPausedForSilenceRef = useRef(false);
 
     const [optimisticListening, setOptimisticListening] = useState<boolean | null>(null);
 
@@ -91,6 +108,12 @@ export function useInterview(options: {
         stop: stopSpeaking,
         isSpeaking,
     } = useVoiceOutput(voiceOutputOptions);
+
+    const isSpeakingRef = useRef(false);
+    useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
+
+    const isProcessingRef = useRef(false);
+    useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
 
     const fetchWithRetry = useCallback(async (url: string, fetchOptions: RequestInit, retries = 3, backoff = 1000): Promise<{ response: string } | any> => {
         const runFetch = async (currentRetries: number, currentBackoff: number): Promise<any> => {
@@ -221,6 +244,9 @@ export function useInterview(options: {
     // Mic Intent State
     const [isMicEnabled, setIsMicEnabled] = useState(false);
 
+    const isMicEnabledRef = useRef(false);
+    useEffect(() => { isMicEnabledRef.current = isMicEnabled; }, [isMicEnabled]);
+
     // Initial Start: Enable Mic
     // (Optional: If you want it to start automatically when interview starts)
 
@@ -319,14 +345,14 @@ export function useInterview(options: {
 
     useEffect(() => {
         if ((state as string) === 'idle') {
-            if (isListening) stopListening();
+            if (isListeningRef.current) stopListening();
             micResumeAttemptedRef.current = false;
             return;
         }
 
         // If User Manually Disabled Mic -> Ensure Stopped
         if (!isMicEnabled) {
-            if (isListening) stopListening();
+            if (isListeningRef.current) stopListening();
             micResumeAttemptedRef.current = false;
             return;
         }
@@ -336,34 +362,36 @@ export function useInterview(options: {
         const shouldStopForSpeaking = isSpeaking && !options.vadEnabled;
 
         if (shouldStopForSpeaking || isProcessing) {
-            if (isListening) {
+            if (isListeningRef.current) {
                 // Use abort to immediately cut off stream and discard partial inputs
                 abortListening();
             }
             // Reset the resume flag when AI starts speaking/processing
             micResumeAttemptedRef.current = false;
-            micResumeAttemptedRef.current = false;
             return; // Don't proceed to start logic
         }
 
-        // If already listening, reset the resume flag so we can restart if it drops later
-        if (isListening) {
-            micResumeAttemptedRef.current = false;
+        // Already listening — nothing to do. DO NOT reset the guard here.
+        // The guard resets when AI starts speaking (the shouldStopForSpeaking branch).
+        if (isListeningRef.current) {
             return;
         }
 
         // Mic is Enabled (Intent) AND (AI is silent OR VAD is enabled): Resume Mic
         // CRITICAL: Only attempt once per "AI finished" cycle to prevent loop
-        if (!isListening && !micResumeAttemptedRef.current) {
+        if (!isListeningRef.current && !micResumeAttemptedRef.current && !micPausedForSilenceRef.current) {
             micResumeAttemptedRef.current = true; // Mark that we're attempting
 
             // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
-            // If VAD is enabled, we might want a shorter delay or no delay, but 
-            // for now sticking to safe defaults to prevent immediate echo of previous output
             const timer = setTimeout(() => {
-                // Double-check conditions haven't changed during timeout
-                const stillShouldStop = (isSpeaking && !options.vadEnabled) || isProcessing;
-                if (isMicEnabled && !stillShouldStop) {
+                // Read from refs — these are always current
+                const currentlyListening = isListeningRef.current;
+                const currentlySpeaking = isSpeakingRef.current;
+                const currentlyProcessing = isProcessingRef.current;
+                const micStillEnabled = isMicEnabledRef.current;
+
+                const stillShouldStop = (currentlySpeaking && !options.vadEnabled) || currentlyProcessing;
+                if (micStillEnabled && !stillShouldStop && !currentlyListening) {
                     // CRITICAL: Reset transcript before resuming to prevent carryover
                     resetTranscript();
                     startListening();
@@ -371,7 +399,7 @@ export function useInterview(options: {
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled, isListening]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
 
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
@@ -384,12 +412,18 @@ export function useInterview(options: {
         const checkSilence = setInterval(() => {
             const timeSinceLastResult = Date.now() - lastResultTime;
             if (timeSinceLastResult >= SILENCE_TIMEOUT && !transcript && !interimTranscript) {
-                setIsMicEnabled(false); // Disable intent, stops cycling
+                // Soft stop: just stop listening for now, don't disable the intent
+                // The mic sync effect will restart it when conditions are right
+                stopListening();
+                // DON'T call setIsMicEnabled(false)
+                // Instead, set a "paused for silence" ref to prevent immediate restart:
+                micPausedForSilenceRef.current = true;
+                setTimeout(() => { micPausedForSilenceRef.current = false; }, 3000); // 3s before auto-restart allowed
             }
         }, 1000);
 
         return () => clearInterval(checkSilence);
-    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript, options.vadEnabled]);
+    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript, options.vadEnabled, stopListening]);
 
     const resetInterview = useCallback(() => {
         setMessages([]);

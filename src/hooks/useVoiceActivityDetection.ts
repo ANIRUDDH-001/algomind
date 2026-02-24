@@ -191,7 +191,7 @@ export function useVoiceActivityDetection(
             mountedRef.current = false;
             cleanupManager();
         };
-         
+
     }, []);
 
     // --- Auto-start ----------------------------------------------------------
@@ -213,7 +213,7 @@ export function useVoiceActivityDetection(
                 setIsSpeaking(false);
             }
         }
-         
+
     }, [enabled]);
 
     // -------------------------------------------------------------------------
@@ -246,8 +246,13 @@ export function useVoiceActivityDetection(
     ) {
         const unsubs: Array<() => void> = [];
 
+        const MISFIRE_DEBOUNCE_MS = 300;
+        let misfireTimer: ReturnType<typeof setTimeout> | null = null;
+
         unsubs.push(
             manager.onSpeechStart(() => {
+                // Cancel any pending misfire reset
+                if (misfireTimer) { clearTimeout(misfireTimer); misfireTimer = null; }
                 debugLog('speechStart');
                 if (mountedRef.current) setIsSpeaking(true);
                 onSpeechStartRef.current?.();
@@ -261,6 +266,22 @@ export function useVoiceActivityDetection(
                 onSpeechEndRef.current?.();
             }),
         );
+
+        unsubs.push(
+            manager.onMisfire(() => {
+                // Brief VAD misfire: debounce isSpeaking reset to avoid state cascade
+                if (misfireTimer) clearTimeout(misfireTimer);
+                misfireTimer = setTimeout(() => {
+                    if (mountedRef.current) setIsSpeaking(false);
+                    misfireTimer = null;
+                }, MISFIRE_DEBOUNCE_MS);
+            }),
+        );
+
+        // Clean up misfire timer when unsubscribing
+        unsubs.push(() => {
+            if (misfireTimer) { clearTimeout(misfireTimer); misfireTimer = null; }
+        });
 
         unsubsRef.current = unsubs;
     }
@@ -324,7 +345,7 @@ export function useVoiceActivityDetection(
         } catch (err) {
             handleError(err);
         }
-         
+
     }, [enabled, vadConfig]);
 
     /**
