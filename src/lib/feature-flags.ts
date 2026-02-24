@@ -51,6 +51,14 @@ export const FEATURE_FLAGS = {
         description: 'Show real-time coaching nudges during interview',
         requiresBrowserSupport: false,
     },
+
+    // Whisper STT — server-controlled, client reflects server flag
+    ENABLE_WHISPER_STT: {
+        storageKey: 'feature_ENABLE_WHISPER_STT',
+        defaultValue: false, // Disabled by default — enable after testing
+        description: 'Use Groq Whisper for speech recognition (better accuracy, requires network)',
+        requiresBrowserSupport: true,
+    },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
@@ -126,6 +134,15 @@ export function checkBrowserSupport(flag: FeatureFlagKey): boolean {
             (window.AudioContext || (window as unknown as WindowWithWebkit).webkitAudioContext) &&
             navigator.mediaDevices &&
             navigator.mediaDevices.getUserMedia
+        );
+    }
+
+    // Check for Whisper STT support (MediaRecorder + getUserMedia)
+    if (flag === 'ENABLE_WHISPER_STT') {
+        return !!(
+            typeof window !== 'undefined' &&
+            window.MediaRecorder &&
+            navigator.mediaDevices?.getUserMedia
         );
     }
 
