@@ -9,8 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Mic, Play, Settings, Volume2 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '@/lib/supabase/user-preferences';
+import type { TTSProviderStatus } from '@/hooks/useVoiceOutput';
 
-export function VoiceSettings({ inline }: { inline?: boolean }) {
+interface VoiceSettingsProps {
+    inline?: boolean;
+    ttsProvider?: TTSProviderStatus;
+    currentProvider?: 'groq' | 'browser';
+}
+
+export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSettingsProps) {
     const { user } = useAuth();
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<string>('');
@@ -18,28 +25,25 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const isGroq = ttsProvider === 'groq' || currentProvider === 'groq';
+
     // Load available voices
     useEffect(() => {
         const loadVoices = () => {
             if (typeof window !== 'undefined' && window.speechSynthesis) {
                 const allVoices = window.speechSynthesis.getVoices();
 
-                // Filter for US English, UK English, and Hindi (Indian English accent)
-                // User Goal: 5+ options, mixed US, UK, and 1 Hindi accent
                 const filtered = allVoices.filter(v =>
                     v.lang === 'en-US' ||
                     v.lang === 'en-GB' ||
                     v.lang === 'hi-IN'
                 );
 
-                // Deduplicate voices (remove similar ones like "Microsoft David Desktop" vs "Microsoft David")
-                // Preference order: Google > Microsoft > System
                 const uniqueVoices = filtered.filter((v, index, self) =>
                     index === self.findIndex((t) => (
                         t.name === v.name
                     ))
                 ).sort((a, b) => {
-                    // Sort order: US -> UK -> Hindi -> Others
                     const getOrder = (lang: string) => {
                         if (lang === 'en-US') return 1;
                         if (lang === 'en-GB') return 2;
@@ -49,13 +53,11 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                     return getOrder(a.lang) - getOrder(b.lang);
                 });
 
-                // If we don't have enough (less than 5), add other English variants as backup
                 if (uniqueVoices.length < 5) {
                     const others = allVoices.filter(v =>
                         v.lang.startsWith('en') &&
                         !uniqueVoices.some(uv => uv.name === v.name)
                     );
-                    // Add distinct ones only
                     others.forEach(v => {
                         if (uniqueVoices.length < 8 && !uniqueVoices.some(uv => uv.name === v.name)) {
                             uniqueVoices.push(v);
@@ -89,7 +91,6 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                 if (prefs.preferredVoiceName) {
                     setSelectedVoice(prefs.preferredVoiceName);
                 } else {
-                    // Default to first English voice if none selected
                     const defaultVoice = voices.find(v => v.name.includes("Google US English") || v.lang === 'en-US');
                     if (defaultVoice) setSelectedVoice(defaultVoice.name);
                 }
@@ -101,7 +102,6 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
             }
         }
 
-        // Only load if voices are ready
         if (voices.length > 0) {
             loadPrefs();
         }
@@ -157,11 +157,49 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
             </h2>
             <div className="rounded-2xl overflow-hidden p-5 space-y-6"
                 style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                {/* Voice Selection */}
-                <div className="space-y-3">
-                    <label className="text-sm font-semibold text-zinc-200">AI Voice Model</label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                        <SelectTrigger className="w-full text-zinc-200" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }} disabled={voices.length === 0}>
+
+                {/* TTS Provider Status Badge */}
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold text-zinc-200">TTS Provider</label>
+                    <div className="flex items-center gap-3">
+                        {ttsProvider === 'detecting' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider bg-zinc-700/50 text-zinc-400 border border-zinc-600/50">
+                                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                                Detecting...
+                            </span>
+                        ) : isGroq ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                Groq AI Voice
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider bg-zinc-700/50 text-zinc-400 border border-zinc-600/50">
+                                <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                                Browser Voice
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                        {isGroq
+                            ? 'Active voice: Aaliya (Indian English) — Groq PlayAI Neural TTS'
+                            : `Active voice: ${selectedVoice || 'Default browser voice'}`
+                        }
+                    </p>
+                </div>
+
+                {/* Voice Selection — dimmed when Groq is active */}
+                <div className={`space-y-3 relative ${isGroq ? 'opacity-50' : ''}`}>
+                    {isGroq && (
+                        <div className="absolute inset-0 z-10 cursor-not-allowed" title="Browser voice is the fallback when Groq is unavailable" />
+                    )}
+                    <label className="text-sm font-semibold text-zinc-200">
+                        Browser Voice Model
+                        {isGroq && (
+                            <span className="ml-2 text-[10px] text-zinc-500 font-normal">(fallback only)</span>
+                        )}
+                    </label>
+                    <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isGroq}>
+                        <SelectTrigger className="w-full text-zinc-200" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }} disabled={voices.length === 0 || isGroq}>
                             <SelectValue placeholder={voices.length === 0 ? "Loading voices..." : "Select a voice"} />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
@@ -175,6 +213,11 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                             ))}
                         </SelectContent>
                     </Select>
+                    {!isGroq && (
+                        <p className="text-[11px] text-zinc-500">
+                            Voice quality depends on your browser when using Browser mode
+                        </p>
+                    )}
                 </div>
 
                 {/* Speed Slider */}

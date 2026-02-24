@@ -16,68 +16,168 @@ interface VoiceOutputOptions {
     onPause?: () => void;
 }
 
+export type TTSProviderStatus = 'groq' | 'browser' | 'detecting';
+
 export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const { user } = useAuth();
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
-    const [rate, setRate] = useState(options.rate || 0.9); // Slightly slower for natural feel
+    const [rate, setRate] = useState(options.rate || 0.9);
+    const [ttsProvider, setTtsProvider] = useState<TTSProviderStatus>('detecting');
+    const [currentProvider, setCurrentProvider] = useState<'groq' | 'browser'>('browser');
 
-    // Queue of text chunks to speak
+    // Queue of text chunks to speak (browser TTS fallback)
     const queueRef = useRef<string[]>([]);
     const processingRef = useRef(false);
 
-    // Load voices and apply preferences
+    // AudioContext for Groq TTS playback
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+    // Track whether Groq TTS is available (avoids retrying after first 503)
+    const groqAvailableRef = useRef<boolean | null>(null); // null = not yet probed
+
+    // ─── Detect Groq availability on mount ─────────────────────────────
+
+    useEffect(() => {
+        if (!user) {
+            setTtsProvider('browser');
+            return;
+        }
+
+        let cancelled = false;
+
+        async function detectProvider() {
+            try {
+                const res = await fetch('/api/voice/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: '.' }), // 1-char probe
+                });
+
+                if (cancelled) return;
+
+                if (res.ok) {
+                    groqAvailableRef.current = true;
+                    setTtsProvider('groq');
+                } else {
+                    groqAvailableRef.current = false;
+                    setTtsProvider('browser');
+                }
+            } catch {
+                if (!cancelled) {
+                    groqAvailableRef.current = false;
+                    setTtsProvider('browser');
+                }
+            }
+        }
+
+        detectProvider();
+        return () => { cancelled = true; };
+    }, [user]);
+
+    // ─── Load browser voices and preferences (for fallback) ────────────
+
     useEffect(() => {
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             const updateVoicesAndPrefs = async () => {
-                // 1. Get raw voices
                 const rawVoices = window.speechSynthesis.getVoices();
-
-                // 2. Process/Deduplicate using shared logic
                 const processed = getProcesedVoices(rawVoices);
                 setAvailableVoices(processed);
 
                 if (processed.length === 0) return;
-
-                // Don't change voice settings while actively speaking — prevents mid-sentence resets
                 if (isSpeaking) return;
 
-                // 3. Load User Preferences (Voice & Rate)
                 try {
                     const prefs = await getUserPreferences(user?.id || null);
-
-                    // Apply Speed
                     setRate(prefs.voiceRate || 0.9);
 
-                    // Apply Voice
-                    // If we have a preferred name, try to find it
-                    // Otherwise fall back to best default
                     const bestVoice = findBestMatchingVoice(processed, prefs.preferredVoiceName);
-
                     if (bestVoice && (!currentVoice || currentVoice.name !== bestVoice.name)) {
-                        // console.log("🔊 [VoiceOutput] Applied voice:", bestVoice.name, "Rate:", prefs.voiceRate);
                         setCurrentVoice(bestVoice);
                     }
                 } catch (e) {
                     console.warn("Failed to load voice preferences in interview:", e);
-                    // Fallback to best available
                     const best = findBestMatchingVoice(processed, null);
                     if (best) setCurrentVoice(best);
                 }
             };
 
-            // Run immediately
             updateVoicesAndPrefs();
-
-            // And on change
             window.speechSynthesis.onvoiceschanged = updateVoicesAndPrefs;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, options.rate]); // Removed currentVoice dependency to avoid loops, relying on explicit check
+    }, [user, options.rate]);
 
-    const speakChunk = useCallback((text: string) => {
+    // Cleanup AudioContext on unmount
+    useEffect(() => {
+        return () => {
+            if (sourceNodeRef.current) {
+                try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
+                sourceNodeRef.current = null;
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(() => { /* ignore */ });
+                audioContextRef.current = null;
+            }
+        };
+    }, []);
+
+    // ─── Groq TTS via AudioContext (primary) ───────────────────────────
+
+    const speakWithGroq = useCallback(async (text: string): Promise<boolean> => {
+        if (groqAvailableRef.current === false) return false;
+        if (!user) return false;
+
+        try {
+            const response = await fetch('/api/voice/synthesize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 503) {
+                    groqAvailableRef.current = false;
+                    setTtsProvider('browser');
+                }
+                return false;
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+
+            // Create or resume AudioContext
+            if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+                audioContextRef.current = new AudioContext();
+            }
+            const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') {
+                await ctx.resume();
+            }
+
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            const source = ctx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(ctx.destination);
+            sourceNodeRef.current = source;
+
+            return new Promise<boolean>((resolve) => {
+                source.onended = () => {
+                    sourceNodeRef.current = null;
+                    resolve(true);
+                };
+
+                source.start(0);
+            });
+        } catch {
+            return false;
+        }
+    }, [user]);
+
+    // ─── Browser TTS (fallback) ────────────────────────────────────────
+
+    const speakWithBrowser = useCallback((text: string) => {
         return new Promise<void>((resolve) => {
             if (!window.speechSynthesis) {
                 resolve();
@@ -91,83 +191,122 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             utterance.volume = options.volume || 1.0;
 
             utterance.onend = () => {
-                console.log('[VoiceOutput] onend called. Resolving promise.');
                 resolve();
             };
             utterance.onerror = (e) => {
-                // Ignore standard interruption/cancellation errors that occur when stopping or skipping
                 if (e.error !== 'interrupted' && e.error !== 'canceled') {
                     console.error("TTS Error Detail:", e.error);
                 }
-                resolve(); // Resolve anyway to continue or finish queue
+                resolve();
             };
 
             window.speechSynthesis.speak(utterance);
         });
     }, [currentVoice, rate, options.pitch, options.volume]);
 
-    const processQueue = useCallback(async () => {
-        if (processingRef.current) return;
-        processingRef.current = true;
-        setIsSpeaking(true);
-
-        if (options.onStart) options.onStart();
-
-        try {
-            // Small delay to ensure browser audio context is ready
-            await new Promise(r => setTimeout(r, 50));
-
-            while (queueRef.current.length > 0) {
-                if (isPaused) {
-                    await new Promise(r => setTimeout(r, 100));
-                    continue;
-                }
-
-                const chunk = queueRef.current.shift();
-                if (chunk) {
-                    await speakChunk(chunk);
-                }
+    const processQueueBrowser = useCallback(async () => {
+        while (queueRef.current.length > 0) {
+            if (isPaused) {
+                await new Promise(r => setTimeout(r, 100));
+                continue;
             }
-        } finally {
-            setIsSpeaking(false);
-            processingRef.current = false;
-            if (options.onEnd) options.onEnd();
-        }
-    }, [speakChunk, isPaused, options]);
 
-    const speak = useCallback((text: string) => {
+            const chunk = queueRef.current.shift();
+            if (chunk) {
+                await speakWithBrowser(chunk);
+            }
+        }
+    }, [speakWithBrowser, isPaused]);
+
+    // ─── Main speak function ───────────────────────────────────────────
+
+    const speak = useCallback(async (text: string) => {
         if (!text) return;
 
         // Clean text (remove markdown-ish artifacts)
         let cleanText = text.replace(/[*_#`]/g, '');
         cleanText = preprocessForTTS(cleanText);
 
-        console.log('[VoiceOutput] Adding to queue:', cleanText);
-
-        // Append to queue instead of replacing if we want natural flow,
-        // but for Kai usually we want to replace current response
-        window.speechSynthesis.cancel();
-        queueRef.current = chunkTextForSpeech(cleanText);
-
-        // If not already processing, start the loop
-        if (!processingRef.current) {
-            processQueue();
+        // Cancel any in-progress speech
+        if (sourceNodeRef.current) {
+            try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
+            sourceNodeRef.current = null;
         }
-    }, [processQueue]);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+        queueRef.current = [];
+
+        // Start speaking
+        if (processingRef.current) return;
+        processingRef.current = true;
+        setIsSpeaking(true);
+        if (options.onStart) options.onStart();
+
+        try {
+            await new Promise(r => setTimeout(r, 50));
+
+            let success = false;
+
+            // Try Groq TTS first if provider is 'groq'
+            if (ttsProvider === 'groq') {
+                success = await speakWithGroq(cleanText);
+                if (success) {
+                    setCurrentProvider('groq');
+                }
+            }
+
+            // Fallback to browser SpeechSynthesis
+            if (!success) {
+                setCurrentProvider('browser');
+                queueRef.current = chunkTextForSpeech(cleanText);
+                await processQueueBrowser();
+            }
+        } finally {
+            setIsSpeaking(false);
+            processingRef.current = false;
+            if (options.onEnd) options.onEnd();
+        }
+    }, [ttsProvider, speakWithGroq, processQueueBrowser, options]);
 
     const pause = useCallback(() => {
-        window.speechSynthesis.pause();
+        // Pause Groq AudioContext
+        if (audioContextRef.current && audioContextRef.current.state === 'running') {
+            audioContextRef.current.suspend().catch(() => { /* ignore */ });
+        }
+        // Pause browser TTS
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.pause();
+        }
         setIsPaused(true);
         if (options.onPause) options.onPause();
     }, [options]);
 
     const resume = useCallback(() => {
-        window.speechSynthesis.resume();
+        // Resume Groq AudioContext
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+            audioContextRef.current.resume().catch(() => { /* ignore */ });
+        }
+        // Resume browser TTS
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.resume();
+        }
         setIsPaused(false);
     }, []);
 
     const stop = useCallback(() => {
-        window.speechSynthesis.cancel();
+        // Stop Groq audio
+        if (sourceNodeRef.current) {
+            try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
+            sourceNodeRef.current = null;
+        }
+        if (audioContextRef.current) {
+            audioContextRef.current.suspend().catch(() => { /* ignore */ });
+        }
+        // Stop browser TTS
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
         queueRef.current = [];
         setIsSpeaking(false);
         setIsPaused(false);
@@ -185,6 +324,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         currentVoice,
         setVoice: setCurrentVoice,
         setRate,
-        rate
+        rate,
+        ttsProvider,
+        currentProvider,
     };
 }

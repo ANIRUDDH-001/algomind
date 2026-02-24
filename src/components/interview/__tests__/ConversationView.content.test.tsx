@@ -12,9 +12,8 @@ Element.prototype.scrollIntoView = vi.fn();
 
 // ─── Mock heavy deps used by ConversationView ───
 
-vi.mock('@/hooks/useFeatureFlag', () => ({
-    useFeatureFlag: () => ({ enabled: false }),
-    useFeatureFlagWithSupport: () => ({ enabled: false, supported: false }),
+vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
+    useGlobalFeatureFlag: () => false,
 }));
 
 vi.mock('@/hooks/useVoiceActivityDetection', () => ({

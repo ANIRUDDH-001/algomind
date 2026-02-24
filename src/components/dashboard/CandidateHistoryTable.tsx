@@ -94,7 +94,7 @@ export function CandidateHistoryTable({ submissions }: { submissions: Submission
                                     return (
                                         <tr key={sub.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4 font-bold text-white">
-                                                {campaign?.title || 'Unknown Campaign'}
+                                                {campaign?.title || 'Assessment'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {renderStatusBadge(sub.status)}

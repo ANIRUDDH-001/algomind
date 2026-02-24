@@ -125,11 +125,6 @@ export default function HomePage() {
     );
   }
 
-  // Redirect authenticated users immediately to dashboard to skip marketing
-  if (user) {
-    router.replace('/dashboard');
-    return null; // Return null while redirecting
-  }
 
   // CSS Particles configuration
   const particles = Array.from({ length: 20 }, (_, i) => ({
@@ -221,11 +216,19 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
           >
             <Button
-              onClick={() => router.push('/login')}
+              onClick={() => {
+                if (user) {
+                  router.push('/dashboard');
+                } else {
+                  enableDemoMode();
+                  window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
+                  router.push('/practice');
+                }
+              }}
               size="lg"
               className="w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl"
             >
-              Try for Free
+              {user ? 'Go to Dashboard' : 'Try for Free'}
               <ArrowRight className="w-5 h-5 ml-1" />
             </Button>
             <Button
@@ -433,11 +436,19 @@ export default function HomePage() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Button
-                    onClick={() => router.push('/login')}
+                    onClick={() => {
+                      if (user) {
+                        router.push('/dashboard');
+                      } else {
+                        enableDemoMode();
+                        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
+                        router.push('/practice');
+                      }
+                    }}
                     size="lg"
                     className="btn-primary h-14 px-10 text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"
                   >
-                    Get Started Free
+                    {user ? 'Go to Dashboard' : 'Get Started Free'}
                   </Button>
                 </div>
 

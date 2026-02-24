@@ -108,35 +108,35 @@ export function Navbar() {
                                 <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-500">AlgoMind</span>
                             </button>
 
-                            {/* Navigation Links */}
-                            {user && (
-                                <div className="hidden md:flex items-center gap-6">
-                                    {[
-                                        { href: '/', label: 'Home' },
-                                        { href: dashboardHref, label: 'Dashboard' },
-                                        { href: '/practice', label: 'Practice' },
-                                        { href: '/dashboard/interview-history', label: 'Assessments' }
-                                    ].map((link) => {
-                                        const isActive = pathname === link.href;
-                                        return (
-                                            <Link
-                                                key={link.href}
-                                                href={link.href}
-                                                className={`relative py-2 text-sm font-bold transition-colors ${isActive ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'}`}
-                                            >
-                                                {link.label}
-                                                {isActive && (
-                                                    <motion.div
-                                                        layoutId="nav-active"
-                                                        className="absolute -bottom-0.5 left-0 right-0 h-0.5 rounded-full"
-                                                        style={{ background: 'var(--accent-primary)' }}
-                                                    />
-                                                )}
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            {/* Navigation Links — Home+Practice for everyone, Dashboard+Assessments for auth */}
+                            <div className="hidden md:flex items-center gap-6">
+                                {[
+                                    { href: '/', label: 'Home', authOnly: false },
+                                    { href: '/practice', label: 'Practice', authOnly: false },
+                                    ...(user ? [
+                                        { href: dashboardHref, label: 'Dashboard', authOnly: true },
+                                        { href: '/dashboard/interview-history', label: 'Assessments', authOnly: true },
+                                    ] : []),
+                                ].map((link) => {
+                                    const isActive = pathname === link.href;
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            className={`relative py-2 text-sm font-bold transition-colors ${isActive ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'}`}
+                                        >
+                                            {link.label}
+                                            {isActive && (
+                                                <motion.div
+                                                    layoutId="nav-active"
+                                                    className="absolute -bottom-0.5 left-0 right-0 h-0.5 rounded-full"
+                                                    style={{ background: 'var(--accent-primary)' }}
+                                                />
+                                            )}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
 
                             {/* User Menu */}
                             <div className="flex items-center gap-4">
@@ -270,23 +270,28 @@ export function Navbar() {
                 </nav>
             </header>
 
-            {/* MOBILE BOTTOM NAV */}
-            {user && !['/interview', '/assess'].some(route => pathname.startsWith(route)) && (
+            {/* MOBILE BOTTOM NAV — always show for non-interview pages */}
+            {!['/interview', '/assess'].some(route => pathname.startsWith(route)) && (
                 <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden"
                     style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="glass border-t border-white/5 px-2 py-1">
                         <div className="flex items-center justify-around">
-                            {(accountType === 'employer'
-                                ? [
-                                    { href: '/', label: 'Home', icon: Home },
-                                    { href: '/employer/dashboard', label: 'Campaigns', icon: Briefcase },
-                                    { href: '/settings', label: 'Settings', icon: Settings }
-                                ]
+                            {(user
+                                ? (accountType === 'employer'
+                                    ? [
+                                        { href: '/', label: 'Home', icon: Home },
+                                        { href: '/employer/dashboard', label: 'Campaigns', icon: Briefcase },
+                                        { href: '/settings', label: 'Settings', icon: Settings }
+                                    ]
+                                    : [
+                                        { href: '/', label: 'Home', icon: Home },
+                                        { href: '/practice', label: 'Practice', icon: BookOpen },
+                                        { href: '/dashboard', label: 'Progress', icon: BarChart },
+                                        { href: '/settings', label: 'Settings', icon: Settings },
+                                    ])
                                 : [
                                     { href: '/', label: 'Home', icon: Home },
                                     { href: '/practice', label: 'Practice', icon: BookOpen },
-                                    { href: '/dashboard', label: 'Progress', icon: BarChart },
-                                    { href: '/settings', label: 'Settings', icon: Settings },
                                 ]
                             ).map((item) => {
                                 const Icon = item.icon;

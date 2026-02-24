@@ -84,8 +84,8 @@ vi.mock('@/hooks/useGuestTrial', () => ({
     GUEST_TRIAL_LIMITS: { MAX_TURNS: 5 },
 }));
 
-vi.mock('@/hooks/useFeatureFlag', () => ({
-    useFeatureFlag: () => ({ enabled: false }),
+vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
+    useGlobalFeatureFlag: () => false,
 }));
 
 vi.mock('@/hooks/useSwipeNavigation', () => ({
