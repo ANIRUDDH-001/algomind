@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import reactHooks from "eslint-plugin-react-hooks";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -16,6 +17,9 @@ const eslintConfig = defineConfig([
     "public/vad/**"
   ]),
   {
+    plugins: {
+      "react-hooks": reactHooks,
+    },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": ["warn", {
@@ -29,13 +33,6 @@ const eslintConfig = defineConfig([
       "prefer-const": "warn",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "warn",
-      // Turned off: these flag valid SSR hydration patterns (syncing localStorage/external state
-      // into React state on mount via useEffect). This is the recommended Next.js approach.
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/static-components": "warn",
-      // Turned off: flags Math.random() in useRef() initializer as impure, but useRef
-      // only evaluates its initializer once — this is a stable, idiomatic pattern.
-      "react-hooks/purity": "off",
       "@next/next/no-img-element": "warn"
     }
   },

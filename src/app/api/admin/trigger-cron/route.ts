@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { getRedis } from '@/lib/upstash/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,19 @@ export async function POST() {
                 message: 'Admin manually dispatched nightly batch via GitHub Actions workflow_dispatch',
             },
         });
+
+        // Invalidate admin analytics cache so next dashboard load fetches fresh data
+        try {
+            const redis = getRedis();
+            if (redis) {
+                const keys = await redis.keys('admin:*');
+                if (keys.length > 0) {
+                    await redis.del(...keys);
+                }
+            }
+        } catch {
+            // Cache invalidation failure is non-critical
+        }
 
         return NextResponse.json({
             dispatched: true,
