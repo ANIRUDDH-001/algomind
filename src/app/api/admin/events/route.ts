@@ -1,21 +1,49 @@
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { redisGet, redisSet } from '@/lib/upstash/client';
 
 export const dynamic = 'force-dynamic';
+
+const CACHE_TTL_SECONDS = 30;
 
 export async function GET(request: Request) {
     try {
         const { errorResponse } = await requireAdminForApi();
         if (errorResponse) return errorResponse;
-        const supabase = await createServerSupabase();
 
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
         const days = parseInt(searchParams.get('days') || '7', 10);
         const limitStr = searchParams.get('limit') || '100';
+        const refresh = searchParams.get('refresh') === 'true';
         // Enforce max limit for safety
         const limit = Math.min(parseInt(limitStr, 10), 1000);
+
+        // ── Cache keys ──
+        const eventsCacheKey = `admin:events:${days}:${type || 'all'}`;
+        const statsCacheKey = `admin:stats:${days}`;
+
+        // ── Try cache first (unless ?refresh=true) ──
+        if (!refresh) {
+            const [cachedEvents, cachedStats] = await Promise.all([
+                redisGet(eventsCacheKey),
+                redisGet(statsCacheKey),
+            ]);
+
+            if (cachedEvents) {
+                const parsed = JSON.parse(cachedEvents);
+                return NextResponse.json({
+                    events: parsed.events,
+                    analytics: parsed.analytics,
+                    systemStats: cachedStats ? JSON.parse(cachedStats) : null,
+                    totalCount: parsed.totalCount,
+                });
+            }
+        }
+
+        // ── Cache miss — hit DB ──
+        const supabase = await createServerSupabase();
 
         // 1. Fetch raw events
         let query = supabase
@@ -90,6 +118,17 @@ export async function GET(request: Request) {
             }
         }
         const analytics: AnalyticsRow[] = Array.from(aggMap.values());
+
+        // 4. Strip metadata from events for efficient caching
+        const strippedEvents = Array.isArray(events)
+            ? events.map(({ metadata, ...rest }) => rest)
+            : events;
+
+        // 5. Write to cache (fire-and-forget, don't block response)
+        redisSet(eventsCacheKey, JSON.stringify({ events: strippedEvents, analytics, totalCount: count }), CACHE_TTL_SECONDS).catch(() => { });
+        if (systemStats) {
+            redisSet(statsCacheKey, JSON.stringify(systemStats), CACHE_TTL_SECONDS).catch(() => { });
+        }
 
         return NextResponse.json({
             events,
