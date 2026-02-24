@@ -40,6 +40,7 @@ interface ProblemContext {
     ragContext?: string;
     companyPersona?: string;
     kaiMemory?: string;
+    problemId?: string;
 }
 
 export function useInterview(options: {
@@ -164,6 +165,7 @@ export function useInterview(options: {
                     problemContext,
                     companyPersona: problemContext.companyPersona,
                     kaiMemory: problemContext.kaiMemory,
+                    problemId: problemContext.problemId,
                     sessionToken: options.sessionToken
                 })
             });
@@ -268,8 +270,8 @@ export function useInterview(options: {
     }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
 
     // Core Logic
-    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string, companyPersona?: string, kaiMemory?: string) => {
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory };
+    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string, companyPersona?: string, kaiMemory?: string, problemId?: string) => {
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory, problemId };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
@@ -520,6 +522,7 @@ export function useInterview(options: {
             toggleMic, // New toggle
             isMicEnabled, // Expose state
             isSpeaking,
+            speak,
             pauseSpeaking,
             resumeSpeaking,
             stopSpeaking,

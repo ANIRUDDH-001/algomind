@@ -43,6 +43,7 @@ function DashboardContent() {
     const [direction, setDirection] = useState(1);
     const [showPrevious, setShowPrevious] = useState(false);
     const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+    const [reviewDueCount, setReviewDueCount] = useState(0);
 
     // Feature state for "All-time" averages logic
     const [allTimeData, setAllTimeData] = useState<Record<string, number> | undefined>(undefined);
@@ -170,7 +171,7 @@ function DashboardContent() {
                     leetcodeUsername={leetcodeUsername}
                 />
 
-                <DashboardNav activeTab={activeTab} onTabChange={handleTabChange} />
+                <DashboardNav activeTab={activeTab} onTabChange={handleTabChange} reviewDueCount={reviewDueCount} />
 
                 {/* Swipe indicator — mobile only */}
                 <div className="flex sm:hidden swipe-dots mb-6">
@@ -271,7 +272,7 @@ function DashboardContent() {
                                     </div>
 
                                     {progress?.userId && (
-                                        <ReviewQueueWidget userId={progress?.userId} />
+                                        <ReviewQueueWidget userId={progress.userId} onDueCountChange={setReviewDueCount} />
                                     )}
 
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
