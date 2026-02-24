@@ -11,9 +11,10 @@ interface DashboardNavProps {
     activeTab: TabId;
     onTabChange?: (tab: TabId) => void;
     isLinkMode?: boolean;
+    reviewDueCount?: number;
 }
 
-export function DashboardNav({ activeTab, onTabChange, isLinkMode }: DashboardNavProps) {
+export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCount = 0 }: DashboardNavProps) {
     const router = useRouter();
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutGrid },
@@ -64,6 +65,16 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode }: DashboardNa
                                 isActive ? "text-white" : "text-zinc-500"
                             )} />
                             <span>{tab.label}</span>
+
+                            {/* Review Due Badge */}
+                            {tab.id === 'overview' && reviewDueCount > 0 && (
+                                <span className={cn(
+                                    "ml-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black",
+                                    isActive ? "bg-white text-indigo-600" : "bg-red-500 text-white animate-pulse"
+                                )}>
+                                    {reviewDueCount > 9 ? '9+' : reviewDueCount}
+                                </span>
+                            )}
                         </button>
                     );
                 })}
