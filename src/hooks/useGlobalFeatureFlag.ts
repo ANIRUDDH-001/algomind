@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { ServerFlagKey } from '@/lib/feature-flags-server';
+import type { FeatureFlagKey } from '@/lib/feature-flags';
 
 /**
  * React hook to consume a server-side feature flag.
@@ -58,7 +58,7 @@ async function fetchFlags(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export function useGlobalFeatureFlag(
-    flag: ServerFlagKey,
+    flag: FeatureFlagKey,
     defaultValue = false,
 ): boolean {
     const [value, setValue] = useState(() => {

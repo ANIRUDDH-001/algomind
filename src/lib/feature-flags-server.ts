@@ -1,105 +1,117 @@
 /**
- * Server-Side Feature Flags
- *
- * Centralised registry of feature flags that are controlled server-side.
- * These differ from the client-side localStorage flags in feature-flags.ts:
- *   - Values are authoritative from the server (env vars / DB).
- *   - Clients fetch them via GET /api/flags and cache briefly.
- *   - Admins can flip them via PATCH /api/flags (updates env-override map).
- *
- * Adding a new flag:
- *   1. Add an entry to SERVER_FLAGS below.
- *   2. Optionally add a NEXT_PUBLIC_FF_<NAME> env var to override the default.
- *   3. Use `getGlobalFeatureFlag(name)` in API routes.
- *   4. Use `useGlobalFeatureFlag(name)` in React components.
+ * Server-side feature flag reader.
+ * Reads from Redis cache (30s TTL) → Supabase fallback.
+ * Used in ALL API routes to enforce admin kill switches.
  */
 
-// ---------------------------------------------------------------------------
-// Flag Definition
-// ---------------------------------------------------------------------------
+import { redisGet, redisSet, redisDel } from '@/lib/upstash/client';
+import { getServiceClient } from '@/lib/supabase/service';
+import { FEATURE_FLAGS, type FeatureFlagKey } from './feature-flags';
 
-export interface ServerFlagDef {
-    /** Human-readable description shown in admin UI. */
-    description: string;
-    /** Compiled default when no env var or runtime override exists. */
-    defaultValue: boolean;
-    /** Optional: env var name that can override the default at deploy time. */
-    envVar?: string;
+const CACHE_PREFIX = 'global_flag:';
+const CACHE_TTL = 30; // seconds — fast propagation
+
+interface GlobalFlag {
+    key: string;
+    is_enabled: boolean;
+    updated_at: string;
 }
 
-export const SERVER_FLAGS = {
-    ENABLE_WHISPER_STT: {
-        description: 'Use Groq Whisper for speech recognition (better accuracy, requires network)',
-        defaultValue: false,
-        envVar: 'NEXT_PUBLIC_FF_ENABLE_WHISPER_STT',
-    },
-    // Future flags go here — e.g.
-    // ENABLE_REALTIME_COLLAB: { ... },
-    // MAINTENANCE_MODE: { ... },
-} as const satisfies Record<string, ServerFlagDef>;
-
-export type ServerFlagKey = keyof typeof SERVER_FLAGS;
-
-// ---------------------------------------------------------------------------
-// Runtime Override Map (in-memory, per-process)
-// ---------------------------------------------------------------------------
-// In serverless (Vercel), this is per-cold-start. For persistent overrides,
-// store in DB (Supabase) and load on init. For now, env vars + this map.
-
-const _runtimeOverrides = new Map<ServerFlagKey, boolean>();
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 /**
- * Read a single flag value.
- * Priority: runtime override > env var > compiled default.
+ * Get a single flag value from Redis → Supabase.
+ * Always prefer this over getFeatureFlag() in server-side code.
  */
-export function getGlobalFeatureFlag(flag: ServerFlagKey): boolean {
-    // 1. Runtime override (set via admin API)
-    if (_runtimeOverrides.has(flag)) {
-        return _runtimeOverrides.get(flag)!;
-    }
-
-    // 2. Environment variable override
-    const def = SERVER_FLAGS[flag];
-    if (def.envVar) {
-        const envVal = process.env[def.envVar];
-        if (envVal !== undefined) {
-            return envVal === 'true';
+export async function getGlobalFeatureFlag(key: FeatureFlagKey): Promise<boolean> {
+    // 1. Check Redis cache
+    try {
+        const cached = await redisGet(`${CACHE_PREFIX}${key}`);
+        if (cached !== null) {
+            return cached === 'true';
         }
+    } catch {
+        // Redis unavailable — fall through to DB
     }
 
-    // 3. Compiled default
-    return def.defaultValue;
+    // 2. Read from Supabase
+    try {
+        const supabase = getServiceClient();
+        const { data, error } = await supabase
+            .from('global_feature_flags')
+            .select('is_enabled')
+            .eq('key', key)
+            .single();
+
+        if (error || !data) {
+            // Flag doesn't exist in DB — return compiled default
+            return FEATURE_FLAGS[key].defaultValue;
+        }
+
+        // Cache the result
+        await redisSet(`${CACHE_PREFIX}${key}`, String(data.is_enabled), CACHE_TTL)
+            .catch(() => { }); // Don't fail if Redis is down
+
+        return data.is_enabled;
+    } catch {
+        // DB unavailable — fail OPEN (return default) to avoid breaking interviews
+        return FEATURE_FLAGS[key].defaultValue;
+    }
 }
 
 /**
- * Set a runtime override for a flag (survives until cold restart).
- * Called by admin API routes.
+ * Get all flags at once (for admin dashboard).
  */
-export function setGlobalFeatureFlag(flag: ServerFlagKey, value: boolean): void {
-    _runtimeOverrides.set(flag, value);
-}
-
-/**
- * Clear a runtime override so the flag falls back to env/default.
- */
-export function clearGlobalFeatureFlag(flag: ServerFlagKey): void {
-    _runtimeOverrides.delete(flag);
-}
-
-/**
- * Return all flags with their resolved values (for admin UI / client fetch).
- */
-export function getAllGlobalFeatureFlags(): Record<ServerFlagKey, { value: boolean; description: string }> {
+export async function getAllGlobalFeatureFlags(): Promise<Record<string, { value: boolean; description: string }>> {
+    // Start with compiled defaults
     const result: Record<string, { value: boolean; description: string }> = {};
-    for (const [key, def] of Object.entries(SERVER_FLAGS)) {
-        result[key] = {
-            value: getGlobalFeatureFlag(key as ServerFlagKey),
-            description: def.description,
-        };
+    for (const [key, def] of Object.entries(FEATURE_FLAGS)) {
+        result[key] = { value: def.defaultValue, description: def.description };
     }
-    return result as Record<ServerFlagKey, { value: boolean; description: string }>;
+
+    try {
+        const supabase = getServiceClient();
+        const { data } = await supabase
+            .from('global_feature_flags')
+            .select('key, is_enabled');
+
+        // Override with DB values
+        if (data) {
+            for (const row of data as GlobalFlag[]) {
+                if (row.key in result) {
+                    result[row.key].value = row.is_enabled;
+                }
+            }
+        }
+    } catch {
+        // Return all defaults on DB failure
+    }
+
+    return result;
+}
+
+/**
+ * Set a flag (admin only — verify admin status in the route handler).
+ * Writes to DB and invalidates Redis cache.
+ */
+export async function setGlobalFeatureFlag(
+    key: FeatureFlagKey,
+    isEnabled: boolean,
+    adminUserId: string
+): Promise<void> {
+    const supabase = getServiceClient();
+
+    await supabase
+        .from('global_feature_flags')
+        .upsert({
+            key,
+            is_enabled: isEnabled,
+            updated_by: adminUserId,
+            updated_at: new Date().toISOString()
+        });
+
+    // Invalidate Redis cache immediately
+    try {
+        await redisDel(`${CACHE_PREFIX}${key}`);
+    } catch {
+        // Redis unavailable — flag update still persisted to DB
+    }
 }
