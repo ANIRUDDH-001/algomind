@@ -1,56 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    getAllGlobalFeatureFlags,
-    setGlobalFeatureFlag,
-    clearGlobalFeatureFlag,
-    type ServerFlagKey,
-    SERVER_FLAGS,
-} from '@/lib/feature-flags-server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
+import { getAllGlobalFeatureFlags, setGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/flags — return all server-side flags and their current values.
- * No auth required so the client can read flags on page load.
+ * Public (no auth required) so client hooks can read flags on page load.
  */
 export async function GET() {
-    return NextResponse.json(getAllGlobalFeatureFlags());
+    const flags = await getAllGlobalFeatureFlags();
+    return NextResponse.json(flags);
 }
 
 /**
- * PATCH /api/flags — admin-only: set or clear a flag override.
- * Body: { flag: string, value: boolean | null }
- * value=null clears the override (falls back to env/default).
+ * POST /api/flags — admin-only: toggle a flag on or off.
+ * Body: { key: string, isEnabled: boolean }
  */
-export async function PATCH(req: NextRequest) {
-    const { errorResponse } = await requireAdminForApi();
+export async function POST(req: NextRequest) {
+    const { errorResponse, user } = await requireAdminForApi();
     if (errorResponse) return errorResponse;
 
     try {
         const body = await req.json();
-        const { flag, value } = body as { flag: string; value: boolean | null };
+        const { key, isEnabled } = body;
 
-        if (!flag || !(flag in SERVER_FLAGS)) {
+        if (!key || typeof isEnabled !== 'boolean') {
             return NextResponse.json(
-                { error: `Unknown flag: ${flag}` },
+                { error: 'key and isEnabled required' },
                 { status: 400 },
             );
         }
 
-        const key = flag as ServerFlagKey;
-
-        if (value === null) {
-            clearGlobalFeatureFlag(key);
-        } else {
-            setGlobalFeatureFlag(key, value);
+        if (!(key in FEATURE_FLAGS)) {
+            return NextResponse.json(
+                { error: `Unknown flag: ${key}` },
+                { status: 400 },
+            );
         }
 
-        return NextResponse.json({
-            flag: key,
-            value: value,
-            message: value === null ? 'Override cleared' : `Set to ${value}`,
+        await setGlobalFeatureFlag(key as FeatureFlagKey, isEnabled, user!.id);
+
+        // Log this admin action for audit trail
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user!.id,
+            metadata: { action: 'toggle_feature_flag', key, isEnabled }
         });
+
+        return NextResponse.json({ success: true, key, isEnabled });
     } catch {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
