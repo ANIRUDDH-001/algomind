@@ -168,7 +168,7 @@ describe('Navbar Component', () => {
         });
     });
 
-    it('3. Mobile: bottom nav is hidden when user is NOT logged in (guest)', async () => {
+    it('3. Mobile: bottom nav shows 2 items (Home, Practice) when user is NOT logged in (guest)', async () => {
         (useAuth as any).mockReturnValue({
             user: null, signOut: mockSignOut, loading: false, isConfigured: true,
         });
@@ -176,7 +176,9 @@ describe('Navbar Component', () => {
         const { container } = render(<Navbar />);
         const bottomNavs = container.querySelectorAll('nav');
         const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
-        expect(bottomNav).toBeUndefined();
+        expect(bottomNav).toBeDefined();
+        const links = bottomNav?.querySelectorAll('a');
+        expect(links?.length).toBe(2);
     });
 
     it('4. Bottom nav has 4 items for candidate account type', async () => {
