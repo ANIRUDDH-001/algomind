@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -152,28 +151,25 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
     }
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800" data-tour="voice-capabilities">
-            <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                    <Volume2 className="w-5 h-5" />
-                    Voice Capabilities
-                </CardTitle>
-                <CardDescription>Customize the AI interviewer's voice and speed</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <div className="space-y-2 mb-8" data-tour="voice-capabilities">
+            <h2 className="text-xs font-black uppercase tracking-widest text-zinc-600">
+                AI Interviewer Voice
+            </h2>
+            <div className="rounded-2xl overflow-hidden p-5 space-y-6"
+                style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                 {/* Voice Selection */}
                 <div className="space-y-3">
-                    <label className="text-sm font-medium text-slate-300">AI Voice</label>
+                    <label className="text-sm font-semibold text-zinc-200">AI Voice Model</label>
                     <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                        <SelectTrigger className="w-full bg-slate-800/50 border-slate-700 text-white" disabled={voices.length === 0}>
+                        <SelectTrigger className="w-full text-zinc-200" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }} disabled={voices.length === 0}>
                             <SelectValue placeholder={voices.length === 0 ? "Loading voices..." : "Select a voice"} />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px] bg-slate-900 border-slate-700 text-slate-200">
+                        <SelectContent className="max-h-[300px]" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             {voices.map((voice) => (
-                                <SelectItem key={voice.name} value={voice.name} className="focus:bg-slate-800 focus:text-white cursor-pointer">
+                                <SelectItem key={voice.name} value={voice.name} className="focus:bg-zinc-800 focus:text-white cursor-pointer text-zinc-300">
                                     <span className="flex items-center gap-2">
                                         {voice.name.replace(/Microsoft |Google /g, '')}
-                                        <span className="text-xs text-slate-500 ml-1">({voice.lang})</span>
+                                        <span className="text-[10px] text-zinc-500 ml-1 font-bold uppercase tracking-wider">{voice.lang}</span>
                                     </span>
                                 </SelectItem>
                             ))}
@@ -184,8 +180,8 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                 {/* Speed Slider */}
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                        <label className="text-sm font-medium text-slate-300">Speaking Rate</label>
-                        <span className="text-xs font-mono text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                        <label className="text-sm font-semibold text-zinc-200">Speaking Rate</label>
+                        <span className="text-[10px] font-black tracking-widest uppercase text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded">
                             {rate.toFixed(1)}x
                         </span>
                     </div>
@@ -195,9 +191,9 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                         max={2.0}
                         step={0.1}
                         onValueChange={handleRateChange}
-                        className="py-4 [&_.bg-primary]:bg-indigo-600 [&_.bg-muted]:bg-indigo-600/20 [&_.border-input]:border-indigo-600/50"
+                        className="py-4 [&_.bg-primary]:bg-indigo-500 [&_.bg-muted]:bg-indigo-500/20 [&_.border-input]:border-indigo-500/50"
                     />
-                    <div className="flex justify-between text-[10px] text-slate-500 px-1">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-600 px-1">
                         <span>Slow</span>
                         <span>Normal</span>
                         <span>Fast</span>
@@ -210,10 +206,13 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                         onClick={handleTestVoice}
                         variant="outline"
                         disabled={isPlaying}
-                        className="flex-1 bg-slate-800/50 border-slate-700 hover:bg-slate-800 text-white"
+                        className="flex-1 text-zinc-300 hover:text-white"
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                     >
                         {isPlaying ? (
-                            <span className="animate-pulse">Speaking...</span>
+                            <span className="animate-pulse flex items-center gap-2">
+                                <Volume2 className="w-4 h-4" /> Speaking...
+                            </span>
                         ) : (
                             <>
                                 <Play className="w-4 h-4 mr-2" />
@@ -223,12 +222,12 @@ export function VoiceSettings({ inline }: { inline?: boolean }) {
                     </Button>
                     <Button
                         onClick={handleSave}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold"
+                        className="flex-1 btn-primary"
                     >
                         Save Settings
                     </Button>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

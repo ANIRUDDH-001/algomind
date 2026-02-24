@@ -284,7 +284,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                 className={`w-full py-6 font-semibold shadow-lg ${isLocked ? 'bg-slate-800 text-slate-500' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
                                 disabled={isVerifying || isLocked || !entryCode || !name || !email}
                             >
-                                {isVerifying ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> :
+                                {isVerifying ? <div className="w-5 h-5 mx-auto rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> :
                                     isLocked ? `Try again in ${Math.ceil(lockoutTimer / 60)}m ${lockoutTimer % 60}s` :
                                         "Verify & Continue"}
                             </Button>
@@ -409,7 +409,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                 className="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 shadow-xl shadow-blue-500/10 text-lg font-semibold tracking-wide"
                                 disabled={isStarting}
                             >
-                                {isStarting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Begin Assessment"}
+                                {isStarting ? <div className="w-5 h-5 mx-auto rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : "Begin Assessment"}
                             </Button>
                         </div>
                     </div>
@@ -427,7 +427,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
                 <Card className="max-w-md w-full p-8 bg-slate-900 border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                     <p className="text-white font-medium">Submitting your assessment...</p>
                     <p className="text-slate-400 text-sm">Please don't close this tab.</p>
                 </Card>

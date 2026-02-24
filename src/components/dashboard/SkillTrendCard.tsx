@@ -82,7 +82,7 @@ function SkillTrendCardBase({ skill, sessions, className }: SkillTrendCardProps)
                                 <stop offset="95%" stopColor={definition.color} stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" opacity={0.5} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--surface-edge)" opacity={0.5} />
                         <XAxis
                             dataKey="session"
                             hide
@@ -93,16 +93,16 @@ function SkillTrendCardBase({ skill, sessions, className }: SkillTrendCardProps)
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#0f172a',
-                                border: '1px solid #1e293b',
+                                backgroundColor: 'var(--surface-2)',
+                                border: '1px solid var(--surface-edge)',
                                 borderRadius: '8px',
                                 fontSize: '10px',
-                                color: '#f8fafc',
+                                color: '#e4e4e7',
                                 padding: '4px 8px'
                             }}
                             labelStyle={{ display: 'none' }}
                         />
-                        <ReferenceLine y={5} stroke="#334155" strokeDasharray="3 3" />
+                        <ReferenceLine y={5} stroke="var(--surface-edge)" strokeDasharray="3 3" />
                         <Area
                             type="monotone"
                             dataKey="score"

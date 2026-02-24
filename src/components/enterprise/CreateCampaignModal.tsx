@@ -185,10 +185,18 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                 </div>
 
                 {/* Wizard Progress */}
-                <div className="flex w-full bg-slate-950 h-1">
-                    <div
-                        className={cn("h-full bg-blue-500 transition-all duration-500", step === 1 ? 'w-1/2' : 'w-full')}
-                    />
+                <div className="flex items-center gap-2 px-6 pt-6 -mb-2">
+                    {[1, 2].map(stepIndex => (
+                        <div key={stepIndex} className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors
+                                ${step >= stepIndex
+                                    ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.5)]'
+                                    : 'bg-zinc-800 text-zinc-600 border border-zinc-700'}`}>
+                                {stepIndex}
+                            </div>
+                            {stepIndex < 2 && <div className={`h-px w-8 transition-colors ${step > stepIndex ? 'bg-indigo-600' : 'bg-zinc-800'}`} />}
+                        </div>
+                    ))}
                 </div>
 
                 <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">

@@ -5,13 +5,15 @@ import { SkillDefinition } from '@/types/assessment';
 import { SkillScore } from '@/lib/assessment/analyzer';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { COLORS } from '@/lib/design-tokens';
 
 interface SkillDetailCardProps {
+    skillId: string;
     definition: SkillDefinition;
     score: SkillScore;
 }
 
-export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
+export function SkillDetailCard({ skillId, definition, score }: SkillDetailCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Color mapping based on score
@@ -28,7 +30,12 @@ export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
     };
 
     return (
-        <div className="group bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800/60 overflow-hidden transition-all duration-300 hover:border-slate-700/80 hover:shadow-2xl">
+        <div className="group backdrop-blur-md rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.08)]"
+            style={{
+                background: 'var(--surface-1)',
+                border: '1px solid var(--surface-edge)',
+                borderLeft: `3px solid ${(COLORS.skills as any)[skillId] || 'var(--accent-primary)'}`
+            }}>
             <div
                 className="p-5 cursor-pointer flex items-center justify-between"
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -44,16 +51,16 @@ export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger>
-                                        <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+                                        <HelpCircle className="w-3.5 h-3.5 text-zinc-500" />
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-950 border-slate-800 text-slate-300 max-w-xs">
+                                    <TooltipContent className="max-w-xs" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)', color: 'var(--text-secondary)' }}>
                                         {definition.description}
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         </div>
                         <div className="flex items-center gap-3 mt-1">
-                            <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="w-32 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${score.score * 10}%` }}
@@ -69,7 +76,8 @@ export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
 
                 <motion.div
                     animate={{ rotate: isExpanded ? 180 : 0 }}
-                    className="p-2 rounded-lg bg-slate-800/50 text-slate-400 group-hover:text-white"
+                    className="p-2 rounded-lg text-zinc-400 group-hover:text-white"
+                    style={{ background: 'var(--surface-2)' }}
                 >
                     <ChevronDown className="w-5 h-5" />
                 </motion.div>
@@ -81,7 +89,8 @@ export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-slate-950/40 border-t border-slate-800/50"
+                        className="overflow-hidden bg-black/10"
+                        style={{ borderTop: '1px solid var(--surface-edge)' }}
                     >
                         <div className="p-6 space-y-6">
 
@@ -115,14 +124,14 @@ export function SkillDetailCard({ definition, score }: SkillDetailCardProps) {
 
                             {/* Evidence Section */}
                             {score.evidence.length > 0 && (
-                                <div className="pt-6 border-t border-slate-800/50">
+                                <div className="pt-6" style={{ borderTop: '1px solid var(--surface-edge)' }}>
                                     <div className="flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-4">
                                         <Quote className="w-3.5 h-3.5" /> Evidence from Transcript
                                     </div>
                                     <div className="space-y-3">
                                         {score.evidence.map((snippet, i) => (
-                                            <div key={i} className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/30">
-                                                <p className="text-xs text-slate-400 italic leading-relaxed">
+                                            <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--surface-base)', border: '1px solid var(--surface-edge)' }}>
+                                                <p className="text-xs text-zinc-400 italic leading-relaxed">
                                                     "{snippet}"
                                                 </p>
                                             </div>

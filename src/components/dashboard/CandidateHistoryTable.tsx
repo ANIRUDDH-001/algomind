@@ -146,7 +146,7 @@ export function CandidateHistoryTable({ submissions }: { submissions: Submission
                     <div className="w-full md:w-[600px] h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300 relative">
                         {isLoadingReport || !reportData ? (
                             <div className="flex items-center justify-center flex-1">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
                             </div>
                         ) : (
                             <>

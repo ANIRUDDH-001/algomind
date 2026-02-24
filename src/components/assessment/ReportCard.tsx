@@ -31,26 +31,41 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
     const overallScore = store.calculateWeightedScore(skillValues);
 
     return (
-        <div className="fixed inset-0 top-16 bg-slate-950 overflow-y-auto z-50">
+        <div className="fixed inset-0 top-16 overflow-y-auto z-50" style={{ background: 'var(--surface-base)' }}>
             <div className="max-w-5xl mx-auto py-12 px-6">
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     className="space-y-10"
                 >
                     {/* Header: Score Summary */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 p-1 rounded-[2.5rem] shadow-2xl shadow-blue-500/20">
-                            <div className="bg-slate-950 rounded-[2.4rem] h-full p-10 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+                        <div className="lg:col-span-2 p-1 rounded-[2.5rem] shadow-2xl shadow-blue-500/20" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                            <div className="rounded-[2.4rem] h-full p-10 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden" style={{ background: 'var(--surface-base)' }}>
                                 {/* Decorative background aura */}
                                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/20 blur-[80px]" />
                                 <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-purple-500/10 blur-[80px]" />
 
                                 <div className="relative z-10">
-                                    <div className="w-32 h-32 rounded-full border-4 border-blue-500/30 flex items-center justify-center bg-blue-500/5 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                                        <div className="text-center">
-                                            <span className="text-4xl font-black text-white">{overallScore}</span>
-                                            <span className="block text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Global Score</span>
+                                    <div className="relative w-28 h-28">
+                                        {/* Glow ring */}
+                                        <div className="absolute inset-0 rounded-full blur-xl opacity-30"
+                                            style={{ background: overallScore >= 7.5 ? '#10b981' : overallScore >= 5.5 ? '#6366f1' : '#f59e0b' }} />
+                                        {/* Main orb */}
+                                        <div className="relative w-28 h-28 rounded-full flex flex-col items-center justify-center"
+                                            style={{
+                                                background: `conic-gradient(
+                                                    ${overallScore >= 7.5 ? '#10b981' : overallScore >= 5.5 ? '#6366f1' : '#f59e0b'} ${overallScore * 10}%,
+                                                    rgba(255,255,255,0.05) ${overallScore * 10}%
+                                                )`,
+                                                padding: '3px',
+                                            }}>
+                                            <div className="w-full h-full rounded-full flex flex-col items-center justify-center"
+                                                style={{ background: 'var(--surface-1)' }}>
+                                                <span className="text-3xl font-black text-white">{overallScore}</span>
+                                                <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1">score</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -61,13 +76,13 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                                         <p className="text-slate-400 font-medium">Interview Performance: <span className="text-blue-400">Advanced Algorithmic Design</span></p>
                                     </div>
                                     <div className="flex flex-wrap gap-4 pt-2">
-                                        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-300 font-semibold">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-zinc-300 font-semibold" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                             <Calendar className="w-3.5 h-3.5 text-blue-500" /> {assessment.timestamp.toLocaleDateString()}
                                         </div>
-                                        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-300 font-semibold">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-zinc-300 font-semibold" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                             <Target className="w-3.5 h-3.5 text-purple-500" /> {assessment.problem.difficulty}
                                         </div>
-                                        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs text-slate-300 font-semibold">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-zinc-300 font-semibold" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                             <Clock className="w-3.5 h-3.5 text-emerald-500" /> Confidence: {Math.round(Object.values(assessment.skills)[0].confidence * 100)}%
                                         </div>
                                     </div>
@@ -75,14 +90,14 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                             </div>
                         </div>
 
-                        <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800/80 p-10 flex flex-col justify-center">
+                        <div className="backdrop-blur-md rounded-[2.5rem] p-10 flex flex-col justify-center" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                             <div className="p-3 bg-blue-500/10 rounded-2xl w-fit mb-6">
                                 <Trophy className="w-8 h-8 text-blue-400" />
                             </div>
                             <h3 className="text-xl font-black text-white mb-2">Next Steps</h3>
                             <ul className="space-y-3">
                                 {assessment.nextSteps.map((step, i) => (
-                                    <li key={i} className="text-sm text-slate-400 flex gap-2">
+                                    <li key={i} className="text-sm text-zinc-400 flex gap-2">
                                         <ChevronRight className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                                         {step}
                                     </li>
@@ -92,9 +107,9 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                     </div>
 
                     {/* Qualitative Feedback Section */}
-                    <div className="bg-slate-900/20 rounded-3xl p-8 border border-slate-800/40">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Overall Performance Analysis</h3>
-                        <p className="text-xl font-medium text-slate-200 leading-relaxed italic">
+                    <div className="rounded-3xl p-8" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                        <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.3em] mb-4">Overall Performance Analysis</h3>
+                        <p className="text-xl font-medium text-zinc-200 leading-relaxed italic">
                             "{assessment.overallFeedback}"
                         </p>
                     </div>
@@ -102,17 +117,22 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                     {/* Skill Detail Grid */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between px-2">
-                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Cognitive Dimensions Breakdown</h3>
-                            <span className="text-[10px] text-slate-600 font-bold uppercase">Evidence-Based Scoring</span>
+                            <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.3em]">Cognitive Dimensions Breakdown</h3>
+                            <span className="text-[10px] text-zinc-600 font-bold uppercase">Evidence-Based Scoring</span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(SKILL_DEFINITIONS).map(([id, definition]) => (
-                                <SkillDetailCard
-                                    key={id}
-                                    definition={definition}
-                                    score={assessment.skills[id as CognitiveSkill]}
-                                />
+                            {Object.entries(SKILL_DEFINITIONS).map(([id, definition], i) => (
+                                <motion.div key={id}
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 + i * 0.06, duration: 0.3 }}>
+                                    <SkillDetailCard
+                                        skillId={id}
+                                        definition={definition}
+                                        score={assessment.skills[id as CognitiveSkill]}
+                                    />
+                                </motion.div>
                             ))}
                         </div>
                     </div>

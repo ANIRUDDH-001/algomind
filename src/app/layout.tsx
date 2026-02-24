@@ -86,7 +86,8 @@ export default function RootLayout({
                 <ErrorBoundary>
                   <TourProvider>
                     <Navbar />
-                    <main className="overflow-x-hidden">
+                    {/* Main Content Area */}
+                    <main className="flex-1 flex flex-col min-h-0 pt-[var(--navbar-h)] pb-0 md:pb-0">
                       {children}
                     </main>
                     <IntroTour />

@@ -292,7 +292,7 @@ export default function VADTestContent() {
                         >
                             {isInitializing ? (
                                 <>
-                                    <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    <span className="inline-block w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                                     Loading Model… ({loadElapsed}s)
                                 </>
                             ) : (

@@ -1,14 +1,17 @@
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function SettingsPage() {
     return (
-        <>
-
-            <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
-                <div className="max-w-2xl mx-auto">
-                    <SettingsPanel />
-                </div>
-            </div>
-        </>
+        <div className="page-container max-w-2xl mx-auto py-12">
+            <Link href="/" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors mb-6 text-sm font-bold uppercase tracking-widest">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+            </Link>
+            <h1 className="text-4xl font-black text-white mb-2">Settings</h1>
+            <p className="text-zinc-400 mb-8">Manage your profile, preferences, and connected services.</p>
+            <SettingsPanel />
+        </div>
     );
 }
