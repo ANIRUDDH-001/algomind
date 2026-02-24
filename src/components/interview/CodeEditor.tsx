@@ -90,6 +90,7 @@ interface CodeEditorProps {
     initialCode?: string;
     onLanguageChange?: (lang: string) => void;
     onExecutionResult?: (result: ExecutionResult) => void;
+    readOnly?: boolean;
 }
 
 const LANGUAGE_API_MAP: Record<string, string> = {
@@ -100,7 +101,7 @@ const LANGUAGE_API_MAP: Record<string, string> = {
     cpp: 'cpp',
 };
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionResult }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionResult, readOnly = false }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
     const [isRunning, setIsRunning] = useState(false);
@@ -268,10 +269,11 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                         tabSize: 2,
                         wordWrap: 'on',
                         quickSuggestions: true,
-                        suggestOnTriggerCharacters: true,
+                        suggestOnTriggerCharacters: !readOnly,
                         accessibilitySupport: 'auto',
-                        formatOnPaste: true,
-                        formatOnType: true,
+                        formatOnPaste: !readOnly,
+                        formatOnType: !readOnly,
+                        readOnly: readOnly,
                     }}
                 />
             </div>
