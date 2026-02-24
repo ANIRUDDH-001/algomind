@@ -37,7 +37,7 @@ export function DashboardCard({
             transition={{ duration: 0.5, delay }}
             className="h-full"
         >
-            <Card className={cn("bg-slate-900/30 backdrop-blur-md border-slate-800/50 shadow-xl flex flex-col h-full", className)}>
+            <Card className={cn("backdrop-blur-md shadow-xl flex flex-col h-full hover:shadow-[0_0_30px_rgba(99,102,241,0.08)] transition-shadow", className)} style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="space-y-1">
                         <CardTitle className="text-lg font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
@@ -59,7 +59,7 @@ export function DashboardCard({
                 <CardContent className="flex-1 relative min-h-[100px]">
                     {isLoading ? (
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin opacity-50" />
+                            <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin opacity-50" />
                         </div>
                     ) : (
                         children

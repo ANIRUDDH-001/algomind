@@ -116,7 +116,7 @@ export function LeetCodePrompt() {
                         disabled={isConnecting || !usernameInput.trim()}
                         className="w-full bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600 hover:text-white border border-yellow-900/50 font-bold"
                     >
-                        {isConnecting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        {isConnecting ? <div className="w-4 h-4 mr-2 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : null}
                         {isConnecting ? 'Connecting...' : 'Connect'}
                     </Button>
                 </div>

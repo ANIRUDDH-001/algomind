@@ -41,7 +41,7 @@ export default async function EmployerDashboardPage() {
     const availableProblems = problemRes.data || [];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
+        <div className="min-h-screen text-slate-200 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8 relative">
                 <EmployerDashboard
                     initialCampaigns={initialCampaigns}

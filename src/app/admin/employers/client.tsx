@@ -228,45 +228,47 @@ export default function EmployersClient() {
         <div className="text-white p-6 lg:p-10">
             <div className="max-w-5xl mx-auto space-y-8 pb-20">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 flex items-center gap-3">
-                        <Briefcase className="w-8 h-8 text-blue-400" />
+                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 flex items-center gap-3">
+                        <Briefcase className="w-8 h-8 text-indigo-400" />
                         Employer Accounts
                     </h1>
-                    <p className="text-slate-400 mt-2 font-medium">
+                    <p className="text-zinc-400 mt-2 font-medium">
                         Manage employer access, roles, and invite codes
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Create Invite Section */}
-                    <Card className="p-6 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl">
-                        <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-200">
-                            <Plus className="w-5 h-5 text-blue-400" />
+                    <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                        <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
+                            <Plus className="w-5 h-5 text-indigo-400" />
                             Generate Invite Code
                         </h3>
 
                         <form onSubmit={handleCreateInvite} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Company Name *</label>
+                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Company Name *</label>
                                     <input
                                         type="text"
                                         value={companyName}
                                         onChange={(e) => setCompanyName(e.target.value)}
                                         placeholder="Acme Corp"
-                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         required
                                         disabled={isCreating}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Target Email *</label>
+                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Target Email *</label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="ceo@acme.com"
-                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         disabled={isCreating}
                                         required
                                     />
@@ -274,31 +276,32 @@ export default function EmployersClient() {
                             </div>
                             <div className="flex flex-col sm:flex-row items-end gap-4">
                                 <div className="flex-1 w-full">
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Expires In (Days)</label>
+                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Expires In (Days)</label>
                                     <input
                                         type="number"
                                         value={expiresDays}
                                         onChange={(e) => setExpiresDays(e.target.value)}
                                         min="0"
-                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         disabled={isCreating}
                                     />
                                 </div>
                                 <Button
                                     type="submit"
                                     disabled={isCreating || !companyName.trim()}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 h-[42px]"
+                                    className="btn-primary px-8 h-[42px]"
                                 >
                                     {isCreating ? 'Generating...' : 'Generate'}
                                 </Button>
                             </div>
-                            <span className="text-[10px] text-slate-500 mt-1 block italic">* Email will be enforced during claim</span>
+                            <span className="text-[10px] text-zinc-500 mt-1 block italic">* Email will be enforced during claim</span>
                         </form>
-                    </Card>
+                    </div>
 
                     {/* Promote User Section */}
-                    <Card className="p-6 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl">
-                        <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-200">
+                    <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                        <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
                             <UserPlus className="w-5 h-5 text-purple-400" />
                             Include Employer (Direct)
                         </h3>
@@ -306,25 +309,27 @@ export default function EmployersClient() {
                         <form onSubmit={handlePromote} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">User Email *</label>
+                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">User Email *</label>
                                     <input
                                         type="email"
                                         value={promoteEmail}
                                         onChange={(e) => setPromoteEmail(e.target.value)}
                                         placeholder="user@example.com"
-                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         required
                                         disabled={isPromoting}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Company (Optional)</label>
+                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Company (Optional)</label>
                                     <input
                                         type="text"
                                         value={promoteCompany}
                                         onChange={(e) => setPromoteCompany(e.target.value)}
                                         placeholder="Company Name"
-                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         disabled={isPromoting}
                                     />
                                 </div>
@@ -338,66 +343,67 @@ export default function EmployersClient() {
                                     {isPromoting ? 'Adding...' : 'Promote'}
                                 </Button>
                             </div>
-                            <span className="text-[10px] text-slate-500 mt-1 block italic">* Directly upgrades existing user to Employer</span>
+                            <span className="text-[10px] text-zinc-500 mt-1 block italic">* Directly upgrades existing user to Employer</span>
                         </form>
-                    </Card>
+                    </div>
                 </div>
 
                 {/* Employers List Section */}
                 <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
-                        <h3 className="font-bold text-slate-200">Active Employers</h3>
+                        <h3 className="font-bold text-zinc-200">Active Employers</h3>
                         <div className="relative max-w-sm w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input
                                 type="text"
                                 placeholder="Search employees..."
                                 value={activeSearch}
                                 onChange={(e) => setActiveSearch(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                                className="w-full rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}
                             />
                         </div>
                     </div>
 
                     <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
                         {loading ? (
-                            <div className="text-center py-10 text-slate-500">Loading employers...</div>
+                            <div className="text-center py-10 text-zinc-500">Loading employers...</div>
                         ) : error ? (
                             <div className="text-center py-10 text-red-500 text-sm">{error}</div>
                         ) : filteredEmployers.length === 0 ? (
-                            <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                            <div className="text-center py-10 text-zinc-500 border border-dashed border-[var(--surface-edge)] rounded-xl">
                                 {activeSearch ? "No matching employers found" : "No active employer accounts found"}
                             </div>
                         ) : (
                             filteredEmployers.map((emp) => (
-                                <Card key={emp.id} className="p-5 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group">
+                                <div key={emp.id} className="rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group hover:bg-zinc-800/30 transition-colors" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:w-auto flex-1 text-left">
                                         <div>
-                                            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Company</p>
-                                            <p className="font-medium text-slate-200 truncate">{emp.company_name || 'N/A'}</p>
+                                            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Company</p>
+                                            <p className="font-medium text-zinc-200 truncate">{emp.company_name || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">User Details</p>
+                                            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">User Details</p>
                                             <div className="space-y-0.5">
-                                                <p className="text-sm text-slate-300 truncate">{emp.full_name || 'No Name'}</p>
-                                                <p className="text-xs text-slate-400 truncate">{emp.email}</p>
+                                                <p className="text-sm text-zinc-300 truncate">{emp.full_name || 'No Name'}</p>
+                                                <p className="text-xs text-zinc-400 truncate">{emp.email}</p>
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Joined</p>
-                                            <p className="text-sm text-slate-300">{format(new Date(emp.created_at), 'MMM d, yyyy')}</p>
+                                            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Joined</p>
+                                            <p className="text-sm text-zinc-300">{format(new Date(emp.created_at), 'MMM d, yyyy')}</p>
                                         </div>
                                     </div>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleDemote(emp.email)}
-                                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                        className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
                                     >
                                         <UserMinus className="w-4 h-4 mr-2" />
                                         Delete
                                     </Button>
-                                </Card>
+                                </div>
                             ))
                         )}
                     </div>
@@ -406,24 +412,25 @@ export default function EmployersClient() {
                 {/* Invites List Section */}
                 <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
-                        <h3 className="font-bold text-slate-200">Pending & History (Invites)</h3>
+                        <h3 className="font-bold text-zinc-200">Pending & History (Invites)</h3>
                         <div className="relative max-w-sm w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input
                                 type="text"
                                 placeholder="Search invites..."
                                 value={invitesSearch}
                                 onChange={(e) => setInvitesSearch(e.target.value)}
-                                className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                                className="w-full rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}
                             />
                         </div>
                     </div>
 
                     <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
                         {loading ? (
-                            <div className="text-center py-10 text-slate-500">Loading invites...</div>
+                            <div className="text-center py-10 text-zinc-500">Loading invites...</div>
                         ) : filteredInvites.length === 0 ? (
-                            <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                            <div className="text-center py-10 text-zinc-500 border border-dashed border-[var(--surface-edge)] rounded-xl">
                                 {invitesSearch ? "No matching invites found" : "No invites found"}
                             </div>
                         ) : (
@@ -434,7 +441,7 @@ export default function EmployersClient() {
                                 let statusText = 'Active';
 
                                 if (isUsed) {
-                                    statusColor = 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+                                    statusColor = 'text-zinc-400 bg-slate-400/10 border-slate-400/20';
                                     statusText = 'Used';
                                 } else if (!invite.is_active) {
                                     statusColor = 'text-red-400 bg-red-400/10 border-red-400/20';
@@ -445,35 +452,35 @@ export default function EmployersClient() {
                                 }
 
                                 return (
-                                    <Card key={invite.id} className="p-5 bg-slate-900/40 border-slate-800/50 backdrop-blur-sm shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left">
+                                    <div key={invite.id} className="rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left hover:bg-zinc-800/30 transition-colors" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto flex-1">
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Company</p>
-                                                <p className="font-medium text-slate-200 truncate">{invite.company_name}</p>
+                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Company</p>
+                                                <p className="font-medium text-zinc-200 truncate">{invite.company_name}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Code</p>
+                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Code</p>
                                                 <div className="flex items-center gap-2 font-mono">
-                                                    <code className="bg-slate-800 px-2 py-0.5 rounded text-[12px] text-blue-300">
+                                                    <code className="bg-zinc-800 px-2 py-0.5 rounded text-[12px] text-indigo-300">
                                                         {invite.invite_code}
                                                     </code>
                                                     <button
                                                         onClick={() => copyToClipboard(invite.id, invite.invite_code)}
-                                                        className="text-slate-500 hover:text-white transition-colors"
+                                                        className="text-zinc-500 hover:text-white transition-colors"
                                                     >
-                                                        {copiedId === invite.id ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                                                        {copiedId === invite.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                                     </button>
                                                 </div>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Status</p>
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColor}`}>
+                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Status</p>
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusColor}`}>
                                                     {statusText}
                                                 </span>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">Created</p>
-                                                <p className="text-xs text-slate-400">{format(new Date(invite.created_at), 'MMM d, yyyy')}</p>
+                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-1">Created</p>
+                                                <p className="text-xs text-zinc-400">{format(new Date(invite.created_at), 'MMM d, yyyy')}</p>
                                             </div>
                                         </div>
 
@@ -484,7 +491,7 @@ export default function EmployersClient() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-colors h-8"
+                                                            className="text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors h-8"
                                                             onClick={() => handleSendEmail(invite)}
                                                         >
                                                             <Mail className="w-4 h-4 mr-2" />
@@ -494,7 +501,7 @@ export default function EmployersClient() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors h-8"
+                                                        className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors h-8"
                                                         onClick={() => handleDeactivate(invite.id)}
                                                     >
                                                         <Trash2 className="w-4 h-4 mr-2" />
@@ -503,7 +510,7 @@ export default function EmployersClient() {
                                                 </>
                                             )}
                                         </div>
-                                    </Card>
+                                    </div>
                                 );
                             })
                         )}

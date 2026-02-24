@@ -67,7 +67,7 @@ export function SkillDrillDown({ skill, sessions, onClose }: SkillDrillDownProps
                         <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                             <YAxis domain={[0, 10]} hide />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '10px' }}
+                                contentStyle={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--surface-edge)', borderRadius: '8px', fontSize: '10px', color: '#e4e4e7' }}
                                 itemStyle={{ color: def.color }}
                                 labelStyle={{ display: 'none' }}
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +78,7 @@ export function SkillDrillDown({ skill, sessions, onClose }: SkillDrillDownProps
                                 dataKey="score"
                                 stroke={def.color}
                                 strokeWidth={3}
-                                dot={{ fill: '#0f172a', stroke: def.color, strokeWidth: 2, r: 4 }}
+                                dot={{ fill: 'var(--surface-1)', stroke: def.color, strokeWidth: 2, r: 4 }}
                                 activeDot={{ r: 6, fill: def.color }}
                                 isAnimationActive={true}
                             />

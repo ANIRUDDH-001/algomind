@@ -1,11 +1,11 @@
 import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
-
+import { COLORS } from '@/lib/design-tokens';
 export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
     'problem-decomposition': {
         id: 'problem-decomposition',
         name: 'Problem Decomposition',
         description: 'Ability to break complex problems into manageable subproblems',
-        color: '#3b82f6', // blue-500
+        color: COLORS.skills['problem-decomposition'], // blue-500
         weight: 0.15,
         rubric: {
             level1: 'Cannot break down the problem; attempts to solve entire problem at once',
@@ -20,7 +20,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'pattern-recognition',
         name: 'Pattern Recognition',
         description: 'Recognizing algorithmic patterns and data structure applications',
-        color: '#8b5cf6', // violet-500
+        color: COLORS.skills['pattern-recognition'], // violet-500
         weight: 0.15,
         rubric: {
             level1: 'Does not recognize any common patterns or appropriate data structures',
@@ -35,7 +35,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'algorithmic-thinking',
         name: 'Algorithmic Thinking',
         description: 'Designing efficient algorithms and choosing correct approaches',
-        color: '#ec4899', // pink-500
+        color: COLORS.skills['algorithmic-thinking'], // pink-500
         weight: 0.15,
         rubric: {
             level1: 'No clear algorithmic approach; relies on trial and error or random guesses',
@@ -50,7 +50,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'complexity-analysis',
         name: 'Complexity Analysis',
         description: 'Analyzing time and space complexity accurately',
-        color: '#10b981', // emerald-500
+        color: COLORS.skills['complexity-analysis'], // emerald-500
         weight: 0.12,
         rubric: {
             level1: 'Cannot analyze complexity or provides consistently incorrect Big O notation',
@@ -65,7 +65,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'communication-clarity',
         name: 'Communication Clarity',
         description: 'Explaining thought process clearly and concisely',
-        color: '#f59e0b', // amber-500
+        color: COLORS.skills['communication-clarity'], // amber-500
         weight: 0.12,
         rubric: {
             level1: 'Incoherent explanation; difficult for the interviewer to follow the logic',
@@ -80,7 +80,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'edge-case-awareness',
         name: 'Edge Case Awareness',
         description: 'Identifying and handling edge cases proactively',
-        color: '#06b6d4', // cyan-500
+        color: COLORS.skills['edge-case-awareness'], // cyan-500
         weight: 0.10,
         rubric: {
             level1: 'Does not consider edge cases at all; solution fails on simplest variations',
@@ -95,7 +95,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'optimization-mindset',
         name: 'Optimization Mindset',
         description: 'Thinking about performance and optimization opportunities',
-        color: '#6366f1', // indigo-500
+        color: COLORS.skills['optimization-mindset'], // indigo-500
         weight: 0.11,
         rubric: {
             level1: 'No consideration for optimization; stops at the first working solution',
@@ -110,7 +110,7 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
         id: 'debugging-approach',
         name: 'Debugging Approach',
         description: 'Systematic approach to finding and fixing bugs',
-        color: '#ef4444', // red-500
+        color: COLORS.skills['debugging-approach'], // red-500
         weight: 0.10,
         rubric: {
             level1: 'Randomly changes code hoping for a solution; lacks any mental model',
