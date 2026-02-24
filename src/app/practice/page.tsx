@@ -9,6 +9,7 @@ import { ProblemCard } from '@/components/practice/ProblemCard';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 const PROBLEMS_PER_PAGE = 10;
@@ -138,7 +139,7 @@ export default function PracticePage() {
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-slate-950 pb-12 px-4">
+            <div className="min-h-screen pb-12 px-4" style={{ background: 'var(--surface-base)' }}>
                 <div className="max-w-5xl mx-auto">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -146,18 +147,20 @@ export default function PracticePage() {
                             <h1 className="text-4xl font-black text-white mb-2">
                                 Practice Problems
                             </h1>
-                            <p className="text-slate-400">
-                                {totalCount} problem{totalCount !== 1 ? 's' : ''}
-                                {filters.searchQuery && ` matching "${filters.searchQuery}"`}
-                                {filters.topic && ` in ${TOPICS.find(t => t.value === filters.topic)?.label}`}
-                                {filters.curatedList && ` in ${currentListLabel}`}
-                                {filters.difficulty !== 'all' && ` • ${filters.difficulty}`}
-                            </p>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                                    {totalCount} problems available
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                                <span className="text-xs font-bold text-emerald-400/80 uppercase tracking-widest">
+                                    {attemptedProblems.size} attempted
+                                </span>
+                            </div>
                         </div>
                         <Button
                             onClick={handleRandomProblem}
                             disabled={problems.length === 0}
-                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg shadow-blue-900/20"
+                            className="btn-primary"
                         >
                             <Shuffle className="w-4 h-4 mr-2" />
                             Random Problem
@@ -165,27 +168,55 @@ export default function PracticePage() {
                     </div>
 
                     {/* Filters */}
-                    <ProblemFilters onFilterChange={handleFilterChange} currentFilters={filters} />
+                    <div className="glass sticky top-16 z-20 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
+                        <ProblemFilters onFilterChange={handleFilterChange} currentFilters={filters} />
+                    </div>
 
                     {/* Loading State */}
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
                             <div className="flex flex-col items-center gap-4">
-                                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                                <div className="w-10 h-10 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                                 <p className="text-slate-400 text-sm">Loading problems...</p>
                             </div>
                         </div>
                     ) : displayedProblems.length === 0 ? (
-                        <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
-                            <Brain className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400 text-lg mb-2">No problems found</p>
-                            <p className="text-slate-500 text-sm mb-4">
+                        <div className="text-center py-20 relative overflow-hidden rounded-2xl flex flex-col items-center justify-center" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                            {/* Animated Background */}
+                            <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
+                                {[...Array(20)].map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        className="absolute w-1 h-1 bg-indigo-500/20 rounded-full flex shrink-0"
+                                        style={{
+                                            left: `${Math.random() * 100}%`,
+                                            top: `${Math.random() * 100}%`,
+                                        }}
+                                        animate={{
+                                            y: [0, -30, 0],
+                                            opacity: [0, 1, 0],
+                                            scale: [0, 1.5, 0],
+                                        }}
+                                        transition={{
+                                            duration: 3 + Math.random() * 2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                            delay: Math.random() * 2,
+                                        }}
+                                    />
+                                ))}
+                                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(99,102,241,0.15) 0%, transparent 50%)' }} />
+                            </div>
+
+                            <Brain className="w-16 h-16 text-zinc-600 mx-auto mb-4 relative z-10" />
+                            <p className="text-zinc-200 font-bold text-lg mb-2 relative z-10">No problems found</p>
+                            <p className="text-zinc-500 text-sm mb-6 relative z-10">
                                 Try changing your filters or add more problems to the database
                             </p>
                             <Button
                                 onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '', attempted: 'all', searchQuery: '', topic: '' })}
                                 variant="outline"
-                                className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                                className="relative z-10"
                             >
                                 Clear Filters
                             </Button>
@@ -193,7 +224,7 @@ export default function PracticePage() {
                     ) : (
                         <>
                             {/* Problems List */}
-                            <div className="space-y-4">
+                            <motion.div layout className="space-y-4">
                                 {displayedProblems.map((problem) => (
                                     <ProblemCard
                                         key={problem.id}
@@ -202,36 +233,45 @@ export default function PracticePage() {
                                         onStart={(id) => handleStartInterview(id, problem)}
                                     />
                                 ))}
-                            </div>
+                            </motion.div>
 
                             {/* Pagination Controls */}
                             {totalPages > 1 && (
-                                <div className="flex items-center justify-center gap-4 mt-8 pt-8 border-t border-slate-800">
-                                    <Button
-                                        onClick={() => goToPage(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        variant="outline"
-                                        className={paginationBtnStyles}
-                                    >
-                                        <ChevronLeft className="w-4 h-4 mr-1" />
-                                        Previous
-                                    </Button>
+                                <div className="flex justify-center mt-10">
+                                    <div className="inline-flex items-center p-1 rounded-full shadow-lg" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                                        <button
+                                            onClick={() => goToPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white"
+                                        >
+                                            <ChevronLeft className="w-4 h-4" /> Prev
+                                        </button>
 
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-slate-400 text-sm">
-                                            Page <span className="font-bold text-white">{currentPage}</span> of <span className="font-bold text-white">{totalPages}</span>
-                                        </span>
+                                        <div className="w-px h-4 bg-zinc-800 mx-1" />
+
+                                        <div className="flex px-1 gap-1">
+                                            {Array.from({ length: totalPages }).map((_, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => goToPage(i + 1)}
+                                                    className={`w-8 h-8 flex items-center justify-center shrink-0 rounded-full text-xs font-bold transition-all ${currentPage === i + 1 ? 'text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}`}
+                                                    style={currentPage === i + 1 ? { background: 'var(--accent-primary)' } : {}}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="w-px h-4 bg-zinc-800 mx-1" />
+
+                                        <button
+                                            onClick={() => goToPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white"
+                                        >
+                                            Next <ChevronRight className="w-4 h-4" />
+                                        </button>
                                     </div>
-
-                                    <Button
-                                        onClick={() => goToPage(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        variant="outline"
-                                        className={paginationBtnStyles}
-                                    >
-                                        Next
-                                        <ChevronRight className="w-4 h-4 ml-1" />
-                                    </Button>
                                 </div>
                             )}
                         </>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, FlaskConical } from 'lucide-react';
+import { X, Info } from 'lucide-react';
 import { isDemoMode, disableDemoMode } from '@/lib/demo/manager';
 
 interface DemoBannerProps {
@@ -38,31 +38,29 @@ export function DemoBanner({ onClose }: DemoBannerProps) {
     };
 
     return (
-        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 text-white px-4 h-10 flex items-center justify-between shadow-lg relative overflow-hidden">
-            {/* Animated background pulse */}
-            <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none" />
-
-            <div className="flex items-center gap-2 sm:gap-3 relative z-10">
-                <div className="p-1 bg-white/20 rounded-full animate-bounce duration-[2000ms]">
-                    <FlaskConical className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="font-black text-[10px] uppercase tracking-tighter bg-white text-blue-700 px-1.5 py-0.5 rounded shrink-0">Demo Mode</span>
-                    {/* Mobile: Short underline link, Desktop: Full descriptive link */}
-                    <a href="/settings" className="text-[10px] sm:text-xs font-bold text-white underline decoration-white/30 hover:decoration-white hover:text-yellow-200 transition-all">
-                        <span className="sm:hidden">Settings ⚙️</span>
-                        <span className="hidden sm:inline">Go to Settings to turn off</span>
-                    </a>
-                </div>
+        <div
+            className="w-full flex items-center justify-center px-4 py-2 relative z-50 animate-in slide-in-from-top-2 duration-500"
+            style={{
+                background: 'linear-gradient(90deg, rgba(245,158,11,0.1), rgba(239,68,68,0.05))',
+                borderBottom: '1px solid rgba(245,158,11,0.2)'
+            }}
+        >
+            <div className="flex items-center gap-2 max-w-7xl mx-auto w-full justify-center text-sm font-medium">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-500 shrink-0">
+                    <Info className="w-3.5 h-3.5" />
+                </span>
+                <p className="text-amber-400">
+                    AlgoMind is currently in developer preview. Experience the full interview flow as a candidate.
+                    <span className="hidden sm:inline"> Employer mode is available for authorized users.</span>
+                </p>
+                <button
+                    onClick={handleDisable}
+                    className="hover:bg-white/20 p-1 rounded-full transition-all hover:rotate-90 relative z-10 text-amber-400"
+                    title="Exit Demo Mode"
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
             </div>
-
-            <button
-                onClick={handleDisable}
-                className="hover:bg-white/20 p-1 rounded-full transition-all hover:rotate-90 relative z-10"
-                title="Exit Demo Mode"
-            >
-                <X className="w-3.5 h-3.5" />
-            </button>
         </div>
     );
 }

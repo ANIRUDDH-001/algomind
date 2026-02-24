@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React from 'react';
-import { Mic, MicOff, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+'use client';
+
+import { motion } from 'framer-motion';
+import { Mic, MicOff, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MicrophoneButtonProps {
     isListening: boolean;
@@ -14,53 +12,66 @@ interface MicrophoneButtonProps {
     error?: string | null;
 }
 
-export function MicrophoneButton({
-    isListening,
-    onClick,
-    disabled = false,
-    className,
-    error
-}: MicrophoneButtonProps) {
-
-    // Visual states: idle (gray), listening (pulsing blue), processing (spinning - implicitly handled by parent logic usually, but here mapped to listening for now)
-
+export function MicrophoneButton({ isListening, onClick, disabled, className, error }: MicrophoneButtonProps) {
     return (
-        <div className="flex flex-col items-center gap-2">
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant={isListening ? "default" : "outline"}
-                            size="icon"
-                            data-testid="mic-button"
-                            className={cn(
-                                "h-16 w-16 rounded-full transition-all duration-200 shadow-lg relative",
-                                isListening
-                                    ? "bg-blue-600 hover:bg-blue-700 border-blue-500 ring-2 ring-blue-500/20"
-                                    : "bg-white hover:bg-slate-200 text-slate-900 border-white ring-2 ring-white/20",
-                                error ? "border-red-500 text-red-500" : "",
-                                className
-                            )}
-                            onClick={onClick}
-                            disabled={disabled}
-                        >
-                            {isListening ? (
-                                <Mic className="h-8 w-8 text-white" />
-                            ) : (
-                                <MicOff className={cn("h-8 w-8", error ? "text-red-500" : "text-slate-900")} />
-                            )}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {error ? error : isListening ? "Stop Listening" : "Start Speaking"}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <div className="flex flex-col items-center gap-3">
+            {/* Outer ring — only visible when listening */}
+            <div className="relative flex items-center justify-center">
+                {isListening && (
+                    <>
+                        {[0, 1, 2].map(i => (
+                            <motion.div key={i}
+                                className="absolute rounded-full border border-indigo-400/20"
+                                style={{ inset: -(i + 1) * 12 }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: [0, 0.5, 0], scale: [0.8, 1.2, 1.5] }}
+                                transition={{ duration: 2.4, delay: i * 0.8, repeat: Infinity, ease: 'easeOut' }}
+                            />
+                        ))}
+                    </>
+                )}
 
-            {/* State Label */}
-            <Badge variant={isListening ? "default" : "secondary"} className={cn(isListening ? "bg-blue-100 text-blue-800 hover:bg-blue-200" : "")}>
-                {isListening ? "Listening..." : "Click to Speak"}
-            </Badge>
+                <motion.button
+                    onClick={onClick}
+                    disabled={disabled}
+                    data-testid="mic-button"
+                    whileTap={{ scale: 0.92 }}
+                    whileHover={{ scale: 1.05 }}
+                    className={cn(
+                        "relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 outline-none",
+                        "border focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                        error
+                            ? "bg-red-500/15 border-red-500/40"
+                            : isListening
+                                ? "bg-indigo-600 border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+                                : "bg-zinc-900 border-zinc-700 hover:border-zinc-500",
+                        disabled && "opacity-40 cursor-not-allowed",
+                        className
+                    )}
+                >
+                    {error
+                        ? <AlertCircle className="w-6 h-6 text-red-400" />
+                        : isListening
+                            ? <Mic className="w-6 h-6 text-white" />
+                            : <MicOff className="w-6 h-6 text-zinc-400" />
+                    }
+                </motion.button>
+            </div>
+
+            {/* State label */}
+            <motion.span
+                key={error ? 'error' : isListening ? 'on' : 'off'}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                    "text-xs font-semibold tracking-wide",
+                    error ? "text-red-400"
+                        : isListening ? "text-indigo-400"
+                            : "text-zinc-500"
+                )}
+            >
+                {error ? "Mic error" : isListening ? "Listening..." : "Click to speak"}
+            </motion.span>
         </div>
     );
 }

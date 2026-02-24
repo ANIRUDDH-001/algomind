@@ -50,7 +50,7 @@ function EditorLoadingState() {
                 {/* Loading Animation */}
                 <div className="w-16 h-16 mx-auto relative">
                     <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+                    <div className="absolute inset-0 border-4 border-indigo-600 rounded-full animate-spin border-t-transparent"></div>
                 </div>
 
                 {/* Status Text */}
@@ -225,7 +225,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
                     >
                         {isRunning ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                         ) : (
                             <Play className="w-4 h-4 fill-current" />
                         )}
@@ -284,7 +284,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                         <div className="flex items-center gap-4">
                             {isRunning ? (
                                 <span className="text-slate-400 flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                                     Executing...
                                 </span>
                             ) : executionResult && (

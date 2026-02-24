@@ -23,10 +23,10 @@ function formatBytes(bytes: number): string {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
     return (
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/50 space-y-1">
-            <div className="text-[10px] uppercase tracking-widest font-black text-slate-500">{label}</div>
+        <div className="p-4 rounded-xl space-y-1" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+            <div className="text-[10px] uppercase tracking-widest font-black text-zinc-500">{label}</div>
             <div className="text-2xl font-bold text-white tabular-nums">{value}</div>
-            {sub && <div className="text-[10px] text-slate-500">{sub}</div>}
+            {sub && <div className="text-[10px] text-zinc-500 mt-1">{sub}</div>}
         </div>
     );
 }
@@ -86,11 +86,11 @@ export default function CacheStatsPage() {
                 {/* Header with refresh + clear buttons */}
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="space-y-1">
-                        <h1 className="text-2xl font-bold tracking-tight">Response Cache</h1>
-                        <p className="text-sm text-slate-400 flex items-center gap-2">
+                        <h1 className="text-2xl font-bold tracking-tight text-white">Response Cache</h1>
+                        <p className="text-sm text-zinc-400 flex items-center gap-2">
                             In-memory cache for AI responses to common queries.
                             {lastRefreshed && (
-                                <span className="text-slate-600 text-xs">
+                                <span className="text-zinc-500 text-xs">
                                     · Updated {lastRefreshed.toLocaleTimeString()}
                                 </span>
                             )}
@@ -100,17 +100,18 @@ export default function CacheStatsPage() {
                         <button
                             onClick={handleClear}
                             disabled={isClearing || isLoading}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-900/20 hover:bg-red-900/40 border border-red-800/50 hover:border-red-700/70 text-red-400 hover:text-red-300 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {isClearing ? <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             Clear Cache
                         </button>
                         <button
                             onClick={() => refresh(true)}
                             disabled={isRefreshing || isLoading}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-zinc-300 hover:text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800/50"
+                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                         >
-                            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`} />
                             {isRefreshing ? 'Refreshing…' : 'Refresh Stats'}
                         </button>
                     </div>
@@ -128,8 +129,8 @@ export default function CacheStatsPage() {
                 </div>
 
                 {isLoading && (
-                    <div className="flex items-center justify-center py-16 text-slate-500 gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                    <div className="flex items-center justify-center py-16 text-zinc-500 gap-2">
+                        <div className="w-5 h-5 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                         Loading cache stats…
                     </div>
                 )}
@@ -138,12 +139,12 @@ export default function CacheStatsPage() {
                     <>
                         {/* Status */}
                         <div className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-widest ${enabled
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                            : 'bg-red-500/10 border-red-500/30 text-red-400'
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                            : 'bg-red-500/10 border-red-500/25 text-red-400'
                             }`}>
                             {enabled ? '● Cache Enabled' : '○ Cache Disabled'}
                             {!enabled && (
-                                <span className="ml-2 font-normal normal-case text-slate-500">
+                                <span className="ml-2 font-normal normal-case text-zinc-500">
                                     Enable via Feature Flags → ENABLE_RESPONSE_CACHE
                                 </span>
                             )}
@@ -173,13 +174,13 @@ export default function CacheStatsPage() {
 
                                 {/* Memory bar */}
                                 <div className="space-y-1">
-                                    <div className="flex justify-between text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                                    <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
                                         <span>Memory Usage</span>
                                         <span>{formatBytes(stats.memorySizeBytes)} / {formatBytes(stats.maxMemoryBytes)}</span>
                                     </div>
-                                    <div className="h-2 rounded-full bg-slate-800/60 overflow-hidden">
+                                    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                                         <div
-                                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
                                             style={{ width: `${Math.min(100, (stats.memorySizeBytes / stats.maxMemoryBytes) * 100)}%` }}
                                         />
                                     </div>
@@ -188,17 +189,18 @@ export default function CacheStatsPage() {
                                 {/* Top Queries */}
                                 {stats.topQueries.length > 0 ? (
                                     <div className="space-y-3">
-                                        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Top Queries</h2>
+                                        <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">Top Queries</h2>
                                         <div className="space-y-1">
                                             {stats.topQueries.map((q, i) => (
                                                 <div
                                                     key={i}
-                                                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-900/40 border border-slate-800/50 text-xs"
+                                                    className="flex items-center gap-3 p-3 rounded-lg text-xs"
+                                                    style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}
                                                 >
-                                                    <span className="text-[10px] font-black text-slate-600 w-5 text-right">{i + 1}</span>
-                                                    <span className="flex-1 text-slate-300 truncate">{q.query}</span>
-                                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{q.model}</span>
-                                                    <span className="text-[10px] font-bold text-blue-400 tabular-nums min-w-[40px] text-right">
+                                                    <span className="text-[10px] font-black text-zinc-600 w-5 text-right">{i + 1}</span>
+                                                    <span className="flex-1 text-zinc-300 truncate">{q.query}</span>
+                                                    <span className="text-[10px] font-mono text-zinc-500 uppercase">{q.model}</span>
+                                                    <span className="text-[10px] font-bold text-indigo-400 tabular-nums min-w-[40px] text-right">
                                                         {q.hitCount} hits
                                                     </span>
                                                 </div>
@@ -206,7 +208,7 @@ export default function CacheStatsPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="p-4 rounded-lg bg-slate-900/40 border border-slate-800/50 text-slate-500 text-sm text-center">
+                                    <div className="p-4 rounded-lg text-zinc-500 text-sm text-center" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                         No cached queries yet — cache warms up during active interview sessions.
                                     </div>
                                 )}

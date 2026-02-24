@@ -10,6 +10,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from 'recharts';
+import { COLORS } from '@/lib/design-tokens';
 import { CognitiveSkill } from '@/types/assessment';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 
@@ -61,10 +62,10 @@ export function RadarChart({
     const chartSize = SIZE_MAP[size];
 
     return (
-        <div className="w-full flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md rounded-3xl border border-slate-800/50">
+        <div className="w-full flex items-center justify-center p-4 bg-[var(--surface-1)] backdrop-blur-md rounded-3xl border border-[var(--surface-edge)]">
             <ResponsiveContainer width="100%" height={chartSize}>
                 <RechartsRadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                    <PolarGrid stroke="#334155" />
+                    <PolarGrid stroke="var(--surface-edge)" />
                     <PolarAngleAxis
                         dataKey="skill"
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +103,7 @@ export function RadarChart({
                     <PolarRadiusAxis
                         angle={30}
                         domain={[0, 10]}
-                        tick={{ fill: '#475569', fontSize: 10 }}
+                        tick={{ fill: '#52525b', fontSize: 10 }}
                         axisLine={false}
                     />
 
@@ -110,9 +111,9 @@ export function RadarChart({
                         <Radar
                             name="Previous Session"
                             dataKey="previous"
-                            stroke="#a855f7"
-                            fill="#a855f7"
-                            fillOpacity={0.1}
+                            stroke={COLORS.chart[0]}
+                            fill={COLORS.chart[0]}
+                            fillOpacity={0.3}
                             strokeDasharray="4 4"
                             isAnimationActive={animated}
                         />
@@ -122,9 +123,9 @@ export function RadarChart({
                         <Radar
                             name="All-time average"
                             dataKey="allTime"
-                            stroke="#64748b"
-                            fill="#64748b"
-                            fillOpacity={0.1}
+                            stroke={COLORS.chart[1]}
+                            fill={COLORS.chart[1]}
+                            fillOpacity={0.3}
                             strokeDasharray="4 4"
                             isAnimationActive={animated}
                         />
@@ -133,11 +134,11 @@ export function RadarChart({
                     <Radar
                         name="This session"
                         dataKey="current"
-                        stroke="#3b82f6"
-                        fill="#3b82f6"
+                        stroke={COLORS.chart[2]}
+                        fill={COLORS.chart[2]}
                         fillOpacity={0.5}
                         isAnimationActive={animated}
-                        activeDot={{ r: 6, fill: "#3b82f6", stroke: "#0f172a", strokeWidth: 2 }}
+                        activeDot={{ r: 6, fill: COLORS.chart[2], stroke: "var(--surface-1)", strokeWidth: 2 }}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         dot={(props: any) => {
                             const { cx, cy, payload } = props;
@@ -145,7 +146,7 @@ export function RadarChart({
                             const skillEntry = Object.entries(SKILL_DEFINITIONS).find(([, def]) => def.name === skillName);
                             const skillId = skillEntry ? skillEntry[0] : null;
                             const isSelected = skillId === selectedSkill;
-                            const color = skillEntry && skillEntry[1].color ? skillEntry[1].color : '#3b82f6';
+                            const color = skillEntry && skillEntry[1].color ? skillEntry[1].color : COLORS.chart[2];
                             return (
                                 <g
                                     key={`dot-${skillName}`}
@@ -157,7 +158,7 @@ export function RadarChart({
                                     {isSelected && (
                                         <>
                                             <circle cx={cx} cy={cy} r={12} fill={color} fillOpacity={0.4} className="animate-pulse" />
-                                            <circle cx={cx} cy={cy} r={6} fill="#0f172a" stroke={color} strokeWidth={2} />
+                                            <circle cx={cx} cy={cy} r={6} fill="var(--surface-1)" stroke={color} strokeWidth={2} />
                                         </>
                                     )}
                                 </g>
@@ -167,11 +168,11 @@ export function RadarChart({
 
                     <Tooltip
                         contentStyle={{
-                            backgroundColor: '#0f172a',
-                            border: '1px solid #1e293b',
+                            backgroundColor: 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
                             borderRadius: '12px',
                             padding: '12px',
-                            color: '#f8fafc',
+                            color: '#e4e4e7',
                         }}
                         itemStyle={{ fontSize: '12px' }}
                     />
@@ -180,7 +181,7 @@ export function RadarChart({
 
             {allTimeData && (
                 <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-4 text-[10px] text-slate-400 font-medium">
-                    <div className="flex items-center gap-1.5"><span className="text-blue-500 text-xs">●</span> This session</div>
+                    <div className="flex items-center gap-1.5"><span className="text-[COLORS.chart[2]] text-xs" style={{ color: COLORS.chart[2] }}>●</span> This session</div>
                     <div className="flex items-center gap-1.5"><span className="text-slate-500 text-xs shadow-none">○</span> All-time avg</div>
                 </div>
             )}

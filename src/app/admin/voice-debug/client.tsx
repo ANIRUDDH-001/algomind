@@ -27,12 +27,12 @@ const EVENT_COLORS: Record<string, string> = {
     interruption: 'text-red-400',
     resumption: 'text-green-400',
     debounce: 'text-orange-400',
-    state_change: 'text-slate-500',
+    state_change: 'text-zinc-500',
     confidence_reject: 'text-yellow-500',
     duration_reject: 'text-amber-500',
     manual_stop: 'text-red-300',
-    manual_continue: 'text-blue-300',
-    diagnostic: 'text-slate-600',
+    manual_continue: 'text-indigo-300',
+    diagnostic: 'text-zinc-600',
 };
 
 // ---------------------------------------------------------------------------
@@ -65,11 +65,11 @@ function ConfigSlider({
     return (
         <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-300 font-medium">{label}</span>
-                <span className={isModified ? 'text-blue-400 font-bold' : 'text-slate-500'}>
+                <span className="text-zinc-300 font-medium">{label}</span>
+                <span className={isModified ? 'text-indigo-400 font-bold' : 'text-zinc-500'}>
                     {value}{unit}
                     {isModified && (
-                        <span className="text-slate-600 ml-1">(default: {defaultVal})</span>
+                        <span className="text-zinc-600 ml-1">(default: {defaultVal})</span>
                     )}
                 </span>
             </div>
@@ -182,7 +182,7 @@ export default function VoiceDebugPage() {
                 {/* Header */}
                 <div className="space-y-1">
                     <h1 className="text-2xl font-bold tracking-tight">Voice Debug Panel</h1>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-zinc-400">
                         Tune interruption parameters and monitor VAD events in real-time.
                     </p>
                 </div>
@@ -195,17 +195,17 @@ export default function VoiceDebugPage() {
                         { label: 'Rejected (dur)', value: stats.durationRejects, color: 'text-amber-400' },
                         { label: 'Reject Rate', value: `${stats.rejectRate.toFixed(1)}%`, color: 'text-orange-400' },
                     ].map(s => (
-                        <div key={s.label} className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/50">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{s.label}</div>
+                        <div key={s.label} className="p-3 rounded-xl bg-[var(--surface-1)]/40 border border-[var(--surface-edge)]/50">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{s.label}</div>
                             <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
                         </div>
                     ))}
                 </div>
 
                 {/* Config tuning */}
-                <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/50 space-y-5">
+                <div className="p-5 rounded-2xl bg-[var(--surface-1)]/40 border border-[var(--surface-edge)]/50 space-y-5">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
                             Configuration
                         </h2>
                         <button
@@ -226,17 +226,17 @@ export default function VoiceDebugPage() {
                     </div>
 
                     {/* Debug mode toggle */}
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-800/50">
+                    <div className="flex items-center justify-between pt-3 border-t border-[var(--surface-edge)]/50">
                         <div>
-                            <span className="text-xs font-bold text-slate-300">Debug Mode</span>
-                            <p className="text-[10px] text-slate-500">Verbose console logging for all decisions</p>
+                            <span className="text-xs font-bold text-zinc-300">Debug Mode</span>
+                            <p className="text-[10px] text-zinc-500">Verbose console logging for all decisions</p>
                         </div>
                         <button
                             role="switch"
                             aria-checked={config.debugMode}
                             onClick={() => handleConfigChange('debugMode', !config.debugMode)}
                             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ${config.debugMode
-                                ? 'bg-blue-600 border-blue-500'
+                                ? 'bg-indigo-600 border-indigo-500'
                                 : 'bg-slate-700 border-slate-600'
                                 }`}
                         >
@@ -251,40 +251,40 @@ export default function VoiceDebugPage() {
                 {/* Event stream */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
                             Event Stream
                         </h2>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-zinc-500">
                             {eventStream.length} events
                             {eventStream.length === 0 && ' — start an interview with VAD enabled to see events'}
                         </span>
                     </div>
                     <div
                         ref={streamRef}
-                        className="h-64 overflow-y-auto rounded-xl bg-slate-900/60 border border-slate-800/50 p-3 font-mono text-[11px] space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700"
+                        className="h-64 overflow-y-auto rounded-xl bg-[var(--surface-1)]/60 border border-[var(--surface-edge)]/50 p-3 font-mono text-[11px] space-y-0.5 scrollbar-thin scrollbar-thumb-slate-700"
                     >
                         {eventStream.length === 0 ? (
-                            <div className="text-slate-600 text-center py-8">
+                            <div className="text-zinc-600 text-center py-8">
                                 No events yet. Expose the InterruptionManager instance to <code>window.__algomind_im_debug</code> during an interview to enable live monitoring.
                             </div>
                         ) : (
                             eventStream.map((evt, i) => (
                                 <div key={i} className="flex gap-2 items-start">
-                                    <span className="text-slate-600 shrink-0">{formatTs(evt.timestamp)}</span>
-                                    <span className={`font-bold shrink-0 ${EVENT_COLORS[evt.event] ?? 'text-slate-400'}`}>
+                                    <span className="text-zinc-600 shrink-0">{formatTs(evt.timestamp)}</span>
+                                    <span className={`font-bold shrink-0 ${EVENT_COLORS[evt.event] ?? 'text-zinc-400'}`}>
                                         {evt.event}
                                     </span>
                                     {evt.decision && (
-                                        <span className="text-slate-500">→ {evt.decision}</span>
+                                        <span className="text-zinc-500">→ {evt.decision}</span>
                                     )}
                                     {evt.confidence !== undefined && (
-                                        <span className="text-blue-400/60">conf={evt.confidence.toFixed(3)}</span>
+                                        <span className="text-indigo-400/60">conf={evt.confidence.toFixed(3)}</span>
                                     )}
                                     {evt.speechDurationMs !== undefined && (
                                         <span className="text-purple-400/60">{evt.speechDurationMs}ms</span>
                                     )}
                                     {evt.reason && (
-                                        <span className="text-slate-600 truncate">{evt.reason}</span>
+                                        <span className="text-zinc-600 truncate">{evt.reason}</span>
                                     )}
                                 </div>
                             ))
@@ -293,11 +293,11 @@ export default function VoiceDebugPage() {
                 </div>
 
                 {/* Current config dump */}
-                <details className="text-xs text-slate-500">
-                    <summary className="cursor-pointer hover:text-slate-300 font-bold uppercase tracking-widest transition-colors">
+                <details className="text-xs text-zinc-500">
+                    <summary className="cursor-pointer hover:text-zinc-300 font-bold uppercase tracking-widest transition-colors">
                         Debug: Raw Config
                     </summary>
-                    <pre className="mt-2 p-3 rounded-lg bg-slate-900/60 border border-slate-800/50 overflow-auto font-mono text-[10px]">
+                    <pre className="mt-2 p-3 rounded-lg bg-[var(--surface-1)]/60 border border-[var(--surface-edge)]/50 overflow-auto font-mono text-[10px]">
                         {JSON.stringify(config, null, 2)}
                     </pre>
                 </details>

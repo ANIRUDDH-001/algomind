@@ -250,38 +250,38 @@ export default function ModelsAdminClient() {
         <div className="text-white p-6 lg:p-10">
             <div className="max-w-[1400px] mx-auto space-y-8">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
                         Model Registry
                     </h1>
-                    <p className="text-slate-400 mt-2 font-medium">
+                    <p className="text-zinc-400 mt-2 font-medium">
                         Monitor provider health, rate limits, and model verification status
                     </p>
                 </div>
 
                 {/* Banner */}
                 {deprecatedCount24h > 0 ? (
-                    <Card className="p-4 bg-red-900/20 border-red-500/50 flex items-center gap-3">
+                    <div className="rounded-xl p-4 bg-red-500/10 border border-red-500/25 flex items-center gap-3">
                         <AlertCircle className="text-red-400 w-5 h-5 flex-shrink-0" />
-                        <span className="text-red-200 font-medium">
+                        <span className="text-red-200 font-bold text-sm">
                             ⚠ {deprecatedCount24h} model(s) automatically deprecated in the last 24 hours. Check system events for details.
                         </span>
-                    </Card>
+                    </div>
                 ) : (
                     models.length > 0 && !isLoading && (
-                        <Card className="p-4 bg-emerald-900/20 border-emerald-500/50 flex items-center gap-3">
+                        <div className="rounded-xl p-4 bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
                             <CheckCircle2 className="text-emerald-400 w-5 h-5 flex-shrink-0" />
-                            <span className="text-emerald-200 font-medium">
+                            <span className="text-emerald-200 font-bold text-sm">
                                 All {models.filter(m => m.isActive).length} active models verified and healthy.
                             </span>
-                        </Card>
+                        </div>
                     )
                 )}
 
                 {/* Main Table */}
-                <Card className="border-slate-800/50 bg-slate-900/40 backdrop-blur-sm overflow-hidden shadow-xl">
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
+                            <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-600 border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
                                 <tr>
                                     <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4">Model ID</th>
@@ -295,16 +295,16 @@ export default function ModelsAdminClient() {
                                     <th className="px-4 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800/50">
+                            <tbody className="divide-y divide-[var(--surface-edge)]">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
-                                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                                        <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
+                                            <div className="w-6 h-6 mx-auto mb-2 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                                             Loading registry data...
                                         </td>
                                     </tr>
                                 ) : models.map((model) => (
-                                    <tr key={model.modelId} className="hover:bg-slate-800/20 transition-colors">
+                                    <tr key={model.modelId} className="hover:bg-zinc-800/30 transition-colors">
                                         <td className="px-4 py-3">
                                             {model.status === 'active' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" title="Active & Healthy" />}
                                             {model.status === 'degraded' && <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)] animate-pulse" title="Degraded (High 429s)" />}
@@ -313,22 +313,22 @@ export default function ModelsAdminClient() {
                                         <td className="px-4 py-3">
                                             <button
                                                 onClick={() => handleCopy(model.modelId)}
-                                                className="font-mono text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors"
+                                                className="font-mono text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 transition-colors"
                                             >
                                                 {model.modelId} <Copy className="w-3 h-3 opacity-50" />
                                             </button>
                                             {model.modelType === 'audio' && (
-                                                <Badge variant="outline" className="mt-1 border-blue-500/30 text-blue-400 bg-blue-500/5 px-1 py-0 h-4 text-[9px] uppercase font-bold">
+                                                <span className="mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/25">
                                                     Audio
-                                                </Badge>
+                                                </span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-slate-300 capitalize">{model.provider}</td>
-                                        <td className="px-4 py-3 text-slate-300">{model.tier}</td>
+                                        <td className="px-4 py-3 text-zinc-300 capitalize">{model.provider}</td>
+                                        <td className="px-4 py-3 text-zinc-300">{model.tier}</td>
 
                                         {/* Editable Columns */}
                                         {['rpm', 'tpm', 'rpd'].map((field) => (
-                                            <td key={field} className="px-4 py-3 text-slate-300">
+                                            <td key={field} className="px-4 py-3 text-zinc-300">
                                                 {editingModel === model.modelId ? (
                                                     <input
                                                         type="number"
@@ -338,13 +338,13 @@ export default function ModelsAdminClient() {
                                                             if (e.key === 'Enter') saveEdit(model.modelId);
                                                             if (e.key === 'Escape') cancelEditing();
                                                         }}
-                                                        className="w-20 bg-slate-950 border border-blue-500/50 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        className="w-20 bg-black border border-indigo-500/50 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                         autoFocus={field === 'rpm'}
                                                     />
                                                 ) : (
                                                     <div
                                                         onClick={() => startEditing(model)}
-                                                        className="cursor-pointer hover:bg-slate-800/50 px-2 py-1 -mx-2 rounded flex items-center gap-2 group"
+                                                        className="cursor-pointer hover:bg-zinc-800/50 px-2 py-1 -mx-2 rounded flex items-center gap-2 group"
                                                     >
                                                         {model[field as keyof typeof model]}
                                                         <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-50" />
@@ -354,31 +354,31 @@ export default function ModelsAdminClient() {
                                         ))}
 
                                         <td className="px-4 py-3">
-                                            <span className={isStale(model.lastVerified) ? "text-red-400 font-medium" : "text-slate-400"}>
+                                            <span className={isStale(model.lastVerified) ? "text-red-400 font-medium" : "text-zinc-400"}>
                                                 {getRelativeTime(model.lastVerified)}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
                                             {model.rateLimitHits24h > 0 ? (
-                                                <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-500/10">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/25">
                                                     {model.rateLimitHits24h}
-                                                </Badge>
+                                                </span>
                                             ) : (
-                                                <span className="text-slate-500">0</span>
+                                                <span className="text-zinc-500">0</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             {editingModel === model.modelId ? (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Button size="sm" variant="ghost" className="h-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => saveEdit(model.modelId)} disabled={isSavingEdit}>
-                                                        {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                                        {isSavingEdit ? <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Check className="w-4 h-4" />}
                                                     </Button>
-                                                    <Button size="sm" variant="ghost" className="h-8 text-slate-400 hover:text-white" onClick={cancelEditing}>
+                                                    <Button size="sm" variant="ghost" className="h-8 text-zinc-400 hover:text-white" onClick={cancelEditing}>
                                                         <X className="w-4 h-4" />
                                                     </Button>
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center justify-end gap-2 text-slate-400">
+                                                <div className="flex items-center justify-end gap-2 text-zinc-400">
                                                     {model.status === 'deprecated' ? (
                                                         <Button size="sm" variant="outline" className="h-8 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => handleRestore(model.modelId)}>
                                                             <RotateCcw className="w-3 h-3 mr-1" /> Restore
@@ -388,11 +388,11 @@ export default function ModelsAdminClient() {
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                className="h-8 border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white"
+                                                                className="h-8 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-700 hover:text-white"
                                                                 onClick={() => handleVerify(model.modelId)}
                                                                 disabled={verifyingModel === model.modelId}
                                                             >
-                                                                {verifyingModel === model.modelId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
+                                                                {verifyingModel === model.modelId ? <div className="w-3 h-3 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
                                                                 {model.modelType === 'audio' ? 'Mark OK' : 'Verify'}
                                                             </Button>
                                                             <Button size="sm" variant="outline" className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => handleDeprecate(model.modelId)}>
@@ -408,38 +408,40 @@ export default function ModelsAdminClient() {
                             </tbody>
                         </table>
                     </div>
-                </Card>
+                </div>
 
                 {/* Add Model Form placeholder - backend endpoint required for full insert, keeping UI matching requirements */}
-                <div className="pt-4 border-t border-slate-800/50">
+                <div className="pt-4 border-t border-[var(--surface-edge)]">
                     <Button
                         variant="ghost"
                         onClick={() => setShowAddForm(!showAddForm)}
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 font-bold"
+                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 font-bold"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         {showAddForm ? 'Cancel Adding' : 'Add New Model'}
                     </Button>
 
                     {showAddForm && (
-                        <Card className="p-6 mt-4 bg-slate-900/40 border-blue-500/20">
-                            <h3 className="text-lg font-bold text-slate-200 mb-4">Register New Model</h3>
+                        <div className="rounded-2xl p-6 mt-4" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                            <h3 className="text-lg font-bold text-zinc-200 mb-4">Register New Model</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Basic form structure to match spec */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Model ID</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Model ID</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         placeholder="e.g. llama-3.1-8b"
                                         value={newModel.modelId}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, modelId: e.target.value }))}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Provider</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Provider</label>
                                     <select
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         value={newModel.provider}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, provider: e.target.value }))}
                                     >
@@ -449,39 +451,43 @@ export default function ModelsAdminClient() {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tier (1-12)</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Tier (1-12)</label>
                                     <input
                                         type="number"
                                         min="1"
                                         max="12"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         value={newModel.tier}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, tier: parseInt(e.target.value) || 0 }))}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">RPM (Req per min)</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">RPM (Req per min)</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         value={newModel.rpm}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, rpm: parseInt(e.target.value) || 0 }))}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">TPM (Tokens per min)</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">TPM (Tokens per min)</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         value={newModel.tpm}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, tpm: parseInt(e.target.value) || 0 }))}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">RPD (Req per day)</label>
+                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">RPD (Req per day)</label>
                                     <input
                                         type="number"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         value={newModel.rpd}
                                         onChange={(e) => setNewModel(prev => ({ ...prev, rpd: parseInt(e.target.value) || 0 }))}
                                     />
@@ -489,15 +495,15 @@ export default function ModelsAdminClient() {
                             </div>
                             <div className="mt-6 flex justify-end">
                                 <Button
-                                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                                    className="btn-primary"
                                     onClick={handleAddModel}
                                     disabled={isAdding}
                                 >
-                                    {isAdding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                    {isAdding ? <div className="w-4 h-4 mr-2 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                                     Verify & Add
                                 </Button>
                             </div>
-                        </Card>
+                        </div>
                     )}
                 </div>
             </div>

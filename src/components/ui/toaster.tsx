@@ -11,17 +11,23 @@ export function Toaster() {
             closeButton
             toastOptions={{
                 duration: 4000,
+                style: {
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--surface-edge)',
+                    color: '#e4e4e7',
+                    borderRadius: '14px',
+                },
                 classNames: {
-                    toast: 'bg-slate-900 border-slate-800 shadow-xl',
+                    toast: 'shadow-xl',
                     title: 'text-white font-semibold',
-                    description: 'text-slate-400',
-                    actionButton: 'bg-blue-600 text-white hover:bg-blue-700',
-                    cancelButton: 'bg-slate-700 text-white hover:bg-slate-600',
-                    closeButton: 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white',
-                    success: 'bg-emerald-900/90 border-emerald-700',
-                    error: 'bg-red-900/90 border-red-700',
-                    warning: 'bg-yellow-900/90 border-yellow-700',
-                    info: 'bg-blue-900/90 border-blue-700',
+                    description: 'text-zinc-400',
+                    actionButton: 'bg-indigo-600 text-white hover:bg-indigo-700',
+                    cancelButton: 'bg-zinc-700 text-white hover:bg-zinc-600',
+                    closeButton: 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white',
+                    success: '!border-emerald-500/30',
+                    error: '!border-red-500/30',
+                    warning: '!border-amber-500/30',
+                    info: '!border-indigo-500/30',
                 },
             }}
         />
