@@ -1,0 +1,7 @@
+﻿
+D:\algomind\src\hooks\useInterview.ts
+  176:8  warning  React Hook useCallback has missing dependencies: 'options.apiEndpoint' and 'options.sessionToken'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  309:8  warning  React Hook useCallback has a missing dependency: 'options.isReviewMode'. Either include it or remove the dependency array                              react-hooks/exhaustive-deps
+
+Ô£û 2 problems (0 errors, 2 warnings)
+
