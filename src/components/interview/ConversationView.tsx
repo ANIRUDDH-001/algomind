@@ -6,7 +6,7 @@ import { Bot, User, RotateCcw, AlertTriangle } from 'lucide-react';
 import { InterruptionIndicator } from './InterruptionIndicator';
 import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
 import { InterruptionManager } from '@/lib/voice/interruption-manager';
-import { useFeatureFlagWithSupport } from '@/hooks/useFeatureFlag';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { voiceAnalytics } from '@/lib/analytics/voice-analytics';
 import { Badge } from '@/components/ui/badge';
 
@@ -91,7 +91,8 @@ export function ConversationView({
     // ── VAD Hook Integration ─────────────────────────────────────
     // Feature flags integration
     // We combine the prop (from parent/settings) with the global feature flag
-    const { enabled: isVadFlagEnabled, supported: isVadSupported } = useFeatureFlagWithSupport('ENABLE_VAD_INTERRUPTIONS');
+    const isVadFlagEnabled = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
+    const isVadSupported = true; // Browser support checked at AudioWorklet init
 
     // Effective VAD enabled state: Must be enabled globally AND supported AND enabled via prop (if applicable)
     // Note: If propVadEnabled is generally true/false based on user preference in parent, we might want to respect it.

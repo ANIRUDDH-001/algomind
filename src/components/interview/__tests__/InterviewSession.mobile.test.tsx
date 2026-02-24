@@ -124,9 +124,8 @@ vi.mock('@/hooks/useGuestTrial', () => ({
     GUEST: { MAX: 5 },
 }));
 
-vi.mock('@/hooks/useFeatureFlag', () => ({
-    useFeatureFlag: () => ({ enabled: false }),
-    useFeatureFlagWithSupport: () => ({ enabled: false, supported: false }),
+vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
+    useGlobalFeatureFlag: () => false,
 }));
 
 vi.mock('@/hooks/useVoiceActivityDetection', () => ({

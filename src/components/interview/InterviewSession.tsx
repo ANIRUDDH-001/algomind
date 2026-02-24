@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
@@ -82,9 +82,9 @@ export function InterviewSession({
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // VAD & Observer feature flags
-    const { enabled: vadEnabled } = useFeatureFlag('ENABLE_VAD_INTERRUPTIONS');
-    const { enabled: observerEnabled } = useFeatureFlag('ENABLE_SILENT_OBSERVER');
+    // VAD & Observer feature flags (server-side)
+    const vadEnabled = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
+    const observerEnabled = useGlobalFeatureFlag('ENABLE_SILENT_OBSERVER', true);
 
     // --- 1. Basic State ---
     const [hasStarted, setHasStarted] = useState(false);
@@ -681,7 +681,7 @@ export function InterviewSession({
     // --- MAIN RETURN --- //
 
     return (
-        <div className="h-[100dvh] flex flex-col w-full overflow-hidden" style={{ background: 'var(--surface-base)' }} data-tour="interview-container">
+        <div className="h-full flex flex-col w-full overflow-y-auto overflow-x-hidden" style={{ background: 'var(--surface-base)' }} data-tour="interview-container">
             {isAnalyzing && <AssessmentLoader />}
             {error && (
                 error.includes('VAD Initialization Failed') || error.includes('Voice Activity Detection') || error.includes('AudioWorklet') ? (

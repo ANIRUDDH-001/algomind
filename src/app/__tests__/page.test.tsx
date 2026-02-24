@@ -163,23 +163,23 @@ describe('HomePage — Authenticated', () => {
         vi.clearAllMocks();
     });
 
-    it('1 & 2. Authenticated user triggers redirect to /dashboard', async () => {
+    it('1 & 2. Authenticated user sees "Go to Dashboard" button (no redirect)', async () => {
         mockUseAuth.mockReturnValue({ user: { id: '1', email: 'test@test.com' } as any, loading: false });
         render(<HomePage />);
 
         await waitFor(() => {
-            expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+            // Component renders marketing page with dashboard button instead of redirecting
+            expect(screen.getAllByRole('button', { name: /go to dashboard/i }).length).toBeGreaterThan(0);
         });
     });
 
-    it('3. Does NOT render marketing content when authenticated (returns null)', async () => {
+    it('3. Still renders marketing content when authenticated (5 sections)', async () => {
         mockUseAuth.mockReturnValue({ user: { id: '1', email: 'test@test.com' } as any, loading: false });
         const { container } = render(<HomePage />);
 
         await waitFor(() => {
-            // sections should not be rendered — component returns null
             const sections = container.querySelectorAll('section');
-            expect(sections).toHaveLength(0);
+            expect(sections).toHaveLength(5);
         });
     });
 

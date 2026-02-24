@@ -59,6 +59,64 @@ export const FEATURE_FLAGS = {
         description: 'Use Groq Whisper for speech recognition (better accuracy, requires network)',
         requiresBrowserSupport: true,
     },
+
+    // ── Phase 0 Flags ──────────────────────────────────────────────────
+
+    // Groq PlayAI TTS
+    ENABLE_GROQ_TTS: {
+        storageKey: 'feature_ENABLE_GROQ_TTS',
+        defaultValue: false,
+        description: 'Groq PlayAI TTS (Aaliya-PlayAI Indian English voice). Primary TTS when enabled. Fallback: Browser Web Speech API.',
+        requiresBrowserSupport: false,
+    },
+
+    // AWS Polly Neural TTS
+    ENABLE_AWS_POLLY_TTS: {
+        storageKey: 'feature_ENABLE_AWS_POLLY_TTS',
+        defaultValue: false,
+        description: 'AWS Polly Neural TTS (Kajal Indian English voice). Last-resort TTS fallback.',
+        requiresBrowserSupport: false,
+    },
+
+    // AWS Transcribe (batch only)
+    ENABLE_AWS_TRANSCRIBE_STT: {
+        storageKey: 'feature_ENABLE_AWS_TRANSCRIBE_STT',
+        defaultValue: false,
+        description: 'AWS Transcribe for post-interview batch transcription enrichment (NOT real-time).',
+        requiresBrowserSupport: false,
+    },
+
+    // AWS S3 Storage
+    ENABLE_AWS_S3_STORAGE: {
+        storageKey: 'feature_ENABLE_AWS_S3_STORAGE',
+        defaultValue: false,
+        description: 'Store session transcripts on AWS S3 instead of Supabase storage.',
+        requiresBrowserSupport: false,
+    },
+
+    // Learn Mode
+    ENABLE_LEARN_MODE: {
+        storageKey: 'feature_ENABLE_LEARN_MODE',
+        defaultValue: false,
+        description: 'AI tutor mode with Hinglish support. User can learn concepts after poor performance.',
+        requiresBrowserSupport: false,
+    },
+
+    // Comparative Analysis
+    ENABLE_COMPARATIVE_ANALYSIS: {
+        storageKey: 'feature_ENABLE_COMPARATIVE_ANALYSIS',
+        defaultValue: true,
+        description: 'Show side-by-side performance comparison when user retries a problem.',
+        requiresBrowserSupport: false,
+    },
+
+    // Difficulty Modes
+    ENABLE_DIFFICULTY_MODES: {
+        storageKey: 'feature_ENABLE_DIFFICULTY_MODES',
+        defaultValue: true,
+        description: 'Difficulty-based interview modes: Warm-Up, Practice, Crunch, Sprint.',
+        requiresBrowserSupport: false,
+    },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
