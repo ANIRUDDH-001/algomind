@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if Whisper is enabled globally
-    const whisperEnabled = getGlobalFeatureFlag('ENABLE_WHISPER_STT');
+    const whisperEnabled = await getGlobalFeatureFlag('ENABLE_WHISPER_STT');
     if (!whisperEnabled) {
         return NextResponse.json({ error: 'Whisper STT is disabled' }, { status: 503 });
     }
