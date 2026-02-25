@@ -21,6 +21,8 @@ import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPane
 import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 import { ShareReplayButton } from '@/components/dashboard/ShareReplayButton';
+import { ComingSoonSection } from '@/components/dashboard/ComingSoonSection';
+import { useReviewCount } from '@/hooks/useReviewCount';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { Brain, ChevronRight, Activity, Sparkles, UserCheck } from 'lucide-react';
 import { format, differenceInHours } from 'date-fns';
@@ -43,7 +45,7 @@ function DashboardContent() {
     const [direction, setDirection] = useState(1);
     const [showPrevious, setShowPrevious] = useState(false);
     const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
-    const [reviewDueCount, setReviewDueCount] = useState(0);
+    const { count: reviewDueCount } = useReviewCount();
 
     // Feature state for "All-time" averages logic
     const [allTimeData, setAllTimeData] = useState<Record<string, number> | undefined>(undefined);
@@ -197,6 +199,11 @@ function DashboardContent() {
                         >
                             {activeTab === 'overview' && (
                                 <>
+                                    {/* Review Queue — above stats when reviews are due */}
+                                    {progress?.userId && reviewDueCount > 0 && (
+                                        <ReviewQueueWidget userId={progress.userId} />
+                                    )}
+
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                                         {/* Radar Chart - Left Half */}
                                         <div className="lg:col-span-12 xl:col-span-7 h-full">
@@ -271,11 +278,14 @@ function DashboardContent() {
                                         </div>
                                     </div>
 
-                                    {progress?.userId && (
-                                        <ReviewQueueWidget userId={progress.userId} onDueCountChange={setReviewDueCount} />
+                                    {progress?.userId && reviewDueCount === 0 && (
+                                        <ReviewQueueWidget userId={progress.userId} />
                                     )}
 
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
+
+                                    {/* Coming Soon Section */}
+                                    <ComingSoonSection />
                                 </>
                             )}
 
