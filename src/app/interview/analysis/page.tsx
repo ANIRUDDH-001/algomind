@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getSpacedRepForProblem } from '@/app/actions/spaced-repetition';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
@@ -6,6 +7,33 @@ import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import type { FeatureFlagKey } from '@/lib/feature-flags';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+    searchParams,
+}: {
+    searchParams: Promise<{ sessionId?: string }>;
+}): Promise<Metadata> {
+    const params = await searchParams;
+    const sessionId = params.sessionId;
+    if (!sessionId) return { title: 'Analysis | AlgoMind' };
+
+    try {
+        const supabase = await createServerSupabase();
+        const { data } = await supabase
+            .from('interview_sessions')
+            .select('problem_title')
+            .eq('id', sessionId)
+            .single();
+
+        const title = data?.problem_title || 'Interview';
+        return {
+            title: `${title} — Performance Analysis | AlgoMind`,
+            description: `Detailed cognitive skill analysis and performance breakdown for ${title}.`,
+        };
+    } catch {
+        return { title: 'Performance Analysis | AlgoMind' };
+    }
+}
 
 interface TranscriptTurn {
     speaker: string;
