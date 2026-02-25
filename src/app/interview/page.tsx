@@ -118,7 +118,7 @@ function InterviewContent() {
 
     if (loading) {
         return (
-            <div className="fixed inset-0 top-16 bg-slate-950 flex flex-col lg:flex-row p-4 gap-4 animate-pulse">
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex flex-col lg:flex-row p-4 gap-4 animate-pulse">
                 {/* Desktop Skeleton Layout */}
                 <div className="hidden lg:flex w-1/4 h-full bg-slate-900/50 rounded-xl border border-slate-800/50 flex-col p-4 gap-4">
                     <div className="h-6 w-3/4 bg-slate-800 rounded"></div>
@@ -143,7 +143,7 @@ function InterviewContent() {
 
     if (error || !problem) {
         return (
-            <div className="fixed inset-0 top-16 bg-slate-950 flex items-center justify-center text-white">
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex items-center justify-center text-white">
                 <div className="text-center max-w-md px-6">
                     <p className="text-red-400 text-lg mb-4">{error || 'Problem not found'}</p>
                     {rateLimitInfo && !rateLimitInfo.allowed ? (
@@ -161,7 +161,7 @@ function InterviewContent() {
     }
 
     return (
-        <div className="fixed inset-0 top-16 bg-slate-950 text-slate-100 overflow-hidden">
+        <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 text-slate-100 overflow-hidden">
             <InterviewErrorBoundary>
                 <InterviewSession
                     problem={problem}
@@ -179,7 +179,7 @@ function InterviewContent() {
 
 export default function InterviewPage() {
     return (
-        <Suspense fallback={<div className="fixed inset-0 top-16 bg-slate-950 overflow-hidden" />}>
+        <Suspense fallback={<div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 overflow-hidden" />}>
             <InterviewContent />
         </Suspense>
     );
