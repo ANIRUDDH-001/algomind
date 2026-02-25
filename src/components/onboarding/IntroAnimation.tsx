@@ -42,120 +42,88 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
     }, [onComplete]);
 
     return (
-        <div className="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style={{ background: 'var(--surface-base)' }}>
             {/* Background gradient orbs */}
-            <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
-                    className="absolute w-96 h-96 rounded-full bg-blue-500/20 blur-3xl"
-                    animate={{
-                        x: [0, 100, 0],
-                        y: [0, -50, 0],
-                    }}
+                    className="absolute w-[500px] h-[500px] rounded-full blur-[100px]"
+                    style={{ background: 'var(--accent-glow)', top: '-10%', left: '-10%' }}
+                    animate={{ x: [0, 50, 0], y: [0, -50, 0], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ top: '10%', left: '10%' }}
                 />
                 <motion.div
-                    className="absolute w-96 h-96 rounded-full bg-purple-500/20 blur-3xl"
-                    animate={{
-                        x: [0, -100, 0],
-                        y: [0, 50, 0],
-                    }}
+                    className="absolute w-[500px] h-[500px] rounded-full blur-[100px]"
+                    style={{ background: 'rgba(139, 92, 246, 0.15)', bottom: '-10%', right: '-10%' }}
+                    animate={{ x: [0, -50, 0], y: [0, 50, 0], opacity: [0.3, 0.5, 0.3] }}
                     transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                    style={{ bottom: '10%', right: '10%' }}
                 />
             </div>
 
-            {/* User Silhouette (0-1s) */}
+            {/* 3D Target Cube (0-1s) */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: step >= 0 ? 1 : 0, scale: step >= 0 ? 1 : 0.5 }}
-                transition={{ duration: 1 }}
-                className="absolute"
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="absolute z-10"
+                style={{ top: '35%' }}
             >
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 opacity-20" />
+                <div style={{ perspective: '800px' }} className="w-20 h-20 md:w-24 md:h-24 mx-auto">
+                    <motion.div
+                        style={{ transformStyle: 'preserve-3d', width: '100%', height: '100%' }}
+                        animate={{ rotateY: 360, rotateX: [0, 10, 0, -10, 0] }}
+                        transition={{ rotateY: { duration: 8, repeat: Infinity, ease: 'linear' }, rotateX: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }}
+                    >
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', transform: 'translateZ(40px)', borderRadius: '12px', opacity: 0.95, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(99,102,241,0.4)' }}>
+                            <span style={{ color: 'white', fontSize: '32px', fontWeight: 900 }}>A</span>
+                        </div>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', transform: 'rotateY(180deg) translateZ(40px)', borderRadius: '12px', opacity: 0.7 }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(99,102,241,0.5)', transform: 'rotateY(90deg) translateZ(40px)', borderRadius: '12px' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(139,92,246,0.5)', transform: 'rotateY(-90deg) translateZ(40px)', borderRadius: '12px' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(139,92,246,0.3)', transform: 'rotateX(90deg) translateZ(40px)', borderRadius: '12px' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(139,92,246,0.3)', transform: 'rotateX(-90deg) translateZ(40px)', borderRadius: '12px' }} />
+                    </motion.div>
+                </div>
             </motion.div>
 
-            {/* Brain Network (1-2.5s) */}
+            {/* Neural Expanding Rings (1-2.5s) */}
             <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0 }}
-                transition={{ duration: 1.5 }}
-                className="absolute"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0.5 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="absolute pointer-events-none"
+                style={{ top: '35%' }}
             >
-                <svg width="300" height="300" viewBox="0 0 300 300">
-                    {/* Central node */}
-                    <motion.circle
-                        cx="150"
-                        cy="150"
-                        r="20"
-                        fill="url(#centerGradient)"
-                        initial={{ r: 0 }}
-                        animate={{ r: step >= 1 ? 20 : 0 }}
-                        transition={{ duration: 0.5 }}
-                        filter="url(#glow)"
-                    />
+                <div className="relative w-64 h-64 flex items-center justify-center">
+                    {[0, 1, 2].map((i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute rounded-full border border-indigo-500/20"
+                            style={{ width: `${(i + 1) * 100}%`, height: `${(i + 1) * 100}%` }}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: step >= 1 ? [1, 1.1, 1] : 0.8, opacity: step >= 1 ? [0, 1, 0] : 0 }}
+                            transition={{ duration: 3, delay: i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                    ))}
 
-                    {/* Connecting nodes */}
+                    {/* Connecting orbital nodes */}
                     {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-                        const x = 150 + Math.cos((angle * Math.PI) / 180) * 80;
-                        const y = 150 + Math.sin((angle * Math.PI) / 180) * 80;
-
                         return (
-                            <g key={i}>
-                                <motion.line
-                                    x1="150"
-                                    y1="150"
-                                    x2={x}
-                                    y2={y}
-                                    stroke="url(#lineGradient)"
-                                    strokeWidth="3"
-                                    initial={{ pathLength: 0, opacity: 0 }}
-                                    animate={{
-                                        pathLength: step >= 1 ? 1 : 0,
-                                        opacity: step >= 1 ? 1 : 0
-                                    }}
-                                    transition={{ duration: 0.8, delay: i * 0.1 }}
-                                />
-                                <motion.circle
-                                    cx={x}
-                                    cy={y}
-                                    r="14"
-                                    fill="url(#nodeGradient)"
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{
-                                        scale: step >= 1 ? 1 : 0,
-                                        opacity: step >= 1 ? 1 : 0
-                                    }}
-                                    transition={{ duration: 0.3, delay: i * 0.1 + 0.5 }}
-                                    filter="url(#glow)"
-                                />
-                            </g>
+                            <motion.div
+                                key={i}
+                                className="absolute w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.8)]"
+                                style={{
+                                    left: '50%', top: '50%',
+                                    marginLeft: '-4px', marginTop: '-4px',
+                                    rotate: `${angle}deg`,
+                                    transformOrigin: '150px 0' // Dist Radius
+                                }}
+                                initial={{ opacity: 0, rotate: 0 }}
+                                animate={{ opacity: step >= 1 ? 1 : 0, rotate: step >= 1 ? angle + 360 : 0 }}
+                                transition={{ duration: 20, repeat: Infinity, ease: "linear", opacity: { duration: 1, delay: i * 0.1 + 0.5 } }}
+                            />
                         );
                     })}
-
-                    {/* Gradients */}
-                    <defs>
-                        <linearGradient id="centerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#8b5cf6" />
-                        </linearGradient>
-                        <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#8b5cf6" />
-                            <stop offset="100%" stopColor="#ec4899" />
-                        </linearGradient>
-                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#60a5fa" />
-                            <stop offset="100%" stopColor="#a78bfa" />
-                        </linearGradient>
-                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                            <feMerge>
-                                <feMergeNode in="coloredBlur" />
-                                <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                        </filter>
-                    </defs>
-                </svg>
+                </div>
             </motion.div>
 
             {/* Logo Text */}
@@ -166,7 +134,7 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
                 className="absolute top-1/4"
             >
                 <h1 className="text-6xl font-black text-white tracking-tight">
-                    Algo<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Mind</span>
+                    Algo<span className="text-gradient">Mind</span>
                 </h1>
             </motion.div>
 
@@ -175,7 +143,7 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: step >= 2 ? 1 : 0, y: step >= 2 ? 0 : 50 }}
                 transition={{ duration: 0.8 }}
-                className="absolute bottom-1/3 flex gap-3 flex-wrap justify-center max-w-lg"
+                className="absolute bottom-1/3 flex gap-3 flex-wrap justify-center max-w-lg z-20"
             >
                 {['Arrays', 'Trees', 'Graphs', 'Dynamic Programming', 'Recursion', 'Sorting'].map((label, i) => (
                     <motion.span
@@ -183,7 +151,8 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: step >= 2 ? 1 : 0, scale: step >= 2 ? 1 : 0.8 }}
                         transition={{ delay: i * 0.08 }}
-                        className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white text-sm font-medium"
+                        className="px-4 py-2 border rounded-full text-zinc-300 text-sm font-bold shadow-lg"
+                        style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}
                     >
                         {label}
                     </motion.span>
@@ -205,14 +174,14 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: step >= 3 ? 1 : 0, scale: step >= 3 ? 1 : 0.8 }}
                 transition={{ duration: 0.6 }}
-                className="absolute bottom-16"
+                className="absolute bottom-16 z-30"
             >
                 <button
                     onClick={onComplete}
-                    className="group relative px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 overflow-hidden"
+                    className="btn-primary"
+                    style={{ padding: '16px 40px', fontSize: '1.125rem', borderRadius: '1rem' }}
                 >
-                    <span className="relative z-10">Start Practicing</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    Start Practicing
                 </button>
             </motion.div>
 
