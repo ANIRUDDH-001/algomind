@@ -256,7 +256,38 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 }
             }
 
-            // Fallback to browser SpeechSynthesis
+            // Try AWS Polly as middle fallback (if Groq failed/unavailable)
+            if (!success) {
+                try {
+                    const pollyRes = await fetch('/api/voice/synthesize-polly', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: cleanText }),
+                    });
+                    if (pollyRes.ok) {
+                        const ab = await pollyRes.arrayBuffer();
+                        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+                            audioContextRef.current = new AudioContext();
+                        }
+                        const ctx = audioContextRef.current;
+                        if (ctx.state === 'suspended') await ctx.resume();
+                        const buf = await ctx.decodeAudioData(ab);
+                        const src = ctx.createBufferSource();
+                        src.buffer = buf;
+                        src.connect(ctx.destination);
+                        sourceNodeRef.current = src;
+                        await new Promise<void>(resolve => {
+                            src.onended = () => { sourceNodeRef.current = null; resolve(); };
+                            src.start(0);
+                        });
+                        success = true;
+                    }
+                } catch {
+                    // Polly unavailable — fall through to browser
+                }
+            }
+
+            // Final fallback: browser SpeechSynthesis
             if (!success) {
                 setCurrentProvider('browser');
                 queueRef.current = chunkTextForSpeech(cleanText);
