@@ -125,7 +125,7 @@ export default function HomePage() {
     return <IntroAnimation onComplete={handleOnboardingComplete} />;
   }
 
-  if (loading || !mounted) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-base">
         <div className="w-12 h-12 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
@@ -198,7 +198,7 @@ export default function HomePage() {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
@@ -209,7 +209,7 @@ export default function HomePage() {
           </motion.div>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-[clamp(1rem,2vw,1.25rem)] text-zinc-400 max-w-2xl mb-10 font-medium"
@@ -218,7 +218,7 @@ export default function HomePage() {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
