@@ -6,6 +6,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemsPaginated, getRandomProblem, type Problem } from '@/lib/supabase/problems';
 import { ProblemFilters, CURATED_LISTS, TOPICS } from '@/components/practice/ProblemFilters';
 import { ProblemCard } from '@/components/practice/ProblemCard';
+import { DifficultyModeSelector, type DifficultyMode } from '@/components/practice/DifficultyModeSelector';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -36,6 +37,9 @@ export default function PracticePage() {
         searchQuery: '',
         topic: '',
     });
+
+    // Difficulty mode state
+    const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>('practice');
 
     // Load problems when filters or page changes
     const loadProblems = useCallback(async () => {
@@ -112,7 +116,7 @@ export default function PracticePage() {
             sessionStorage.setItem('currentProblem', JSON.stringify(problem));
         }
 
-        router.push(`/interview?problemId=${problemId}`);
+        router.push(`/interview?problemId=${problemId}&mode=${difficultyMode}`);
     };
 
     const handleRandomProblem = async () => {
@@ -166,6 +170,9 @@ export default function PracticePage() {
                             Random Problem
                         </Button>
                     </div>
+
+                    {/* Difficulty Mode Selector */}
+                    <DifficultyModeSelector selectedMode={difficultyMode} onChange={setDifficultyMode} />
 
                     {/* Filters */}
                     <div className="glass sticky top-16 z-20 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
