@@ -93,7 +93,10 @@ export default function HomePage() {
 
   // Snap container ref
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ container: scrollRef });
+  const [scrollReady, setScrollReady] = useState(false);
+  const { scrollYProgress } = useScroll({
+    container: scrollReady ? scrollRef : undefined
+  });
 
   // Parallax transforms based on snap container scroll
   const yHero = useTransform(scrollYProgress, [0, 0.2], [0, 150]);
@@ -102,6 +105,11 @@ export default function HomePage() {
   // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // ✅ FIX: Defer scroll tracking until container is mounted
+  useEffect(() => {
+    if (mounted && scrollRef.current) setScrollReady(true);
+  }, [mounted]);
 
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
