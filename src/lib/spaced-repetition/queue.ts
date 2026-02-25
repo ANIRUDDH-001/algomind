@@ -1,6 +1,6 @@
 import { getSupabase } from '@/lib/supabase/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { SpacedRepetitionRecord, computeNextReview, formatNextReviewDate } from './sm2';
+import { SpacedRepetitionRecord, computeNextReview } from './sm2';
 import { getServiceClient } from '@/lib/supabase/service';
 
 export async function addToQueue(params: {
@@ -16,7 +16,7 @@ export async function addToQueue(params: {
         // Check if problem already exists in queue
         const { data: existing, error: fetchError } = await supabase
             .from('spaced_repetition')
-            .select('interval_days, ease_factor, repetitions, last_quality')
+            .select('interval, ease_factor, repetitions')
             .eq('user_id', params.userId)
             .eq('problem_id', params.problemId)
             .maybeSingle();
@@ -25,29 +25,27 @@ export async function addToQueue(params: {
             throw fetchError;
         }
 
-        let upsertData: any = {
-            user_id: params.userId,
-            problem_id: params.problemId,
-            problem_title: params.problemTitle,
-            problem_difficulty: params.problemDifficulty,
-            last_reviewed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
+        let upsertData: any;
 
         if (existing) {
             const nextSchedule = computeNextReview({
-                intervalDays: existing.interval_days,
+                intervalDays: existing.interval,
                 easeFactor: existing.ease_factor,
                 repetitions: existing.repetitions,
             }, params.overallScore);
 
+            const reviewDate = new Date();
+            reviewDate.setDate(reviewDate.getDate() + nextSchedule.intervalDays);
+
             upsertData = {
-                ...upsertData,
-                interval_days: nextSchedule.intervalDays,
+                user_id: params.userId,
+                problem_id: params.problemId,
+                interval: nextSchedule.intervalDays,
                 ease_factor: nextSchedule.easeFactor,
                 repetitions: nextSchedule.repetitions,
-                last_quality: nextSchedule.lastQuality,
-                next_review_date: formatNextReviewDate(nextSchedule.intervalDays),
+                next_review: reviewDate.toISOString(),
+                last_reviewed: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
             };
         } else {
             // New entry: run through SM-2 from a blank-slate record so first-time
@@ -56,13 +54,18 @@ export async function addToQueue(params: {
             const initialRecord = { intervalDays: 1, easeFactor: 2.5, repetitions: 0 };
             const nextSchedule = computeNextReview(initialRecord, params.overallScore);
 
+            const reviewDate = new Date();
+            reviewDate.setDate(reviewDate.getDate() + nextSchedule.intervalDays);
+
             upsertData = {
-                ...upsertData,
-                interval_days: nextSchedule.intervalDays,
+                user_id: params.userId,
+                problem_id: params.problemId,
+                interval: nextSchedule.intervalDays,
                 ease_factor: nextSchedule.easeFactor,
                 repetitions: nextSchedule.repetitions,
-                last_quality: nextSchedule.lastQuality,
-                next_review_date: formatNextReviewDate(nextSchedule.intervalDays),
+                next_review: reviewDate.toISOString(),
+                last_reviewed: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
             };
         }
 
@@ -87,8 +90,6 @@ export async function getDueReviews(userId: string): Promise<SpacedRepetitionRec
     if (!supabase) return [];
 
     // Calls get_due_reviews RPC
-    // Assuming the RPC signature accepts "user_id" or "p_user_id"
-    // Using user_id as it conforms to standard naming
     const { data, error } = await supabase.rpc('get_due_reviews', { user_id: userId });
 
     if (error || !data) {
@@ -99,12 +100,12 @@ export async function getDueReviews(userId: string): Promise<SpacedRepetitionRec
         problemId: row.problem_id,
         problemTitle: row.problem_title,
         problemDifficulty: row.problem_difficulty,
-        intervalDays: row.interval_days,
+        intervalDays: row.interval,
         easeFactor: row.ease_factor,
         repetitions: row.repetitions,
         lastQuality: row.last_quality,
-        nextReviewDate: row.next_review_date,
-        lastReviewedAt: row.last_reviewed_at
+        nextReviewDate: row.next_review,
+        lastReviewedAt: row.last_reviewed
     }));
 }
 
@@ -112,14 +113,15 @@ export async function getUpcomingReviews(userId: string, days: number = 7): Prom
     const supabase = getSupabase();
     if (!supabase) return [];
 
-    const maxDate = formatNextReviewDate(days);
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + days);
 
     const { data, error } = await supabase
         .from('spaced_repetition')
         .select('*')
         .eq('user_id', userId)
-        .lte('next_review_date', maxDate)
-        .order('next_review_date', { ascending: true });
+        .lte('next_review', maxDate.toISOString())
+        .order('next_review', { ascending: true });
 
     if (error || !data) {
         return [];
@@ -129,11 +131,11 @@ export async function getUpcomingReviews(userId: string, days: number = 7): Prom
         problemId: row.problem_id,
         problemTitle: row.problem_title,
         problemDifficulty: row.problem_difficulty,
-        intervalDays: row.interval_days,
+        intervalDays: row.interval,
         easeFactor: row.ease_factor,
         repetitions: row.repetitions,
         lastQuality: row.last_quality,
-        nextReviewDate: row.next_review_date,
-        lastReviewedAt: row.last_reviewed_at
+        nextReviewDate: row.next_review,
+        lastReviewedAt: row.last_reviewed
     }));
 }

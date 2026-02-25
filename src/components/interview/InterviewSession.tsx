@@ -287,31 +287,7 @@ export function InterviewSession({
         startInterview(problem.title, problem.description, ragContext, companyPersona || undefined, kaiMemory || undefined);
     };
 
-    const handleSaveSession = useCallback(async (result: AssessmentResult) => {
-        if (!user || !user.id || !problem || isGuest) return;
 
-        try {
-            toast.loading('Saving interview session...', { id: 'save-session' });
-            const transcript = messages.map(msg => ({ role: msg.role, content: msg.content, timestamp: msg.timestamp }));
-            const duration = startTimeRef.current ? Math.floor((Date.now() - startTimeRef.current) / 1000) : 0;
-
-            const { success, error } = await saveInterviewSession(user.id, problem.id, problem.title, transcript, duration, result);
-            if (success) toast.success('Interview saved to history!', { id: 'save-session' });
-            else {
-                toast.error('Failed to save session to history', { id: 'save-session' });
-                console.error('Save failed:', error);
-            }
-        } catch (e) {
-            console.error('Save exception:', e);
-            toast.error('Error saving session', { id: 'save-session' });
-        }
-    }, [user, problem, isGuest, messages]);
-
-    useEffect(() => {
-        if (state === 'completed' && result && !isGuest && !readOnly && !isAssessment) {
-            handleSaveSession(result);
-        }
-    }, [state, result, isGuest, readOnly, isAssessment, handleSaveSession]);
 
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
@@ -347,6 +323,30 @@ export function InterviewSession({
                 if (!assessment) {
                     setError("Assessment failed. Please try again or check the console for details.");
                     return;
+                }
+
+                // ✅ FIX: Save immediately after analysis — don't wait for state machine
+                if (user && !isGuest) {
+                    try {
+                        const fullTranscript = messages.map(msg => ({
+                            role: msg.role,
+                            content: msg.content,
+                            timestamp: msg.timestamp
+                        }));
+                        const duration = startTimeRef.current
+                            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                            : durationSecs;
+
+                        const { success, error: saveError } = await saveInterviewSession(
+                            user.id, problem.id, problem.title, fullTranscript, duration, assessment
+                        );
+                        if (!success) {
+                            console.error('Failed to save session:', saveError);
+                            toast.error('Session analyzed but could not be saved to history.');
+                        }
+                    } catch (saveErr) {
+                        console.error('Save exception:', saveErr);
+                    }
                 }
             } catch (err: unknown) {
                 console.error("❌ Assessment error:", err);
@@ -854,7 +854,11 @@ export function InterviewSession({
             </div>
 
             {/* MOBILE LAYOUT w/ Swipe Tabs */}
-            <div className="lg:hidden flex-1 w-full h-full relative" {...swipeHandlers}>
+            <div
+                className="lg:hidden flex-1 w-full h-full relative"
+                {...swipeHandlers}
+                style={{ touchAction: 'pan-y' }}
+            >
                 <div className="absolute inset-0 flex flex-col overflow-hidden">
                     {activeTab === 'problem' && (
                         <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-left-4">

@@ -109,6 +109,8 @@ export async function saveInterviewSession(
 
         // 4. Save assessment details (Requirement 6)
         if (finalResult) {
+            // Map skill keys (hyphenated) to DB columns (underscored)
+            const skills = finalResult.skills || {};
             const { error: assessmentError } = await supabase
                 .from('assessments')
                 .insert({
@@ -117,7 +119,18 @@ export async function saveInterviewSession(
                     overall_score: overallScore,
                     overall_feedback: finalResult.overallFeedback,
                     next_steps: finalResult.nextSteps,
-                    skill_evidence: finalResult.skills
+                    skill_evidence: finalResult.skills,
+                    // ✅ FIX: Individual skill score columns
+                    problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
+                    pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
+                    algorithmic_thinking: (skills['algorithmic-thinking'] as any)?.score ?? null,
+                    complexity_analysis: (skills['complexity-analysis'] as any)?.score ?? null,
+                    communication_clarity: (skills['communication-clarity'] as any)?.score ?? null,
+                    edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
+                    optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
+                    debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
+                    model_used: 'gemini-2.0-flash',
+                    confidence: 0.8,
                 });
 
             if (assessmentError) {
