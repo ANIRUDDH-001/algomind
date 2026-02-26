@@ -122,7 +122,7 @@ KEYWORDS: [comma-separated list of keywords]`
                 difficulty: difficulty || 'medium',
                 embedding_status: 'pending',
                 status: 'active',
-                source_gap_id: gapId,
+                source_gap_id: gapId || null,
             })
             .select()
             .single();
@@ -131,21 +131,37 @@ KEYWORDS: [comma-separated list of keywords]`
             return NextResponse.json({ error: 'Failed to create chunk' }, { status: 500 });
         }
 
-        // Mark gap as resolved
-        await supabase
-            .from('knowledge_gaps')
-            .update({
-                status: 'resolved',
-                reviewed_at: new Date().toISOString(),
-                reviewed_by: user!.id,
-            })
-            .eq('id', gapId);
+        // Mark gap as resolved if gapId exists
+        if (gapId) {
+            await supabase
+                .from('knowledge_gaps')
+                .update({
+                    status: 'resolved',
+                    reviewed_at: new Date().toISOString(),
+                    reviewed_by: user!.id,
+                })
+                .eq('id', gapId);
+        }
 
         // Trigger background embedding (fire and forget)
-        // The cron job or webhook will pick up embedding_status='pending' chunks
         triggerEmbedding(chunk.id).catch(console.error);
 
         return NextResponse.json({ success: true, chunkId: chunk.id });
+    }
+
+    if (action === 'process_pending') {
+        const { data: pending } = await supabase
+            .from('knowledge_chunks')
+            .select('id')
+            .in('embedding_status', ['pending', 'failed']);
+
+        const count = pending?.length || 0;
+        // Fire and forget for each
+        for (const chunk of pending || []) {
+            triggerEmbedding(chunk.id).catch(console.error);
+        }
+
+        return NextResponse.json({ success: true, count });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
