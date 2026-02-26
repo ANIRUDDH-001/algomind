@@ -16,6 +16,9 @@ function InterviewContent() {
     const sessionId = searchParams.get('sessionId');
     const mode = searchParams.get('mode');
     const isReviewMode = mode === 'review';
+    const difficultyMode = (['warm-up', 'practice', 'crunch', 'sprint'].includes(mode ?? ''))
+        ? mode as 'warm-up' | 'practice' | 'crunch' | 'sprint'
+        : 'practice';
     const { history } = useProgress();
     const { user } = useAuth();
 
@@ -171,6 +174,7 @@ function InterviewContent() {
                     ragContext={problem.ragContext}
                     remainingQuestions={rateLimitInfo?.remaining}
                     isReviewMode={isReviewMode}
+                    difficultyMode={difficultyMode}
                 />
             </InterviewErrorBoundary>
         </div>

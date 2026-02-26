@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react';
 import { getFeatureFlag, setFeatureFlag, checkBrowserSupport, FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';
 

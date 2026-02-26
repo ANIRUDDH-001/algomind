@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import { Switch } from '@/components/ui/switch';
 import { setFeatureFlag, getFeatureFlag } from '@/lib/feature-flags';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 import { VoiceSettings } from './VoiceSettings';
 import { LeetCodeSettings } from './LeetCodeSettings';
@@ -25,6 +26,7 @@ export function SettingsPanel() {
     const { user, signOut, isConfigured } = useAuth();
     const router = useRouter();
     const [vadEnabled, setVadEnabled] = useState(false);
+    const globalVadAllowed = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
 
     useEffect(() => {
         setMounted(true);
@@ -62,6 +64,11 @@ export function SettingsPanel() {
     };
 
     const handleVadToggle = (checked: boolean) => {
+        if (!globalVadAllowed) {
+            toast.error("VAD interruptions are currently disabled system-wide.");
+            setVadEnabled(false);
+            return;
+        }
         setVadEnabled(checked);
         setFeatureFlag('ENABLE_VAD_INTERRUPTIONS', checked);
     };
@@ -183,7 +190,8 @@ export function SettingsPanel() {
                             <p className="text-xs text-zinc-500 mt-0.5">Automatically detects when you stop speaking</p>
                         </div>
                         <Switch
-                            checked={vadEnabled}
+                            checked={vadEnabled && globalVadAllowed}
+                            disabled={!globalVadAllowed}
                             onCheckedChange={handleVadToggle}
                         />
                     </div>

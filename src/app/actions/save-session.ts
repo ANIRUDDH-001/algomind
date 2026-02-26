@@ -18,6 +18,7 @@ export async function saveInterviewSession(
         readOnly?: boolean;
         startTime?: number;
         endTime?: number;
+        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
     }
 ) {
     if (options?.readOnly) {
@@ -97,6 +98,7 @@ export async function saveInterviewSession(
                 status: 'completed',
                 completed_at: new Date().toISOString(),
                 is_candidate_session: false,
+                difficulty_mode: options?.difficultyMode ?? 'practice',
             })
             .select()
             .single();

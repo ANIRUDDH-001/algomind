@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 /**
  * @vitest-environment jsdom
  * Integration Test: Assessment Session Lifecycle

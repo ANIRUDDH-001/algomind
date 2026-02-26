@@ -2,6 +2,23 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export default async function middleware(request: NextRequest) {
+    // 1. Supabase Proxy (bypass DNS/Mobile blocking)
+    if (request.nextUrl.pathname.startsWith('/supabase-proxy/')) {
+        const url = new URL(request.url);
+        // Replace /supabase-proxy/ with the actual Supabase URL
+        const targetPath = url.pathname.replace('/supabase-proxy/', '/');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+        if (!supabaseUrl) {
+            return new NextResponse('Supabase URL not configured', { status: 500 });
+        }
+
+        const targetUrl = new URL(targetPath + url.search, supabaseUrl);
+
+        // Proxy the request directly
+        return NextResponse.rewrite(targetUrl);
+    }
+
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
