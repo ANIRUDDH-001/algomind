@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const NEW_URL = 'https://wfdgsmhuglmrxcmwcylz.supabase.co';
-const NEW_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmZGdzbWh1Z2xtcnhjbXdjeWx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NjgwOTQsImV4cCI6MjA4NzE0NDA5NH0.6t8s17OY8sO-c8X_txZ1U3TCdDvC0IZsbZo-nKTOsQ0';
+const NEW_KEY = process.env.SUPABASE_ANON_KEY || 'YOUR_NEW_ANON_KEY_HERE';
 
 // Note: To run CREATE TABLE queries, we need the PostgreSQL connection string.
 // Unfortunately, Supabase's JS Client REST API does not support raw DDL (CREATE/ALTER) directly.

@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
+import { ConnectivityBanner } from "@/components/connectivity/ConnectivityBanner";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TourProvider } from "@/components/tour/TourContext";
@@ -79,6 +80,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ConnectivityBanner />
         <QueryProvider>
           <AuthProvider>
             <ClientProviders>

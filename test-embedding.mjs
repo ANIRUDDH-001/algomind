@@ -1,4 +1,4 @@
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=AIzaSyDiGfKWZ3IYrnA_MBd3ifFYd2e4AhAXlUY`
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'}`
 
 async function run() {
     const response = await fetch(url, {
