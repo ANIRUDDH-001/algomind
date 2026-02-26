@@ -5,12 +5,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemsPaginated, getRandomProblem, type Problem } from '@/lib/supabase/problems';
-import { ProblemFilters, CURATED_LISTS, TOPICS } from '@/components/practice/ProblemFilters';
+import { ProblemFilters, CURATED_LISTS } from '@/components/practice/ProblemFilters';
 import { ProblemCard } from '@/components/practice/ProblemCard';
 import { DifficultyModeSelector, type DifficultyMode } from '@/components/practice/DifficultyModeSelector';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
@@ -136,8 +136,6 @@ export default function PracticePage() {
         }
     };
 
-    // Get current curated list label
-    const currentListLabel = CURATED_LISTS.find(l => l.value === filters.curatedList)?.label || 'All Problems';
 
     // Pagination button styles - dark background
     const paginationBtnStyles = "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800";
@@ -246,11 +244,19 @@ export default function PracticePage() {
                             {/* Pagination Controls */}
                             {totalPages > 1 && (
                                 <div className="flex justify-center mt-10">
-                                    <div className="inline-flex items-center p-1 rounded-full shadow-lg" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                                    <div className="inline-flex items-center p-1 rounded-full shadow-lg overflow-x-auto max-w-full" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                                        <button
+                                            onClick={() => goToPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white whitespace-nowrap hidden sm:flex"
+                                        >
+                                            <ChevronsLeft className="w-4 h-4" /> First
+                                        </button>
+
                                         <button
                                             onClick={() => goToPage(currentPage - 1)}
                                             disabled={currentPage === 1}
-                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white"
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white whitespace-nowrap"
                                         >
                                             <ChevronLeft className="w-4 h-4" /> Prev
                                         </button>
@@ -258,16 +264,24 @@ export default function PracticePage() {
                                         <div className="w-px h-4 bg-zinc-800 mx-1" />
 
                                         <div className="flex px-1 gap-1">
-                                            {Array.from({ length: totalPages }).map((_, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => goToPage(i + 1)}
-                                                    className={`w-8 h-8 flex items-center justify-center shrink-0 rounded-full text-xs font-bold transition-all ${currentPage === i + 1 ? 'text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}`}
-                                                    style={currentPage === i + 1 ? { background: 'var(--accent-primary)' } : {}}
-                                                >
-                                                    {i + 1}
-                                                </button>
-                                            ))}
+                                            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                                                let startPage = Math.max(1, currentPage - 2);
+                                                const endPage = Math.min(totalPages, startPage + 4);
+                                                if (endPage - startPage < 4) {
+                                                    startPage = Math.max(1, endPage - 4);
+                                                }
+                                                const pageNum = startPage + i;
+                                                return (
+                                                    <button
+                                                        key={pageNum}
+                                                        onClick={() => goToPage(pageNum)}
+                                                        className={`w-8 h-8 flex items-center justify-center shrink-0 rounded-full text-xs font-bold transition-all ${currentPage === pageNum ? 'text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}`}
+                                                        style={currentPage === pageNum ? { background: 'var(--accent-primary)' } : {}}
+                                                    >
+                                                        {pageNum}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
 
                                         <div className="w-px h-4 bg-zinc-800 mx-1" />
@@ -275,9 +289,17 @@ export default function PracticePage() {
                                         <button
                                             onClick={() => goToPage(currentPage + 1)}
                                             disabled={currentPage === totalPages}
-                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white"
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white whitespace-nowrap"
                                         >
                                             Next <ChevronRight className="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            onClick={() => goToPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="h-8 px-3 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-all disabled:opacity-50 hover:bg-zinc-800/50 text-zinc-400 hover:text-white whitespace-nowrap hidden sm:flex"
+                                        >
+                                            Last <ChevronsRight className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
