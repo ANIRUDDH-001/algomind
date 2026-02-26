@@ -19,6 +19,7 @@ export async function saveInterviewSession(
         startTime?: number;
         endTime?: number;
         difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
+        isAdmin?: boolean;
     }
 ) {
     if (options?.readOnly) {
@@ -44,33 +45,55 @@ export async function saveInterviewSession(
         // 2. Assessment Logic (Requirement 4)
         let finalResult = result;
         if (!finalResult && transcript.length > 0) {
-            try {
-                const { CognitiveAnalyzer } = await import('@/lib/assessment/analyzer');
-                const analyzer = new CognitiveAnalyzer();
-                // We need the problem description/difficulty to analyze properly
-                const { data: prob } = await supabase
-                    .from('problems')
-                    .select('description, difficulty')
-                    .eq('id', problemId)
-                    .single();
+            // Task C: Minimum turn enforcement
+            const userTurns = transcript.filter((t) => t.role === 'user').length;
+            const minTurns = options?.isAdmin ? 1 : 3;
 
-                finalResult = await analyzer.analyze(
-                    crypto.randomUUID(),
-                    { title: problemTitle, description: prob?.description || '', difficulty: prob?.difficulty || 'medium' },
-                    transcript
-                );
-            } catch (err) {
-                console.error('⚠️ [ACTION] AI Assessment failed, saving session without full assessment:', err);
-                // Fallback result for Requirement 4
+            if (userTurns < minTurns) {
+                console.warn(`⚠️ [ACTION] Insufficient turns for assessment (${userTurns} < ${minTurns}). Skipping AI analysis.`);
+                void logSystemEvent({ type: 'assessment_insufficient', metadata: { userTurns, minTurns, problemId, userId } });
+
+                // Construct zero-score result
                 finalResult = {
-                    sessionId: 'failed-analysis',
+                    sessionId: crypto.randomUUID(),
                     timestamp: new Date(),
                     problem: { title: problemTitle, description: '', difficulty: 'medium' },
-                    skills: {},
-                    overallFeedback: 'AI analysis failed during save.',
-                    nextSteps: [],
-                    knowledgeGaps: []
+                    skills: {} as any, // 0 overall score
+                    overallFeedback: 'Assessment skipped due to insufficient interaction. Please engage more in the conversation.',
+                    nextSteps: ['Engage in a longer conversation to receive a full assessment.'],
+                    knowledgeGaps: [],
+                    analysisFailure: 'user_fault'
                 } as unknown as AssessmentResult;
+            } else {
+                try {
+                    const { CognitiveAnalyzer } = await import('@/lib/assessment/analyzer');
+                    const analyzer = new CognitiveAnalyzer();
+                    // We need the problem description/difficulty to analyze properly
+                    const { data: prob } = await supabase
+                        .from('problems')
+                        .select('description, difficulty')
+                        .eq('id', problemId)
+                        .single();
+
+                    finalResult = await analyzer.analyze(
+                        crypto.randomUUID(), // TASK A: Already using crypto.randomUUID()
+                        { title: problemTitle, description: prob?.description || '', difficulty: prob?.difficulty || 'medium' },
+                        transcript
+                    );
+                } catch (err) {
+                    console.error('⚠️ [ACTION] AI Assessment failed, saving session without full assessment:', err);
+                    // Fallback result for Requirement 4
+                    finalResult = {
+                        sessionId: crypto.randomUUID(),
+                        timestamp: new Date(),
+                        problem: { title: problemTitle, description: '', difficulty: 'medium' },
+                        skills: {},
+                        overallFeedback: 'AI analysis failed during save.',
+                        nextSteps: [],
+                        knowledgeGaps: [],
+                        analysisFailure: 'system_fault'
+                    } as unknown as AssessmentResult;
+                }
             }
         }
 

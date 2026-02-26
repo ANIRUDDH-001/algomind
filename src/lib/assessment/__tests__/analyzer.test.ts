@@ -151,8 +151,14 @@ describe('CognitiveAnalyzer', () => {
             response: 'This is not valid JSON string...'
         });
 
+        // Provide a long enough transcript to avoid triggering the user_fault condition
+        const transcript: ConversationTurn[] = [{
+            role: 'user',
+            content: 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one'
+        }];
+
         // 3 retries occurs -> fallback returns without throwing
-        const result = await analyzer.analyze('session-fail', mockProblem, []);
+        const result = await analyzer.analyze('session-fail', mockProblem, transcript);
 
         expect(mockGenerateCompletion).toHaveBeenCalledTimes(3);
 
