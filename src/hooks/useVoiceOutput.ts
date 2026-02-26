@@ -16,7 +16,7 @@ interface VoiceOutputOptions {
     onPause?: () => void;
 }
 
-export type TTSProviderStatus = 'groq' | 'browser' | 'detecting';
+export type TTSProviderStatus = 'polly' | 'groq' | 'browser' | 'detecting';
 
 export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const { user } = useAuth();
@@ -26,11 +26,13 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
     const [rate, setRate] = useState(options.rate || 0.9);
     const [ttsProvider, setTtsProvider] = useState<TTSProviderStatus>('detecting');
-    const [currentProvider, setCurrentProvider] = useState<'groq' | 'browser'>('browser');
+    const [currentProvider, setCurrentProvider] = useState<'polly' | 'groq' | 'browser'>('browser');
 
     // Queue of text chunks to speak (browser TTS fallback)
     const queueRef = useRef<string[]>([]);
     const processingRef = useRef(false);
+    const isPausedRef = useRef(false);
+    useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
     // <audio> element for Groq TTS playback (routes to media volume on iOS)
     const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -44,38 +46,28 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             setTtsProvider('browser');
             return;
         }
-
         let cancelled = false;
 
         async function detectProvider() {
             try {
-                // ✅ Just check the feature flag - no API credits wasted
                 const res = await fetch('/api/flags', { signal: AbortSignal.timeout(3000) });
-                if (cancelled) return;
+                if (cancelled || !res.ok) { setTtsProvider('browser'); return; }
+                const flags = await res.json();
 
-                if (res.ok) {
-                    const flags = await res.json();
-                    const groqEnabled = flags['ENABLE_GROQ_TTS']?.value === true;
+                const pollyEnabled = flags['ENABLE_AWS_POLLY_TTS']?.value === true;
+                const groqEnabled = flags['ENABLE_GROQ_TTS']?.value === true;
 
-                    if (groqEnabled) {
-                        groqAvailableRef.current = true;
-                        setTtsProvider('groq');
-                    } else {
-                        groqAvailableRef.current = false;
-                        setTtsProvider('browser');
-                    }
+                if (pollyEnabled) {
+                    setTtsProvider('polly');
+                } else if (groqEnabled) {
+                    setTtsProvider('groq');
                 } else {
-                    groqAvailableRef.current = false;
                     setTtsProvider('browser');
                 }
             } catch {
-                if (!cancelled) {
-                    groqAvailableRef.current = false;
-                    setTtsProvider('browser');
-                }
+                if (!cancelled) setTtsProvider('browser');
             }
         }
-
         detectProvider();
         return () => { cancelled = true; };
     }, [user]);
@@ -127,7 +119,39 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         };
     }, []);
 
-    // ─── Groq TTS via AudioContext (primary) ───────────────────────────
+    // ─── AWS Polly TTS (primary) ───────────────────────────────────────
+
+    const speakWithPolly = useCallback(async (text: string): Promise<boolean> => {
+        if (!user) return false;
+        try {
+            const response = await fetch('/api/voice/synthesize-polly', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+            if (!response.ok) {
+                if (response.status === 503) {
+                    // Polly disabled or not integrated — mark unavailable
+                    setTtsProvider(prev => prev === 'polly' ? 'groq' : prev);
+                }
+                return false;
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.volume = 1.0;
+            audioElementRef.current = audio;
+
+            return new Promise<boolean>((resolve) => {
+                audio.onended = () => { URL.revokeObjectURL(url); audioElementRef.current = null; resolve(true); };
+                audio.onerror = () => { URL.revokeObjectURL(url); audioElementRef.current = null; resolve(false); };
+                audio.play().catch(() => resolve(false));
+            });
+        } catch { return false; }
+    }, [user]);
+
+    // ─── Groq TTS via AudioContext (secondary) ─────────────────────────
 
     // ─── Groq TTS via <audio> element (primary) ────────────────────────
     // REPLACES the AudioContext approach to fix iOS call volume routing
@@ -219,7 +243,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
     const processQueueBrowser = useCallback(async () => {
         while (queueRef.current.length > 0) {
-            if (isPaused) {
+            if (isPausedRef.current) {
                 await new Promise(r => setTimeout(r, 100));
                 continue;
             }
@@ -229,7 +253,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 await speakWithBrowser(chunk);
             }
         }
-    }, [speakWithBrowser, isPaused]);
+    }, [speakWithBrowser]);
 
     // ─── Main speak function ───────────────────────────────────────────
 
@@ -265,51 +289,17 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
             let success = false;
 
-            // Try Groq TTS first if provider is 'groq'
-            if (ttsProvider === 'groq') {
+            // Priority: Polly → Groq → Browser
+            if (ttsProvider === 'polly') {
+                success = await speakWithPolly(cleanText);
+                if (success) setCurrentProvider('polly');
+            }
+
+            if (!success && (ttsProvider === 'groq' || ttsProvider === 'polly')) {
                 success = await speakWithGroq(cleanText);
-                if (success) {
-                    setCurrentProvider('groq');
-                }
+                if (success) setCurrentProvider('groq');
             }
 
-            // Try AWS Polly as middle fallback (if Groq failed/unavailable)
-            if (!success) {
-                try {
-                    const pollyRes = await fetch('/api/voice/synthesize-polly', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: cleanText }),
-                    });
-                    if (pollyRes.ok) {
-                        const arrayBuffer = await pollyRes.arrayBuffer();
-                        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-                        const url = URL.createObjectURL(blob);
-
-                        const audio = new Audio(url);
-                        audio.volume = 1.0;
-                        audioElementRef.current = audio;
-
-                        success = await new Promise<boolean>((resolve) => {
-                            audio.onended = () => {
-                                URL.revokeObjectURL(url);
-                                audioElementRef.current = null;
-                                resolve(true);
-                            };
-                            audio.onerror = () => {
-                                URL.revokeObjectURL(url);
-                                audioElementRef.current = null;
-                                resolve(false);
-                            };
-                            audio.play().catch(() => resolve(false));
-                        });
-                    }
-                } catch {
-                    // Polly unavailable — fall through to browser
-                }
-            }
-
-            // Final fallback: browser SpeechSynthesis
             if (!success) {
                 setCurrentProvider('browser');
                 queueRef.current = chunkTextForSpeech(cleanText);
@@ -320,7 +310,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             processingRef.current = false;
             if (options.onEnd) options.onEnd();
         }
-    }, [ttsProvider, speakWithGroq, processQueueBrowser, options]);
+    }, [ttsProvider, speakWithPolly, speakWithGroq, processQueueBrowser, options]);
 
     const pause = useCallback(() => {
         // Pause audio element

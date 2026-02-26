@@ -99,6 +99,7 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+    const [vadMode, setVadMode] = useState<'vad' | 'simple'>('vad');
 
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
@@ -695,7 +696,7 @@ export function InterviewSession({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
-                    vadEnabled={vadEnabled && hasStarted}
+                    vadEnabled={vadEnabled && vadMode === 'vad' && hasStarted}
                     onInterrupt={() => {
                         voice.stopSpeaking();
                         handleInterruption();
@@ -704,8 +705,14 @@ export function InterviewSession({
                         submitUserResponse('Please continue your previous response.', { title: problem.title, content: problem.description, ragContext });
                     }}
                     onVadError={(err) => {
-                        console.log('PAGE LOG: InterviewSession received VAD error:', err.message);
-                        setError(`VAD Initialization Failed: ${err.message}`);
+                        console.log('VAD init failed, falling back to simple mic mode:', err.message);
+                        setVadMode('simple');
+                        // Show a small non-intrusive toast instead of a red error banner
+                        toast('Using standard mic mode', {
+                            icon: '🎤',
+                            duration: 3000,
+                            style: { background: '#27272a', color: '#a1a1aa' }
+                        });
                     }}
                     onUserSpeaking={() => {
                         if (!voice.isListening && !isProcessing && !voice.isSpeaking) {
