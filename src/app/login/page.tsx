@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, AlertCircle, AlertTriangle } from 'lucide-react';
-import { enableDemoMode } from '@/lib/demo/manager';
 
 function LoginContent() {
     const { user, signIn, loading, isConfigured } = useAuth();
@@ -144,23 +143,6 @@ function LoginContent() {
                     <p className="text-sm text-slate-500">
                         By continuing, you agree to our{' '}
                         <a href="#" className="text-blue-400 hover:underline">Terms of Service</a>
-                    </p>
-                </div>
-
-                {/* Guest mode link */}
-                <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-                    <button
-                        onClick={() => {
-                            enableDemoMode();
-                            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
-                            router.push('/dashboard');
-                        }}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-all"
-                    >
-                        Continue as Guest
-                    </button>
-                    <p className="text-xs text-slate-500 mt-2">
-                        Guest data is stored locally and won&apos;t sync across devices
                     </p>
                 </div>
             </div>

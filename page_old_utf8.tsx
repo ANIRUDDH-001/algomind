@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -136,7 +136,7 @@ export default function HomePage() {
       `}} />
 
       {/* SECTION 1: HERO (Snap Item) */}
-      <section className="snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-10 px-4 overflow-hidden border-b border-transparent">
+      <section className="snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-20 px-4 overflow-hidden border-b border-transparent">
 
         {/* Background Particles field */}
         <div className="absolute inset-0 pointer-events-none" style={{ perspective: '1000px' }}>
@@ -192,7 +192,7 @@ export default function HomePage() {
             initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="text-[clamp(0.875rem,2vw,1.25rem)] text-zinc-400 max-w-2xl mb-6 md:mb-10 font-medium px-2"
+            className="text-[clamp(1rem,2vw,1.25rem)] text-zinc-400 max-w-2xl mb-10 font-medium"
           >
             Practice with an AI interviewer that thinks like a senior engineer at FAANG. Get real-time voice feedback, cognitive analysis, and ace your systems design and DSA rounds.
           </motion.p>
@@ -302,7 +302,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Cognitive Analysis</h3>
                 <p className="text-zinc-400 text-sm leading-relaxed mb-6 flex-grow">
-                  We track 8 distinct cognitive skills—from pattern recognition to edge-case awareness—to find exactly what's holding you back.
+                  We track 8 distinct cognitive skillsÔÇöfrom pattern recognition to edge-case awarenessÔÇöto find exactly what's holding you back.
                 </p>
                 {/* Visual Mockup - Animated Radar SVG */}
                 <div className="mt-auto h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex items-center justify-center group-hover:border-purple-500/40 transition-colors relative overflow-hidden shadow-inner">
@@ -498,7 +498,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 5: CTA BANNER & FOOTER (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-between pt-10 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
+      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-between pt-20 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
         <div className="flex-grow flex flex-col justify-center">
           <FadeInView>
             <div className="relative rounded-[2.5rem] p-10 md:p-16 text-center overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.15)] border border-indigo-500/20"
@@ -508,8 +508,8 @@ export default function HomePage() {
               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
               <div className="relative z-10">
-                <h2 className="text-2xl md:text-5xl font-black mb-4 md:mb-6 tracking-tight text-white drop-shadow-md">Ready to ace your next interview?</h2>
-                <p className="text-base md:text-xl text-indigo-100/90 mb-6 md:mb-10 max-w-xl mx-auto font-medium">
+                <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-white drop-shadow-md">Ready to ace your next interview?</h2>
+                <p className="text-lg md:text-xl text-indigo-100/90 mb-10 max-w-xl mx-auto font-medium">
                   Stop grinding silently. Start practicing how you'll actually perform.
                 </p>
 
@@ -525,7 +525,7 @@ export default function HomePage() {
                       }
                     }}
                     size="lg"
-                    className="btn-primary h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"
+                    className="btn-primary h-14 px-10 text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"
                   >
                     {user ? 'Go to Dashboard' : 'Get Started Free'}
                   </Button>
@@ -542,7 +542,7 @@ export default function HomePage() {
 
         {/* Footer firmly inside the last snap block */}
         <footer className="border-t border-white/5 py-8 text-center text-sm text-zinc-600 font-medium pb-24 md:pb-8 mt-auto">
-          <p>© 2026 AlgoMind. All rights reserved.</p>
+          <p>┬® 2026 AlgoMind. All rights reserved.</p>
         </footer>
       </section>
 
