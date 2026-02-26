@@ -38,6 +38,7 @@ export function useWhisperInput(options: UseWhisperInputOptions = {}) {
         shouldListenRef.current = true;
         setIsListening(true);
         setError(null);
+        setLastResultTime(Date.now());
 
         // Create new WhisperSTT instance if needed
         if (!whisperRef.current) {

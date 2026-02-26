@@ -214,6 +214,8 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 intentionalStopRef.current = false;
             };
 
+            // Reset lastResultTime immediately so silence timer doesn't fire at once
+            setLastResultTime(Date.now());
             recognition.start();
             shouldListenRef.current = true;
         } catch {

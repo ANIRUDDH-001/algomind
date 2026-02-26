@@ -11,80 +11,138 @@ exports[`PDFReport > 11. Snapshot test: full PDF structure with mock progress da
     >
       <div
         data-testid="pdf-view"
-        style="margin-bottom: 20px; border-bottom-width: 2px; border-bottom-color: rgb(37, 99, 235); padding-bottom: 10px;"
+        style="background-color: rgb(15, 23, 42); padding: 32px 40px; margin-bottom: 0px;"
       >
         <span
           data-testid="pdf-text"
-          style="font-size: 24px; font-weight: bold; color: rgb(30, 41, 59);"
+          style="font-size: 10px; color: rgb(99, 102, 241); font-family: Helvetica-Bold; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px;"
         >
-          AlgoMind Cognitive Report
+          AlgoMind Assessment Report
         </span>
         <span
           data-testid="pdf-text"
-          style="font-size: 12px; color: rgb(100, 116, 139); margin-top: 4px;"
+          style="font-size: 28px; color: rgb(255, 255, 255); font-family: Helvetica-Bold;"
         >
-          Generated on 
-          February 24th, 2026 1:30 PM
+          user-1
+        </span>
+        <span
+          data-testid="pdf-text"
+          style="font-size: 10px; color: rgb(148, 163, 184); margin-top: 4px;"
+        >
+          February 24th, 2026
         </span>
       </div>
       <div
         data-testid="pdf-view"
-        style="margin-top: 20px; margin-bottom: 10px;"
+        style="background-color: rgb(248, 250, 252); padding: 24px 40px; flex-direction: row; align-items: center; border-bottom-width: 1px; border-bottom-color: rgb(226, 232, 240); margin-bottom: 24px;"
       >
-        <span
-          data-testid="pdf-text"
-          style="font-size: 16px; font-weight: bold; color: rgb(30, 41, 59); margin-bottom: 10px; text-transform: uppercase;"
-        >
-          Performance Overview
-        </span>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; flex-wrap: wrap; margin-bottom: 20px;"
         >
-          <div
-            data-testid="pdf-view"
-            style="width: 50%; padding: 10px; border-width: 1px; border-color: rgb(226, 232, 240);"
+          <span
+            data-testid="pdf-text"
+            style="font-size: 32px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
           >
-            <span
-              data-testid="pdf-text"
-              style="font-size: 10px; color: rgb(100, 116, 139); text-transform: uppercase;"
-            >
-              Total Practice Sessions
-            </span>
-            <span
-              data-testid="pdf-text"
-              style="font-size: 18px; font-weight: bold; color: rgb(37, 99, 235);"
-            >
-              12
-            </span>
-          </div>
-          <div
-            data-testid="pdf-view"
-            style="width: 50%; padding: 10px; border-width: 1px; border-color: rgb(226, 232, 240);"
+            7.5
+          </span>
+        </div>
+        <div
+          data-testid="pdf-view"
+        >
+          <span
+            data-testid="pdf-text"
+            style="font-size: 18px; font-family: Helvetica-Bold; color: rgb(15, 23, 42); margin-bottom: 2px;"
           >
-            <span
-              data-testid="pdf-text"
-              style="font-size: 10px; color: rgb(100, 116, 139); text-transform: uppercase;"
-            >
-              Overall Cognitive Score
-            </span>
-            <span
-              data-testid="pdf-text"
-              style="font-size: 18px; font-weight: bold; color: rgb(37, 99, 235);"
-            >
-              7.5
-              /10
-            </span>
-          </div>
+            Overall Cognitive Score
+          </span>
+          <span
+            data-testid="pdf-text"
+            style="font-size: 9px; color: rgb(100, 116, 139); text-transform: uppercase; letter-spacing: 1px;"
+          >
+            Weighted aggregate of 
+            8
+             skill dimensions
+          </span>
         </div>
       </div>
       <div
         data-testid="pdf-view"
-        style="margin-top: 20px; margin-bottom: 10px;"
+        style="flex-direction: row; margin-bottom: 32px; gap: 0px;"
+      >
+        <div
+          data-testid="pdf-view"
+          style="flex: 1 1 0%; padding-right: 16px; border-right-width: 1px; border-right-color: rgb(226, 232, 240); margin-right: 16px;"
+        >
+          <span
+            data-testid="pdf-text"
+            style="font-size: 20px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+          >
+            12
+          </span>
+          <span
+            data-testid="pdf-text"
+            style="font-size: 9px; color: rgb(100, 116, 139); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;"
+          >
+            Total Sessions
+          </span>
+        </div>
+        <div
+          data-testid="pdf-view"
+          style="flex: 1 1 0%; padding-right: 16px; border-right-width: 1px; border-right-color: rgb(226, 232, 240); margin-right: 16px;"
+        >
+          <span
+            data-testid="pdf-text"
+            style="font-size: 20px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+          >
+            Jan 20, 2026
+          </span>
+          <span
+            data-testid="pdf-text"
+            style="font-size: 9px; color: rgb(100, 116, 139); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;"
+          >
+            Latest Session
+          </span>
+        </div>
+        <div
+          data-testid="pdf-view"
+          style="flex: 1 1 0%; padding-right: 16px; border-right-width: 1px; border-right-color: rgb(226, 232, 240); margin-right: 16px;"
+        >
+          <span
+            data-testid="pdf-text"
+            style="font-size: 20px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+          >
+            8
+          </span>
+          <span
+            data-testid="pdf-text"
+            style="font-size: 9px; color: rgb(100, 116, 139); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;"
+          >
+            Skills Assessed
+          </span>
+        </div>
+        <div
+          data-testid="pdf-view"
+        >
+          <span
+            data-testid="pdf-text"
+            style="font-size: 20px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+          >
+            0
+          </span>
+          <span
+            data-testid="pdf-text"
+            style="font-size: 9px; color: rgb(100, 116, 139); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;"
+          >
+            Improving Areas
+          </span>
+        </div>
+      </div>
+      <div
+        data-testid="pdf-view"
       >
         <span
           data-testid="pdf-text"
-          style="font-size: 16px; font-weight: bold; color: rgb(30, 41, 59); margin-bottom: 10px; text-transform: uppercase;"
+          style="font-size: 16px; font-family: Helvetica-Bold; color: rgb(15, 23, 42); margin-bottom: 16px;"
         >
           Performance Analysis
         </span>
@@ -99,210 +157,488 @@ exports[`PDFReport > 11. Snapshot test: full PDF structure with mock progress da
       </div>
       <div
         data-testid="pdf-view"
-        style="margin-top: 20px; margin-bottom: 10px;"
+        style="position: absolute; bottom: 24px; left: 40px; right: 40px; border-top-width: 1px; border-top-color: rgb(226, 232, 240); padding-top: 8px; flex-direction: row; justify-content: space-between;"
       >
         <span
           data-testid="pdf-text"
-          style="font-size: 16px; font-weight: bold; color: rgb(30, 41, 59); margin-bottom: 10px; text-transform: uppercase;"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
         >
-          Cognitive Skill Profile
+          AlgoMind AI Assessment • Confidential
+        </span>
+        <span
+          data-testid="pdf-text"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
+        />
+      </div>
+    </div>
+    <div
+      data-size="A4"
+      data-testid="pdf-page"
+    >
+      <div
+        data-testid="pdf-view"
+      >
+        <span
+          data-testid="pdf-text"
+          style="font-size: 16px; font-family: Helvetica-Bold; color: rgb(15, 23, 42); margin-bottom: 16px;"
+        >
+          Cognitive Skill Breakdown
         </span>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Problem Decomposition
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              8.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 80%; background-color: rgb(59, 130, 246); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Problem Decomposition
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            8.0
+            Ability to break complex problems into manageable subproblems
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Pattern Recognition
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              3.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 30%; background-color: rgb(139, 92, 246); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Pattern Recognition
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            3.0
+            Recognizing algorithmic patterns and data structure applications
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Algorithmic Thinking
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              8.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 80%; background-color: rgb(99, 102, 241); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Algorithmic Thinking
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            8.0
+            Designing efficient algorithms and choosing correct approaches
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Complexity Analysis
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              3.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 30%; background-color: rgb(236, 72, 153); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Complexity Analysis
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            3.0
+            Analyzing time and space complexity accurately
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Communication Clarity
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              8.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 80%; background-color: rgb(16, 185, 129); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Communication Clarity
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            8.0
+            Explaining thought process clearly and concisely
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Edge Case Awareness
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              3.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 30%; background-color: rgb(245, 158, 11); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Edge Case Awareness
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            3.0
+            Identifying and handling edge cases proactively
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Optimization Mindset
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              8.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 80%; background-color: rgb(6, 182, 212); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Optimization Mindset
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            8.0
+            Thinking about performance and optimization opportunities
           </span>
         </div>
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
         >
+          <div
+            data-testid="pdf-view"
+            style="flex-direction: row; align-items: center; margin-bottom: 4px;"
+          >
+            <span
+              data-testid="pdf-text"
+              style="flex: 1 1 0%; font-size: 11px; font-family: Helvetica-Bold; color: rgb(15, 23, 42);"
+            >
+              Debugging Approach
+            </span>
+            <span
+              data-testid="pdf-text"
+            >
+              3.0
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; color: rgb(148, 163, 184); margin-left: 2px;"
+            >
+              /10
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="height: 4px; background-color: rgb(241, 245, 249); border-radius: 2px; margin-bottom: 6px;"
+          >
+            <div
+              data-testid="pdf-view"
+              style="height: 4px; width: 30%; background-color: rgb(249, 115, 22); border-radius: 2px;"
+            />
+          </div>
           <span
             data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+            style="font-size: 9px; color: rgb(71, 85, 105); line-height: 1.4;"
           >
-            Debugging Approach
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            3.0
+            Systematic approach to finding and fixing bugs
           </span>
         </div>
       </div>
       <div
         data-testid="pdf-view"
-        style="margin-top: 20px; margin-bottom: 10px;"
+        style="position: absolute; bottom: 24px; left: 40px; right: 40px; border-top-width: 1px; border-top-color: rgb(226, 232, 240); padding-top: 8px; flex-direction: row; justify-content: space-between;"
       >
         <span
           data-testid="pdf-text"
-          style="font-size: 16px; font-weight: bold; color: rgb(30, 41, 59); margin-bottom: 10px; text-transform: uppercase;"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
         >
-          Latest Sessions
+          AlgoMind AI Assessment • Confidential
         </span>
+        <span
+          data-testid="pdf-text"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
+        />
+      </div>
+    </div>
+    <div
+      data-size="A4"
+      data-testid="pdf-page"
+    >
+      <div
+        data-testid="pdf-view"
+      >
         <div
           data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
+          style="flex-direction: row; gap: 24px;"
         >
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
+          <div
+            data-testid="pdf-view"
+            style="flex: 2 1 0%;"
           >
-            Two Sum
-             (
-            Jan 15
-            )
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
+            <span
+              data-testid="pdf-text"
+              style="font-size: 16px; font-family: Helvetica-Bold; color: rgb(15, 23, 42); margin-bottom: 16px;"
+            >
+              Overall Feedback
+            </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 10px; color: rgb(51, 65, 85); line-height: 1.6;"
+            >
+              The candidate demonstrates strong potential with their cognitive baseline. They should continue refining specific areas identified in the skill breakdown. Focusing on iterative problem solving and systematic approaches will yield further improvement.
+            </span>
+          </div>
+          <div
+            data-testid="pdf-view"
+            style="flex: 1 1 0%; background-color: rgb(248, 250, 252); padding: 16px; border-radius: 8px;"
           >
-            Score: 
-            8.2
-          </span>
-        </div>
-        <div
-          data-testid="pdf-view"
-          style="flex-direction: row; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: rgb(241, 245, 249);"
-        >
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; color: rgb(51, 65, 85);"
-          >
-            Merge Intervals
-             (
-            Jan 20
-            )
-          </span>
-          <span
-            data-testid="pdf-text"
-            style="font-size: 12px; font-weight: bold; color: rgb(30, 41, 59);"
-          >
-            Score: 
-            6.9
-          </span>
+            <span
+              data-testid="pdf-text"
+              style="font-size: 9px; font-family: Helvetica-Bold; color: rgb(99, 102, 241); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;"
+            >
+              Next Steps
+            </span>
+            <div
+              data-testid="pdf-view"
+              style="flex-direction: row; margin-bottom: 8px;"
+            >
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(99, 102, 241); margin-right: 6px; font-family: Helvetica-Bold;"
+              >
+                1
+                .
+              </span>
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(51, 65, 85); flex: 1 1 0%; line-height: 1.5;"
+              >
+                Review algorithm foundations for weak areas
+              </span>
+            </div>
+            <div
+              data-testid="pdf-view"
+              style="flex-direction: row; margin-bottom: 8px;"
+            >
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(99, 102, 241); margin-right: 6px; font-family: Helvetica-Bold;"
+              >
+                2
+                .
+              </span>
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(51, 65, 85); flex: 1 1 0%; line-height: 1.5;"
+              >
+                Practice timed sessions with hard constraints
+              </span>
+            </div>
+            <div
+              data-testid="pdf-view"
+              style="flex-direction: row; margin-bottom: 8px;"
+            >
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(99, 102, 241); margin-right: 6px; font-family: Helvetica-Bold;"
+              >
+                3
+                .
+              </span>
+              <span
+                data-testid="pdf-text"
+                style="font-size: 9px; color: rgb(51, 65, 85); flex: 1 1 0%; line-height: 1.5;"
+              >
+                Focus on space/time complexity tradeoffs
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <span
-        data-testid="pdf-text"
-        style="position: absolute; bottom: 40px; left: 40px; right: 40px; text-align: center; font-size: 10px; color: rgb(148, 163, 184); border-top-width: 1px; border-top-color: rgb(241, 245, 249); padding-top: 10px;"
+      <div
+        data-testid="pdf-view"
+        style="position: absolute; bottom: 24px; left: 40px; right: 40px; border-top-width: 1px; border-top-color: rgb(226, 232, 240); padding-top: 8px; flex-direction: row; justify-content: space-between;"
       >
-        © 2026 AlgoMind AI - Scientific DSA Assessment
-      </span>
+        <span
+          data-testid="pdf-text"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
+        >
+          AlgoMind AI Assessment • Confidential
+        </span>
+        <span
+          data-testid="pdf-text"
+          style="font-size: 8px; color: rgb(148, 163, 184);"
+        />
+      </div>
     </div>
   </div>
 </div>
