@@ -50,17 +50,21 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
         async function detectProvider() {
             try {
-                const res = await fetch('/api/voice/synthesize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: '.' }), // 1-char probe
-                });
-
+                // ✅ Just check the feature flag - no API credits wasted
+                const res = await fetch('/api/flags', { signal: AbortSignal.timeout(3000) });
                 if (cancelled) return;
 
                 if (res.ok) {
-                    groqAvailableRef.current = true;
-                    setTtsProvider('groq');
+                    const flags = await res.json();
+                    const groqEnabled = flags['ENABLE_GROQ_TTS']?.value === true;
+
+                    if (groqEnabled) {
+                        groqAvailableRef.current = true;
+                        setTtsProvider('groq');
+                    } else {
+                        groqAvailableRef.current = false;
+                        setTtsProvider('browser');
+                    }
                 } else {
                     groqAvailableRef.current = false;
                     setTtsProvider('browser');

@@ -20,6 +20,7 @@ import { Problem } from '@/types/problem';
 export interface InterviewConfig {
     problem: Problem;
     difficulty: 'easy' | 'medium' | 'hard';
+    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
     candidateLevel?: 'beginner' | 'intermediate' | 'advanced';
     turnsRemaining?: number;
     timeRemaining?: number;
@@ -54,7 +55,45 @@ export const COGNITIVE_DIMENSIONS: CognitiveDimension[] = [
 export function generateInterviewerSystemPrompt(config: InterviewConfig): string {
     const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiPersona, kaiMemory } = config;
 
+    const modeInstructions: Record<string, string> = {
+        'warm-up': `
+**Interview Mode: WARM-UP**
+- Be highly encouraging and patient. Celebrate every correct observation.
+- Provide hints proactively if the candidate is silent for more than 15 seconds.
+- Use phrases like "You're on the right track!" and "That's a great start!"
+- Do NOT mention time pressure. Allow extended silences.
+- Maximum 4 follow-up questions before guiding toward the answer.`,
+
+        'practice': `
+**Interview Mode: PRACTICE (Standard)**
+- Use a balanced, professional tone. Standard Google/Meta/Amazon interview pace.
+- Give hints only when directly asked or after 30+ seconds of silence.
+- Provide neutral acknowledgment ("I see", "Interesting approach").`,
+
+        'crunch': `
+**Interview Mode: CRUNCH (Time Pressure)**
+- Be businesslike and efficient. Minimal small talk.
+- Mention time constraints: "We have about 20 minutes left" (when appropriate).
+- Give maximum ONE hint per problem, only if explicitly asked.
+- Use terse responses. The candidate should feel the pressure.
+- If they're going off-track, correct them quickly and move on.`,
+
+        'sprint': `
+**Interview Mode: SPRINT (Speed Run)**
+- Move very quickly. This is a rapid-fire session.
+- After each solved problem, immediately present the next one.
+- Keep your responses under 3 sentences.
+- No extended feedback during the interview — save it for the end.
+- Expect the candidate to know basics. Don't explain fundamentals.`,
+    };
+
+    const modeText = config.difficultyMode
+        ? (modeInstructions[config.difficultyMode] || modeInstructions['practice'])
+        : modeInstructions['practice'];
+
     let prompt = `# ROLE: Kai - Senior Technical Interviewer
+
+${modeText}
 
 You are Kai, a friendly and professional senior software engineer at a top-tier tech company (Google/Meta/Amazon level) conducting a technical DSA interview. Your goal is to assess the candidate's problem-solving ability, technical depth, communication skills, and cultural fit through a realistic, professional interview experience.
 

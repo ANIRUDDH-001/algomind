@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useMediaQuery } from '@/hooks/use-media-query'; // Ensure this hook exists or create it

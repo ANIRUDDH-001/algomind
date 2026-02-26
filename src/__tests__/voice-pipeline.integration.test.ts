@@ -84,8 +84,8 @@ describe('Voice Pipeline Integration', () => {
         mockFetch.mockReset();
     });
 
-    it('Groq TTS is detected when /api/voice/synthesize returns 200', async () => {
-        mockFetch.mockResolvedValue({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) });
+    it('Groq TTS is detected when /api/flags returns ENABLE_GROQ_TTS=true', async () => {
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ ENABLE_GROQ_TTS: { value: true } }) });
 
         const { result } = renderHook(() => useVoiceOutput());
 
@@ -93,8 +93,8 @@ describe('Voice Pipeline Integration', () => {
         expect(result.current.ttsProvider).toBe('groq');
     });
 
-    it('Browser TTS fallback when Groq probe returns 503', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 503 });
+    it('Browser TTS fallback when /api/flags returns ENABLE_GROQ_TTS=false', async () => {
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ ENABLE_GROQ_TTS: { value: false } }) });
 
         const { result } = renderHook(() => useVoiceOutput());
 
@@ -112,7 +112,7 @@ describe('Voice Pipeline Integration', () => {
     });
 
     it('Full STT→AI→TTS round trip: correct provider detected', async () => {
-        mockFetch.mockResolvedValue({ ok: true });
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ ENABLE_GROQ_TTS: { value: true } }) });
 
         const { result } = renderHook(() => useVoiceOutput());
 
@@ -128,7 +128,7 @@ describe('Voice Pipeline Integration', () => {
         expect(result.current.ttsProvider).toBe('browser');
     });
 
-    it('Browser TTS fallback when Groq returns 502 (decommissioned model)', async () => {
+    it('Browser TTS fallback when API returns 502', async () => {
         mockFetch.mockResolvedValue({ ok: false, status: 502 });
 
         const { result } = renderHook(() => useVoiceOutput());

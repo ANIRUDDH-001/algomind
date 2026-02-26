@@ -50,6 +50,7 @@ interface InterviewSessionProps {
     ragContext?: string;
     remainingQuestions?: number;
     isReviewMode?: boolean;
+    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
 
     // Assessment capabilities
     isAssessment?: boolean;
@@ -71,6 +72,7 @@ export function InterviewSession({
     ragContext,
     remainingQuestions,
     isReviewMode = false,
+    difficultyMode,
     isAssessment = false,
     assessmentSessionToken,
     assessmentApiEndpoint,
@@ -284,7 +286,16 @@ export function InterviewSession({
         setHasStarted(true);
         startTimeRef.current = Date.now();
         limits.startTimer();
-        startInterview(problem.title, problem.description, ragContext, companyPersona || undefined, kaiMemory || undefined);
+        startInterview(
+            problem.title,
+            problem.description,
+            ragContext,
+            companyPersona || undefined,
+            kaiMemory || undefined,
+            problem.id,
+            difficultyMode,
+            problem.difficulty
+        );
     };
 
 
@@ -337,12 +348,27 @@ export function InterviewSession({
                             ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                             : durationSecs;
 
-                        const { success, error: saveError } = await saveInterviewSession(
-                            user.id, problem.id, problem.title, fullTranscript, duration, assessment
+                        const { success, error: saveError, sessionId } = await saveInterviewSession(
+                            user.id, problem.id, problem.title, fullTranscript, duration, assessment,
+                            { difficultyMode }
                         );
                         if (!success) {
                             console.error('Failed to save session:', saveError);
                             toast.error('Session analyzed but could not be saved to history.');
+                        } else if (sessionId) {
+                            toast.success(
+                                <div>
+                                    Interview saved!
+                                    <a
+                                        href={`/interview/analysis?sessionId=${sessionId}`}
+                                        className="underline ml-2"
+                                        onClick={() => toast.dismiss()}
+                                    >
+                                        View Analysis →
+                                    </a>
+                                </div>,
+                                { duration: 8000 }
+                            );
                         }
                     } catch (saveErr) {
                         console.error('Save exception:', saveErr);

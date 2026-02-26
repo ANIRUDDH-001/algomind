@@ -144,9 +144,9 @@ describe('useVoiceOutput — Groq TTS integration', () => {
         setupGlobals();
     });
 
-    it('uses browser TTS when /api/voice/synthesize returns 503', async () => {
+    it('uses browser TTS when /api/flags returns ENABLE_GROQ_TTS=false', async () => {
         (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-            ok: false, status: 503,
+            ok: true, json: () => Promise.resolve({ ENABLE_GROQ_TTS: { value: false } }),
         });
 
         setupDefaultState();
@@ -163,10 +163,9 @@ describe('useVoiceOutput — Groq TTS integration', () => {
         });
     });
 
-    it('detects Groq TTS as available when API returns 200', async () => {
-        const fakeAudioBuffer = new ArrayBuffer(16);
+    it('detects Groq TTS as available when API returns ENABLE_GROQ_TTS=true', async () => {
         (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-            ok: true, status: 200, arrayBuffer: async () => fakeAudioBuffer,
+            ok: true, json: () => Promise.resolve({ ENABLE_GROQ_TTS: { value: true } }),
         });
 
         setupDefaultState();
