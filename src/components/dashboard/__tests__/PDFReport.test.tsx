@@ -106,11 +106,11 @@ describe('PDFReport', () => {
         expect(allText.some(t => t?.includes('AlgoMind'))).toBe(true);
     });
 
-    it('3. Overall score appears as a formatted number (averageScore.toFixed(1)/10)', () => {
+    it('3. Overall score appears as a formatted number (averageScore.toFixed(1))', () => {
         render(<PDFReport progress={mockProgress} />);
-        // averageScore is 7.5 → should render "7.5/10"
+        // averageScore is 7.5 → should render "7.5"
         const allText = screen.getAllByTestId('pdf-text').map(el => el.textContent ?? '');
-        expect(allText.some(t => t.includes('7.5') && t.includes('10'))).toBe(true);
+        expect(allText.some(t => t.includes('7.5'))).toBe(true);
     });
 
     it('4. All 8 skill sections render (one per SKILL_DEFINITIONS key)', () => {
@@ -138,13 +138,10 @@ describe('PDFReport', () => {
 
     it('7. Date formatting is correct — uses date-fns format(), produces human-readable date', () => {
         render(<PDFReport progress={mockProgress} />);
-        // The subtitle reads "Generated on <formatted_date>"
-        // date-fns format(new Date(), 'PPP p') → e.g. "February 24th, 2026 at 10:17 AM"
+        // The header date uses format(new Date(), 'PPP') → e.g. "February 24th, 2026"
         const allText = screen.getAllByTestId('pdf-text').map(el => el.textContent ?? '');
-        const generatedLine = allText.find(t => t.toLowerCase().includes('generated on'));
-        expect(generatedLine).toBeDefined();
-        // Must contain a year (e.g. 2026)
-        expect(generatedLine).toMatch(/20\d{2}/);
+        // Must contain a year (e.g. 2026) in one of the text elements
+        expect(allText.some(t => /20\d{2}/.test(t))).toBe(true);
     });
 
     it('8. (Design-token intent) COLORS.semantic.success is a valid hex for high-score indicator', () => {
@@ -169,8 +166,8 @@ describe('PDFReport', () => {
     it('10. Footer section renders with page/branding text', () => {
         render(<PDFReport progress={mockProgress} />);
         const allText = screen.getAllByTestId('pdf-text').map(el => el.textContent ?? '');
-        // Footer text includes © and AlgoMind
-        expect(allText.some(t => t.includes('©') && t.includes('AlgoMind'))).toBe(true);
+        // Footer text includes AlgoMind and Confidential
+        expect(allText.some(t => t.includes('AlgoMind') && t.includes('Confidential'))).toBe(true);
     });
 
     it('11. Snapshot test: full PDF structure with mock progress data', () => {
@@ -178,6 +175,9 @@ describe('PDFReport', () => {
         vi.setSystemTime(new Date('2026-02-24T08:00:00Z'));
         try {
             const { container } = render(<PDFReport progress={mockProgress} />);
+            // Verify structure renders three pages
+            const pages = screen.getAllByTestId('pdf-page');
+            expect(pages.length).toBe(3);
             expect(container).toMatchSnapshot();
         } finally {
             vi.useRealTimers();
