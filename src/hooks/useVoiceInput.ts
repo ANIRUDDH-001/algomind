@@ -180,7 +180,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             };
 
             recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-                if (event.error === 'no-speech') return;
+                if (event.error === 'no-speech' || event.error === 'aborted') return;
 
                 let errorMessage = `Error: ${event.error}`;
                 switch (event.error) {
