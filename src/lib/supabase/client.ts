@@ -61,6 +61,10 @@ export async function probeAndAutoProxy(): Promise<'proxy' | 'direct' | null> {
         await fetch(`${url}/auth/v1/health`, {
             signal: controller.signal,
             method: 'GET',
+            headers: {
+                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`
+            }
         });
 
         clearTimeout(timeoutId);
