@@ -9,7 +9,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Mic, BarChart, Brain, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 
 // --- Reusable Custom Components for Sections ---
@@ -92,20 +92,6 @@ export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Snap container ref
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Natively track the scroll container. This avoids a bug where delayed 
-  // initialization tracks the window scroll, evaluating opacityHero to 0 
-  // on client-side navigations!
-  const { scrollYProgress } = useScroll({
-    container: scrollRef
-  });
-
-  // Parallax transforms based on snap container scroll
-  const yHero = useTransform(scrollYProgress, [0, 0.2], [0, 150]);
-  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-
   // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -137,7 +123,6 @@ export default function HomePage() {
 
   return (
     <div
-      ref={scrollRef}
       className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden bg-surface-base text-white scroll-smooth custom-scrollbar selection:bg-indigo-500/30"
     >
 
@@ -168,7 +153,9 @@ export default function HomePage() {
         </div>
 
         <motion.div
-          style={{ y: yHero, opacity: opacityHero }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full"
         >
           {/* 3D Animated CSS Cube Logo */}
