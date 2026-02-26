@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
-import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { getSupabase, isSupabaseConfigured, probeAndAutoProxy } from '@/lib/supabase/client';
 
 interface AuthContextType {
     user: User | null;
@@ -13,6 +13,7 @@ interface AuthContextType {
     signOut: () => Promise<void>;
     isAuthenticated: boolean;
     isConfigured: boolean; // Whether Supabase is set up
+    proxyMode: 'unknown' | 'direct' | 'proxy';
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
     isAuthenticated: false,
     isConfigured: false,
+    proxyMode: 'unknown',
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [isConfigured] = useState(() => isSupabaseConfigured());
+    const [proxyMode, setProxyMode] = useState<'unknown' | 'direct' | 'proxy'>('unknown');
 
     useEffect(() => {
         // If Supabase is not configured, just mark as not loading
@@ -38,16 +41,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        const supabase = getSupabase();
-        if (!supabase) {
-            setLoading(false);
-            return;
-        }
-
         let mounted = true;
+        let subscriptionCleanup: (() => void) | null = null;
 
-        // Get initial session
-        const initSession = async () => {
+        const initAuth = async () => {
+            // Wait for proxy probe to complete FIRST
+            const mode = await probeAndAutoProxy();
+            if (mounted && mode) {
+                setProxyMode(mode);
+            }
+
+            const supabase = getSupabase();
+            if (!supabase) {
+                if (mounted) setLoading(false);
+                return;
+            }
+
             // E2E Test Bypass
             if (process.env.NODE_ENV !== 'production' &&
                 typeof document !== 'undefined' &&
@@ -66,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (mounted) {
                     setSession(data.session);
                     setUser(data.session?.user ?? null);
-                    setLoading(false);
+                    if (data.session) {
+                        setLoading(false);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to get session:', error);
@@ -74,24 +85,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setLoading(false);
                 }
             }
+
+            // Listen for auth changes if still mounted
+            if (mounted) {
+                const { data: { subscription } } = supabase.auth.onAuthStateChange(
+                    (event: AuthChangeEvent, newSession: Session | null) => {
+                        if (mounted) {
+                            setSession(newSession);
+                            setUser(newSession?.user ?? null);
+                            setLoading(false);
+                        }
+                    }
+                );
+                subscriptionCleanup = () => subscription.unsubscribe();
+
+                // Extra safeguard to set loading false if session check finishes.
+                setLoading(false);
+            }
         };
 
-        initSession();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event: AuthChangeEvent, newSession: Session | null) => {
-                if (mounted) {
-                    setSession(newSession);
-                    setUser(newSession?.user ?? null);
-                    setLoading(false);
-                }
-            }
-        );
+        initAuth();
 
         return () => {
             mounted = false;
-            subscription.unsubscribe();
+            if (subscriptionCleanup) {
+                subscriptionCleanup();
+            }
         };
     }, [isConfigured]);
 
@@ -135,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 signOut,
                 isAuthenticated: !!user,
                 isConfigured,
+                proxyMode,
             }}
         >
             {children}

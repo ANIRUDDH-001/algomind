@@ -2,11 +2,24 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export default async function middleware(request: NextRequest) {
-    // 1. Supabase Proxy (bypass DNS/Mobile blocking)
+    // 1. Supabase Proxy OPTIONS Preflight
+    if (request.method === 'OPTIONS' && request.nextUrl.pathname.startsWith('/supabase-proxy/')) {
+        return new NextResponse(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Max-Age': '86400',
+            },
+        });
+    }
+
+    // 2. Supabase Proxy (bypass DNS/Mobile blocking)
     if (request.nextUrl.pathname.startsWith('/supabase-proxy/')) {
         const url = new URL(request.url);
-        // Replace /supabase-proxy/ with the actual Supabase URL
-        const targetPath = url.pathname.replace('/supabase-proxy/', '/');
+        // Replace /supabase-proxy/ with the actual path
+        const targetPath = url.pathname.replace(/^\/supabase-proxy/, '');
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
         if (!supabaseUrl) {
@@ -14,9 +27,46 @@ export default async function middleware(request: NextRequest) {
         }
 
         const targetUrl = new URL(targetPath + url.search, supabaseUrl);
+        const supabaseHost = new URL(supabaseUrl).host;
 
-        // Proxy the request directly
-        return NextResponse.rewrite(targetUrl);
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set('Host', supabaseHost);
+        requestHeaders.delete('x-forwarded-host');
+        requestHeaders.delete('x-forwarded-port');
+
+        const isBodyAllowed = !['GET', 'HEAD'].includes(request.method);
+
+        const requestInit: RequestInit = {
+            method: request.method,
+            headers: requestHeaders,
+        };
+
+        if (isBodyAllowed) {
+            requestInit.body = request.body as any;
+            // @ts-expect-error duplex is required for Next.js edge stream forwarding
+            requestInit.duplex = 'half';
+        }
+
+        try {
+            const response = await fetch(targetUrl.toString(), requestInit);
+
+            // Create a new response to modify headers, preserve status
+            const proxyResponse = new NextResponse(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+            });
+
+            proxyResponse.headers.set('Access-Control-Allow-Origin', '*');
+            proxyResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+            proxyResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            proxyResponse.headers.set('Access-Control-Allow-Headers', '*');
+
+            return proxyResponse;
+        } catch (error) {
+            console.error('Supabase Proxy Error:', error);
+            return new NextResponse('Proxy failed', { status: 502 });
+        }
     }
 
     let supabaseResponse = NextResponse.next({ request });
