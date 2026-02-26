@@ -37,7 +37,6 @@ interface Stats {
 }
 
 export default function KnowledgeAdminPage() {
-    const router = useRouter();
     const { isAdmin, loading: adminLoading } = useAdmin();
     const [gaps, setGaps] = useState<KnowledgeGap[]>([]);
     const [chunks, setChunks] = useState<KnowledgeChunk[]>([]);
@@ -46,6 +45,7 @@ export default function KnowledgeAdminPage() {
 
     // Modal state
     const [activeGap, setActiveGap] = useState<KnowledgeGap | null>(null);
+    const [isAddingManual, setIsAddingManual] = useState(false);
     const [drafting, setDrafting] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
@@ -120,7 +120,7 @@ export default function KnowledgeAdminPage() {
     };
 
     const handleApprove = async () => {
-        if (!activeGap) return;
+        if (!activeGap && !isAddingManual) return;
         setDrafting(true);
         try {
             const res = await fetch('/api/admin/rag', {
@@ -128,7 +128,7 @@ export default function KnowledgeAdminPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'approve',
-                    gapId: activeGap.id,
+                    gapId: activeGap?.id,
                     ...formData,
                     keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean)
                 })
@@ -138,6 +138,7 @@ export default function KnowledgeAdminPage() {
 
             alert('Chunk approved and embedding triggered!');
             setActiveGap(null);
+            setIsAddingManual(false);
             loadAllData();
         } catch (err) {
             alert('Failed to approve chunk: ' + err);
@@ -146,7 +147,24 @@ export default function KnowledgeAdminPage() {
         }
     };
 
+    const handleProcessPending = async () => {
+        try {
+            const res = await fetch('/api/admin/rag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'process_pending' })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            alert(`Started processing ${data.count} pending chunks.`);
+            loadAllData();
+        } catch (err) {
+            alert('Failed to process: ' + err);
+        }
+    };
+
     const openEditModal = (gap: KnowledgeGap) => {
+        setIsAddingManual(false);
         setActiveGap(gap);
         setFormData({
             title: gap.suggested_title || '',
@@ -156,6 +174,20 @@ export default function KnowledgeAdminPage() {
             content: gap.suggested_content || '',
             keywords: '',
             adminNotes: gap.admin_notes || '',
+        });
+    };
+
+    const openManualModal = () => {
+        setActiveGap(null);
+        setIsAddingManual(true);
+        setFormData({
+            title: '',
+            topic: 'dsa',
+            subtopic: '',
+            difficulty: 'medium',
+            content: '',
+            keywords: '',
+            adminNotes: '',
         });
     };
 
@@ -286,7 +318,14 @@ export default function KnowledgeAdminPage() {
                                     <Database className="w-4 h-4 text-emerald-500" />
                                     Active Chunks ({stats.total})
                                 </h2>
-                                <Button size="sm" className="btn-primary h-8"><Bot className="w-4 h-4 mr-2" /> Add Manual Chunk</Button>
+                                <div className="flex gap-3">
+                                    {((stats.embeddingStats?.['pending'] || 0) > 0 || (stats.embeddingStats?.['failed'] || 0) > 0) && (
+                                        <Button size="sm" variant="outline" className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10 h-8" onClick={handleProcessPending}>
+                                            <RotateCw className="w-4 h-4 mr-2" /> Process Pending
+                                        </Button>
+                                    )}
+                                    <Button size="sm" className="btn-primary h-8" onClick={openManualModal}><Bot className="w-4 h-4 mr-2" /> Add Manual Chunk</Button>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
@@ -346,12 +385,19 @@ export default function KnowledgeAdminPage() {
                                 <div className="text-3xl font-bold text-emerald-400">{stats.embeddingStats?.['done'] || 0}</div>
                             </div>
                             <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-                                <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Pending</div>
+                                <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center justify-between">
+                                    <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Pending</span>
+                                    {((stats.embeddingStats?.['pending'] || 0) > 0 || (stats.embeddingStats?.['failed'] || 0) > 0) && (
+                                        <button onClick={handleProcessPending} className="text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md">Process Now</button>
+                                    )}
+                                </div>
                                 <div className="text-3xl font-bold text-amber-400">{stats.embeddingStats?.['pending'] || 0}</div>
                             </div>
                             <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-                                <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><ArrowLeft className="w-4 h-4 rotate-45 text-indigo-500" /> Resolution Rate</div>
-                                <div className="text-3xl font-bold text-indigo-400">82%</div>
+                                <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><ArrowLeft className="w-4 h-4 rotate-45 text-indigo-500" /> Resolved Embedding %</div>
+                                <div className="text-3xl font-bold text-indigo-400">
+                                    {stats.total > 0 ? Math.round(((stats.embeddingStats?.['done'] || 0) / stats.total) * 100) : 0}%
+                                </div>
                             </div>
                         </div>
                     </TabsContent>
@@ -359,19 +405,21 @@ export default function KnowledgeAdminPage() {
             </div>
 
             {/* Approval / Edit Modal */}
-            {activeGap && (
+            {(activeGap || isAddingManual) && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                            <h2 className="text-xl font-bold text-white">Review Knowledge Draft</h2>
-                            <Button variant="ghost" size="icon" onClick={() => setActiveGap(null)} className="text-zinc-400 hover:text-white"><XCircle className="w-5 h-5" /></Button>
+                            <h2 className="text-xl font-bold text-white">{isAddingManual ? 'Create Manual Knowledge Chunk' : 'Review Knowledge Draft'}</h2>
+                            <Button variant="ghost" size="icon" onClick={() => { setActiveGap(null); setIsAddingManual(false); }} className="text-zinc-400 hover:text-white"><XCircle className="w-5 h-5" /></Button>
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                            <div className="bg-slate-900 border border-indigo-500/20 p-4 rounded-xl">
-                                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Original User Query</h3>
-                                <div className="text-slate-300 italic">" {activeGap.user_query} "</div>
-                            </div>
+                            {activeGap && (
+                                <div className="bg-slate-900 border border-indigo-500/20 p-4 rounded-xl">
+                                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Original User Query</h3>
+                                    <div className="text-slate-300 italic">" {activeGap.user_query} "</div>
+                                </div>
+                            )}
 
                             {drafting && <div className="flex items-center justify-center py-12"><div className="animate-spin mr-3"><RotateCw className="text-indigo-500" /></div> Drafting with Gemini...</div>}
 
@@ -423,7 +471,7 @@ export default function KnowledgeAdminPage() {
                         </div>
 
                         <div className="px-6 py-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
-                            <Button variant="ghost" onClick={() => setActiveGap(null)} className="text-zinc-400">Cancel</Button>
+                            <Button variant="ghost" onClick={() => { setActiveGap(null); setIsAddingManual(false); }} className="text-zinc-400">Cancel</Button>
                             {!drafting && <Button onClick={handleApprove} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-900/20 px-8">Save & Embed Chunk</Button>}
                         </div>
                     </div>
