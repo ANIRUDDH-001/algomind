@@ -743,7 +743,11 @@ export function InterviewSession({
             )}
             {voice.error && !voiceErrorDismissed && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-bounce">
-                    <ErrorBanner message={`Mic Problem: ${voice.error}. Try clicking the mic button to restart.`} onClose={() => setVoiceErrorDismissed(true)} />
+                    <ErrorBanner
+                        className="!relative !top-auto !bottom-auto !left-auto !transform-none !w-full"
+                        message={`Mic Problem: ${voice.error}. Try clicking the mic button to restart.`}
+                        onClose={() => setVoiceErrorDismissed(true)}
+                    />
                 </div>
             )}
             <GuestRegisterModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
