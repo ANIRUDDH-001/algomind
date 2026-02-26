@@ -624,6 +624,20 @@ export function InterviewSession({
                                                 <Send className="w-3 h-3 mr-2" /> Send Message
                                             </Button>
                                         )}
+
+                                        {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
+                                        {isMobile && hasStarted && !readOnly && (
+                                            <div className="w-full mt-2 shrink-0">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={handleFinish}
+                                                    disabled={isAnalyzing}
+                                                    className="w-full h-10 text-[11px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
+                                                >
+                                                    <Flag className="w-4 h-4 mr-1.5" /> End & Analyze
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -885,7 +899,7 @@ export function InterviewSession({
                 {...swipeHandlers}
                 style={{ touchAction: 'pan-y' }}
             >
-                <div className="absolute inset-0 flex flex-col overflow-hidden">
+                <div className="absolute inset-0 flex flex-col overflow-hidden pb-14">
                     {activeTab === 'problem' && (
                         <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-left-4">
                             <div className="flex-1">{renderProblemCardContent()}</div>
@@ -932,16 +946,41 @@ export function InterviewSession({
                         </div>
                     )}
 
-                    {/* Swipe Dots Indicator */}
-                    <div className="absolute bottom-[66px] left-0 right-0 z-50 flex justify-center py-2 pointer-events-none">
-                        <div className="flex gap-2">
-                            {mobileTabs.map((tab, i) => (
-                                <div key={tab} className={cn(
-                                    "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                                    i === currentIndex ? "bg-indigo-400 w-3" : "bg-zinc-600"
+                    {/* ✅ FIXED: Visible clickable tab bar (replaces useless swipe dots) */}
+                    <div className="absolute bottom-0 left-0 right-0 z-50 flex border-t"
+                        style={{
+                            background: 'var(--surface-1)',
+                            borderColor: 'var(--surface-edge)',
+                            paddingBottom: 'env(safe-area-inset-bottom, 0px)'  // iPhone home bar
+                        }}
+                    >
+                        {([
+                            { id: 'problem', label: 'Problem', icon: BookOpen },
+                            { id: 'interview', label: 'Voice', icon: Mic },
+                            { id: 'code', label: 'Code', icon: Code },
+                            { id: 'history', label: 'Chat', icon: MessageSquare },
+                        ] as const).map(({ id, label, icon: Icon }) => (
+                            <button
+                                key={id}
+                                onClick={() => setActiveTab(id as MobileTab)}
+                                className={cn(
+                                    "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all text-[10px] font-bold uppercase tracking-wider",
+                                    activeTab === id
+                                        ? "text-indigo-400"
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                )}
+                            >
+                                <Icon className={cn(
+                                    "w-5 h-5 transition-all",
+                                    activeTab === id ? "text-indigo-400" : "text-zinc-500"
                                 )} />
-                            ))}
-                        </div>
+                                <span>{label}</span>
+                                {/* Active indicator dot */}
+                                {activeTab === id && (
+                                    <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />
+                                )}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>

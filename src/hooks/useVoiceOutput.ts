@@ -32,9 +32,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const queueRef = useRef<string[]>([]);
     const processingRef = useRef(false);
 
-    // AudioContext for Groq TTS playback
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+    // <audio> element for Groq TTS playback (routes to media volume on iOS)
+    const audioElementRef = useRef<HTMLAudioElement | null>(null);
     // Track whether Groq TTS is available (avoids retrying after first 503)
     const groqAvailableRef = useRef<boolean | null>(null); // null = not yet probed
 
@@ -114,22 +113,24 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, options.rate]);
 
-    // Cleanup AudioContext on unmount
+    // Cleanup audio element on unmount
     useEffect(() => {
         return () => {
-            if (sourceNodeRef.current) {
-                try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
-                sourceNodeRef.current = null;
-            }
-            if (audioContextRef.current) {
-                audioContextRef.current.close().catch(() => { /* ignore */ });
-                audioContextRef.current = null;
+            // ✅ Cleanup audio element on unmount
+            if (audioElementRef.current) {
+                audioElementRef.current.pause();
+                if (audioElementRef.current.src?.startsWith('blob:')) {
+                    URL.revokeObjectURL(audioElementRef.current.src);
+                }
+                audioElementRef.current = null;
             }
         };
     }, []);
 
     // ─── Groq TTS via AudioContext (primary) ───────────────────────────
 
+    // ─── Groq TTS via <audio> element (primary) ────────────────────────
+    // REPLACES the AudioContext approach to fix iOS call volume routing
     const speakWithGroq = useCallback(async (text: string): Promise<boolean> => {
         if (groqAvailableRef.current === false) return false;
         if (!user) return false;
@@ -142,37 +143,45 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             });
 
             if (!response.ok) {
-                // Any failure (502 decommissioned, 503 disabled, 500 etc.)
-                // permanently disables Groq for this session → browser fallback
-                groqAvailableRef.current = false;
-                setTtsProvider('browser');
+                if (response.status === 503 || response.status === 502) {
+                    groqAvailableRef.current = false;
+                    setTtsProvider('browser');
+                }
                 return false;
             }
 
             const arrayBuffer = await response.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
 
-            // Create or resume AudioContext
-            if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-                audioContextRef.current = new AudioContext();
-            }
-            const ctx = audioContextRef.current;
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
+            // ✅ Use <audio> element — always routes to media volume on iOS
+            if (audioElementRef.current) {
+                audioElementRef.current.pause();
+                URL.revokeObjectURL(audioElementRef.current.src);
             }
 
-            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-            const source = ctx.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(ctx.destination);
-            sourceNodeRef.current = source;
+            const audio = new Audio(url);
+            audio.volume = 1.0;  // max volume, controlled by media volume buttons
+            audioElementRef.current = audio;
 
             return new Promise<boolean>((resolve) => {
-                source.onended = () => {
-                    sourceNodeRef.current = null;
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    audioElementRef.current = null;
                     resolve(true);
                 };
-
-                source.start(0);
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    audioElementRef.current = null;
+                    resolve(false);
+                };
+                // ✅ Required on iOS: must call play() from a user gesture context
+                // Since this is triggered from an AI response (not user gesture),
+                // we need the audio element to be created fresh each time
+                audio.play().catch(() => {
+                    // iOS sometimes blocks autoplay - fall through to browser TTS
+                    resolve(false);
+                });
             });
         } catch {
             return false;
@@ -232,9 +241,13 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         cleanText = preprocessForTTS(cleanText);
 
         // Cancel any in-progress speech
-        if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
-            sourceNodeRef.current = null;
+        if (audioElementRef.current) {
+            audioElementRef.current.pause();
+            audioElementRef.current.currentTime = 0;
+            if (audioElementRef.current.src.startsWith('blob:')) {
+                URL.revokeObjectURL(audioElementRef.current.src);
+            }
+            audioElementRef.current = null;
         }
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             window.speechSynthesis.cancel();
@@ -269,22 +282,27 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                         body: JSON.stringify({ text: cleanText }),
                     });
                     if (pollyRes.ok) {
-                        const ab = await pollyRes.arrayBuffer();
-                        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-                            audioContextRef.current = new AudioContext();
-                        }
-                        const ctx = audioContextRef.current;
-                        if (ctx.state === 'suspended') await ctx.resume();
-                        const buf = await ctx.decodeAudioData(ab);
-                        const src = ctx.createBufferSource();
-                        src.buffer = buf;
-                        src.connect(ctx.destination);
-                        sourceNodeRef.current = src;
-                        await new Promise<void>(resolve => {
-                            src.onended = () => { sourceNodeRef.current = null; resolve(); };
-                            src.start(0);
+                        const arrayBuffer = await pollyRes.arrayBuffer();
+                        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                        const url = URL.createObjectURL(blob);
+
+                        const audio = new Audio(url);
+                        audio.volume = 1.0;
+                        audioElementRef.current = audio;
+
+                        success = await new Promise<boolean>((resolve) => {
+                            audio.onended = () => {
+                                URL.revokeObjectURL(url);
+                                audioElementRef.current = null;
+                                resolve(true);
+                            };
+                            audio.onerror = () => {
+                                URL.revokeObjectURL(url);
+                                audioElementRef.current = null;
+                                resolve(false);
+                            };
+                            audio.play().catch(() => resolve(false));
                         });
-                        success = true;
                     }
                 } catch {
                     // Polly unavailable — fall through to browser
@@ -305,9 +323,9 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     }, [ttsProvider, speakWithGroq, processQueueBrowser, options]);
 
     const pause = useCallback(() => {
-        // Pause Groq AudioContext
-        if (audioContextRef.current && audioContextRef.current.state === 'running') {
-            audioContextRef.current.suspend().catch(() => { /* ignore */ });
+        // Pause audio element
+        if (audioElementRef.current) {
+            audioElementRef.current.pause();
         }
         // Pause browser TTS
         if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -318,9 +336,9 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     }, [options]);
 
     const resume = useCallback(() => {
-        // Resume Groq AudioContext
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume().catch(() => { /* ignore */ });
+        // Resume audio element
+        if (audioElementRef.current) {
+            audioElementRef.current.play().catch(() => { /* ignore */ });
         }
         // Resume browser TTS
         if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -330,13 +348,14 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     }, []);
 
     const stop = useCallback(() => {
-        // Stop Groq audio
-        if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.stop(); } catch { /* already stopped */ }
-            sourceNodeRef.current = null;
-        }
-        if (audioContextRef.current) {
-            audioContextRef.current.suspend().catch(() => { /* ignore */ });
+        // ✅ Stop <audio> element
+        if (audioElementRef.current) {
+            audioElementRef.current.pause();
+            audioElementRef.current.currentTime = 0;
+            if (audioElementRef.current.src.startsWith('blob:')) {
+                URL.revokeObjectURL(audioElementRef.current.src);
+            }
+            audioElementRef.current = null;
         }
         // Stop browser TTS
         if (typeof window !== 'undefined' && window.speechSynthesis) {
