@@ -134,50 +134,6 @@ export async function POST(request: Request) {
                     status = 'error';
                     message = `Gemini error: ${geminiRes.statusText}`;
                 }
-            } else if (model.provider === 'deepseek') {
-                // Guard: key must be present before we make the request
-                const deepseekKey = process.env.DEEPSEEK_API_KEY;
-                if (!deepseekKey) {
-                    return NextResponse.json(
-                        { error: 'DeepSeek API key not configured. Add DEEPSEEK_API_KEY to environment variables.' },
-                        { status: 503 }
-                    );
-                }
-
-                // Deepseek format
-                const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${deepseekKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: modelId,
-                        messages: [{ role: 'user', content: 'ping' }],
-                        max_tokens: 1
-                    })
-                });
-
-                if (dsRes.ok) {
-                    isSuccess = true;
-                    status = 'verified';
-                    message = 'DeepSeek ping successful';
-                } else if (dsRes.status === 404) {
-                    status = 'deprecated';
-                    message = 'Model not found on DeepSeek (404)';
-                    await markModelDeprecated(modelId, 'Failed live verification (404)');
-                } else if (dsRes.status === 429) {
-                    status = 'rate_limited';
-                    message = 'DeepSeek Rate Limited (429)';
-                    const { error: tsError } = await supabase
-                        .from('model_registry')
-                        .update({ last_verified: new Date().toISOString() })
-                        .eq('model_id', modelId);
-                    if (tsError) console.error('Failed to update 429 timestamp:', tsError);
-                } else {
-                    status = 'error';
-                    message = `DeepSeek error: ${dsRes.statusText}`;
-                }
             } else {
                 status = 'error';
                 message = `Unknown provider: ${model.provider}`;

@@ -138,10 +138,10 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             });
 
             if (!response.ok) {
-                if (response.status === 503) {
-                    groqAvailableRef.current = false;
-                    setTtsProvider('browser');
-                }
+                // Any failure (502 decommissioned, 503 disabled, 500 etc.)
+                // permanently disables Groq for this session → browser fallback
+                groqAvailableRef.current = false;
+                setTtsProvider('browser');
                 return false;
             }
 

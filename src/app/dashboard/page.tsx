@@ -283,9 +283,6 @@ function DashboardContent() {
                                     )}
 
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
-
-                                    {/* Coming Soon Section */}
-                                    <ComingSoonSection />
                                 </>
                             )}
 
@@ -399,6 +396,11 @@ function DashboardContent() {
                         </motion.div>
                     </AnimatePresence>
                 )}
+
+                {/* Coming Soon Section — always visible regardless of session count */}
+                <div className="mt-8">
+                    <ComingSoonSection />
+                </div>
             </div>
         </div>
     );

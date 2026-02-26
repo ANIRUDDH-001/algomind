@@ -125,13 +125,6 @@ export default function HomePage() {
     return <IntroAnimation onComplete={handleOnboardingComplete} />;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-base">
-        <div className="w-12 h-12 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-      </div>
-    );
-  }
 
 
   // CSS Particles configuration
@@ -182,6 +175,7 @@ export default function HomePage() {
           {/* 3D Animated CSS Cube Logo */}
           <div style={{ perspective: '800px' }} className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-10">
             <motion.div
+              initial={false}
               style={{ transformStyle: 'preserve-3d', width: '100%', height: '100%' }}
               animate={{ rotateY: 360, rotateX: [0, 10, 0, -10, 0] }}
               transition={{ rotateY: { duration: 8, repeat: Infinity, ease: 'linear' }, rotateX: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }}
@@ -423,6 +417,90 @@ export default function HomePage() {
           <TiltCard className="h-full">
             <AnimatedCounter value="24/7" label="Voice AI Feedback" />
           </TiltCard>
+        </div>
+      </section>
+
+      {/* SECTION 4.5: AVAILABLE EVERYWHERE (PWA Card) */}
+      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 relative overflow-hidden border-b border-transparent">
+        <div className="max-w-6xl mx-auto w-full">
+          <FadeInView>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-black mb-4">Available Everywhere</h2>
+              <p className="text-zinc-400 text-lg">Install AlgoMind as a PWA on any device for a native-like experience.</p>
+            </div>
+          </FadeInView>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left side: 3D Mockups */}
+            <div className="relative h-[400px] md:h-[500px] flex items-center justify-center">
+              {/* Animated Glow Backdrops */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-indigo-500/20 rounded-full blur-[100px] animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-purple-500/20 rounded-full blur-[80px] animate-pulse delay-700" />
+
+              {/* Laptop Mockup */}
+              <motion.div
+                initial={{ opacity: 0, x: -50, rotateY: 20 }}
+                whileInView={{ opacity: 1, x: 0, rotateY: 25 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="absolute z-10 w-[300px] md:w-[450px] aspect-video glass rounded-xl border border-white/20 shadow-2xl overflow-hidden"
+                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+              >
+                <div className="w-full h-full bg-surface-2 flex flex-col p-2">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <div className="w-2 h-2 rounded-full bg-red-400/50" />
+                    <div className="w-2 h-2 rounded-full bg-amber-400/50" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-400/50" />
+                  </div>
+                  <div className="flex-1 bg-surface-base rounded-md overflow-hidden p-3 gap-3 flex flex-col">
+                    <div className="h-6 w-32 bg-white/5 rounded-md animate-pulse" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="h-20 bg-white/5 rounded-lg animate-pulse" />
+                      <div className="h-20 bg-white/5 rounded-lg animate-pulse" />
+                      <div className="h-20 bg-white/5 rounded-lg animate-pulse" />
+                    </div>
+                    <div className="h-32 bg-indigo-500/5 rounded-lg border border-indigo-500/20 animate-pulse" />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Phone Mockup */}
+              <motion.div
+                initial={{ opacity: 0, x: 50, rotateY: -20, rotateZ: 5 }}
+                whileInView={{ opacity: 1, x: 20, rotateY: -30, rotateZ: 10 }}
+                transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+                className="absolute z-20 top-20 right-0 w-[120px] md:w-[150px] h-[250px] md:h-[300px] glass rounded-[2rem] border border-white/30 shadow-2xl overflow-hidden p-2"
+                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
+              >
+                <div className="w-full h-full bg-surface-2 rounded-[1.8rem] flex flex-col p-4 gap-4">
+                  <div className="w-full aspect-square bg-indigo-500/10 rounded-2xl animate-pulse" />
+                  <div className="h-3 w-full bg-white/5 rounded-full animate-pulse" />
+                  <div className="h-3 w-3/4 bg-white/5 rounded-full animate-pulse" />
+                  <div className="mt-auto h-10 w-full bg-indigo-500/20 rounded-xl animate-pulse" />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right side: Benefits */}
+            <div className="flex flex-col gap-8">
+              {[
+                { icon: <Play className="w-6 h-6" />, title: "One-Tap Access", desc: "Launch instantly from your home screen or dock." },
+                { icon: <CheckCircle2 className="w-6 h-6" />, title: "Native Experience", desc: "Smooth transitions and immersive full-screen mode." },
+                { icon: <Brain className="w-6 h-6" />, title: "Offline Readiness", desc: "Access core resources even with spotty connectivity." }
+              ].map((item, i) => (
+                <FadeInView key={i} delay={i * 0.2}>
+                  <div className="flex gap-4 items-start group">
+                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold mb-1">{item.title}</h4>
+                      <p className="text-zinc-400 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                </FadeInView>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
