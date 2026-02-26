@@ -123,7 +123,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden bg-surface-base text-white scroll-smooth custom-scrollbar selection:bg-indigo-500/30"
+      className="w-full flex flex-col overflow-x-hidden bg-surface-base text-white scroll-smooth custom-scrollbar selection:bg-indigo-500/30"
     >
 
       {/* Global CSS for particle animation */}
@@ -135,11 +135,11 @@ export default function HomePage() {
         }
       `}} />
 
-      {/* SECTION 1: HERO (Snap Item) */}
-      <section className="snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-20 px-4 overflow-hidden border-b border-transparent">
+      {/* SECTION 1: HERO */}
+      <section className="relative min-h-[100svh] w-full flex flex-col items-center justify-center pt-32 pb-24 px-4 border-b border-transparent">
 
         {/* Background Particles field */}
-        <div className="absolute inset-0 pointer-events-none" style={{ perspective: '1000px' }}>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ perspective: '1000px' }}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,transparent_60%)]" />
           {particles.map((p, i) => (
             <div key={i} style={{
@@ -256,8 +256,8 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* SECTION 2: FEATURES (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-24 px-4 relative max-w-7xl mx-auto border-b border-transparent">
+      {/* SECTION 2: FEATURES */}
+      <section className="min-h-screen w-full flex flex-col justify-center py-24 px-4 relative max-w-7xl mx-auto border-b border-transparent">
         <FadeInView>
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-4">Master every angle</h2>
@@ -359,8 +359,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 3: HOW IT WORKS (Timeline - Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 bg-surface-1 border-y border-white/5 relative">
+      {/* SECTION 3: HOW IT WORKS (Timeline) */}
+      <section className="min-h-screen w-full flex flex-col justify-center py-24 bg-surface-1 border-y border-white/5 relative">
         <div className="max-w-7xl mx-auto px-4 w-full">
           <FadeInView>
             <h2 className="text-3xl md:text-5xl font-black mb-12 md:mb-20 text-center">Your path to an offer</h2>
@@ -395,26 +395,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 4: STATS / SOCIAL PROOF (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 max-w-5xl mx-auto">
+      {/* SECTION 4: STATS / SOCIAL PROOF */}
+      <section className="min-h-screen w-full flex flex-col justify-center py-24 px-4 max-w-5xl mx-auto">
         <FadeInView>
           <h2 className="text-3xl md:text-5xl font-black mb-12 md:mb-16 text-center text-white">The platform built for success</h2>
         </FadeInView>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[400px] md:h-64">
-          <TiltCard className="h-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:h-64">
+          <TiltCard className="h-48 md:h-full">
             <AnimatedCounter value="300+" label="Leetcode Style Problems" />
           </TiltCard>
-          <TiltCard className="h-full">
+          <TiltCard className="h-48 md:h-full">
             <AnimatedCounter value="8" label="Cognitive Skills Tracked" />
           </TiltCard>
-          <TiltCard className="h-full">
+          <TiltCard className="h-48 md:h-full">
             <AnimatedCounter value="24/7" label="Voice AI Feedback" />
           </TiltCard>
         </div>
       </section>
 
       {/* SECTION 4.5: AVAILABLE EVERYWHERE (PWA Card) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 relative overflow-hidden border-b border-transparent">
+      <section className="min-h-screen w-full flex flex-col justify-center py-24 px-4 relative overflow-hidden border-b border-transparent">
         <div className="max-w-6xl mx-auto w-full">
           <FadeInView>
             <div className="text-center mb-16">
@@ -497,8 +497,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 5: CTA BANNER & FOOTER (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-between pt-20 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
+      {/* SECTION 5: CTA BANNER & FOOTER */}
+      <section className="min-h-screen w-full flex flex-col justify-between pt-24 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
         <div className="flex-grow flex flex-col justify-center">
           <FadeInView>
             <div className="relative rounded-[2.5rem] p-10 md:p-16 text-center overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.15)] border border-indigo-500/20"

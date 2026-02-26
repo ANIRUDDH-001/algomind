@@ -9,10 +9,12 @@ export function isDemoMode(): boolean {
 
 export function enableDemoMode(): void {
     localStorage.setItem(DEMO_MODE_KEY, 'true');
+    document.cookie = `algomind_demo_mode=true; path=/; max-age=86400; SameSite=Lax`;
 }
 
 export function disableDemoMode(): void {
     localStorage.removeItem(DEMO_MODE_KEY);
+    document.cookie = `algomind_demo_mode=; path=/; max-age=0; SameSite=Lax`;
 }
 
 // Deterministic pseudo-random to prevent chart flicker on re-render
