@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/voice/synthesize
  *
- * Groq PlayAI TTS endpoint.
+ * Groq Orpheus TTS endpoint (replacement for decommissioned playai-tts).
  * - Gate: ENABLE_GROQ_TTS flag must be on
- * - Input: { text: string, voice?: "Aaliya-PlayAI" | "Arjun-PlayAI" }
- * - Output: audio/mpeg binary stream
+ * - Input: { text: string, voice?: string }
+ * - Output: audio/wav binary stream
  * - Fallback: client falls back to browser Web Speech API when this returns non-200
  */
 export async function POST(req: NextRequest) {
@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         text = body.text;
-        voice = body.voice || 'Aaliya-PlayAI'; // Default: Indian English female
+        // Orpheus voices: "tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"
+        voice = body.voice || 'tara';
 
         if (!text || typeof text !== 'string') {
             return NextResponse.json({ error: 'Missing "text" field' }, { status: 400 });
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const processedText = preprocessForTTS(text);
 
     try {
-        // 6. Call Groq PlayAI TTS
+        // 6. Call Groq Orpheus TTS (official replacement for playai-tts)
         const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
             method: 'POST',
             headers: {
@@ -73,16 +74,16 @@ export async function POST(req: NextRequest) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'playai-tts',
+                model: 'canopylabs/orpheus-v1-english',
                 voice,
                 input: processedText,
-                response_format: 'mp3',
+                response_format: 'wav',
             }),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[Synthesize API] Groq error:', response.status, errorText);
+            console.error('[Synthesize API] Groq Orpheus error:', response.status, errorText);
             return NextResponse.json(
                 { error: 'TTS synthesis failed', fallback: 'browser' },
                 { status: 502 }
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
         return new NextResponse(audioBuffer, {
             status: 200,
             headers: {
-                'Content-Type': 'audio/mpeg',
+                'Content-Type': 'audio/wav',
                 'Content-Length': String(audioBuffer.byteLength),
                 'Cache-Control': 'no-store',
             },

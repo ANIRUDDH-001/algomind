@@ -20,7 +20,7 @@ export function validateEnv(): void {
         { key: "PISTON_URL", issue: "defaults to public emkc.org endpoint (throttle risk)" },
         { key: "GITHUB_TOKEN", issue: "cron GitHub trigger will fail" },
         { key: "GITHUB_REPO", issue: "cron GitHub trigger will fail" },
-        { key: "DEEPSEEK_API_KEY", issue: "DeepSeek model verification will fail - send Bearer undefined to DeepSeek API" },
+
     ];
 
     for (const { key, issue } of highVars) {
@@ -40,7 +40,7 @@ export const env = {
     PISTON_URL: process.env.PISTON_URL,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_REPO: process.env.GITHUB_REPO,
-    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+
 };
 
 export async function validateDB(): Promise<void> {

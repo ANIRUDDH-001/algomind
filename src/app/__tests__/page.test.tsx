@@ -142,11 +142,11 @@ describe('HomePage — Unauthenticated', () => {
         });
     });
 
-    it('7. Page has 5 distinct sections', async () => {
+    it('7. Page has 6 distinct sections (includes PWA card)', async () => {
         const { container } = render(<HomePage />);
         await waitFor(() => {
             const sections = container.querySelectorAll('section');
-            expect(sections).toHaveLength(5);
+            expect(sections).toHaveLength(6);
         });
     });
 });
@@ -173,23 +173,25 @@ describe('HomePage — Authenticated', () => {
         });
     });
 
-    it('3. Still renders marketing content when authenticated (5 sections)', async () => {
+    it('3. Still renders marketing content when authenticated (6 sections)', async () => {
         mockUseAuth.mockReturnValue({ user: { id: '1', email: 'test@test.com' } as any, loading: false });
         const { container } = render(<HomePage />);
 
         await waitFor(() => {
             const sections = container.querySelectorAll('section');
-            expect(sections).toHaveLength(5);
+            expect(sections).toHaveLength(6);
         });
     });
 
-    it('4. Loading spinner shown when loading=true', async () => {
+    it('4. Page still renders hero content even when loading=true (no blocking spinner)', async () => {
         mockUseAuth.mockReturnValue({ user: null, loading: true });
-        const { container } = render(<HomePage />);
+        render(<HomePage />);
 
-        // spinner renders immediately
-        const spinner = container.querySelector('.animate-spin');
-        expect(spinner).not.toBeNull();
+        // Hero renders immediately — no blocking spinner anymore
+        await waitFor(() => {
+            const heading = screen.getAllByRole('heading', { level: 1 });
+            expect(heading.length).toBeGreaterThan(0);
+        });
     });
 
     it('5. IntroAnimation shown when shouldShowOnboarding() returns true', () => {

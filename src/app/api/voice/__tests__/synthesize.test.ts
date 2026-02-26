@@ -120,4 +120,41 @@ describe('/api/voice/synthesize', () => {
         const sentBody = JSON.parse(capturedBodies[0]);
         expect(sentBody.input.length).toBeLessThanOrEqual(4000);
     });
+
+    it('returns 502 with fallback:browser when Groq model returns error', async () => {
+        mockGetGlobalFeatureFlag.mockResolvedValue(true);
+        process.env.GROQ_API_KEY = 'test-key';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 400,
+            text: async () => '{"error":{"message":"model decommissioned"}}',
+        });
+
+        const res = await POST(makeRequest({ text: 'Hello' }));
+        expect(res.status).toBe(502);
+
+        const body = await res.json();
+        expect(body.fallback).toBe('browser');
+    });
+
+    it('sends the correct Orpheus model name to Groq API', async () => {
+        mockGetGlobalFeatureFlag.mockResolvedValue(true);
+        process.env.GROQ_API_KEY = 'test-key';
+
+        const capturedBodies: string[] = [];
+        global.fetch = vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
+            capturedBodies.push(opts.body as string);
+            return {
+                ok: true,
+                arrayBuffer: async () => new ArrayBuffer(8),
+            };
+        });
+
+        await POST(makeRequest({ text: 'Test model name' }));
+
+        const sentBody = JSON.parse(capturedBodies[0]);
+        expect(sentBody.model).toBe('canopylabs/orpheus-v1-english');
+        expect(sentBody.response_format).toBe('wav');
+    });
 });
