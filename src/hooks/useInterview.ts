@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
+import { generateInterviewerSystemPrompt, InterviewConfig } from '@/lib/interview/interviewer-prompt';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useWhisperInput } from '@/hooks/useWhisperInput';
 import { useVoiceOutput } from '@/hooks/useVoiceOutput';
@@ -41,6 +42,8 @@ interface ProblemContext {
     companyPersona?: string;
     kaiMemory?: string;
     problemId?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
 }
 
 export function useInterview(options: {
@@ -226,8 +229,17 @@ export function useInterview(options: {
             interruptionContext: interruptionCtx,
         });
 
+        const config: InterviewConfig = {
+            problem: { title: problemContext.title, description: problemContext.content, difficulty: problemContext.difficulty || 'medium', id: problemContext.problemId || '' } as any,
+            difficulty: problemContext.difficulty || 'medium',
+            difficultyMode: problemContext.difficultyMode ?? 'practice',
+            ragContext: problemContext.ragContext,
+            kaiPersona: problemContext.companyPersona,
+            kaiMemory: problemContext.kaiMemory,
+        };
+
         try {
-            const responseText = await callChatApi(prompt, generateSystemPrompt(), problemContext);
+            const responseText = await callChatApi(prompt, generateInterviewerSystemPrompt(config), problemContext);
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
@@ -270,15 +282,33 @@ export function useInterview(options: {
     }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
 
     // Core Logic
-    const startInterview = useCallback(async (problemTitle: string, problemContent: string, ragContext?: string, companyPersona?: string, kaiMemory?: string, problemId?: string) => {
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory, problemId };
+    const startInterview = useCallback(async (
+        problemTitle: string,
+        problemContent: string,
+        ragContext?: string,
+        companyPersona?: string,
+        kaiMemory?: string,
+        problemId?: string,
+        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint',
+        difficulty?: 'easy' | 'medium' | 'hard'
+    ) => {
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory, problemId, difficultyMode, difficulty };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
         // Auto-enable mic on start if desired
         setIsMicEnabled(true);
 
-        const sysPrompt = generateSystemPrompt();
+        const config: InterviewConfig = {
+            problem: { title: problemTitle, description: problemContent, difficulty: difficulty || 'medium', id: problemId || '' } as any,
+            difficulty: difficulty || 'medium',
+            difficultyMode: difficultyMode ?? 'practice',
+            ragContext,
+            kaiPersona: companyPersona,
+            kaiMemory
+        };
+
+        const sysPrompt = generateInterviewerSystemPrompt(config);
         const introPrompt = generateTurnPrompt({
             state: 'problem-intro',
             problemTitle,
