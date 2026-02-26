@@ -20,6 +20,7 @@ export interface AssessmentResult {
     nextSteps: string[];
     knowledgeGaps?: string[];
     modelUsed?: string;
+    analysisFailure?: 'user_fault' | 'system_fault';
 }
 
 interface ParsedAssessmentResponse {
@@ -98,13 +99,20 @@ export class CognitiveAnalyzer {
         // All retries exhausted, return fallback result instead of crashing
         console.error(`Assessment failed after ${this.maxRetries} attempts. Returning fallback.`);
 
+        // Task B: Detect user_fault vs system_fault for fallback score
+        const userMessages = transcript.filter(t => t.role === 'user');
+        const userWords = userMessages.reduce((count, msg) => count + (msg.content.match(/\S+/g) || []).length, 0);
+        const isUserFault = userMessages.length === 0 || userWords < 20;
+        const failureType = isUserFault ? 'user_fault' : 'system_fault';
+        const fallbackScore = isUserFault ? 0 : 5;
+
         const fallbackSkills: Record<string, SkillScore> = {};
         Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
             fallbackSkills[skillId] = {
-                score: 5,
-                evidence: ["Session analysis failed."],
+                score: fallbackScore,
+                evidence: [isUserFault ? "Insufficient user interaction to assess skills." : "Session analysis failed."],
                 strengths: [],
-                improvements: ["Unable to analyze due to technical constraints."],
+                improvements: [isUserFault ? "Provide more detailed code and explanations." : "Unable to analyze due to technical constraints."],
                 confidence: 0, // 0 confidence indicates automated failure
             };
         });
@@ -114,9 +122,14 @@ export class CognitiveAnalyzer {
             timestamp: new Date(),
             problem,
             skills: fallbackSkills as Record<CognitiveSkill, SkillScore>,
-            overallFeedback: "Automated analysis failed. Manual review required.",
-            nextSteps: ["Review the session manually due to assessment failure."],
-            knowledgeGaps: []
+            overallFeedback: isUserFault
+                ? "Not enough interaction to properly assess skills. Please write more code or detail your thoughts more."
+                : "Automated analysis failed. Manual review required.",
+            nextSteps: isUserFault
+                ? ["Engage more comprehensively in the next interview to receive an assessment."]
+                : ["Review the session manually due to assessment failure."],
+            knowledgeGaps: [],
+            analysisFailure: failureType
         };
     }
 

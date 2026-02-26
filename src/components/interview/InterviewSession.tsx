@@ -6,7 +6,7 @@ import { type CognitiveSkill } from '@/types/assessment';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
-import { useGuestTrial, GUEST_TRIAL_LIMITS } from '@/hooks/useGuestTrial';
+import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
@@ -181,15 +181,15 @@ export function InterviewSession({
         maxDurationMins: timeLimitMins,
         startTimeOffsetSeconds
     });
-    const guestTrial = useGuestTrial(isGuest);
+    const guestSession = useGuestSession(isGuest);
 
     // --- 3. Interview Logic & Callbacks ---
     const { incrementTurn } = limits;
-    const { recordTurn, isTrialComplete } = guestTrial;
+    const { recordUserTurn, recordAITurn, isTrialComplete, showLoginPrompt } = guestSession;
 
     const handleUserMessage = useCallback((_msg: Message, messageCount: number) => {
         if (isGuest && hasStarted && !isAssessment) {
-            recordTurn();
+            recordUserTurn();
             if (isTrialComplete && !showLoginModal) {
                 setShowLoginModal(true);
             }
@@ -201,7 +201,7 @@ export function InterviewSession({
             setLastBadgeSkill(messageCount > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
             setShowBadge(true);
         }
-    }, [isGuest, hasStarted, recordTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge]);
+    }, [isGuest, hasStarted, recordUserTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge]);
 
     const {
         state,
@@ -220,6 +220,19 @@ export function InterviewSession({
         sessionToken: isAssessment ? assessmentSessionToken : undefined,
         onUserMessage: handleUserMessage
     });
+
+    // Added an effect to sync AI turns
+    useEffect(() => {
+        if (isGuest && hasStarted && !isAssessment) {
+            const aiMessages = messages.filter(m => m.role === 'assistant').length;
+            if (aiMessages > guestSession.aiTurns) {
+                recordAITurn();
+            }
+            if (isTrialComplete && !showLoginModal && showLoginPrompt) {
+                setShowLoginModal(true);
+            }
+        }
+    }, [messages, isGuest, hasStarted, isAssessment, guestSession.aiTurns, recordAITurn, isTrialComplete, showLoginModal, showLoginPrompt]);
 
     const startTimeRef = useRef<number>(0);
     const transcriptLoadedRef = useRef(false);
@@ -253,7 +266,7 @@ export function InterviewSession({
         setError(null);
         resetInterview();
         transcriptLoadedRef.current = false;
-        guestTrial.reset();
+        guestSession.reset();
         observerRef.current.reset();
         setNudge(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -529,7 +542,7 @@ export function InterviewSession({
                                         </div>
                                         {isGuest && !isAssessment && (
                                             <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
-                                                🌟 Trial Mode ({GUEST_TRIAL_LIMITS.MAX_TURNS - guestTrial.turnsUsed} turns left)
+                                                🌟 Trial Mode ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} turns left)
                                             </div>
                                         )}
                                         {limits.shouldShowTurnWarning && !isGuest && !isAssessment && (

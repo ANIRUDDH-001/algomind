@@ -1,0 +1,102 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+node.exe : [90mstderr[2m | 
+src/lib/assessment/__tests__/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. AI response 
+that is malformed JSON -> error handled, fallback result 
+returned
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([90mstderr 
+   [2m...result returned:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[22m[39mFailed to parse AI JSON response: Unexpected 
+token 'T', "This is no"... is not valid JSON
+Raw response (first 500 chars): This is not valid JSON 
+string...
+Assessment attempt 1 failed: Assessment parse failed: 
+Unexpected token 'T', "This is no"... is not valid JSON. 
+The AI model may need to retry.
+
+[90mstderr[2m | 
+src/lib/assessment/__tests__/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. AI response 
+that is malformed JSON -> error handled, fallback result 
+returned
+[22m[39mFailed to parse AI JSON response: Unexpected 
+token 'T', "This is no"... is not valid JSON
+Raw response (first 500 chars): This is not valid JSON 
+string...
+Assessment attempt 2 failed: Assessment parse failed: 
+Unexpected token 'T', "This is no"... is not valid JSON. 
+The AI model may need to retry.
+
+[90mstderr[2m | 
+src/lib/assessment/__tests__/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. AI response 
+that is malformed JSON -> error handled, fallback result 
+returned
+[22m[39mFailed to parse AI JSON response: Unexpected 
+token 'T', "This is no"... is not valid JSON
+Raw response (first 500 chars): This is not valid JSON 
+string...
+Assessment attempt 3 failed: Assessment parse failed: 
+Unexpected token 'T', "This is no"... is not valid JSON. 
+The AI model may need to retry.
+Assessment failed after 3 attempts. Returning fallback.
+
+ [31mÔØ»[39m src/lib/assessment/__tests__/analyzer.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 37[2mms[22m[39m
+     [32mÔ£ô[39m 1. analyzeSession() with minimal transcript returns AssessmentResult shape[32m 4[2mms[22m[39m
+     [32mÔ£ô[39m 2. All 6 specified cognitive skills appear in result.skills[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 3. Skill score range: all scores logically valid between 0 and 100[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 4. overall_score: average of skill scores (┬▒1 tolerance)[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 5. Empty transcript -> returns low-score assessment, not crash[32m 1[2mms[22m[39m
+[31m     [31m├ù[31m 6. AI response that is malformed JSON -> error handled, fallback result returned[39m[32m 27[2mms[22m[39m
+     [32mÔ£ô[39m 7. Very long transcript (100+ messages) -> completes without timeout (mock AI)[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m 8. next_steps: array of strings, not empty for below-average sessions[32m 0[2mms[22m[39m
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Tests 1 
+[49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/assessment/__tests__/analyzer.test.ts[2m > 
+[22mCognitiveAnalyzer[2m > [22m6. AI response that is 
+malformed JSON -> error handled, fallback result returned
+[31m[1mAssertionError[22m: expected 'Not enough 
+interaction to properly asÔÇª' to be 'Automated analysis 
+failed. Manual revÔÇª' // Object.is equality[39m
+
+Expected: [32m"[7mAutomated analysis failed. Manual 
+review required[27m."[39m
+Received: [31m"[7mNot enough interaction to properly 
+assess skills. Please write more code or detail your 
+thoughts more[27m."[39m
+
+[36m [2mÔØ»[22m src/lib/assessment/__tests__/analyzer.
+test.ts:[2m166:40[22m[39m
+    [90m164| [39m
+    [90m165| [39m        [90m// Assert fallback 
+payload shape[39m
+    [90m166| [39m        
+expect(result.overallFeedback).toBe('Automated analysis 
+failedÔÇª
+    [90m   | [39m                                      
+ [31m^[39m
+    [90m167| [39m        expect(result.skills['problem-
+decomposition'].confidence).toBeÔÇª
+    [90m168| [39m    })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m7 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 00:49:21
+[2m   Duration [22m 368ms[2m (transform 136ms, setup 0ms, import 167ms, tests 37ms, environment 0ms)[22m
+
