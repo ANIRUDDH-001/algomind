@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const OLD_URL = 'https://axgvcivgrdzeehzifypk.supabase.co';
-const OLD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Z3ZjaXZncmR6ZWVoemlmeXBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDA0NDI5MiwiZXhwIjoyMDg1NjIwMjkyfQ.BUOTcPBpMDJqjGcTnuEl8-TABltFzDbC7a6-EwT1V5A'; // The original service role key from .env.local
+const OLD_KEY = process.env.OLD_SUPABASE_SERVICE_ROLE_KEY || 'YOUR_OLD_KEY_HERE'; // The original service role key from .env.local
 
 const NEW_URL = 'https://wfdgsmhuglmrxcmwcylz.supabase.co';
 
@@ -15,7 +15,7 @@ const NEW_URL = 'https://wfdgsmhuglmrxcmwcylz.supabase.co';
 // 2. Click "Settings" (gear icon) -> "API"
 // 3. Scroll down to "Project API keys" and copy the "service_role" secret key.
 // 4. Paste it below:
-const USER_PROVIDED_NEW_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmZGdzbWh1Z2xtcnhjbXdjeWx6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTU2ODA5NCwiZXhwIjoyMDg3MTQ0MDk0fQ.niZY6x889uaulJxW_gCjGBk_fEMobRkNjH_9mIMkHus';
+const USER_PROVIDED_NEW_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_NEW_KEY_HERE';
 
 const oldSupabase = createClient(OLD_URL, OLD_KEY);
 const newSupabase = createClient(NEW_URL, USER_PROVIDED_NEW_KEY);
