@@ -24,27 +24,29 @@ export function ExportReportButton({ progress }: ExportReportButtonProps) {
 
     if (!progress || !isClient) {
         return (
-            <Button variant="outline" disabled className="border-slate-800 bg-slate-900/50 text-slate-500 h-11 px-6 font-bold">
+            <Button disabled className="btn-primary opacity-50 cursor-not-allowed h-11 px-6 font-bold">
                 <FileDown className="w-4 h-4 mr-2" />
-                Export Report
+                Download Report
             </Button>
         );
     }
 
+    const dateStr = new Date().toISOString().split('T')[0];
+    const candidateName = progress.userId;
+
     return (
         <PDFDownloadLink
             document={<PDFReport progress={progress} />}
-            fileName={`algomind-report-${progress.userId}-${new Date().getTime()}.pdf`}
+            fileName={`AlgoMind_Report_${candidateName.replace(/ /g, '_')}_${dateStr}.pdf`}
         >
             {({ blob, url, loading, error }) => {
                 // Only show loading state after user has clicked
                 const showLoading = hasClicked && loading;
                 return (
                     <Button
-                        variant="outline"
                         disabled={showLoading}
                         onClick={() => setHasClicked(true)}
-                        className="border-slate-800 bg-slate-900/50 hover:bg-slate-800 text-slate-300 h-11 px-6 font-bold shadow-lg transition-all active:scale-95"
+                        className="btn-primary h-11 px-6 font-bold shadow-lg transition-all active:scale-95"
                         data-id="export-report-btn"
                     >
                         {showLoading ? (
@@ -52,7 +54,7 @@ export function ExportReportButton({ progress }: ExportReportButtonProps) {
                         ) : (
                             <FileDown className="w-4 h-4 mr-2" />
                         )}
-                        {showLoading ? 'Generating...' : 'Export Report'}
+                        {showLoading ? 'Generating...' : 'Download Report'}
                     </Button>
                 );
             }}

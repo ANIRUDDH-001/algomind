@@ -55,4 +55,5 @@ export interface UserProgress {
     narrative?: string;
     narrativeGeneratedAt?: Date;
     sessionsAtLastNarrative?: number;
+    next_steps?: string[];
 }
