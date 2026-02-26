@@ -94,9 +94,12 @@ export default function HomePage() {
 
   // Snap container ref
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrollReady, setScrollReady] = useState(false);
+
+  // Natively track the scroll container. This avoids a bug where delayed 
+  // initialization tracks the window scroll, evaluating opacityHero to 0 
+  // on client-side navigations!
   const { scrollYProgress } = useScroll({
-    container: scrollReady ? scrollRef : undefined
+    container: scrollRef
   });
 
   // Parallax transforms based on snap container scroll
@@ -106,11 +109,6 @@ export default function HomePage() {
   // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-
-  // ✅ FIX: Defer scroll tracking until container is mounted
-  useEffect(() => {
-    if (mounted && scrollRef.current) setScrollReady(true);
-  }, [mounted]);
 
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
@@ -228,11 +226,18 @@ export default function HomePage() {
                   router.push('/practice');
                 }
               }}
+              disabled={loading}
               size="lg"
-              className="w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl"
+              className="w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]"
             >
-              {user ? 'Go to Dashboard' : 'Try for Free'}
-              <ArrowRight className="w-5 h-5 ml-1" />
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  {user ? 'Go to Dashboard' : 'Try for Free'}
+                  <ArrowRight className="w-5 h-5 ml-1" />
+                </>
+              )}
             </Button>
             <Button
               onClick={() => window.open('https://algomind.video.demo', '_blank')} // Placeholder
@@ -410,7 +415,7 @@ export default function HomePage() {
         </FadeInView>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[400px] md:h-64">
           <TiltCard className="h-full">
-            <AnimatedCounter value="1,000+" label="Curated Problems" />
+            <AnimatedCounter value="300+" label="Leetcode Style Problems" />
           </TiltCard>
           <TiltCard className="h-full">
             <AnimatedCounter value="8" label="Cognitive Skills Tracked" />
