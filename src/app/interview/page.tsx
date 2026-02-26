@@ -9,6 +9,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
 import { getGuestProblem } from '@/lib/guest/guest-problems';
 import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-rate-limiter';
+import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -165,6 +166,7 @@ function InterviewContent() {
 
     return (
         <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 text-slate-100 overflow-hidden">
+            <BrowserCompatBanner />
             <InterviewErrorBoundary>
                 <InterviewSession
                     problem={problem}

@@ -222,8 +222,8 @@ describe('useVoiceOutput — Groq TTS integration', () => {
         (React.useRef as Mock)
             .mockReturnValueOnce({ current: [] })               // queueRef
             .mockReturnValueOnce({ current: false })             // processingRef
-            .mockReturnValueOnce({ current: null })              // audioElementRef
-            .mockReturnValueOnce({ current: true });             // groqAvailableRef
+            .mockReturnValueOnce({ current: false })             // isPausedRef
+            .mockReturnValueOnce({ current: null });             // audioElementRef
 
         const { speak } = useVoiceOutput();
         await speak('Test Groq audio');
@@ -267,8 +267,8 @@ describe('useVoiceOutput — Groq TTS integration', () => {
         (React.useRef as Mock)
             .mockReturnValueOnce({ current: [] })                // queueRef
             .mockReturnValueOnce({ current: true })              // processingRef (active)
-            .mockReturnValueOnce({ current: mockAudioElem })     // audioElementRef
-            .mockReturnValueOnce({ current: true });             // groqAvailableRef
+            .mockReturnValueOnce({ current: false })             // isPausedRef
+            .mockReturnValueOnce({ current: mockAudioElem });    // audioElementRef
 
         const result = useVoiceOutput();
         result.stop();

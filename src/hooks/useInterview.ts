@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
 import { generateInterviewerSystemPrompt, InterviewConfig } from '@/lib/interview/interviewer-prompt';
@@ -53,6 +53,12 @@ export function useInterview(options: {
     sessionToken?: string;
     onUserMessage?: (msg: Message, messageCount: number) => void;
 } = {}) {
+    const optionsRef = useRef(options);
+    useEffect(() => { optionsRef.current = options; },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [options.vadEnabled, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage]
+    );
+
     // State
     const [messages, setMessages] = useState<Message[]>([]);
     const [state, setState] = useState<InterviewState>('idle');
@@ -71,8 +77,11 @@ export function useInterview(options: {
     const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT');
 
     // Call BOTH hooks unconditionally (React rules), pick the active one
-    const whisperInput = useWhisperInput({ enabled: whisperEnabled });
-    const browserInput = useVoiceInput({ continuous: true, interimResults: true });
+    const whisperOptions = useMemo(() => ({ enabled: whisperEnabled }), [whisperEnabled]);
+    const whisperInput = useWhisperInput(whisperOptions);
+
+    const browserOptions = useMemo(() => ({ continuous: true, interimResults: true }), []);
+    const browserInput = useVoiceInput(browserOptions);
 
     // Use Whisper if enabled AND supported, else browser STT
     const useWhisper = whisperEnabled && WhisperSTT.isSupported();
@@ -154,7 +163,7 @@ export function useInterview(options: {
 
     const callChatApi = useCallback(async (prompt: string, systemPrompt: string, problemContext: ProblemContext) => {
         try {
-            const endpoint = options.apiEndpoint || '/api/chat';
+            const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
             const data = await fetchWithRetry(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -170,7 +179,7 @@ export function useInterview(options: {
                     companyPersona: problemContext.companyPersona,
                     kaiMemory: problemContext.kaiMemory,
                     problemId: problemContext.problemId,
-                    sessionToken: options.sessionToken
+                    sessionToken: optionsRef.current.sessionToken
                 })
             });
 
@@ -196,9 +205,9 @@ export function useInterview(options: {
         const userMsg: Message = { id: generateMessageId(), role: 'user', content: userText, timestamp: new Date(), status: 'complete' };
         addMessage(userMsg);
 
-        if (options.onUserMessage) {
+        if (optionsRef.current.onUserMessage) {
             // Pass the count INCLUDING the newly added message
-            options.onUserMessage(userMsg, conversationHistoryRef.current.length);
+            optionsRef.current.onUserMessage(userMsg, conversationHistoryRef.current.length);
         }
         resetTranscript();
 
@@ -254,7 +263,7 @@ export function useInterview(options: {
         } finally {
             setIsProcessing(false);
         }
-    }, [stopListening, addMessage, resetTranscript, callChatApi, speak, options]);
+    }, [stopListening, addMessage, resetTranscript, callChatApi, speak]);
 
     // Mic Intent State
     const [isMicEnabled, setIsMicEnabled] = useState(false);
@@ -327,7 +336,7 @@ export function useInterview(options: {
         setIsProcessing(true);
         try {
             let responseText = '';
-            if (options.isReviewMode) {
+            if (optionsRef.current.isReviewMode) {
                 responseText = `Let's review ${problemTitle} which you've seen before. Without looking at your previous solution, explain your approach to this problem.`;
             } else {
                 responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
@@ -444,6 +453,12 @@ export function useInterview(options: {
         }
     }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
 
+    // Reset micResumeAttemptedRef once we confirm mic is actually live
+    useEffect(() => {
+        if (isListening) {
+            micResumeAttemptedRef.current = false;
+        }
+    }, [isListening]);
 
     // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
     // DISBLED IF VAD IS ACTIVE: We want continuous listening for interruptions
@@ -453,6 +468,7 @@ export function useInterview(options: {
         const SILENCE_TIMEOUT = 7000; // 7 seconds
 
         const checkSilence = setInterval(() => {
+            if (lastResultTime === 0) return;
             const timeSinceLastResult = Date.now() - lastResultTime;
             if (timeSinceLastResult >= SILENCE_TIMEOUT && !transcript && !interimTranscript) {
                 // Soft stop: just stop listening for now, don't disable the intent
