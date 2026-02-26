@@ -85,24 +85,29 @@ class MockSpeechSynthesisUtterance {
     constructor(text: string) { this.text = text; }
 }
 
-// AudioContext mocks
-const mockDecodeAudioData = vi.fn();
-const mockStart = vi.fn();
-const mockSourceStop = vi.fn();
-const mockSuspend = vi.fn().mockResolvedValue(undefined);
-const mockConnect = vi.fn();
+// Audio element mocks (replaces AudioContext)
+const mockAudioPlay = vi.fn().mockResolvedValue(undefined);
+const mockAudioPause = vi.fn();
 
-class MockAudioContext {
-    state = 'running';
-    destination = {};
-    decodeAudioData = mockDecodeAudioData;
-    createBufferSource = vi.fn(() => ({
-        buffer: null, connect: mockConnect, start: mockStart,
-        stop: mockSourceStop, onended: null as (() => void) | null,
-    }));
-    suspend = mockSuspend;
-    resume = vi.fn().mockResolvedValue(undefined);
-    close = vi.fn().mockResolvedValue(undefined);
+class MockAudio {
+    src: string;
+    volume = 1;
+    onended: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+
+    constructor(src?: string) {
+        this.src = src || '';
+    }
+    play() {
+        // Fire onended asynchronously to simulate playback finish
+        setTimeout(() => {
+            if (this.onended) this.onended();
+        }, 10);
+        return mockAudioPlay();
+    }
+    pause() {
+        return mockAudioPause();
+    }
 }
 
 // ─── Import ────────────────────────────────────────────────────────────────
@@ -131,8 +136,9 @@ function setupGlobals() {
     (globalThis as Record<string, unknown>).window = { speechSynthesis: mockSpeechSynthesis, SpeechSynthesisUtterance: MockSpeechSynthesisUtterance } as unknown;
     (globalThis as Record<string, unknown>).speechSynthesis = mockSpeechSynthesis;
     (globalThis as Record<string, unknown>).SpeechSynthesisUtterance = MockSpeechSynthesisUtterance;
-    (globalThis as Record<string, unknown>).AudioContext = MockAudioContext;
+    (globalThis as Record<string, unknown>).Audio = MockAudio;
     (globalThis as Record<string, unknown>).fetch = vi.fn();
+    (globalThis as any).URL = { createObjectURL: vi.fn(() => 'blob:test'), revokeObjectURL: vi.fn() };
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────
@@ -197,12 +203,10 @@ describe('useVoiceOutput — Groq TTS integration', () => {
 
     it('currentProvider is set to "groq" when speakWithGroq succeeds', async () => {
         const fakeAudioBuffer = new ArrayBuffer(16);
-        const fakeDecodedBuffer = { duration: 1 };
 
         (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
             ok: true, status: 200, arrayBuffer: async () => fakeAudioBuffer,
         });
-        mockDecodeAudioData.mockResolvedValue(fakeDecodedBuffer);
 
         // Set ttsProvider to 'groq' so speak() takes the Groq path
         (React.useState as Mock)
@@ -214,37 +218,18 @@ describe('useVoiceOutput — Groq TTS integration', () => {
             .mockReturnValueOnce(['groq', mockSetTtsProvider])
             .mockReturnValueOnce(['browser', mockSetCurrentProvider]);
 
-        // Set the groqAvailableRef to true by mocking useRef calls
-        // Order: queueRef, processingRef, audioContextRef, sourceNodeRef, groqAvailableRef
-        let groqRef: { current: boolean | null };
-        let sourceRef: { current: { stop: Mock; onended: (() => void) | null } | null };
+        // Mock refs
         (React.useRef as Mock)
             .mockReturnValueOnce({ current: [] })               // queueRef
             .mockReturnValueOnce({ current: false })             // processingRef
-            .mockReturnValueOnce({ current: null })              // audioContextRef
-            .mockImplementationOnce(() => {                      // sourceNodeRef
-                sourceRef = { current: null };
-                return sourceRef;
-            })
-            .mockImplementationOnce(() => {                      // groqAvailableRef
-                groqRef = { current: true };
-                return groqRef;
-            });
+            .mockReturnValueOnce({ current: null })              // audioElementRef
+            .mockReturnValueOnce({ current: true });             // groqAvailableRef
 
-        const result = useVoiceOutput();
-
-        // Start playback — will fire the onended callback synchronously from mocked AudioContext
-        mockStart.mockImplementation(function (this: { onended: (() => void) | null }) {
-            // Fire onended immediately to resolve the promise
-            if (sourceRef!.current?.onended) {
-                sourceRef!.current.onended();
-            }
-        });
-
-        await result.speak('Test Groq audio');
+        const { speak } = useVoiceOutput();
+        await speak('Test Groq audio');
 
         expect(mockSetCurrentProvider).toHaveBeenCalledWith('groq');
-        expect(mockDecodeAudioData).toHaveBeenCalled();
+        expect(mockAudioPlay).toHaveBeenCalled();
     });
 
     it('currentProvider stays "browser" when Groq TTS fails', async () => {
@@ -266,7 +251,7 @@ describe('useVoiceOutput — Groq TTS integration', () => {
         expect(mockSetCurrentProvider).not.toHaveBeenCalledWith('groq');
     });
 
-    it('stop() calls AudioContext.suspend()', () => {
+    it('stop() calls audioElement.pause()', () => {
         // Set up with groq provider active
         (React.useState as Mock)
             .mockReturnValueOnce([true, mockSetIsSpeaking])     // isSpeaking = true
@@ -277,21 +262,18 @@ describe('useVoiceOutput — Groq TTS integration', () => {
             .mockReturnValueOnce(['groq', mockSetTtsProvider])
             .mockReturnValueOnce(['groq', mockSetCurrentProvider]);
 
-        const mockCtx = new MockAudioContext();
-        const mockSource = { stop: mockSourceStop, onended: null, buffer: null, connect: mockConnect, start: mockStart };
+        const mockAudioElem = new MockAudio();
 
         (React.useRef as Mock)
             .mockReturnValueOnce({ current: [] })                // queueRef
             .mockReturnValueOnce({ current: true })              // processingRef (active)
-            .mockReturnValueOnce({ current: mockCtx })           // audioContextRef
-            .mockReturnValueOnce({ current: mockSource })        // sourceNodeRef
+            .mockReturnValueOnce({ current: mockAudioElem })     // audioElementRef
             .mockReturnValueOnce({ current: true });             // groqAvailableRef
 
         const result = useVoiceOutput();
         result.stop();
 
-        expect(mockSourceStop).toHaveBeenCalled();
-        expect(mockSuspend).toHaveBeenCalled();
+        expect(mockAudioPause).toHaveBeenCalled();
         expect(mockSetIsSpeaking).toHaveBeenCalledWith(false);
     });
 });

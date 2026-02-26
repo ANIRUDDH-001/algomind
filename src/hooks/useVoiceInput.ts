@@ -244,8 +244,6 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
                 try { recognitionRef.current.abort(); } catch { }
             }
             setIsListening(false);
-            setTranscript('');
-            setInterimTranscript('');
         }, []),
         resetTranscript,
         isSupported,

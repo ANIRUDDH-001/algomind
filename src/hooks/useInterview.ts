@@ -61,6 +61,7 @@ export function useInterview(options: {
 
     // Problem Context helper ref
     const currentProblemRef = useRef<ProblemContext | null>(null);
+    const pendingAutoSubmitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Logic Refs
     const stateMachine = useRef(new InterviewStateMachine());
@@ -273,11 +274,16 @@ export function useInterview(options: {
             submitUserResponse(transcript, currentProblemRef.current);
         } else if (currentProblemRef.current) {
             const timer = setTimeout(() => {
+                pendingAutoSubmitRef.current = null;
                 if (isListening && transcript && currentProblemRef.current) {
                     submitUserResponse(transcript, currentProblemRef.current);
                 }
             }, AUTO_SUBMIT_DELAY - timeSinceLastResult);
-            return () => clearTimeout(timer);
+            pendingAutoSubmitRef.current = timer;
+            return () => {
+                clearTimeout(timer);
+                pendingAutoSubmitRef.current = null;
+            };
         }
     }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
 
@@ -395,6 +401,11 @@ export function useInterview(options: {
 
         if (shouldStopForSpeaking || isProcessing) {
             if (isListeningRef.current) {
+                // ✅ Cancel any pending auto-submit to prevent race condition
+                if (pendingAutoSubmitRef.current) {
+                    clearTimeout(pendingAutoSubmitRef.current);
+                    pendingAutoSubmitRef.current = null;
+                }
                 // Use abort to immediately cut off stream and discard partial inputs
                 abortListening();
             }

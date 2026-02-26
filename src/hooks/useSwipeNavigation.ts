@@ -24,39 +24,34 @@ interface UseSwipeNavigationOptions<T extends string> {
     tabs: readonly T[];
     activeTab: T;
     onTabChange: (tab: T) => void;
-    /** Min horizontal pixels to trigger a swipe. Default: 60 */
     threshold?: number;
-    /** Resistance factor for drag preview (0 = no preview, 1 = full). Default: 0.2 */
     resistance?: number;
-    /** Disable swipe (e.g. when a modal is open). Default: false */
     disabled?: boolean;
-}
-
-interface SwipeHandlers {
-    onPointerDown: (e: React.PointerEvent) => void;
-    onPointerMove: (e: React.PointerEvent) => void;
-    onPointerUp: (e: React.PointerEvent) => void;
-    onPointerCancel: (e: React.PointerEvent) => void;
 }
 
 export function useSwipeNavigation<T extends string>({
     tabs,
     activeTab,
     onTabChange,
-    threshold = 60,
+    threshold = 50,      // ✅ Reduced from 60px to 50px — easier to trigger
     resistance = 0.18,
     disabled = false,
 }: UseSwipeNavigationOptions<T>) {
     const startX = useRef(0);
     const startY = useRef(0);
-    const startedInScroller = useRef(false);
+    const isDragging = useRef(false);
     const [dragOffset, setDragOffset] = useState(0);
 
-    const isScrollableParent = (el: Element | null): boolean => {
+    // ✅ FIX: Only block swipe if element has HORIZONTAL overflow scroll
+    // Vertical scrollers (overflow-y-auto) should NOT block horizontal swipe
+    const isHorizontalScroller = (el: Element | null): boolean => {
         while (el) {
             const style = window.getComputedStyle(el);
-            const overflow = style.overflowX + style.overflow;
-            if (/auto|scroll/.test(overflow) && el.scrollWidth > el.clientWidth) return true;
+            const overflowX = style.overflowX;
+            if ((overflowX === 'auto' || overflowX === 'scroll') &&
+                el.scrollWidth > el.clientWidth + 2) {
+                return true;
+            }
             el = el.parentElement;
         }
         return false;
@@ -64,22 +59,31 @@ export function useSwipeNavigation<T extends string>({
 
     const onPointerDown = useCallback((e: React.PointerEvent) => {
         if (disabled) return;
+        // ✅ Only block if the element has horizontal scroll (not vertical)
+        if (isHorizontalScroller(e.target as Element)) return;
+
         startX.current = e.clientX;
         startY.current = e.clientY;
-        startedInScroller.current = isScrollableParent(e.target as Element);
+        isDragging.current = true;
     }, [disabled]);
 
     const onPointerMove = useCallback((e: React.PointerEvent) => {
-        if (disabled || startedInScroller.current) return;
+        if (disabled || !isDragging.current) return;
         const dx = e.clientX - startX.current;
         const dy = e.clientY - startY.current;
-        if (Math.abs(dx) < Math.abs(dy)) return; // vertical dominates — ignore
+
+        // ✅ Only require dx to be at least somewhat horizontal (not strictly > dy)
+        // Allow up to 2:1 vertical-to-horizontal ratio before giving up
+        if (Math.abs(dy) > Math.abs(dx) * 2) {
+            isDragging.current = false;
+            setDragOffset(0);
+            return;
+        }
 
         const currentIndex = tabs.indexOf(activeTab);
         const canGoLeft = currentIndex < tabs.length - 1;
         const canGoRight = currentIndex > 0;
 
-        // Apply resistance — only show drag if swipe would result in navigation
         if ((dx < 0 && canGoLeft) || (dx > 0 && canGoRight)) {
             setDragOffset(dx * resistance);
         }
@@ -87,13 +91,14 @@ export function useSwipeNavigation<T extends string>({
 
     const onPointerUp = useCallback((e: React.PointerEvent) => {
         setDragOffset(0);
-        if (disabled || startedInScroller.current) return;
+        if (disabled || !isDragging.current) return;
+        isDragging.current = false;
 
         const dx = e.clientX - startX.current;
         const dy = e.clientY - startY.current;
 
         if (Math.abs(dx) < threshold) return;
-        if (Math.abs(dy) > Math.abs(dx)) return;
+        if (Math.abs(dy) > Math.abs(dx) * 2) return;
 
         const currentIndex = tabs.indexOf(activeTab);
 
@@ -105,11 +110,12 @@ export function useSwipeNavigation<T extends string>({
     }, [disabled, tabs, activeTab, onTabChange, threshold]);
 
     const onPointerCancel = useCallback(() => {
+        isDragging.current = false;
         setDragOffset(0);
     }, []);
 
     return {
-        handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel } as SwipeHandlers,
+        handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
         dragOffset,
         currentIndex: tabs.indexOf(activeTab),
         totalTabs: tabs.length,
