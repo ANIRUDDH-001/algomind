@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  serverExternalPackages: [
+    '@huggingface/transformers',
+    'onnxruntime-node'
+  ],
   images: {
     remotePatterns: [
       {
