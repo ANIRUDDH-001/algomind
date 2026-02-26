@@ -55,7 +55,7 @@ async function main() {
     await testGroq("llama-3.1-70b-versatile");
     await testGroq("llama-3.1-8b-instant");
     await testGroq("gemma2-9b-it");
-    await testGroq("deepseek-r1-distill-llama-70b");
+
     await testGroq("distil-whisper-large-v3-en");
 }
 

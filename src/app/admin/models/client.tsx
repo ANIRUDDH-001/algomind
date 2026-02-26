@@ -447,7 +447,7 @@ export default function ModelsAdminClient() {
                                     >
                                         <option value="groq">Groq</option>
                                         <option value="gemini">Gemini</option>
-                                        <option value="deepseek">DeepSeek</option>
+
                                     </select>
                                 </div>
                                 <div className="space-y-2">

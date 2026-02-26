@@ -57,17 +57,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Groq Llama 3.1 8B"
     },
-    {
-        id: "gemma2-9b-it",
-        provider: 'groq',
-        tier: 3,
-        rpm: 30,
-        rpd: 14400,
-        tpm: 15000,
-        contextWindow: 8192,
-        supportsEmbeddings: false,
-        description: "Gemma 2 9B IT"
-    },
+    // gemma2-9b-it removed — decommissioned by Groq Oct 8 2025, replaced by llama-3.1-8b-instant
     // Note: llama-4-scout and llama-4-maverick are now verified IDs
     {
         id: "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -80,17 +70,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Groq Llama 4 Scout"
     },
-    {
-        id: "meta-llama/llama-4-maverick-17b-128e-instruct",
-        provider: 'groq',
-        tier: 4,
-        rpm: 25.5,
-        rpd: 850,
-        tpm: 5000,
-        contextWindow: 128000,
-        supportsEmbeddings: false,
-        description: "Groq Llama 4 Maverick"
-    },
+    // llama-4-maverick removed — deprecated by Groq March 9 2026, replaced by openai/gpt-oss-120b
     {
         id: GROQ_GPT_OSS_MODEL_ID,
         provider: 'groq',

@@ -4,7 +4,7 @@ declare namespace NodeJS {
         GROQ_API_KEY?: string;
         GEMINI_API_KEY?: string;
         GOOGLE_API_KEY?: string; // Alternative to GEMINI_API_KEY
-        DEEPSEEK_API_KEY?: string;
+
 
         // Model IDs (Optional Overrides)
         GROQ_GPT_OSS_MODEL_ID?: string;

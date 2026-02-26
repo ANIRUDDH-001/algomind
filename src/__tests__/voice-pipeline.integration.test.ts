@@ -127,4 +127,13 @@ describe('Voice Pipeline Integration', () => {
         await waitFor(() => expect(result.current.ttsProvider).toBe('browser'), { timeout: 3000 });
         expect(result.current.ttsProvider).toBe('browser');
     });
+
+    it('Browser TTS fallback when Groq returns 502 (decommissioned model)', async () => {
+        mockFetch.mockResolvedValue({ ok: false, status: 502 });
+
+        const { result } = renderHook(() => useVoiceOutput());
+
+        await waitFor(() => expect(result.current.ttsProvider).toBe('browser'), { timeout: 3000 });
+        expect(result.current.ttsProvider).toBe('browser');
+    });
 });
