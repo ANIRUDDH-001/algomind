@@ -51,7 +51,7 @@ export function useWhisperInput(options: UseWhisperInputOptions = {}) {
                 if (shouldListenRef.current) {
                     setTimeout(() => restartContinuous(), 100);
                 }
-            }, { silenceGapMs: 2000, maxDurationMs: 30000 });
+            }, { silenceGapMs: 1500, maxDurationMs: 30000 });
         }
 
         try {
