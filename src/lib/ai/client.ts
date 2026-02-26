@@ -732,35 +732,29 @@ export class UnifiedAIClient {
             void logSystemEvent({ type: 'embedding_failed', provider: 'gemini' });
         }
 
-        // 2. Fallback to Local MiniLM (ONLY in DEVELOPMENT)
-        // In production (Vercel), Xenova often fails due to missing ONNX shared libraries (.so files).
-        const isDev = process.env.NODE_ENV === 'development';
-        if (isDev) {
-            try {
-                // Lazy load transformer to avoid cold start impact
-                const localEmbedder = await this.getLocalEmbedder();
-                const vectors: number[][] = [];
+        // 2. Fallback to Local MiniLM (NOW ENABLED IN PRODUCTION)
+        try {
+            // Lazy load transformer to avoid cold start impact
+            const localEmbedder = await this.getLocalEmbedder();
+            const vectors: number[][] = [];
 
-                if (localEmbedder) {
-                    const embedderFn = localEmbedder as (text: string, options?: unknown) => Promise<unknown>;
-                    for (const text of textArray) {
-                        const output = await embedderFn(text, { pooling: 'mean', normalize: true });
-                        vectors.push(this.extractLocalVector(output));
-                    }
+            if (localEmbedder) {
+                const embedderFn = localEmbedder as (text: string, options?: unknown) => Promise<unknown>;
+                for (const text of textArray) {
+                    const output = await embedderFn(text, { pooling: 'mean', normalize: true });
+                    vectors.push(this.extractLocalVector(output));
                 }
-
-                if (vectors.length > 0) {
-                    return {
-                        embeddings: vectors,
-                        modelUsed: "Xenova/all-MiniLM-L6-v2",
-                        dimensions: 384
-                    };
-                }
-            } catch (e) {
-                console.warn("⚠️ Local embedding failed:", e instanceof Error ? e.message : e);
             }
-        } else {
-            console.warn("⏭️ Skipping local Xenova embedding in non-dev environment to prevent ONNX crashes.");
+
+            if (vectors.length > 0) {
+                return {
+                    embeddings: vectors,
+                    modelUsed: "Xenova/all-MiniLM-L6-v2",
+                    dimensions: 384
+                };
+            }
+        } catch (e) {
+            console.warn("⚠️ Local embedding failed:", e instanceof Error ? e.message : e);
         }
 
         // 3. Last Resort: Fail Loudly
@@ -793,7 +787,15 @@ export class UnifiedAIClient {
     private async getLocalEmbedder() {
         if (!this.localEmbedderPromise) {
             this.localEmbedderPromise = (async () => {
-                const { pipeline } = await import('@huggingface/transformers'); // Dynamic import
+                const { pipeline, env } = await import('@huggingface/transformers'); // Dynamic import
+
+                // Configure for Serverless / Vercel
+                // Important: Vercel only allows writing to /tmp
+                env.cacheDir = '/tmp/.cache';
+
+                // Instruct to download from HF hub if not present, don't look for local ./models folders
+                env.allowLocalModels = false;
+
                 return pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
             })();
         }
