@@ -105,4 +105,33 @@ test.describe('Voice Interview Integration', () => {
 
         console.log('\n✅ Voice interview flow test completed successfully\n');
     });
+
+    test('VAD interruption handling resets mic state', async ({ page }) => {
+        // Increase timeout for this test
+        test.setTimeout(45000);
+
+        await mockChatAPI(page, 'Let me ask you a question. What is a binary tree?');
+        await waitForInterviewReady(page);
+
+        const interview = new InterviewPanelPOM(page);
+        await interview.waitForReady(30000);
+
+        // Wait for Mic to become available, then click
+        await interview.waitForMicEnabled(10000);
+        await interview.clickMicSafely(3);
+
+        const activeStatus = await interview.getMicStatus();
+        expect(activeStatus.toLowerCase()).toMatch(/listen|waiting|ready|click|auto-submit|mic/i);
+
+        // Simulate VAD speech end event (usually triggers auto-submit)
+        await page.evaluate(() => {
+            window.dispatchEvent(new CustomEvent('vad-speech-end'));
+        });
+
+        // Wait for state transition to analyzing or thinking
+        await page.waitForTimeout(2000);
+
+        const afterVadStatus = await interview.getMicStatus();
+        expect(afterVadStatus.toLowerCase()).toMatch(/thinking|processing|auto-submit/i);
+    });
 });

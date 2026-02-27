@@ -270,10 +270,10 @@ export function SettingsPanel() {
                     {/* Version info */}
                     <div className="px-5 py-4 text-xs text-zinc-500 leading-relaxed flex items-center justify-between">
                         <div>
-                            <p className="font-semibold text-zinc-400">AlgoMind Beta</p>
-                            <p>Built with Next.js 14, Gemini AI, and Groq</p>
+                            <p className="font-semibold text-zinc-400">AlgoMind</p>
+                            <p>Built with Next.js 15, Gemini AI, and Groq</p>
                         </div>
-                        <p className="text-[10px] uppercase font-bold tracking-widest">v1.0.0</p>
+                        <p className="text-[10px] uppercase font-bold tracking-widest">v1.1.0</p>
                     </div>
                 </div>
             </div>
