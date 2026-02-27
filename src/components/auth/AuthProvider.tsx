@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
-import { getSupabase, isSupabaseConfigured, probeAndAutoProxy } from '@/lib/supabase/client';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 interface AuthContextType {
     user: User | null;
@@ -13,7 +13,6 @@ interface AuthContextType {
     signOut: () => Promise<void>;
     isAuthenticated: boolean;
     isConfigured: boolean; // Whether Supabase is set up
-    proxyMode: 'unknown' | 'direct' | 'proxy';
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,7 +23,6 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
     isAuthenticated: false,
     isConfigured: false,
-    proxyMode: 'unknown',
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [isConfigured] = useState(() => isSupabaseConfigured());
-    const [proxyMode, setProxyMode] = useState<'unknown' | 'direct' | 'proxy'>('unknown');
 
     useEffect(() => {
         // If Supabase is not configured, just mark as not loading
@@ -45,12 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let subscriptionCleanup: (() => void) | null = null;
 
         const initAuth = async () => {
-            // Wait for proxy probe to complete FIRST
-            const mode = await probeAndAutoProxy();
-            if (mounted && mode) {
-                setProxyMode(mode);
-            }
-
+            // CF Worker is always-on — no probing needed.
             const supabase = getSupabase();
             if (!supabase) {
                 if (mounted) setLoading(false);
@@ -154,7 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 signOut,
                 isAuthenticated: !!user,
                 isConfigured,
-                proxyMode,
             }}
         >
             {children}

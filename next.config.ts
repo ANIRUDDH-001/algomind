@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/v1/**',
       },
+      {
+        // Cloudflare Worker proxy (for client-side storage URLs)
+        protocol: 'https',
+        hostname: '*.workers.dev',
+        pathname: '/storage/v1/**',
+      },
     ],
   },
 
