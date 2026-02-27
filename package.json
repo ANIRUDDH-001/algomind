@@ -17,6 +17,11 @@
     "db:migrate": "echo 'Copy contents of supabase/migrations/001_master.sql to Supabase SQL Editor and run'"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.999.0",
+    "@aws-sdk/client-polly": "^3.999.0",
+    "@aws-sdk/client-s3": "^3.999.0",
+    "@aws-sdk/client-transcribe": "^3.999.0",
+    "@aws-sdk/s3-request-presigner": "^3.999.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@google/generative-ai": "^0.24.1",
     "@huggingface/transformers": "^3.8.1",

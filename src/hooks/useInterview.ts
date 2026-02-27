@@ -168,10 +168,10 @@ export function useInterview(options: {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // The API route takes 'messages', systemPrompt, and problemContext.
-                    // We send the full conversation history plus the latest turn merged.
+                    // We send the conversation history (excluding the just-added user message,
+                    // which is passed separately as `prompt` below).
                     messages: [
-                        ...conversationHistoryRef.current.map(m => ({ role: m.role, content: m.content })),
+                        ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
                         { role: 'user', content: prompt }
                     ],
                     systemPrompt,

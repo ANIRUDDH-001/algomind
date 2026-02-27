@@ -14,6 +14,7 @@ export type SystemEventType =
     | 'cron_completed'
     | 'cron_failed'
     | 'cron_triggered'
+    | 'cron_running'
     | 'batch_job_complete'
     | 'admin_action'
     | 'assessment_insufficient';

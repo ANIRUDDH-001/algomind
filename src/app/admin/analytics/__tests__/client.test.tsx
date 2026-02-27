@@ -163,11 +163,14 @@ describe('AnalyticsAdminClient — Static Source Checks', () => {
         expect(src).toContain("'Healthy'");
     });
 
-    it('8. No hardcoded blue-500 classes — uses indigo instead', () => {
-        // Should have no blue-500 color utility classes
+    it('8. Blue-500 classes only used for cron RUNNING badge', () => {
+        // blue-500 is now used for the RUNNING cron badge (bg-blue-500/15, text-blue-400, border-blue-500/25)
+        // Previously was zero — now only used in the cron status context
         const blueMatches = [...src.matchAll(/\bblue-500\b/g)];
-        expect(blueMatches).toHaveLength(0);
-        // Should use indigo instead
+        // Should have some (from the RUNNING badge) but not excessive usage
+        expect(blueMatches.length).toBeGreaterThan(0);
+        expect(blueMatches.length).toBeLessThanOrEqual(5);
+        // Should still use indigo for non-running cron indicators
         expect(src).toContain('indigo');
     });
 

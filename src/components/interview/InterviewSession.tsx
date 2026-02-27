@@ -322,78 +322,86 @@ export function InterviewSession({
         setActiveTab('interview');
     }, [codeLanguage, problem, submitUserResponse]);
 
+    const isSavingRef = useRef(false);
+
     const handleFinish = async () => {
+        if (isSavingRef.current) return; // Prevent double-click save
         if (messages.length < 2) {
             setError("Please interact with the AI at least once before ending the session to get a valid analysis.");
             return;
         }
+        isSavingRef.current = true;
         setError(null);
-        const transcript = messages.map(m => ({ role: m.role, content: m.content }));
-        const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
+        try {
+            const transcript = messages.map(m => ({ role: m.role, content: m.content }));
+            const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
 
-        if (isAssessment && onAssessmentComplete) {
-            try {
-                await onAssessmentComplete(durationSecs, transcript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })));
-            } catch (err: unknown) {
-                console.error("❌ Assessment error:", err);
-                setError(err instanceof Error ? err.message : "Failed to submit assessment.");
-            }
-        } else {
-            try {
-                const assessment = await analyzeSession(
-                    `sess-${Date.now()}`,
-                    { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
-                    transcript
-                );
-                if (!assessment) {
-                    setError("Assessment failed. Please try again or check the console for details.");
-                    return;
+            if (isAssessment && onAssessmentComplete) {
+                try {
+                    await onAssessmentComplete(durationSecs, transcript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })));
+                } catch (err: unknown) {
+                    console.error("❌ Assessment error:", err);
+                    setError(err instanceof Error ? err.message : "Failed to submit assessment.");
                 }
-
-                // ✅ FIX: Save immediately after analysis — don't wait for state machine
-                if (user && !isGuest) {
-                    try {
-                        const fullTranscript = messages.map(msg => ({
-                            role: msg.role,
-                            content: msg.content,
-                            timestamp: msg.timestamp
-                        }));
-                        const duration = startTimeRef.current
-                            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-                            : durationSecs;
-
-                        const { success, error: saveError, sessionId } = await saveInterviewSession(
-                            user.id, problem.id, problem.title, fullTranscript, duration, assessment,
-                            { difficultyMode }
-                        );
-                        if (!success) {
-                            console.error('Failed to save session:', saveError);
-                            toast.error('Session analyzed but could not be saved to history.');
-                        } else if (sessionId) {
-                            toast.success(
-                                <div>
-                                    Interview saved!
-                                    <a
-                                        href={`/interview/analysis?sessionId=${sessionId}`}
-                                        className="underline ml-2"
-                                        onClick={() => toast.dismiss()}
-                                    >
-                                        View Analysis →
-                                    </a>
-                                </div>,
-                                { duration: 8000 }
-                            );
-                        }
-                    } catch (saveErr) {
-                        console.error('Save exception:', saveErr);
+            } else {
+                try {
+                    const assessment = await analyzeSession(
+                        `sess-${Date.now()}`,
+                        { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
+                        transcript
+                    );
+                    if (!assessment) {
+                        setError("Assessment failed. Please try again or check the console for details.");
+                        return;
                     }
+
+                    // ✅ FIX: Save immediately after analysis — don't wait for state machine
+                    if (user && !isGuest) {
+                        try {
+                            const fullTranscript = messages.map(msg => ({
+                                role: msg.role,
+                                content: msg.content,
+                                timestamp: msg.timestamp
+                            }));
+                            const duration = startTimeRef.current
+                                ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                                : durationSecs;
+
+                            const { success, error: saveError, sessionId } = await saveInterviewSession(
+                                user.id, problem.id, problem.title, fullTranscript, duration, assessment,
+                                { difficultyMode }
+                            );
+                            if (!success) {
+                                console.error('Failed to save session:', saveError);
+                                toast.error('Session analyzed but could not be saved to history.');
+                            } else if (sessionId) {
+                                toast.success(
+                                    <div>
+                                        Interview saved!
+                                        <a
+                                            href={`/interview/analysis?sessionId=${sessionId}`}
+                                            className="underline ml-2"
+                                            onClick={() => toast.dismiss()}
+                                        >
+                                            View Analysis →
+                                        </a>
+                                    </div>,
+                                    { duration: 8000 }
+                                );
+                            }
+                        } catch (saveErr) {
+                            console.error('Save exception:', saveErr);
+                        }
+                    }
+                } catch (err: unknown) {
+                    console.error("❌ Assessment error:", err);
+                    setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
                 }
-            } catch (err: unknown) {
-                console.error("❌ Assessment error:", err);
-                setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
             }
+            limits.stopTimer();
+        } finally {
+            isSavingRef.current = false;
         }
-        limits.stopTimer();
     };
 
     useEffect(() => {

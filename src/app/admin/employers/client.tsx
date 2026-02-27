@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Trash2, Briefcase, Plus, Copy, Check, Mail, Search, UserMinus, UserPlus } from 'lucide-react';
@@ -48,6 +48,34 @@ export default function EmployersClient() {
     const [invitesSearch, setInvitesSearch] = useState('');
 
     const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    // Email autocomplete state
+    const [emailSuggestions, setEmailSuggestions] = useState<Array<{ email: string; full_name: string | null }>>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setPromoteEmail(value);
+        setShowSuggestions(false);
+
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+        if (value.length < 2) {
+            setEmailSuggestions([]);
+            return;
+        }
+
+        debounceTimerRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/admin/users?search=${encodeURIComponent(value)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                setEmailSuggestions(data.slice(0, 3));
+                setShowSuggestions(data.length > 0);
+            } catch { /* ignore */ }
+        }, 250);
+    };
 
     const fetchData = async () => {
         try {
@@ -308,18 +336,41 @@ export default function EmployersClient() {
 
                         <form onSubmit={handlePromote} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                                <div className="relative">
                                     <label className="block text-xs font-semibold text-zinc-400 mb-1">User Email *</label>
                                     <input
-                                        type="email"
+                                        type="text"
                                         value={promoteEmail}
-                                        onChange={(e) => setPromoteEmail(e.target.value)}
+                                        onChange={handleEmailChange}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                                        onFocus={() => emailSuggestions.length > 0 && setShowSuggestions(true)}
                                         placeholder="user@example.com"
                                         className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                                         style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                         required
                                         disabled={isPromoting}
+                                        autoComplete="off"
                                     />
+                                    {showSuggestions && emailSuggestions.length > 0 && (
+                                        <ul className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-2xl border"
+                                            style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                                            {emailSuggestions.map(u => (
+                                                <li
+                                                    key={u.email}
+                                                    className="px-4 py-2.5 cursor-pointer hover:bg-purple-500/10 transition-colors flex items-center justify-between"
+                                                    onMouseDown={() => {
+                                                        setPromoteEmail(u.email);
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                >
+                                                    <span className="text-white text-sm">{u.email}</span>
+                                                    {u.full_name && (
+                                                        <span className="text-zinc-500 text-xs">{u.full_name}</span>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-zinc-400 mb-1">Company (Optional)</label>

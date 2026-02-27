@@ -106,6 +106,29 @@ export class UnifiedAIClient {
             }
         }
 
+        // 3. Bedrock as final fallback (when both Groq and Gemini fail)
+        if (process.env.AWS_ACCESS_KEY_ID) {
+            try {
+                console.warn('[UnifiedAIClient] All primary providers failed, attempting Bedrock...');
+                const { callBedrockClaude } = await import('./bedrock-client');
+                const response = await callBedrockClaude(
+                    messages,
+                    options.systemPrompt,
+                    options.maxTokens
+                );
+                return {
+                    success: true,
+                    modelUsed: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+                    provider: 'bedrock' as Provider,
+                    response,
+                    attemptedModels: [...attemptedModels, 'bedrock-claude-3-5-sonnet'],
+                };
+            } catch (bedrockErr) {
+                console.error('[UnifiedAIClient] Bedrock also failed:', bedrockErr);
+                attemptedModels.push('bedrock-claude-3-5-sonnet');
+            }
+        }
+
         return {
             success: false,
             error: "All allowed models failed.",
@@ -176,6 +199,10 @@ export class UnifiedAIClient {
                 return await this.callGroq(model.id, messages, options);
             } else if (model.provider === 'gemini') {
                 return await this.callGemini(model.id, messages, options);
+            } else if (model.provider === 'bedrock') {
+                const { callBedrockClaude } = await import('./bedrock-client');
+                const response = await callBedrockClaude(messages, options.systemPrompt, options.maxTokens);
+                return { success: true, response };
             }
             return { success: false, error: "Unsupported provider" };
         } catch (error) {
@@ -757,8 +784,25 @@ export class UnifiedAIClient {
             console.warn("⚠️ Local embedding failed:", e instanceof Error ? e.message : e);
         }
 
-        // 3. Last Resort: Fail Loudly
-        console.error('❌ [Embed] All providers failed (Gemini + local). RAG will be skipped.');
+        // 3. Fallback to Bedrock Titan Embed
+        if (process.env.AWS_ACCESS_KEY_ID) {
+            try {
+                const { generateBedrockEmbedding } = await import('./bedrock-client');
+                const results = await Promise.all(textArray.map(t => generateBedrockEmbedding(t)));
+                if (results.every(r => r.length > 0)) {
+                    return {
+                        embeddings: results,
+                        modelUsed: 'amazon.titan-embed-text-v2:0',
+                        dimensions: results[0].length
+                    };
+                }
+            } catch (e) {
+                console.warn('⚠️ Bedrock embedding failed:', e instanceof Error ? e.message : e);
+            }
+        }
+
+        // 4. Last Resort: Fail Loudly
+        console.error('❌ [Embed] All providers failed (Gemini + Bedrock + local). RAG will be skipped.');
         throw new Error('All embedding providers failed. RAG context unavailable.');
     }
 
