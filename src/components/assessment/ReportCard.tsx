@@ -31,7 +31,7 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
     const overallScore = store.calculateWeightedScore(skillValues);
 
     return (
-        <div className="fixed inset-0 top-16 overflow-y-auto z-50" style={{ background: 'var(--surface-base)' }}>
+        <div className="fixed inset-0 top-[var(--navbar-h,64px)] overflow-y-auto z-50" style={{ background: 'var(--surface-base)' }}>
             <div className="max-w-5xl mx-auto py-12 px-6">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.97 }}

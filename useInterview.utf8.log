@@ -1,0 +1,100 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+ [31mÔØ»[39m src/hooks/__tests__/useInterview.mic.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 30[2mms[22m[39m
+[31m     [31m├ù[31m should reset micResumeAttemptedRef when isListening becomes true[39m[32m 23[2mms[22m[39m
+[31m     [31m├ù[31m should not call submitUserResponse when lastResultTime is 0[39m[32m 3[2mms[22m[39m
+[31m     [31m├ù[31m should not recreate submitUserResponse on every render[39m[32m 3[2mms[22m[39m
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m 
+Failed Tests 3 
+[49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m src/hooks/__tests__/
+useInterview.mic.test.ts[2m > 
+[22museInterview - mic lifecycle[2m > 
+[22mshould reset micResumeAttemptedRef when 
+isListening becomes true
+[41m[1m FAIL [22m[49m src/hooks/__tests__/
+useInterview.mic.test.ts[2m > 
+[22museInterview - mic lifecycle[2m > 
+[22mshould not call submitUserResponse when 
+lastResultTime is 0
+[41m[1m FAIL [22m[49m src/hooks/__tests__/
+useInterview.mic.test.ts[2m > 
+[22museInterview - mic lifecycle[2m > 
+[22mshould not recreate submitUserResponse 
+on every render
+[31m[1mTypeError[22m: 
+__vite_ssr_import_1__.WhisperSTT is not a 
+constructor[39m
+[36m [2mÔØ»[22m src/hooks/useWhisperInput.t
+s:[2m27:34[22m[39m
+    [90m 25| [39m    [34museEffect[39m(() 
+[33m=>[39m {
+    [90m 26| [39m        [35mif[39m 
+([33m![39mwhisperRef[33m.[39mcurrent) {
+    [90m 27| [39m            
+whisperRef[33m.[39mcurrent [33m=[39m 
+[35mnew[39m [33mWhisperSTT[39m((result) 
+[33m=>[39m {
+    [90m   | [39m                           
+      [31m^[39m
+    [90m 28| [39m                
+[35mif[39m 
+([33m![39mresult[33m.[39mtext) 
+[35mreturn[39m[33m;[39m
+    [90m 29| [39m                
+setTranscript(prev => prev ? `${prev} 
+${result.text}` ÔÇª
+[90m [2mÔØ»[22m 
+Object.react_stack_bottom_frame node_modules/r
+eact-dom/cjs/react-dom-client.development.js:
+[2m25989:20[22m[39m
+[90m [2mÔØ»[22m runWithFiberInDEV node_modu
+les/react-dom/cjs/react-dom-client.development
+.js:[2m874:13[22m[39m
+[90m [2mÔØ»[22m commitHookEffectListMount n
+ode_modules/react-dom/cjs/react-dom-client.dev
+elopment.js:[2m13249:29[22m[39m
+[90m [2mÔØ»[22m 
+commitHookPassiveMountEffects node_modules/rea
+ct-dom/cjs/react-dom-client.development.js:[2
+m13336:11[22m[39m
+[90m [2mÔØ»[22m commitPassiveMountOnFiber n
+ode_modules/react-dom/cjs/react-dom-client.dev
+elopment.js:[2m15484:13[22m[39m
+[90m [2mÔØ»[22m 
+recursivelyTraversePassiveMountEffects node_mo
+dules/react-dom/cjs/react-dom-client.developme
+nt.js:[2m15439:11[22m[39m
+[90m [2mÔØ»[22m commitPassiveMountOnFiber n
+ode_modules/react-dom/cjs/react-dom-client.dev
+elopment.js:[2m15519:11[22m[39m
+[90m [2mÔØ»[22m flushPassiveEffects node_mo
+dules/react-dom/cjs/react-dom-client.developme
+nt.js:[2m18432:9[22m[39m
+[90m [2mÔØ»[22m node_modules/react-dom/cjs/
+react-dom-client.development.js:[2m17923:15[
+22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/3]ÔÄ»[2
+2m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[90m (3)[39m
+[2m   Start at [22m 15:39:44
+[2m   Duration [22m 2.16s[2m (transform 203ms, setup 0ms, import 428ms, tests 30ms, environment 1.25s)[22m
+

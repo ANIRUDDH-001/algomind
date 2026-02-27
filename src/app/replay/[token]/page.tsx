@@ -11,15 +11,16 @@ interface Annotation {
 }
 
 interface ReplayPageProps {
-    params: {
+    params: Promise<{
         token: string;
-    }
+    }>
 }
 
 // Ensure dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export default async function ReplayPage({ params }: ReplayPageProps) {
+    const { token } = await params;
     const supabase = await createServerSupabase();
 
     // 1. Fetch replay and associated session
@@ -30,12 +31,12 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
             interview_sessions!inner (
                 problem_title,
                 problem_difficulty,
-                duration_seconds,
+                duration,
                 transcript,
                 overall_score
             )
         `)
-        .eq('public_token', params.token)
+        .eq('public_token', token)
         .eq('is_public', true)
         .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString())
         .maybeSingle();
@@ -45,17 +46,17 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
     }
 
     // Fire and forget view count increment
-    void supabase.rpc('increment_view_count', { p_token: params.token }).then(({ error }) => {
+    void supabase.rpc('increment_view_count', { p_token: token }).then(({ error }) => {
         if (error) {
             // Fallback if rpc doesn't exist yet
-            void supabase.from('session_replays').update({ view_count: replay.view_count + 1 }).eq('public_token', params.token);
+            void supabase.from('session_replays').update({ view_count: replay.view_count + 1 }).eq('public_token', token);
         }
     });
 
     const session = replay.interview_sessions as any; // any to bypass strict typing for dynamic joined row
     const annotations: Annotation[] = replay.annotations || [];
     const transcript: any[] = session.transcript || [];
-    const durationSec = session.duration_seconds || (transcript.length * 30);
+    const durationSec = session.duration || (transcript.length * 30);
     const durationMin = Math.floor(durationSec / 60);
 
     return (

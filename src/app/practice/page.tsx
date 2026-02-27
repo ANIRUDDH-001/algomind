@@ -233,7 +233,7 @@ export default function PracticePage() {
                 ) : (
                     <>
                         {/* Filters */}
-                        <div className="glass sticky top-16 z-20 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
+                        <div className="glass sticky top-[var(--navbar-h,64px)] z-20 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
                             <ProblemFilters onFilterChange={handleFilterChange} currentFilters={filters} />
                         </div>
 

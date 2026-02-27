@@ -79,9 +79,10 @@ export async function POST(req: Request) {
 
         // rpcData can be a boolean or an object depending on postgres implementation.
         // Assuming the prompt implies it returns an object with `{ valid, reason, campaignId }`
-        const isObject = typeof rpcData === 'object' && rpcData !== null;
-        const valid = isObject ? !!(rpcData as any).valid : !!rpcData;
-        const reason = isObject ? (rpcData as any).reason : 'Invalid entry code';
+        const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        const valid = result?.valid === true;
+        const reason = result?.reason || 'Invalid entry code';
+        const campaignIdFromRpc = result?.campaign_id;
 
         if (!valid) {
             return NextResponse.json(

@@ -67,13 +67,18 @@ export const metadata: Metadata = {
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { TooltipProvider } from "@/components/ui/tooltip"; // Assuming TooltipProvider is needed based on the provided snippet
 
-export default function RootLayout({
+import { headers } from 'next/headers';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   // Run critical initial database checks on the server immediately
   void validateDB();
+
+  const hdrs = await headers();
+  const hideNavbar = hdrs.get('x-hide-navbar') === 'true';
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -87,9 +92,9 @@ export default function RootLayout({
               <TooltipProvider>
                 <ErrorBoundary>
                   <TourProvider>
-                    <Navbar />
+                    {!hideNavbar && <Navbar />}
                     {/* Main Content Area */}
-                    <main className="flex-1 flex flex-col min-h-0 pt-[var(--navbar-h)] pb-0 md:pb-0">
+                    <main className={`flex-1 flex flex-col min-h-0 pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
                       {children}
                     </main>
                     <IntroTour />

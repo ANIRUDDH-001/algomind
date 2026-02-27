@@ -107,7 +107,7 @@ export default function HomePage() {
   };
 
   if (showOnboarding) {
-    return <IntroAnimation onComplete={handleOnboardingComplete} />;
+    return <IntroAnimation onComplete={handleOnboardingComplete} skip={!!user} />;
   }
 
 
