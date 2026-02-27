@@ -73,7 +73,7 @@ export default async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     const pathname = request.nextUrl.pathname;
     requestHeaders.set('x-pathname', pathname);
-    if (pathname.startsWith('/admin')) {
+    if (pathname.startsWith('/admin') || pathname.startsWith('/owner')) {
         requestHeaders.set('x-hide-navbar', 'true');
     }
 
@@ -116,6 +116,7 @@ export default async function middleware(request: NextRequest) {
     const isAdmin = pathname.startsWith('/admin');
     const isEmployer = pathname.startsWith('/employer');
     const isAssess = pathname.startsWith('/assess');
+    const isOwnerRoute = pathname.startsWith('/owner');
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -137,10 +138,10 @@ export default async function middleware(request: NextRequest) {
     const isE2ETest = process.env.NODE_ENV !== 'production' &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
-        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess) {
+        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
-            // Optionally append a redirect so they come back to the assesment link after login
+            // Optionally append a redirect so they come back to the assessment link after login
             url.searchParams.set('redirect', pathname);
             return NextResponse.redirect(url);
         }
@@ -148,6 +149,35 @@ export default async function middleware(request: NextRequest) {
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
+            return NextResponse.redirect(url);
+        }
+    }
+
+    // OWNER-001: Protect /owner routes — only owners & co-owners allowed
+    if (user && isOwnerRoute) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('account_type')
+            .eq('id', user.id)
+            .single();
+
+        const isOwner = profile?.account_type === 'owner';
+
+        // Also check co_owners table
+        let isCoOwner = false;
+        if (!isOwner) {
+            const { data: coOwner } = await supabase
+                .from('co_owners')
+                .select('id')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle();
+            isCoOwner = !!coOwner;
+        }
+
+        if (!isOwner && !isCoOwner) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard';
             return NextResponse.redirect(url);
         }
     }

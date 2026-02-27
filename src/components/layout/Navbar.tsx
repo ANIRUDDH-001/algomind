@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { isDemoMode } from '@/lib/demo/manager';
@@ -28,7 +28,8 @@ export function Navbar() {
     const [isDemo, setIsDemo] = useState(false);
     const { isAdmin } = useAdmin();
     const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
-    const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin'>('candidate');
+    const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin' | 'owner'>('candidate');
+    const [isOwner, setIsOwner] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -38,6 +39,16 @@ export function Navbar() {
                 if (res.ok) {
                     const data = await res.json();
                     setAccountType(data.accountType);
+                    if (data.accountType === 'owner') {
+                        setIsOwner(true);
+                    }
+                }
+
+                // Check co-owner status (account_type won't be 'owner' for co-owners)
+                const ownerRes = await fetch('/api/user/owner-status').catch(() => null);
+                if (ownerRes && ownerRes.ok) {
+                    const ownerData = await ownerRes.json();
+                    if (ownerData.isOwner) setIsOwner(true);
                 }
             } catch { }
         };
@@ -220,11 +231,24 @@ export function Navbar() {
                                                 </DropdownMenuItem>
                                             )}
 
-                                            {/* Admin button - only visible to admins */}
-                                            {isAdmin && (
+                                            {/* Owner button - only visible to owners and co-owners */}
+                                            {isOwner && (
+                                                <DropdownMenuItem
+                                                    onClick={() => router.push('/owner')}
+                                                    className="text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 cursor-pointer focus:bg-amber-500/10 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center">
+                                                        <Crown className="mr-2 h-4 w-4" />
+                                                        Owner Dashboard
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            )}
+
+                                            {/* Admin button - only visible to admins or owners */}
+                                            {(isAdmin || isOwner) && (
                                                 <DropdownMenuItem
                                                     onClick={() => router.push('/admin/models')}
-                                                    className="text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 cursor-pointer focus:bg-amber-500/10 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
+                                                    className="text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 cursor-pointer focus:bg-indigo-500/10 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
                                                 >
                                                     <div className="flex items-center">
                                                         <Shield className="mr-2 h-4 w-4" />
