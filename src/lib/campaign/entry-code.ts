@@ -1,6 +1,9 @@
 // Client-side entry code formatting and validation utilities
 
-export const ENTRY_CODE_REGEX = /^[A-Z]{3}-[2-9]{3}-[A-Z]{3}$/;
+// Correct validation regex for format: AAA-NNN-AAA
+// Letters: A-H, J-N, P-Z (no I or O)
+// Digits: 2-9 (no 0 or 1)
+export const ENTRY_CODE_REGEX = /^[A-HJ-NP-Z]{3}-[2-9]{3}-[A-HJ-NP-Z]{3}$/;
 
 export function formatEntryCode(raw: string): string {
     // Clean and uppercase input, auto-insert dashes
