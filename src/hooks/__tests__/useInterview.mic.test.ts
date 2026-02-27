@@ -5,7 +5,10 @@ import { useInterview } from '../useInterview';
 
 // Basic mocks
 vi.mock('../../lib/voice/whisper-stt', () => ({
-    WhisperSTT: { isSupported: () => false }
+    WhisperSTT: class {
+        static isSupported = () => false;
+        transcribeVADAudio = vi.fn();
+    }
 }));
 
 // Stable mock references
@@ -23,7 +26,8 @@ vi.mock('../../hooks/useVoiceInput', () => ({
         transcript: '',
         interimTranscript: '',
         resetTranscript: mockResetTranscript,
-        lastResultTime: 0
+        lastResultTime: 0,
+        transcribeVADAudio: vi.fn()
     })
 }));
 

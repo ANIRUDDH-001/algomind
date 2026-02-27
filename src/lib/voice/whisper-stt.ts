@@ -30,12 +30,6 @@ export interface TranscriptionResult {
 export type WhisperSTTCallback = (result: TranscriptionResult) => void;
 
 export class WhisperSTT {
-    private mediaRecorder: MediaRecorder | null = null;
-    private audioChunks: Blob[] = [];
-    private stream: MediaStream | null = null;
-    private silenceTimer: ReturnType<typeof setTimeout> | null = null;
-    private maxTimer: ReturnType<typeof setTimeout> | null = null;
-    private isRecording = false;
     private onTranscript: WhisperSTTCallback;
     private config: WhisperConfig;
 
@@ -43,7 +37,7 @@ export class WhisperSTT {
         this.onTranscript = onTranscript;
         this.config = {
             maxDurationMs: 30000,
-            silenceGapMs: 2000,
+            silenceGapMs: 800,
             ...config,
         };
     }
@@ -56,125 +50,89 @@ export class WhisperSTT {
         );
     }
 
-    static getSupportedMimeType(): string {
-        const types = [
-            'audio/webm;codecs=opus',
-            'audio/webm',
-            'audio/ogg;codecs=opus',
-            'audio/mp4',
-        ];
-        return types.find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
-    }
+    /**
+     * Transcribe a Float32Array captured by VAD's onSpeechEnd.
+     * No getUserMedia call needed — audio comes from VAD's existing stream.
+     */
+    async transcribeVADAudio(audio: Float32Array, sampleRate = 16000): Promise<void> {
+        const startMs = Date.now();
 
-    async start(): Promise<void> {
-        if (this.isRecording) return;
+        // Convert Float32Array → WAV Blob
+        const wavBlob = float32ToWav(audio, sampleRate);
 
-        this.stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                channelCount: 1,
-                sampleRate: 16000,
-                echoCancellation: true,
-                noiseSuppression: true,
-            }
-        });
-
-        const mimeType = this.config.mimeType || WhisperSTT.getSupportedMimeType();
-        this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
-        this.audioChunks = [];
-        this.isRecording = true;
-
-        this.mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-                this.audioChunks.push(e.data);
-                // ✅ FIX: Do NOT call resetSilenceTimer here.
-                // ondataavailable fires every 500ms unconditionally —
-                // calling resetSilenceTimer here means it NEVER triggers.
-                // The silence timer starts once at recording start and
-                // fires after 2s of real silence (no further resets).
-            }
-        };
-
-        this.mediaRecorder.onstop = async () => {
-            await this.sendForTranscription();
-        };
-
-        // ✅ Collect in 250ms chunks for better audio quality
-        this.mediaRecorder.start(250);
-
-        // Max duration guard (safety net, not normal path)
-        this.maxTimer = setTimeout(() => this.stop(), this.config.maxDurationMs);
-
-        // ✅ Start silence timer ONCE. It fires after silenceGapMs of silence.
-        // Users typically pause 1-2s after finishing a sentence.
-        this.resetSilenceTimer();
-    }
-
-    private resetSilenceTimer(): void {
-        if (this.silenceTimer) clearTimeout(this.silenceTimer);
-        this.silenceTimer = setTimeout(() => {
-            if (this.audioChunks.length > 0) {
-                this.stop();
-            }
-        }, this.config.silenceGapMs);
-    }
-
-    stop(): void {
-        if (!this.isRecording) return;
-        this.isRecording = false;
-
-        if (this.silenceTimer) clearTimeout(this.silenceTimer);
-        if (this.maxTimer) clearTimeout(this.maxTimer);
-
-        if (this.mediaRecorder?.state !== 'inactive') {
-            this.mediaRecorder?.stop();
+        if (wavBlob.size < 1000) {
+            // Too small — likely noise or mic startup artifact; skip
+            console.warn('[WhisperSTT] Audio too short, skipping transcription');
+            return;
         }
 
-        this.stream?.getTracks().forEach(t => t.stop());
-        this.stream = null;
-    }
-
-    private async sendForTranscription(): Promise<void> {
-        if (this.audioChunks.length === 0) return;
-
-        const startTime = Date.now();
-        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
-        const blob = new Blob(this.audioChunks, { type: mimeType });
-
-        // Skip if audio is too short (< 300ms at typical bitrate = < 5KB)
-        if (blob.size < 5000) return;
+        const formData = new FormData();
+        formData.append('audio', wavBlob, 'speech.wav');
 
         try {
-            const formData = new FormData();
-            formData.append('audio', blob, `recording.${mimeType.split('/')[1].split(';')[0]}`);
-
-            const response = await fetch('/api/voice/transcribe', {
+            const res = await fetch('/api/voice/transcribe', {
                 method: 'POST',
                 body: formData,
             });
 
-            if (!response.ok) {
-                throw new Error(`Transcription API returned ${response.status}`);
+            if (!res.ok) {
+                console.error('[WhisperSTT] Transcription failed:', res.status);
+                return;
             }
 
-            const data = await response.json();
-            const latencyMs = Date.now() - startTime;
+            const data = await res.json();
+            const text = data.text?.trim();
+
+            if (!text || text.length < 2) return; // Filter empty/noise results
 
             this.onTranscript({
-                text: data.text,
+                text,
                 isFinal: true,
                 confidence: data.confidence,
-                model: data.model,
-                latencyMs,
+                model: data.model || 'whisper-large-v3-turbo',
+                latencyMs: Date.now() - startMs,
             });
-        } catch (error) {
-            console.error('[WhisperSTT] Transcription failed:', error);
-            // Silent fail — UI shows "using fallback"
+        } catch (err) {
+            console.error('[WhisperSTT] Network error:', err);
         }
     }
+}
 
-    destroy(): void {
-        this.stop();
-        this.mediaRecorder = null;
-        this.audioChunks = [];
+// ── WAV encoder (no external deps) ──────────────────────────────────────────
+
+function float32ToWav(samples: Float32Array, sampleRate: number): Blob {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    // RIFF header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);         // PCM format chunk size
+    view.setUint16(20, 1, true);          // PCM format
+    view.setUint16(22, 1, true);          // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byte rate
+    view.setUint16(32, 2, true);          // block align
+    view.setUint16(34, 16, true);         // bits per sample
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    // PCM samples
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        offset += 2;
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function writeString(view: DataView, offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
     }
 }
+
