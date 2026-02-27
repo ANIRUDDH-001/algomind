@@ -15,8 +15,8 @@ export type { Provider } from './providers';
 // ── New types for generateResponse() ────────────────────────────────
 
 export interface GenerateResponseOptions {
-    /** Model selection: 'auto' runs intent classification, 'groq'/'gemini' forces provider */
-    preferredModel?: 'groq' | 'gemini' | 'auto';
+    /** Model selection: 'auto' runs intent classification, 'groq'/'gemini'/'bedrock' forces provider */
+    preferredModel?: 'groq' | 'gemini' | 'bedrock' | 'auto';
     /** Max output tokens */
     maxTokens?: number;
     /** LLM temperature */
@@ -49,7 +49,7 @@ export interface AIResponse {
     /** Routing metadata (only present when smart routing is active) */
     routing?: {
         classification: IntentClassification;
-        routedTo: 'groq' | 'gemini';
+        routedTo: 'groq' | 'gemini' | 'bedrock';
         classificationTimeMs: number;
         totalTimeMs: number;
         smartRoutingUsed: boolean;

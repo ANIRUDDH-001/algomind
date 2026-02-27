@@ -137,40 +137,74 @@ async function main() {
 
     console.log('[Nightly Batch] Starting at', new Date().toISOString());
 
-    const step = async (name: string, fn: () => Promise<void>) => {
+    try {
+        // Log that we STARTED (GitHub Actions → Supabase)
+        await logSystemEvent({
+            type: 'cron_running',
+            metadata: {
+                source: 'github_actions',
+                startedAt: new Date().toISOString(),
+                nodeVersion: process.version,
+            }
+        });
+
+        const step = async (name: string, fn: () => Promise<void>) => {
+            try {
+                console.log(`[${name}] Starting...`);
+                await fn();
+                results[name] = 'ok';
+                console.log(`[${name}] ✅ Done`);
+            } catch (err) {
+                results[name] = 'error';
+                console.error(`[${name}] ❌ Failed:`, err);
+                // Don't rethrow — continue to next step
+            }
+        };
+
+        await step('model-sync', syncModelRegistry);
+        await step('cleanup', runCleanup);
+        await step('learner-profiles', computeAllLearnerProfiles);
+        await step('insights-snapshot', updateInsightSnapshots);
+        await step('kai-memory', updateAllKaiMemories);
+        await step('narratives', updateNarratives);
+
+        const duration = Date.now() - startTime;
+        console.log('[Nightly Batch] Complete in', duration, 'ms');
+        console.log('[Nightly Batch] Results:', results);
+
+        // Log completion to system_events
         try {
-            console.log(`[${name}] Starting...`);
-            await fn();
-            results[name] = 'ok';
-            console.log(`[${name}] ✅ Done`);
-        } catch (err) {
-            results[name] = 'error';
-            console.error(`[${name}] ❌ Failed:`, err);
-            // Don't rethrow — continue to next step
+            await logSystemEvent({
+                type: 'cron_completed',
+                metadata: {
+                    duration_ms: duration,
+                    completedSteps: Object.keys(results).filter(k => results[k] === 'ok'),
+                    failedSteps: Object.keys(results).filter(k => results[k] === 'error'),
+                    results
+                }
+            });
+        } catch (logErr) {
+            // If this fails, at least log to stdout (visible in GitHub Actions logs)
+            console.error('[CRITICAL] Failed to log cron_completed to Supabase:', logErr);
+            console.error('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING');
+            console.error('Service role:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING');
         }
-    };
-
-    await step('model-sync', syncModelRegistry);
-    await step('cleanup', runCleanup);
-    await step('learner-profiles', computeAllLearnerProfiles);
-    await step('insights-snapshot', updateInsightSnapshots);
-    await step('kai-memory', updateAllKaiMemories);
-    await step('narratives', updateNarratives);
-
-    const duration = Date.now() - startTime;
-    console.log('[Nightly Batch] Complete in', duration, 'ms');
-    console.log('[Nightly Batch] Results:', results);
-
-    // Log completion to system_events
-    await logSystemEvent({
-        type: 'cron_completed',
-        metadata: {
-            duration_ms: duration,
-            completedSteps: Object.keys(results).filter(k => results[k] === 'ok'),
-            failedSteps: Object.keys(results).filter(k => results[k] === 'error'),
-            results
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error('[BATCH FAILED]', errorMessage);
+        try {
+            await logSystemEvent({
+                type: 'cron_failed',
+                errorMessage,
+                metadata: { failedAt: new Date().toISOString(), error: errorMessage, duration_ms: Date.now() - startTime }
+            });
+        } catch (logErr) {
+            console.error('[ALSO FAILED TO LOG FAILURE]', logErr);
+            console.error('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING');
+            console.error('Service role:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING');
         }
-    });
+        process.exit(1);
+    }
 
     // Disarm watchdog now that we've finished cleanly
     clearTimeout(batchTimeout);

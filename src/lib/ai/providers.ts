@@ -1,7 +1,7 @@
 // Model Provider Types and Registry
 // Supports Groq + Gemini chat fallbacks and Gemini + local embedding fallback
 
-export type Provider = 'gemini' | 'groq' | 'local';
+export type Provider = 'gemini' | 'groq' | 'local' | 'bedrock';
 export type ModelTier = number;
 
 export interface ModelConfig {
