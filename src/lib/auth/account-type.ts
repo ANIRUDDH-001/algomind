@@ -1,6 +1,8 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 
-export async function getAccountType(userId: string): Promise<'candidate' | 'employer' | 'admin'> {
+export type AccountType = 'candidate' | 'employer' | 'admin' | 'owner';
+
+export async function getAccountType(userId: string): Promise<AccountType> {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from('profiles')
@@ -12,7 +14,32 @@ export async function getAccountType(userId: string): Promise<'candidate' | 'emp
         return 'candidate';
     }
 
-    return data.account_type as 'candidate' | 'employer' | 'admin';
+    return data.account_type as AccountType;
+}
+
+// Helper to check if user is the primary owner or a granted co-owner
+export async function isOwnerOrCoOwner(userId: string): Promise<boolean> {
+    const supabase = await createServerSupabase();
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_type, email')
+        .eq('id', userId)
+        .single();
+
+    if (profile?.account_type === 'owner') return true;
+
+    if (profile?.email) {
+        // Check co_owners table
+        const { data: coOwner } = await supabase
+            .from('co_owners')
+            .select('id')
+            .eq('email', profile.email)
+            .maybeSingle();
+
+        return !!coOwner;
+    }
+
+    return false;
 }
 
 export async function upgradeToEmployer(userId: string, companyName: string): Promise<void> {
