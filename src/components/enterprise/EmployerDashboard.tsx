@@ -697,7 +697,10 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     <CandidateTranscriptViewer
                         reportData={reportData}
                         candidateName={viewTranscriptCandidateName}
-                        onClose={() => setViewTranscriptSessionId(null)}
+                        onClose={() => {
+                            setViewTranscriptSessionId(null);
+                            setReportData(null);
+                        }}
                     />
                 )
             }

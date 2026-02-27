@@ -69,7 +69,17 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    let supabaseResponse = NextResponse.next({ request });
+    // Set header to hide navbar on admin routes and pass pathname to layout
+    const requestHeaders = new Headers(request.headers);
+    const pathname = request.nextUrl.pathname;
+    requestHeaders.set('x-pathname', pathname);
+    if (pathname.startsWith('/admin')) {
+        requestHeaders.set('x-hide-navbar', 'true');
+    }
+
+    let supabaseResponse = NextResponse.next({
+        request: { headers: requestHeaders },
+    });
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,7 +92,7 @@ export default async function middleware(request: NextRequest) {
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
                     supabaseResponse = NextResponse.next({
-                        request,
+                        request: { headers: requestHeaders },
                     });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
@@ -97,7 +107,7 @@ export default async function middleware(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     // Route Protection Logic
-    const { pathname, searchParams } = request.nextUrl;
+    const { searchParams } = request.nextUrl;
 
     // Define protected paths
     const isDashboard = pathname.startsWith('/dashboard');
@@ -138,6 +148,22 @@ export default async function middleware(request: NextRequest) {
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
+            return NextResponse.redirect(url);
+        }
+    }
+
+    // ROUTING-001: Employer account type redirect
+    // If authenticated user is on dashboard or home, check if they're an employer
+    if (user && (isDashboard || pathname === '/')) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('account_type')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.account_type === 'employer') {
+            const url = request.nextUrl.clone();
+            url.pathname = '/employer/dashboard';
             return NextResponse.redirect(url);
         }
     }
