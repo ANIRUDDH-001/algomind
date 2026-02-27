@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
 
     try {
         // 6. Call Groq Orpheus TTS (official replacement for playai-tts)
+        const GROQ_TTS_MODEL = process.env.GROQ_TTS_MODEL || 'playai-tts';
+
         const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
             method: 'POST',
             headers: {
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'canopylabs/orpheus-v1-english',
+                model: GROQ_TTS_MODEL,
                 voice,
                 input: processedText,
                 response_format: 'wav',
@@ -84,9 +86,10 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('[Synthesize API] Groq Orpheus error:', response.status, errorText);
+            // Return 503 so the TTS cascade silently falls back to browser
             return NextResponse.json(
-                { error: 'TTS synthesis failed', fallback: 'browser' },
-                { status: 502 }
+                { error: 'Groq TTS unavailable', fallback: 'browser' },
+                { status: 503 }
             );
         }
 

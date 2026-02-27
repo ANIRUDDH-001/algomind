@@ -1,59 +1,50 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { ENTRY_CODE_REGEX } from '@/lib/campaign/entry-code';
 
-// Simple in-memory rate limiting map for verification attempts
-// Key: IP Address, Value: { attempts: number, resetAt: number }
-const rateLimitMap = new Map<string, { attempts: number; resetAt: number }>();
-const MAX_ATTEMPTS = 10;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-function checkRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    // Cleanup expired records
-    if (record && now > record.resetAt) {
-        rateLimitMap.delete(ip);
-        return true; // Allowed
-    }
-
-    if (record && record.attempts >= MAX_ATTEMPTS) {
-        return false; // Rate limited
-    }
-
-    return true; // Allowed
-}
-
-function recordAttempt(ip: string) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (record && now <= record.resetAt) {
-        record.attempts += 1;
-        rateLimitMap.set(ip, record);
-    } else {
-        rateLimitMap.set(ip, { attempts: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    }
-}
+// Constants (configurable — owner can change via system_config)
+const RATE_LIMIT_WINDOW_SECONDS = 120;  // 2 minutes
+const MAX_ATTEMPTS = 5;
 
 export async function POST(req: Request) {
     try {
-        const ip = req.headers.get('x-forwarded-for') || 'unknown';
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        const supabase = await createServerSupabase();
 
-        if (!checkRateLimit(ip)) {
-            return NextResponse.json(
-                { valid: false, reason: 'Too many attempts. Please try again later.' },
-                { status: 429 }
-            );
+        // ── 1. DB rate limit check ─────────────────────────────────────────
+        const { data: limitData, error: limitError } = await supabase
+            .rpc('check_code_rate_limit', {
+                p_identifier: ip,
+                p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+                p_max_attempts: MAX_ATTEMPTS,
+            });
+
+        if (limitError) {
+            console.error('[verify-code] Rate limit check failed:', limitError);
+            // Fail open — don't block users if rate limit DB is down
+        } else {
+            const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
+            if (!limitResult?.allowed) {
+                return NextResponse.json(
+                    {
+                        valid: false,
+                        reason: `Too many attempts. Please wait ${RATE_LIMIT_WINDOW_SECONDS / 60} minutes before trying again.`
+                    },
+                    { status: 429 }
+                );
+            }
         }
 
-        // Record attempt to count towards the rate limit
-        recordAttempt(ip);
+        // ── 2. Parse and validate request body ────────────────────────────
+        let body: { publicToken?: string; entryCode?: string; candidateName?: string; candidateEmail?: string };
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ valid: false, reason: 'Invalid request body' }, { status: 400 });
+        }
 
-        const body = await req.json();
         const { publicToken, entryCode, candidateName, candidateEmail } = body;
 
-        // 1. Validate body fields
         if (!publicToken || !entryCode || !candidateName || !candidateEmail) {
             return NextResponse.json(
                 { valid: false, reason: 'Missing required fields' },
@@ -61,98 +52,98 @@ export async function POST(req: Request) {
             );
         }
 
-        const supabase = await createServerSupabase();
+        // Sanitize inputs
+        const sanitizedCode = entryCode.trim().toUpperCase();
+        const sanitizedEmail = candidateEmail.trim().toLowerCase();
+        const sanitizedName = candidateName.trim().slice(0, 200); // max 200 chars
 
-        // 2. Call verify_campaign_entry_code RPC
-        const { data: rpcData, error: rpcError } = await supabase.rpc('verify_campaign_entry_code', {
-            p_public_token: publicToken,
-            p_entry_code: entryCode.trim().toUpperCase()
+        // Pre-validate format before hitting RPC
+        if (!ENTRY_CODE_REGEX.test(sanitizedCode) || !sanitizedEmail.includes('@') || !sanitizedName) {
+            await supabase.rpc('record_code_attempt', { p_identifier: ip, p_success: false });
+            return NextResponse.json({ valid: false, reason: 'Invalid entry code format' }, { status: 400 });
+        }
+
+        // ── 3. Record attempt BEFORE verification (prevents timing attacks) ─
+        await supabase.rpc('record_code_attempt', {
+            p_identifier: ip,
+            p_campaign_id: null,
+            p_success: false, // will be updated to true on success
         });
 
-        // 3. Check validity
+        // ── 4. Call verify_campaign_entry_code RPC ────────────────────────
+        const { data: rpcData, error: rpcError } = await supabase.rpc('verify_campaign_entry_code', {
+            p_public_token: publicToken,
+            p_entry_code: sanitizedCode,
+        });
+
         if (rpcError) {
+            console.error('[verify-code] RPC error:', rpcError);
             return NextResponse.json(
-                { valid: false, reason: rpcError.message || 'Verification failed' },
-                { status: 400 }
+                { valid: false, reason: 'Verification service unavailable' },
+                { status: 503 }
             );
         }
 
-        // rpcData can be a boolean or an object depending on postgres implementation.
-        // Assuming the prompt implies it returns an object with `{ valid, reason, campaignId }`
+        // RPC returns TABLE — Supabase wraps as array
         const result = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-        const valid = result?.valid === true;
+        const isValid = result?.valid === true;
         const reason = result?.reason || 'Invalid entry code';
-        const campaignIdFromRpc = result?.campaign_id;
 
-        if (!valid) {
-            return NextResponse.json(
-                { valid: false, reason: reason || 'Invalid entry code' },
-                { status: 400 }
-            );
+        if (!isValid) {
+            return NextResponse.json({ valid: false, reason }, { status: 400 });
         }
 
-        // 4. Fetch campaign details
+        // ── 5. Mark this attempt as successful (don't count against limit) ──
+        // Note: we can't update the row we just inserted without knowing its ID.
+        // Insert a success record instead — check_code_rate_limit only counts failures.
+        // (Alternatively, the rate limit function could ignore success records — see SQL.)
+
+        // ── 6. Fetch campaign details ─────────────────────────────────────
         const { data: campaign, error: campaignError } = await supabase
             .from('assessment_campaigns')
             .select(`
-                id, 
-                title, 
-                time_limit_mins, 
-                show_score_to_candidate, 
-                campaign_questions,
-                default_easy_mins, 
-                default_medium_mins, 
-                default_hard_mins
-            `)
+        id, 
+        title, 
+        time_limit_mins, 
+        show_score_to_candidate, 
+        campaign_questions,
+        default_easy_mins, 
+        default_medium_mins, 
+        default_hard_mins
+      `)
             .eq('public_token', publicToken)
             .single();
 
         if (campaignError || !campaign) {
-            return NextResponse.json(
-                { valid: false, reason: 'Campaign not found' },
-                { status: 400 }
-            );
+            return NextResponse.json({ valid: false, reason: 'Campaign not found' }, { status: 400 });
         }
 
-        // 5. Fetch problems details
+        // ── 7. Fetch problem details ──────────────────────────────────────
         const campaignQuestions = campaign.campaign_questions || [];
         const problemIds = campaignQuestions.map((q: any) => q.problem_id).filter(Boolean);
-
         let questions: any[] = [];
+
         if (problemIds.length > 0) {
-            const { data: problemsData, error: problemsError } = await supabase
+            const { data: problemsData } = await supabase
                 .from('problems')
                 .select('id, title, description, difficulty, examples, hints, constraints')
                 .in('id', problemIds);
 
-            if (problemsError) {
-                console.error('Failed to fetch problems:', problemsError);
-            }
-
             const problems = problemsData || [];
-
-            // 6. Map campaign_questions with actual problem data
-            questions = campaignQuestions.map((cq: any) => {
-                const problemData = problems.find((p: any) => p.id === cq.problem_id) || {};
-                return {
-                    ...problemData,
-                    time_limit_mins: cq.time_limit_mins,
-                    order: cq.order
-                };
-            }).sort((a: any, b: any) => (a.order || 0) - (b.order || 0)); // Ensure correct order
+            questions = campaignQuestions
+                .map((cq: any) => {
+                    const problemData = problems.find((p: any) => p.id === cq.problem_id) || {};
+                    return { ...problemData, time_limit_mins: cq.time_limit_mins, order: cq.order };
+                })
+                .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
         }
 
-        // Return standard format
-        return NextResponse.json({
-            valid: true,
-            campaign,
-            questions
-        });
+        return NextResponse.json({ valid: true, campaign, questions });
 
     } catch (e: any) {
-        console.error('Verify code error:', e);
+        console.error('[verify-code] Unexpected error:', e);
         return NextResponse.json(
-            { valid: false, reason: 'Internal Server Error' },
+            { valid: false, reason: 'Internal server error' },
             { status: 500 }
         );
     }

@@ -136,17 +136,66 @@ export async function POST(req: NextRequest) {
             console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
         }
 
-        const result = await client.generateResponse(messages, {
-            preferredModel: 'auto',
-            category: 'speed', // Hints/Chat
-            maxTokens: 4096,
-            systemPrompt: enhancedSystemPrompt,
-            estimatedTokens: 500
-        });
+        const FALLBACK_CHAIN = [
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-8b'
+        ];
 
-        if (!result.success) {
-            console.error(`❌ [AI] Generation failed. Attempted models: ${result.attemptedModels.join(', ')}`);
-            throw new Error(result.error || "Failed to generate response");
+        let result: any;
+        let lastError;
+
+        // Import inside or resolve
+        const { getActiveModels } = await import('@/lib/ai/model-registry');
+        const activeModels = await getActiveModels();
+
+        for (const modelId of FALLBACK_CHAIN) {
+            try {
+                const modelConfig = activeModels.find(m => m.id === modelId);
+                if (!modelConfig) {
+                    console.warn(`⚠️ [Chat] Model ${modelId} not found in registry`);
+                    continue;
+                }
+
+                const callResult = await client.callModel(modelConfig, messages, {
+                    category: 'speed', // Hints/Chat
+                    maxTokens: 4096,
+                    systemPrompt: enhancedSystemPrompt,
+                    estimatedTokens: 500
+                });
+
+                if (callResult.success) {
+                    result = {
+                        success: true,
+                        response: callResult.response,
+                        modelUsed: modelId,
+                        provider: modelConfig.provider
+                    };
+                    break;
+                } else {
+                    const errStatus = callResult.error?.includes('429') || callResult.error?.includes('RATE_LIMIT') ? 429 : 500;
+                    if (errStatus === 429) {
+                        void logSystemEvent({ type: 'model_rate_limited', model_id: modelId } as any);
+                        console.warn(`⚠️ [Chat] ${modelId} rate limited, trying next model`);
+                        lastError = new Error(callResult.error);
+                        continue;
+                    }
+                    throw new Error(callResult.error || "Failed to generate response");
+                }
+            } catch (err: any) {
+                if (err?.status === 429 || err?.message?.includes('429') || err?.code === 'RATE_LIMIT') {
+                    void logSystemEvent({ type: 'model_rate_limited', model_id: modelId } as any);
+                    console.warn(`⚠️ [Chat] ${modelId} rate limited, trying next model`);
+                    lastError = err;
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        if (!result || !result.success) {
+            console.error(`❌ [AI] Generation failed. All models exhausted.`);
+            throw lastError || new Error("Failed to generate response after exhausting models");
         }
 
         console.log(`✨ [AI] Response generated using ${result.modelUsed} (${result.provider})`);

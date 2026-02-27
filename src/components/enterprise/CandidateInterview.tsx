@@ -7,6 +7,7 @@ import { Loader2, Briefcase, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 // Remove InterviewSession import
 import { CampaignInterviewSession, type QuestionState, type ProblemWithTiming } from '@/components/enterprise/CampaignInterviewSession';
+import { InterviewErrorBoundary } from '@/components/error/InterviewErrorBoundary';
 import { VoiceSettings } from '@/components/settings/VoiceSettings';
 import { formatEntryCode } from '@/lib/campaign/entry-code';
 
@@ -439,14 +440,16 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     if (!campaignQuestions.length || !sessionToken || !startedAt) return null;
 
     return (
-        <CampaignInterviewSession
-            sessionToken={sessionToken}
-            submissionId={submissionId}
-            questions={campaignQuestions as ProblemWithTiming[]}
-            initialQuestionStates={questionStates}
-            startedAt={startedAt}
-            showScoreToCandidate={showScore}
-            onComplete={handleComplete}
-        />
+        <InterviewErrorBoundary>
+            <CampaignInterviewSession
+                sessionToken={sessionToken}
+                submissionId={submissionId}
+                questions={campaignQuestions as ProblemWithTiming[]}
+                initialQuestionStates={questionStates}
+                startedAt={startedAt}
+                showScoreToCandidate={showScore}
+                onComplete={handleComplete}
+            />
+        </InterviewErrorBoundary>
     );
 }
