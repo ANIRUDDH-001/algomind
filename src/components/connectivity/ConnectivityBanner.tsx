@@ -5,14 +5,10 @@ import { isProxyMode, disableProxyMode } from '@/lib/supabase/client';
 import { Shield, RefreshCw, X } from 'lucide-react';
 
 export function ConnectivityBanner() {
-    const [show, setShow] = useState(false);
+    const [show, setShow] = useState(() => isProxyMode());
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        if (isProxyMode()) {
-            setShow(true);
-        }
-
         const handleProxyEnabled = () => {
             setShow(true);
             setDismissed(false);

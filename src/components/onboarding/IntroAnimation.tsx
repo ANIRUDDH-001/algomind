@@ -6,9 +6,10 @@ import { useState, useEffect, useRef } from 'react';
 
 interface IntroAnimationProps {
     onComplete: () => void;
+    skip?: boolean;
 }
 
-export function IntroAnimation({ onComplete }: IntroAnimationProps) {
+export function IntroAnimation({ onComplete, skip }: IntroAnimationProps) {
     const [step, setStep] = useState(0);
     const particlesRef = useRef(
         [...Array(20)].map(() => ({
@@ -20,6 +21,12 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
     );
 
     useEffect(() => {
+        // If skip is true, immediately complete without showing animation
+        if (skip) {
+            onComplete();
+            return;
+        }
+
         const timers = [
             setTimeout(() => setStep(1), 1000),   // Brain appears
             setTimeout(() => setStep(2), 2500),   // Nodes build
@@ -40,7 +47,10 @@ export function IntroAnimation({ onComplete }: IntroAnimationProps) {
             timers.forEach(clearTimeout);
             window.removeEventListener('keydown', handleKeyPress);
         };
-    }, [onComplete]);
+    }, [onComplete, skip]);
+
+    // Don't render anything if skipping
+    if (skip) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style={{ background: 'var(--surface-base)' }}>

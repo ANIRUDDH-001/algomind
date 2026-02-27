@@ -28,7 +28,7 @@ export class InterviewErrorBoundary extends React.Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="fixed inset-0 top-16 bg-slate-950 flex items-center justify-center text-white">
+                <div className="fixed inset-0 top-[var(--navbar-h,64px)] bg-slate-950 flex items-center justify-center text-white">
                     <div className="text-center max-w-md px-6">
                         <p className="text-red-400 text-lg mb-4">Session encountered an unexpected error</p>
                         <button
