@@ -194,8 +194,9 @@ export function InterviewSession({
                 setShowLoginModal(true);
             }
         }
-        if (hasStarted) {
-            incrementTurn();
+        incrementTurn();
+        if (!hasStarted) {
+            setHasStarted(true);
         }
         if (!showBadge && messageCount > 2) {
             setLastBadgeSkill(messageCount > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
@@ -962,7 +963,12 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
-                                        onExecutionResult={(result) => { /* logic preserves */ }}
+                                        onExecutionResult={(result) => {
+                                            if (result.stdout || result.stderr) {
+                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
+                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                            }
+                                        }}
                                     />
                                     <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
                                         <Send className="w-3.5 h-3.5 mr-1.5" /> Share

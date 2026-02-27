@@ -154,7 +154,7 @@ export async function saveInterviewSession(
                     edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
                     optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
                     debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
-                    model_used: 'gemini-2.0-flash',
+                    model_used: finalResult.modelUsed ?? 'unknown',
                     confidence: 0.8,
                 });
 
