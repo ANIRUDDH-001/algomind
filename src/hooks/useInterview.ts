@@ -196,6 +196,7 @@ export function useInterview(options: {
     }, []);
 
     const submitUserResponse = useCallback(async (userText: string, problemContext: ProblemContext) => {
+        if (stateMachine.current.getState() === 'completed') return;
         if (!userText.trim()) return;
 
 
@@ -235,7 +236,7 @@ export function useInterview(options: {
             problemContent: problemContext.content,
             transcript: userText,
             conversationHistory: methodHistory,
-            ragContext: "RETRIVE_VIA_API", // Flag for API to do its magic
+            ragContext: "__FETCH_VIA_RAG__", // Flag for API to do its magic
             interruptionContext: interruptionCtx,
         });
 

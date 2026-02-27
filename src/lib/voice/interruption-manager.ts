@@ -362,14 +362,8 @@ export class InterruptionManager {
      * cannot be loaded (e.g. in tests or SSR).
      */
     async cancelAISpeech(): Promise<void> {
-        try {
-            const { getTTSManager } = await import('./tts-manager');
-            await getTTSManager().cancel();
-        } catch {
-            // Fallback: raw cancel
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-            }
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
         }
         this._state.isAISpeaking = false;
         this._aiSpeechStartTime = 0;

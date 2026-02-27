@@ -33,11 +33,14 @@ export function useInterviewLimits(options?: { maxDurationMins?: number; startTi
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const startTimeRef = useRef<number>(0);
+    const elapsedTimeRef = useRef(elapsedTime);
+
+    useEffect(() => { elapsedTimeRef.current = elapsedTime; }, [elapsedTime]);
 
     // Timer effect
     useEffect(() => {
         if (isRunning) {
-            startTimeRef.current = Date.now() - (elapsedTime * 1000);
+            startTimeRef.current = Date.now() - (elapsedTimeRef.current * 1000);
 
             timerRef.current = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -50,7 +53,6 @@ export function useInterviewLimits(options?: { maxDurationMins?: number; startTi
                 clearInterval(timerRef.current);
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isRunning]);
 
     const startTimer = useCallback(() => {

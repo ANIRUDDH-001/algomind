@@ -55,7 +55,7 @@ export class CognitiveAnalyzer {
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
                 const rawResponse = await this.callAI(prompt);
-                const parsedData = this.parseResponse(rawResponse) as unknown as ParsedAssessmentResponse;
+                const parsedData = this.parseResponse(rawResponse.text) as unknown as ParsedAssessmentResponse;
 
                 // Post-process: calculate confidence and finalize structure
                 const sessionConfidence = calculateConfidence(transcript, parsedData);
@@ -81,7 +81,8 @@ export class CognitiveAnalyzer {
                     skills: finalizedSkills,
                     overallFeedback: parsedData.overallFeedback || "No feedback generated.",
                     nextSteps: parsedData.nextSteps || ["Review the session manually."],
-                    knowledgeGaps: parsedData.knowledgeGaps || []
+                    knowledgeGaps: parsedData.knowledgeGaps || [],
+                    modelUsed: rawResponse.model ?? 'gemini-2.0-flash'
                 };
 
             } catch (error: unknown) {
@@ -133,7 +134,7 @@ export class CognitiveAnalyzer {
         };
     }
 
-    private async callAI(prompt: string): Promise<string> {
+    private async callAI(prompt: string): Promise<{ text: string, model: string }> {
         // Use UnifiedAIClient directly instead of internal API fetch
         const { getAIClient } = await import('@/lib/ai/client');
         const client = getAIClient();
@@ -153,7 +154,7 @@ export class CognitiveAnalyzer {
             throw new Error(`AI Analysis failed: ${result.error}`);
         }
 
-        return result.response;
+        return { text: result.response, model: result.modelUsed || 'gemini-2.0-flash' };
     }
 
 

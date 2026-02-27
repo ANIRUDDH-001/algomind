@@ -4,6 +4,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 
 export async function POST(req: NextRequest) {
     try {
@@ -59,6 +60,13 @@ export async function POST(req: NextRequest) {
             }
         } else if (guestMode) {
             console.log('👀 [Chat API] Guest mode access');
+            const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+                ?? req.headers.get('x-real-ip')
+                ?? 'unknown';
+            const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 20, windowSeconds: 3600 });
+            if (!ipRateLimit.success) {
+                return NextResponse.json({ error: 'Guest rate limit exceeded. Please try again later.' }, { status: 429 });
+            }
         }
 
         if (!messages || !Array.isArray(messages)) {

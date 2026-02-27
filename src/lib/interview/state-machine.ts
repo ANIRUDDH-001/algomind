@@ -63,6 +63,11 @@ export class InterviewStateMachine {
             case 'assessment':
                 if (event === 'AI_FINISHED_SPEAKING') this.state = 'completed';
                 break;
+
+            case 'completed':
+                // No transitions allowed from completed state
+                // Any call to transition() from here is a no-op
+                break;
         }
 
         return this.state;
