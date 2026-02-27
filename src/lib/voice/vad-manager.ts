@@ -21,6 +21,8 @@ import type {
     FrameProcessedCallback,
 } from './types';
 import { VADState } from './types';
+import { getVoiceConfig } from '@/config/voice-config';
+
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -48,7 +50,7 @@ interface MicVADInstance {
     destroy: () => Promise<void>;
 }
 
- 
+
 type MicVADConstructor = { new: (options: Record<string, unknown>) => Promise<MicVADInstance> };
 
 let _scriptsLoaded = false;
@@ -190,11 +192,13 @@ class VADManager implements VADManagerInterface {
                 );
             }
 
+            const config = getVoiceConfig();
+
             console.log('[VADManager] Creating MicVAD instance…');
             this._micVAD = await MicVAD.new({
                 positiveSpeechThreshold: this._config.positiveSpeechThreshold,
                 negativeSpeechThreshold: this._config.negativeSpeechThreshold,
-                redemptionMs: this._config.redemptionMs,
+                redemptionMs: config.vadSilenceWindowMs || this._config.redemptionMs,
                 preSpeechPadMs: this._config.preSpeechPadMs,
                 minSpeechMs: this._config.minSpeechMs,
                 model: this._config.model,

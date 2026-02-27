@@ -94,8 +94,9 @@ export function useInterview(options: {
         abortListening,
         resetTranscript,
         error: voiceError,
-        lastResultTime
-    } = useWhisper ? whisperInput : browserInput;
+        lastResultTime,
+        transcribeVADAudio
+    } = useWhisper ? whisperInput : browserInput as any;
 
     // ── Stable refs for values read inside timers / effects ──────────
     const isListeningRef = useRef(false);
@@ -584,7 +585,13 @@ export function useInterview(options: {
             pauseSpeaking,
             resumeSpeaking,
             stopSpeaking,
-            error: voiceError
+            error: voiceError,
+            transcribeVADAudio,
+            submitCurrentTranscript: () => {
+                if (transcript && currentProblemRef.current) {
+                    submitUserResponse(transcript, currentProblemRef.current);
+                }
+            }
         }
     };
 }

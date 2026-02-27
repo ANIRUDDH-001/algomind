@@ -218,12 +218,14 @@ describe('useVoiceOutput — Groq TTS integration', () => {
             .mockReturnValueOnce(['groq', mockSetTtsProvider])
             .mockReturnValueOnce(['browser', mockSetCurrentProvider]);
 
-        // Mock refs
+        // Mock refs (order must match hook: ttsProviderRef, queueRef, processingRef, isPausedRef, audioElementRef, groqAvailableRef)
         (React.useRef as Mock)
-            .mockReturnValueOnce({ current: [] })               // queueRef
+            .mockReturnValueOnce({ current: 'groq' })            // ttsProviderRef
+            .mockReturnValueOnce({ current: [] })                // queueRef
             .mockReturnValueOnce({ current: false })             // processingRef
             .mockReturnValueOnce({ current: false })             // isPausedRef
-            .mockReturnValueOnce({ current: null });             // audioElementRef
+            .mockReturnValueOnce({ current: null })              // audioElementRef
+            .mockReturnValueOnce({ current: null });             // groqAvailableRef
 
         const { speak } = useVoiceOutput();
         await speak('Test Groq audio');
@@ -264,11 +266,14 @@ describe('useVoiceOutput — Groq TTS integration', () => {
 
         const mockAudioElem = new MockAudio();
 
+        // Mock refs (order must match hook: ttsProviderRef, queueRef, processingRef, isPausedRef, audioElementRef, groqAvailableRef)
         (React.useRef as Mock)
+            .mockReturnValueOnce({ current: 'groq' })            // ttsProviderRef
             .mockReturnValueOnce({ current: [] })                // queueRef
             .mockReturnValueOnce({ current: true })              // processingRef (active)
             .mockReturnValueOnce({ current: false })             // isPausedRef
-            .mockReturnValueOnce({ current: mockAudioElem });    // audioElementRef
+            .mockReturnValueOnce({ current: mockAudioElem })     // audioElementRef
+            .mockReturnValueOnce({ current: null });             // groqAvailableRef
 
         const result = useVoiceOutput();
         result.stop();
