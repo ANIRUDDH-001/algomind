@@ -2,6 +2,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+// Mock auth
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: () => Promise.resolve({
+        auth: { getUser: () => Promise.resolve({ data: { user: { id: 'user-1' } } }) }
+    }),
+}));
+
+// Mock TTS preprocessor
+vi.mock('@/lib/voice/tts-preprocessor', () => ({
+    preprocessForTTS: (text: string) => text,
+}));
+
 // Mock synthesizeWithPolly
 const mockSynthesizeWithPolly = vi.fn();
 vi.mock('@/lib/aws/polly', () => ({
@@ -23,31 +35,39 @@ describe('POST /api/voice/synthesize-polly', () => {
         vi.clearAllMocks();
     });
 
-    it('returns 503 with fallback:"browser" when Polly flag is false', async () => {
+    it('returns 503 with fallback:"groq" when Polly flag is false', async () => {
         mockSynthesizeWithPolly.mockRejectedValue(new Error('AWS_POLLY_DISABLED'));
 
         const res = await POST(makeRequest({ text: 'hello' }));
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.fallback).toBe('browser');
-        expect(json.provider).toBe('aws');
+        expect(json.fallback).toBe('groq');
         expect(json.error).toContain('disabled');
     });
 
-    it('returns 503 when Polly flag is true but not integrated yet', async () => {
-        mockSynthesizeWithPolly.mockRejectedValue(new Error('AWS_POLLY_NOT_INTEGRATED'));
+    it('returns 503 when Polly is not configured', async () => {
+        mockSynthesizeWithPolly.mockRejectedValue(new Error('AWS_POLLY_NOT_CONFIGURED'));
 
         const res = await POST(makeRequest({ text: 'hello' }));
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.fallback).toBe('browser');
-        expect(json.error).toContain('Coming soon');
+        expect(json.fallback).toBe('groq');
+        expect(json.error).toContain('not configured');
+    });
+
+    it('returns 502 when Polly synthesis fails', async () => {
+        mockSynthesizeWithPolly.mockRejectedValue(new Error('AWS_POLLY_FAILED'));
+
+        const res = await POST(makeRequest({ text: 'hello' }));
+        const json = await res.json();
+
+        expect(res.status).toBe(502);
+        expect(json.fallback).toBe('groq');
     });
 
     it('response includes X-TTS-Provider: aws-polly header on success path', async () => {
-        // Mock returning a fake ArrayBuffer
         const fakeBuffer = new ArrayBuffer(16);
         mockSynthesizeWithPolly.mockResolvedValue(fakeBuffer);
 
@@ -56,5 +76,11 @@ describe('POST /api/voice/synthesize-polly', () => {
         expect(res.status).toBe(200);
         expect(res.headers.get('X-TTS-Provider')).toBe('aws-polly');
         expect(res.headers.get('Content-Type')).toBe('audio/mpeg');
+        expect(res.headers.get('X-Voice')).toBe('Kajal');
+    });
+
+    it('returns 400 for missing text', async () => {
+        const res = await POST(makeRequest({}));
+        expect(res.status).toBe(400);
     });
 });

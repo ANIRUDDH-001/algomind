@@ -136,6 +136,7 @@ export default function AnalyticsAdminClient() {
         'cron_completed': COLORS.semantic.success,
         'cron_failed': COLORS.semantic.danger,
         'cron_triggered': '#6366f1',
+        'cron_running': '#3b82f6',
         'batch_job_complete': '#14b8a6',
         'admin_action': '#64748b',
     };
@@ -166,10 +167,36 @@ export default function AnalyticsAdminClient() {
         return acc;
     }, [] as any[]).sort((a: any, b: any) => parseInt(a.hour) - parseInt(b.hour));
 
-    // Panel 5: Cron Health — include triggered events too
+    // Panel 5: Cron Health — include triggered and running events
     const cronEvents = events.filter(e =>
-        e.type === 'cron_completed' || e.type === 'cron_failed' || e.type === 'cron_triggered'
-    ).slice(0, 10);
+        e.type === 'cron_completed' || e.type === 'cron_failed' || e.type === 'cron_triggered' || e.type === 'cron_running'
+    ).slice(0, 20);
+
+    // Resolve triggered events to their actual status (RUNNING / OK / FAILED)
+    const resolvedCronRows = cronEvents
+        .filter(e => e.type === 'cron_triggered')
+        .map(triggered => {
+            const triggeredTime = new Date(triggered.created_at).getTime();
+            // Find the next follow-up event that came AFTER this trigger
+            const followUp = cronEvents.find(e =>
+                (e.type === 'cron_running' || e.type === 'cron_completed' || e.type === 'cron_failed') &&
+                new Date(e.created_at).getTime() > triggeredTime
+            );
+            // If there's a running event but also a completed/failed, prefer the terminal state
+            const terminalFollowUp = followUp?.type === 'cron_running'
+                ? cronEvents.find(e =>
+                    (e.type === 'cron_completed' || e.type === 'cron_failed') &&
+                    new Date(e.created_at).getTime() > triggeredTime
+                ) || followUp
+                : followUp;
+            return {
+                triggered,
+                followUp: terminalFollowUp,
+                resolvedStatus: terminalFollowUp?.type ?? 'cron_triggered',
+                resolvedMetadata: terminalFollowUp?.metadata ?? triggered.metadata,
+            };
+        })
+        .slice(0, 10);
 
     const lastCronRun = cronEvents.length > 0 ? new Date(cronEvents[0].created_at).getTime() : 0;
     const isCronStale = lastCronRun > 0 && (Date.now() - lastCronRun) > (26 * 60 * 60 * 1000);
@@ -497,36 +524,40 @@ export default function AnalyticsAdminClient() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[var(--surface-edge)]">
-                                        {cronEvents.map(e => (
-                                            <tr key={e.id} className="hover:bg-zinc-800/30 transition-colors">
+                                        {resolvedCronRows.map(row => (
+                                            <tr key={row.triggered.id} className="hover:bg-zinc-800/30 transition-colors">
                                                 <td className="py-3 px-4 text-xs text-zinc-300">
-                                                    {new Date(e.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(row.triggered.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </td>
                                                 <td className="py-3 px-4">
-                                                    {e.type === 'cron_completed' ? (
+                                                    {row.resolvedStatus === 'cron_completed' ? (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                                                             <CheckCircle2 className="w-3 h-3" /> OK
                                                         </span>
-                                                    ) : e.type === 'cron_triggered' ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
-                                                            <Zap className="w-3 h-3" /> Dispatched
+                                                    ) : row.resolvedStatus === 'cron_running' ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold bg-blue-500/15 text-blue-400 border border-blue-500/25 animate-pulse">
+                                                            <Loader2 className="w-3 h-3 animate-spin" /> Running
                                                         </span>
-                                                    ) : (
+                                                    ) : row.resolvedStatus === 'cron_failed' ? (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold bg-red-500/15 text-red-400 border border-red-500/25">
                                                             <XCircle className="w-3 h-3" /> Failed
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
+                                                            <Zap className="w-3 h-3" /> Dispatched
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-4 font-mono text-xs text-zinc-400">
-                                                    {e.metadata?.duration_ms ? `${(e.metadata.duration_ms / 1000).toFixed(1)}s` : '—'}
+                                                    {row.resolvedMetadata?.duration_ms ? `${(row.resolvedMetadata.duration_ms / 1000).toFixed(1)}s` : '—'}
                                                 </td>
                                                 <td className="py-3 px-4 text-zinc-300">
-                                                    {e.metadata?.usersProcessed || e.metadata?.syncedCount || e.metadata?.processedCount || '—'}
+                                                    {row.resolvedMetadata?.usersProcessed || row.resolvedMetadata?.syncedCount || row.resolvedMetadata?.processedCount || '—'}
                                                 </td>
-                                                <td className="py-3 px-4 text-right text-zinc-300 text-xs truncate max-w-[120px]" title={JSON.stringify(e.metadata?.completedSteps || [])}>
-                                                    {Array.isArray(e.metadata?.completedSteps)
-                                                        ? e.metadata.completedSteps.join(', ')
-                                                        : (e.metadata?.message || '—')}
+                                                <td className="py-3 px-4 text-right text-zinc-300 text-xs truncate max-w-[120px]" title={JSON.stringify(row.resolvedMetadata?.completedSteps || [])}>
+                                                    {Array.isArray(row.resolvedMetadata?.completedSteps)
+                                                        ? row.resolvedMetadata.completedSteps.join(', ')
+                                                        : (row.resolvedMetadata?.message || '—')}
                                                 </td>
                                             </tr>
                                         ))}

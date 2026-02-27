@@ -8,14 +8,28 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'employer';
+    const search = searchParams.get('search')?.trim();
 
     try {
         const supabase = getServiceClient();
-        const { data, error } = await supabase
+        let query = supabase
             .from('profiles')
-            .select('id, full_name, email, company_name, account_type')
-            .eq('account_type', type)
-            .order('created_at', { ascending: false });
+            .select('id, full_name, email, company_name, account_type');
+
+        if (search) {
+            // Email autocomplete: search all non-employer users
+            query = query
+                .ilike('email', `%${search}%`)
+                .neq('account_type', 'employer')
+                .order('email')
+                .limit(5);
+        } else {
+            query = query
+                .eq('account_type', type)
+                .order('created_at', { ascending: false });
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Failed to fetch users:', error);
