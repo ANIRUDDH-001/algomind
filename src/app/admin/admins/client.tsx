@@ -19,6 +19,7 @@ export default function AdminsClient() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+    const [isOwner, setIsOwner] = useState(false);
 
     const [newEmail, setNewEmail] = useState('');
     const [isAdding, setIsAdding] = useState(false);
@@ -53,6 +54,7 @@ export default function AdminsClient() {
             if (user?.email) {
                 setCurrentUserEmail(user.email);
             }
+            fetch('/api/user/owner-status').then(res => res.json()).then(data => setIsOwner(!!data.isOwner)).catch(() => { });
         };
         fetchUser();
         fetchAdmins();
@@ -130,46 +132,48 @@ export default function AdminsClient() {
                 </div>
 
                 {/* Add Admin Section */}
-                <Card className="p-6 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm shadow-xl">
-                    <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
-                        <UserIcon className="w-5 h-5 text-indigo-400" />
-                        Add New Admin
-                    </h3>
+                {isOwner && (
+                    <Card className="p-6 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm shadow-xl">
+                        <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
+                            <UserIcon className="w-5 h-5 text-indigo-400" />
+                            Add New Admin
+                        </h3>
 
-                    <form onSubmit={handleAddAdmin} className="space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <input
-                                type="email"
-                                value={newEmail}
-                                onChange={(e) => setNewEmail(e.target.value)}
-                                placeholder="engineer@example.com"
-                                className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                disabled={isAdding}
-                            />
-                            <Button
-                                type="submit"
-                                disabled={isAdding}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 shrink-0"
-                            >
-                                {isAdding ? 'Adding...' : 'Add Admin'}
-                            </Button>
-                        </div>
-
-                        {addError && (
-                            <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
-                                <AlertCircle className="w-4 h-4" />
-                                {addError}
+                        <form onSubmit={handleAddAdmin} className="space-y-4">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input
+                                    type="email"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    placeholder="engineer@example.com"
+                                    className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    disabled={isAdding}
+                                />
+                                <Button
+                                    type="submit"
+                                    disabled={isAdding}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 shrink-0"
+                                >
+                                    {isAdding ? 'Adding...' : 'Add Admin'}
+                                </Button>
                             </div>
-                        )}
 
-                        {addSuccess && (
-                            <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
-                                <CheckCircle2 className="w-4 h-4" />
-                                Admin added successfully
-                            </div>
-                        )}
-                    </form>
-                </Card>
+                            {addError && (
+                                <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {addError}
+                                </div>
+                            )}
+
+                            {addSuccess && (
+                                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Admin added successfully
+                                </div>
+                            )}
+                        </form>
+                    </Card>
+                )}
 
                 {/* Admin List Section */}
                 <div className="space-y-4">
@@ -210,37 +214,39 @@ export default function AdminsClient() {
                                         </div>
                                     </div>
 
-                                    {confirmingDelete === admin.email ? (
-                                        <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
-                                            <span className="text-sm text-zinc-400 mr-2">Are you sure?</span>
+                                    {isOwner && (
+                                        confirmingDelete === admin.email ? (
+                                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                                                <span className="text-sm text-zinc-400 mr-2">Are you sure?</span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/20"
+                                                    onClick={() => handleRemoveAdmin(admin.email)}
+                                                >
+                                                    Yes, remove
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-slate-700 bg-slate-800 text-zinc-300 hover:bg-slate-700 hover:text-white"
+                                                    onClick={() => setConfirmingDelete(null)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        ) : (
                                             <Button
+                                                variant="ghost"
                                                 size="sm"
-                                                variant="destructive"
-                                                className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/20"
-                                                onClick={() => handleRemoveAdmin(admin.email)}
+                                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2"
+                                                disabled={admins.length <= 1}
+                                                onClick={() => setConfirmingDelete(admin.email)}
                                             >
-                                                Yes, remove
+                                                <Trash2 className="w-4 h-4" />
+                                                <span className="hidden sm:inline">Remove</span>
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-slate-700 bg-slate-800 text-zinc-300 hover:bg-slate-700 hover:text-white"
-                                                onClick={() => setConfirmingDelete(null)}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2"
-                                            disabled={admins.length <= 1}
-                                            onClick={() => setConfirmingDelete(admin.email)}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Remove</span>
-                                        </Button>
+                                        )
                                     )}
                                 </Card>
                             ))}

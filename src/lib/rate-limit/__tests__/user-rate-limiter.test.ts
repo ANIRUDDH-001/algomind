@@ -20,12 +20,45 @@ vi.mock('@/lib/supabase/client', () => ({
 describe('User Rate Limiter', () => {
     let mockRpc: any;
 
+    // Build a chainable .from() mock that satisfies:
+    //   supabase.from('profiles').select(...).eq(...).single()
+    //   supabase.from('co_owners').select(...).eq(...).limit(...).maybeSingle()
+    const buildFromMock = () => {
+        const profileResult = { data: { account_type: 'candidate', rate_limit_override: null }, error: null };
+        const coOwnerResult = { data: null, error: null };
+
+        const profileChain = {
+            select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue(profileResult),
+                }),
+            }),
+        };
+
+        const coOwnerChain = {
+            select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockReturnValue({
+                        maybeSingle: vi.fn().mockResolvedValue(coOwnerResult),
+                    }),
+                }),
+            }),
+        };
+
+        return vi.fn((table: string) => {
+            if (table === 'profiles') return profileChain;
+            if (table === 'co_owners') return coOwnerChain;
+            return profileChain;
+        });
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockRpc = vi.fn();
 
         (supabaseClientModule.getSupabase as any).mockReturnValue({
-            rpc: mockRpc
+            rpc: mockRpc,
+            from: buildFromMock(),
         });
     });
 

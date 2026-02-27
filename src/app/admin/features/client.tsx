@@ -72,6 +72,14 @@ export default function FeaturesAdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [togglingFlag, setTogglingFlag] = useState<string | null>(null);
+    const [isOwner, setIsOwner] = useState(false);
+
+    useEffect(() => {
+        fetch('/api/user/owner-status')
+            .then(res => res.json())
+            .then(data => { if (data.isOwner) setIsOwner(true); })
+            .catch(() => { });
+    }, []);
 
     const fetchFlags = useCallback(async () => {
         try {
@@ -180,8 +188,8 @@ export default function FeaturesAdminPage() {
                     <Switch
                         checked={flag.value}
                         onCheckedChange={(checked) => handleToggle(key, checked)}
-                        disabled={togglingFlag === key || togglingFlag === 'aws-all'}
-                        className="data-[state=checked]:bg-indigo-600 data-[state=unchecked]:bg-zinc-700"
+                        disabled={togglingFlag === key || togglingFlag === 'aws-all' || !isOwner}
+                        className="data-[state=checked]:bg-indigo-600 data-[state=unchecked]:bg-zinc-700 disabled:opacity-50"
                     />
                 </div>
             </div>

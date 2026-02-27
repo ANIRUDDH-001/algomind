@@ -31,6 +31,7 @@ export default function EmployersClient() {
     const [employers, setEmployers] = useState<EmployerProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isOwner, setIsOwner] = useState(false);
 
     // Invite States
     const [companyName, setCompanyName] = useState('');
@@ -103,6 +104,7 @@ export default function EmployersClient() {
     };
 
     useEffect(() => {
+        fetch('/api/user/owner-status').then(res => res.json()).then(data => setIsOwner(!!data.isOwner)).catch(() => { });
         fetchData();
     }, []);
 
@@ -267,136 +269,140 @@ export default function EmployersClient() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Create Invite Section */}
-                    <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                        <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
-                            <Plus className="w-5 h-5 text-indigo-400" />
-                            Generate Invite Code
-                        </h3>
+                    {isOwner && (
+                        <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                            <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
+                                <Plus className="w-5 h-5 text-indigo-400" />
+                                Generate Invite Code
+                            </h3>
 
-                        <form onSubmit={handleCreateInvite} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Company Name *</label>
-                                    <input
-                                        type="text"
-                                        value={companyName}
-                                        onChange={(e) => setCompanyName(e.target.value)}
-                                        placeholder="Acme Corp"
-                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        required
-                                        disabled={isCreating}
-                                    />
+                            <form onSubmit={handleCreateInvite} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Company Name *</label>
+                                        <input
+                                            type="text"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            placeholder="Acme Corp"
+                                            className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                            required
+                                            disabled={isCreating}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Target Email *</label>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="ceo@acme.com"
+                                            className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                            disabled={isCreating}
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Target Email *</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="ceo@acme.com"
-                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        disabled={isCreating}
-                                        required
-                                    />
+                                <div className="flex flex-col sm:flex-row items-end gap-4">
+                                    <div className="flex-1 w-full">
+                                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Expires In (Days)</label>
+                                        <input
+                                            type="number"
+                                            value={expiresDays}
+                                            onChange={(e) => setExpiresDays(e.target.value)}
+                                            min="0"
+                                            className="w-full rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                            disabled={isCreating}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={isCreating || !companyName.trim()}
+                                        className="btn-primary px-8 h-[42px]"
+                                    >
+                                        {isCreating ? 'Generating...' : 'Generate'}
+                                    </Button>
                                 </div>
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-end gap-4">
-                                <div className="flex-1 w-full">
-                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Expires In (Days)</label>
-                                    <input
-                                        type="number"
-                                        value={expiresDays}
-                                        onChange={(e) => setExpiresDays(e.target.value)}
-                                        min="0"
-                                        className="w-full rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        disabled={isCreating}
-                                    />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    disabled={isCreating || !companyName.trim()}
-                                    className="btn-primary px-8 h-[42px]"
-                                >
-                                    {isCreating ? 'Generating...' : 'Generate'}
-                                </Button>
-                            </div>
-                            <span className="text-[10px] text-zinc-500 mt-1 block italic">* Email will be enforced during claim</span>
-                        </form>
-                    </div>
+                                <span className="text-[10px] text-zinc-500 mt-1 block italic">* Email will be enforced during claim</span>
+                            </form>
+                        </div>
+                    )}
 
                     {/* Promote User Section */}
-                    <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                        <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
-                            <UserPlus className="w-5 h-5 text-purple-400" />
-                            Include Employer (Direct)
-                        </h3>
+                    {isOwner && (
+                        <div className="rounded-2xl p-6" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                            <h3 className="font-bold mb-4 flex items-center gap-2 text-zinc-200">
+                                <UserPlus className="w-5 h-5 text-purple-400" />
+                                Include Employer (Direct)
+                            </h3>
 
-                        <form onSubmit={handlePromote} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="relative">
-                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">User Email *</label>
-                                    <input
-                                        type="text"
-                                        value={promoteEmail}
-                                        onChange={handleEmailChange}
-                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                                        onFocus={() => emailSuggestions.length > 0 && setShowSuggestions(true)}
-                                        placeholder="user@example.com"
-                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        required
-                                        disabled={isPromoting}
-                                        autoComplete="off"
-                                    />
-                                    {showSuggestions && emailSuggestions.length > 0 && (
-                                        <ul className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-2xl border"
-                                            style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                                            {emailSuggestions.map(u => (
-                                                <li
-                                                    key={u.email}
-                                                    className="px-4 py-2.5 cursor-pointer hover:bg-purple-500/10 transition-colors flex items-center justify-between"
-                                                    onMouseDown={() => {
-                                                        setPromoteEmail(u.email);
-                                                        setShowSuggestions(false);
-                                                    }}
-                                                >
-                                                    <span className="text-white text-sm">{u.email}</span>
-                                                    {u.full_name && (
-                                                        <span className="text-zinc-500 text-xs">{u.full_name}</span>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                            <form onSubmit={handlePromote} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <label className="block text-xs font-semibold text-zinc-400 mb-1">User Email *</label>
+                                        <input
+                                            type="text"
+                                            value={promoteEmail}
+                                            onChange={handleEmailChange}
+                                            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                                            onFocus={() => emailSuggestions.length > 0 && setShowSuggestions(true)}
+                                            placeholder="user@example.com"
+                                            className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                            required
+                                            disabled={isPromoting}
+                                            autoComplete="off"
+                                        />
+                                        {showSuggestions && emailSuggestions.length > 0 && (
+                                            <ul className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-2xl border"
+                                                style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                                                {emailSuggestions.map(u => (
+                                                    <li
+                                                        key={u.email}
+                                                        className="px-4 py-2.5 cursor-pointer hover:bg-purple-500/10 transition-colors flex items-center justify-between"
+                                                        onMouseDown={() => {
+                                                            setPromoteEmail(u.email);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        <span className="text-white text-sm">{u.email}</span>
+                                                        {u.full_name && (
+                                                            <span className="text-zinc-500 text-xs">{u.full_name}</span>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-400 mb-1">Company (Optional)</label>
+                                        <input
+                                            type="text"
+                                            value={promoteCompany}
+                                            onChange={(e) => setPromoteCompany(e.target.value)}
+                                            placeholder="Company Name"
+                                            className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                            disabled={isPromoting}
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-zinc-400 mb-1">Company (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={promoteCompany}
-                                        onChange={(e) => setPromoteCompany(e.target.value)}
-                                        placeholder="Company Name"
-                                        className="w-full rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        disabled={isPromoting}
-                                    />
+                                <div className="flex justify-end">
+                                    <Button
+                                        type="submit"
+                                        disabled={isPromoting || !promoteEmail.trim()}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8"
+                                    >
+                                        {isPromoting ? 'Adding...' : 'Promote'}
+                                    </Button>
                                 </div>
-                            </div>
-                            <div className="flex justify-end">
-                                <Button
-                                    type="submit"
-                                    disabled={isPromoting || !promoteEmail.trim()}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8"
-                                >
-                                    {isPromoting ? 'Adding...' : 'Promote'}
-                                </Button>
-                            </div>
-                            <span className="text-[10px] text-zinc-500 mt-1 block italic">* Directly upgrades existing user to Employer</span>
-                        </form>
-                    </div>
+                                <span className="text-[10px] text-zinc-500 mt-1 block italic">* Directly upgrades existing user to Employer</span>
+                            </form>
+                        </div>
+                    )}
                 </div>
 
                 {/* Employers List Section */}
@@ -445,15 +451,17 @@ export default function EmployersClient() {
                                             <p className="text-sm text-zinc-300">{format(new Date(emp.created_at), 'MMM d, yyyy')}</p>
                                         </div>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDemote(emp.email)}
-                                        className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                                    >
-                                        <UserMinus className="w-4 h-4 mr-2" />
-                                        Delete
-                                    </Button>
+                                    {isOwner && (
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => handleDemote(emp.email)}
+                                            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <UserMinus className="w-4 h-4 mr-2" />
+                                            Delete
+                                        </Button>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -536,7 +544,7 @@ export default function EmployersClient() {
                                         </div>
 
                                         <div className="flex items-center gap-2 shrink-0">
-                                            {!isUsed && invite.is_active && !isExpired && (
+                                            {isOwner && !isUsed && invite.is_active && !isExpired && (
                                                 <>
                                                     {invite.email && (
                                                         <Button

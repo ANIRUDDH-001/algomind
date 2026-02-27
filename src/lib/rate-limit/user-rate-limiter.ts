@@ -35,10 +35,23 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
     }
 
     try {
+        // Check if user is owner or co-owner — they get unlimited access
+        const [{ data: profile }, { data: coOwner }] = await Promise.all([
+            supabase.from('profiles').select('account_type, rate_limit_override').eq('id', userId).single(),
+            supabase.from('co_owners').select('id').eq('user_id', userId).limit(1).maybeSingle(),
+        ]);
+
+        if (profile?.account_type === 'owner' || coOwner) {
+            return { allowed: true, remaining: 999, isAdmin: true };
+        }
+
+        // Per-user rate limit override from owner dashboard
+        const effectiveLimit = profile?.rate_limit_override ?? DAILY_LIMIT;
+
         // Use the database function
         const { data, error } = await supabase.rpc('check_user_rate_limit', {
             p_user_id: userId,
-            p_limit: DAILY_LIMIT
+            p_limit: effectiveLimit
         });
 
         if (error) {
