@@ -203,14 +203,6 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
             recognition.onend = () => {
                 setIsListening(false);
                 if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current);
-
-                // For continuous mode: if we should still be listening
-                // and the stop wasn't intentional, restart with a 200ms debounce
-                if (shouldListenRef.current && continuous && !intentionalStopRef.current) {
-                    restartTimerRef.current = setTimeout(() => {
-                        if (shouldListenRef.current) startListeningRef.current();
-                    }, 200);
-                }
                 intentionalStopRef.current = false;
             };
 

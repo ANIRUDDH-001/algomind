@@ -27,6 +27,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const [rate, setRate] = useState(options.rate || 0.9);
     const [ttsProvider, setTtsProvider] = useState<TTSProviderStatus>('detecting');
     const [currentProvider, setCurrentProvider] = useState<'polly' | 'groq' | 'browser'>('browser');
+    const ttsProviderRef = useRef(ttsProvider);
+    useEffect(() => { ttsProviderRef.current = ttsProvider; }, [ttsProvider]);
 
     // Queue of text chunks to speak (browser TTS fallback)
     const queueRef = useRef<string[]>([]);
@@ -284,20 +286,44 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         setIsSpeaking(true);
         if (options.onStart) options.onStart();
 
+        // ── Wait for provider detection if not yet resolved ──────────────────
+        if (ttsProvider === 'detecting' || ttsProviderRef.current === 'detecting') {
+            await new Promise<void>((resolve) => {
+                const interval = setInterval(() => {
+                    if (ttsProviderRef.current !== 'detecting') {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 50);
+                // Timeout after 4s — fall back to browser
+                setTimeout(() => { clearInterval(interval); resolve(); }, 4000);
+            });
+        }
+
         try {
             await new Promise(r => setTimeout(r, 50));
 
             let success = false;
 
-            // Priority: Polly → Groq → Browser
-            if (ttsProvider === 'polly') {
+            // Pipeline checks: Polly → Groq → Browser (silent fallback)
+            if (ttsProvider === 'polly' || ttsProviderRef.current === 'polly') {
                 success = await speakWithPolly(cleanText);
-                if (success) setCurrentProvider('polly');
+                if (success) {
+                    setCurrentProvider('polly');
+                } else {
+                    console.warn('[TTS] Polly failed, falling back to Groq');
+                    setCurrentProvider('groq');
+                }
             }
 
-            if (!success && (ttsProvider === 'groq' || ttsProvider === 'polly')) {
+            if (!success && (ttsProvider === 'groq' || ttsProviderRef.current === 'groq')) {
                 success = await speakWithGroq(cleanText);
-                if (success) setCurrentProvider('groq');
+                if (success) {
+                    setCurrentProvider('groq');
+                } else {
+                    console.warn('[TTS] Groq failed, falling back to browser');
+                    setCurrentProvider('browser');
+                }
             }
 
             if (!success) {

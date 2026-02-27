@@ -736,10 +736,13 @@ export function InterviewSession({
                             style: { background: '#27272a', color: '#a1a1aa' }
                         });
                     }}
-                    onUserSpeaking={() => {
-                        if (!voice.isListening && !isProcessing && !voice.isSpeaking) {
-                            console.log('🎤 VAD woke up STT (onUserSpeaking)');
-                            voice.startListening();
+                    onSpeechEnd={(audio) => {
+                        if (voice.transcribeVADAudio) {
+                            console.log('🎤 VAD triggered Whisper transcription');
+                            voice.transcribeVADAudio(audio);
+                        } else {
+                            console.log('🎤 VAD triggered Browser STT submission');
+                            voice.submitCurrentTranscript?.();
                         }
                     }}
                 />

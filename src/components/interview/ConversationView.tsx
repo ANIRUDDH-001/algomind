@@ -58,6 +58,8 @@ interface ConversationViewProps {
     onVadError?: (error: Error) => void;
     /** Called when the user starts speaking (even if AI is silent). Useful for waking up STT. */
     onUserSpeaking?: () => void;
+    /** Called when the user stops speaking. Passes the recorded audio chunk. */
+    onSpeechEnd?: (audio: Float32Array) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,7 @@ export function ConversationView({
     onContinuePreviousResponse,
     onVadError,
     onUserSpeaking,
+    onSpeechEnd,
 }: ConversationViewProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -124,9 +127,12 @@ export function ConversationView({
                 }
             }
         },
-        onSpeechEnd: () => {
+        onSpeechEnd: (audio) => {
             if (isVadEnabled && interruptionManagerRef.current) {
                 interruptionManagerRef.current.handleUserSpeechEnd();
+            }
+            if (onSpeechEnd) {
+                onSpeechEnd(audio);
             }
         },
         onError: (err) => {

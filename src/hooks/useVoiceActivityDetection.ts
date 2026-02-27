@@ -73,7 +73,7 @@ export interface UseVADOptions {
     onSpeechStart?: () => void;
 
     /** Fired when the user stops speaking. */
-    onSpeechEnd?: () => void;
+    onSpeechEnd?: (audio: Float32Array) => void;
 
     /** Fired when an error occurs during init or listening. */
     onError?: (error: Error) => void;
@@ -260,10 +260,10 @@ export function useVoiceActivityDetection(
         );
 
         unsubs.push(
-            manager.onSpeechEnd(() => {
+            manager.onSpeechEnd((audio) => {
                 debugLog('speechEnd');
                 if (mountedRef.current) setIsSpeaking(false);
-                onSpeechEndRef.current?.();
+                onSpeechEndRef.current?.(audio);
             }),
         );
 

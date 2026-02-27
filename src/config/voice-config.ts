@@ -33,6 +33,15 @@ export interface VoiceConfigValues {
     debugMode: boolean;
     /** Max events kept in the circular diagnostic buffer. */
     eventStreamMaxSize: number;
+
+    /** Silence (ms) VAD waits before declaring speech ended. Default: 800ms. */
+    vadSilenceWindowMs: number;
+
+    /** STT restart delay after browser TTS (ms). Default: 1500ms. */
+    sttRestartDelayBrowserTts: number;
+
+    /** STT restart delay after Groq/Polly <audio> element (ms). Default: 200ms. */
+    sttRestartDelayAudioElement: number;
 }
 
 const DEFAULTS: VoiceConfigValues = {
@@ -46,6 +55,10 @@ const DEFAULTS: VoiceConfigValues = {
 
     debugMode: false,
     eventStreamMaxSize: 200,
+
+    vadSilenceWindowMs: 800,
+    sttRestartDelayBrowserTts: 1500,
+    sttRestartDelayAudioElement: 200,
 };
 
 // ---------------------------------------------------------------------------
