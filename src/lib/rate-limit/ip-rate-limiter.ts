@@ -1,11 +1,11 @@
-import { createServiceRoleSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 
 export async function checkIpRateLimit(
     ip: string,
     options: { maxRequests: number; windowSeconds: number; endpoint?: string }
 ): Promise<{ success: boolean; allowed?: boolean; remaining?: number }> {
     try {
-        const supabase = await createServiceRoleSupabase(); // Bypass RLS
+        const supabase = getServiceClient();
 
         const identifier = options.endpoint ? `${options.endpoint}:${ip}` : ip;
 

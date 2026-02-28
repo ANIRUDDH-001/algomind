@@ -10,6 +10,9 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signIn: (provider: 'google' | 'github') => Promise<{ error: AuthError | null }>;
+    signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+    signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error: AuthError | null }>;
+    sendMagicLink: (email: string) => Promise<{ error: AuthError | null }>;
     signOut: () => Promise<void>;
     isAuthenticated: boolean;
     isConfigured: boolean; // Whether Supabase is set up
@@ -20,6 +23,9 @@ const AuthContext = createContext<AuthContextType>({
     session: null,
     loading: true,
     signIn: async () => ({ error: null }),
+    signInWithEmail: async () => ({ error: null }),
+    signUpWithEmail: async () => ({ error: null }),
+    sendMagicLink: async () => ({ error: null }),
     signOut: async () => { },
     isAuthenticated: false,
     isConfigured: false,
@@ -125,6 +131,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
     }, [isConfigured]);
 
+    const signInWithEmail = useCallback(async (email: string, password: string) => {
+        if (!isConfigured) return { error: { message: 'Supabase is not configured' } as AuthError };
+        const supabase = getSupabase();
+        if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        return { error };
+    }, [isConfigured]);
+
+    const signUpWithEmail = useCallback(async (email: string, password: string, fullName?: string) => {
+        if (!isConfigured) return { error: { message: 'Supabase is not configured' } as AuthError };
+        const supabase = getSupabase();
+        if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { full_name: fullName },
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        return { error };
+    }, [isConfigured]);
+
+    const sendMagicLink = useCallback(async (email: string) => {
+        if (!isConfigured) return { error: { message: 'Supabase is not configured' } as AuthError };
+        const supabase = getSupabase();
+        if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        return { error };
+    }, [isConfigured]);
+
     const signOut = useCallback(async () => {
         if (!isConfigured) return;
 
@@ -143,6 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 session,
                 loading,
                 signIn,
+                signInWithEmail,
+                signUpWithEmail,
+                sendMagicLink,
                 signOut,
                 isAuthenticated: !!user,
                 isConfigured,

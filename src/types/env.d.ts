@@ -16,9 +16,12 @@ declare namespace NodeJS {
         NEXT_PUBLIC_APP_URL?: string;
 
         // Supabase
-        NEXT_PUBLIC_SUPABASE_URL: string;
+        NEXT_PUBLIC_SUPABASE_URL: string;           // Points to CF Worker in production
         NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
         SUPABASE_SERVICE_ROLE_KEY: string;
+        SUPABASE_DIRECT_URL?: string;               // Direct Supabase URL (server-only, bypasses CF Worker)
+        SUPABASE_JWT_SECRET?: string;               // Found in Supabase Dashboard → Project Settings → API → JWT Secret
+        GROQ_TTS_MODEL?: string;                    // Groq TTS model override
 
         // Redis / Upstash
         UPSTASH_REDIS_REST_URL?: string;
