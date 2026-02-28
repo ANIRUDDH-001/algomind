@@ -47,13 +47,19 @@ describe('Assess Chat API (/api/assess/chat)', () => {
         mockRedis = {
             incr: vi.fn().mockResolvedValue(1),
             expire: vi.fn().mockResolvedValue(1),
+            get: vi.fn().mockResolvedValue('1'),
+            set: vi.fn().mockResolvedValue('OK'),
         };
         vi.mocked(getRedis).mockReturnValue(mockRedis);
 
         mockSupabaseAdmin = {
             from: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
             update: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+                then: (cb: any) => Promise.resolve({ error: null }).then(cb),
+                single: vi.fn().mockResolvedValue({ data: { current_transcript: [] }, error: null }),
+            }),
         };
         vi.mocked(getServiceClient).mockReturnValue(mockSupabaseAdmin);
     });

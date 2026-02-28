@@ -46,14 +46,15 @@ export interface SkillTrend {
 
 export interface UserProgress {
     userId: string;
-    totalSessions: number;
-    averageScore: number; // overall average
-    averageScores: Record<CognitiveSkill, number>;
-    trends: SkillTrend[];
     sessions: SessionHistory[];
+    trends: SkillTrend[];
+    totalSessions: number;          // Total number of sessions completed
+    averageScore: number;           // Average score over recent sessions
+    averageScores: Record<CognitiveSkill, number>; // Average scores per skill over recent sessions
+    recentSessionsUsedForAverage?: number; // E.g., 5
     lastUpdated: Date;
-    narrative?: string;
-    narrativeGeneratedAt?: Date;
-    sessionsAtLastNarrative?: number;
-    next_steps?: string[];
+    narrative?: string;             // Latest generative feedback narrative
+    narrativeGeneratedAt?: Date;    // When the narrative was created
+    sessionsAtLastNarrative?: number; // To track when to trigger a new one
+    next_steps?: string[];          // Latest next steps from generative feedback
 }

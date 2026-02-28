@@ -1,6 +1,7 @@
 import { getSupabase } from '@/lib/supabase/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { SpacedRepetitionRecord, computeNextReview } from './sm2';
+import { computeNextReviewFSRS, createNewFSRSCardData } from './fsrs';
 import { getServiceClient } from '@/lib/supabase/service';
 
 export async function addToQueue(params: {
@@ -16,7 +17,7 @@ export async function addToQueue(params: {
         // Check if problem already exists in queue
         const { data: existing, error: fetchError } = await supabase
             .from('spaced_repetition')
-            .select('interval, ease_factor, repetitions')
+            .select('*')
             .eq('user_id', params.userId)
             .eq('problem_id', params.problemId)
             .maybeSingle();
@@ -28,44 +29,60 @@ export async function addToQueue(params: {
         let upsertData: any;
 
         if (existing) {
-            const nextSchedule = computeNextReview({
-                intervalDays: existing.interval,
-                easeFactor: existing.ease_factor,
-                repetitions: existing.repetitions,
-            }, params.overallScore);
-
-            const reviewDate = new Date();
-            reviewDate.setDate(reviewDate.getDate() + nextSchedule.intervalDays);
+            const result = computeNextReviewFSRS(existing, params.overallScore);
 
             upsertData = {
                 user_id: params.userId,
                 problem_id: params.problemId,
-                interval: nextSchedule.intervalDays,
-                ease_factor: nextSchedule.easeFactor,
-                repetitions: nextSchedule.repetitions,
-                next_review: reviewDate.toISOString(),
+                // FSRS fields
+                fsrs_stability: result.fsrs_stability,
+                fsrs_difficulty: result.fsrs_difficulty,
+                fsrs_elapsed_days: result.fsrs_elapsed_days,
+                fsrs_scheduled_days: result.fsrs_scheduled_days,
+                fsrs_reps: result.fsrs_reps,
+                fsrs_lapses: result.fsrs_lapses,
+                fsrs_state: result.fsrs_state,
+                fsrs_last_review: result.fsrs_last_review,
+                fsrs_due: result.fsrs_due,
+                // SM2 fields for backward compatibility
+                interval: result.intervalDays,
+                ease_factor: 2.5, // keep stable for SM2 fallback representation
+                repetitions: result.intervalDays > 0 ? (existing.repetitions || 0) + 1 : 0,
+                next_review: result.fsrs_due,
                 last_reviewed: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
+                use_fsrs: true,
+                last_quality: result.lastQuality,
             };
         } else {
-            // New entry: run through SM-2 from a blank-slate record so first-time
-            // scheduling is score-aware (high scores → longer initial interval).
-            // computeNextReview converts overallScore (0-10) → SM-2 quality (0-5) internally.
-            const initialRecord = { intervalDays: 1, easeFactor: 2.5, repetitions: 0 };
-            const nextSchedule = computeNextReview(initialRecord, params.overallScore);
-
-            const reviewDate = new Date();
-            reviewDate.setDate(reviewDate.getDate() + nextSchedule.intervalDays);
+            // New entry: start clean FSRS record
+            const initialRecord = createNewFSRSCardData();
+            const result = computeNextReviewFSRS(initialRecord, params.overallScore);
 
             upsertData = {
                 user_id: params.userId,
                 problem_id: params.problemId,
-                interval: nextSchedule.intervalDays,
-                ease_factor: nextSchedule.easeFactor,
-                repetitions: nextSchedule.repetitions,
-                next_review: reviewDate.toISOString(),
+                problem_title: params.problemTitle,
+                problem_difficulty: params.problemDifficulty,
+                // FSRS fields
+                fsrs_stability: result.fsrs_stability,
+                fsrs_difficulty: result.fsrs_difficulty,
+                fsrs_elapsed_days: result.fsrs_elapsed_days,
+                fsrs_scheduled_days: result.fsrs_scheduled_days,
+                fsrs_reps: result.fsrs_reps,
+                fsrs_lapses: result.fsrs_lapses,
+                fsrs_state: result.fsrs_state,
+                fsrs_last_review: result.fsrs_last_review,
+                fsrs_due: result.fsrs_due,
+                // SM2 fields for backward compatibility
+                interval: result.intervalDays,
+                ease_factor: 2.5,
+                repetitions: result.intervalDays > 0 ? 1 : 0,
+                next_review: result.fsrs_due,
                 last_reviewed: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
+                use_fsrs: true,
+                last_quality: result.lastQuality,
             };
         }
 
@@ -89,8 +106,15 @@ export async function getDueReviews(userId: string): Promise<SpacedRepetitionRec
     const supabase = getSupabase();
     if (!supabase) return [];
 
-    // Calls get_due_reviews RPC
-    const { data, error } = await supabase.rpc('get_due_reviews', { user_id: userId });
+    const now = new Date().toISOString();
+
+    // Fetch reviews due now supporting both FSRS and SM2
+    const { data, error } = await supabase
+        .from('spaced_repetition')
+        .select('*')
+        .eq('user_id', userId)
+        .or(`and(use_fsrs.eq.true,fsrs_due.lte.${now}),and(use_fsrs.eq.false,next_review.lte.${now}),and(use_fsrs.is.null,next_review.lte.${now})`)
+        .order('fsrs_due', { ascending: true });
 
     if (error || !data) {
         return [];
@@ -104,8 +128,8 @@ export async function getDueReviews(userId: string): Promise<SpacedRepetitionRec
         easeFactor: row.ease_factor,
         repetitions: row.repetitions,
         lastQuality: row.last_quality,
-        nextReviewDate: row.next_review,
-        lastReviewedAt: row.last_reviewed
+        nextReviewDate: row.use_fsrs ? row.fsrs_due : row.next_review,
+        lastReviewedAt: row.use_fsrs ? row.fsrs_last_review : row.last_reviewed
     }));
 }
 
@@ -120,8 +144,8 @@ export async function getUpcomingReviews(userId: string, days: number = 7): Prom
         .from('spaced_repetition')
         .select('*')
         .eq('user_id', userId)
-        .lte('next_review', maxDate.toISOString())
-        .order('next_review', { ascending: true });
+        .or(`and(use_fsrs.eq.true,fsrs_due.lte.${maxDate.toISOString()}),and(use_fsrs.eq.false,next_review.lte.${maxDate.toISOString()}),and(use_fsrs.is.null,next_review.lte.${maxDate.toISOString()})`)
+        .order('fsrs_due', { ascending: true });
 
     if (error || !data) {
         return [];
@@ -135,7 +159,7 @@ export async function getUpcomingReviews(userId: string, days: number = 7): Prom
         easeFactor: row.ease_factor,
         repetitions: row.repetitions,
         lastQuality: row.last_quality,
-        nextReviewDate: row.next_review,
-        lastReviewedAt: row.last_reviewed
+        nextReviewDate: row.use_fsrs ? row.fsrs_due : row.next_review,
+        lastReviewedAt: row.use_fsrs ? row.fsrs_last_review : row.last_reviewed
     }));
 }

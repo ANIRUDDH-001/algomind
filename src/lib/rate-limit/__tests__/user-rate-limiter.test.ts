@@ -37,7 +37,7 @@ describe('User Rate Limiter', () => {
 
         const coOwnerChain = {
             select: vi.fn().mockReturnValue({
-                or: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
                     limit: vi.fn().mockReturnValue({
                         maybeSingle: vi.fn().mockResolvedValue(coOwnerResult),
                     }),

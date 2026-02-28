@@ -42,7 +42,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.fallback).toBe('groq');
+        expect(json.fallback).toBe('browser');
         expect(json.error).toContain('disabled');
     });
 
@@ -53,7 +53,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.fallback).toBe('groq');
+        expect(json.fallback).toBe('browser');
         expect(json.error).toContain('not configured');
     });
 
@@ -64,7 +64,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(502);
-        expect(json.fallback).toBe('groq');
+        expect(json.fallback).toBe('browser');
     });
 
     it('response includes X-TTS-Provider: aws-polly header on success path', async () => {

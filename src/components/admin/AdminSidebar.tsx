@@ -5,21 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-    Flag, Database, ShieldAlert, BarChart,
-    MessageSquare, Settings, Activity, ServerCrash, Briefcase,
+    ShieldAlert, Users, Settings, Briefcase,
     LayoutDashboard, ChevronDown, ChevronRight, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const STATIC_NAV_ITEMS = [
-    { name: 'Model Health', href: '/admin/models', icon: ServerCrash },
-    { name: 'Analytics', href: '/admin/analytics', icon: BarChart },
-    { name: 'Feature Flags', href: '/admin/features', icon: Flag },
-    { name: 'Cache Stats', href: '/admin/cache-stats', icon: Activity },
-    { name: 'Knowledge Base', href: '/admin/knowledge', icon: Database },
-    { name: 'Voice Debug', href: '/admin/voice-debug', icon: MessageSquare },
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
+    { name: 'Students', href: '/admin/users', icon: Users },
 ];
 
 export function AdminSidebar() {
@@ -28,36 +22,9 @@ export function AdminSidebar() {
     const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(pathname.startsWith('/admin'));
 
     useEffect(() => {
-        const checkModels = async () => {
-            try {
-                // Check for deprecated models in last 24h (fix: was data.count, should be totalCount)
-                const res = await fetch('/api/admin/events?type=model_deprecated&days=1&limit=1');
-                if (res.ok) {
-                    const data = await res.json();
-                    const hasDeprecated = (data.totalCount ?? data.events?.length ?? 0) > 0;
-
-                    // Also check health for degraded (rate-limited) models
-                    if (!hasDeprecated) {
-                        const healthRes = await fetch('/api/admin/health');
-                        if (healthRes.ok) {
-                            const health = await healthRes.json();
-                            setHasDeprecatedModels(
-                                (health.models?.deprecated ?? 0) > 0 ||
-                                (health.models?.degraded ?? 0) > 0
-                            );
-                        }
-                    } else {
-                        setHasDeprecatedModels(true);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch model deprecation status:", error);
-            }
-        };
-
-        checkModels();
-        const interval = setInterval(checkModels, 5 * 60 * 1000);
-        return () => clearInterval(interval);
+        // No longer polling model health in the admin sidebar.
+        // It belongs in the Owner dashboard now.
+        setHasDeprecatedModels(false);
     }, []);
 
     // Set menu open if current path is an admin sub-path

@@ -1,5 +1,5 @@
-import KnowledgeAdminClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function KnowledgeAdminPage() {
-    return <KnowledgeAdminClient />;
+export default function KnowledgePage() {
+    redirect('/owner?tab=rag');
 }

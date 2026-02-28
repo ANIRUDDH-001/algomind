@@ -28,9 +28,9 @@ export async function getUserPreferences(userId: string | null): Promise<UserPre
                     .from('user_preferences')
                     .select('preferred_voice_name, preferred_voice_lang, voice_rate')
                     .eq('user_id', userId)
-                    .single();
+                    .maybeSingle();
 
-                if (!error && data) {
+                if (data) {
                     return {
                         preferredVoiceName: data.preferred_voice_name,
                         preferredVoiceLang: data.preferred_voice_lang || 'en-US',

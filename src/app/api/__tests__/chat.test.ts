@@ -44,7 +44,7 @@ describe('Chat API (/api/chat)', () => {
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase);
 
         mockAIClient = {
-            callModel: vi.fn().mockResolvedValue({
+            generateResponse: vi.fn().mockResolvedValue({
                 success: true,
                 response: 'AI response text',
             }),
@@ -71,7 +71,7 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(200);
         expect(data.response).toBe('AI response text');
-        expect(mockAIClient.callModel).toHaveBeenCalled();
+        expect(mockAIClient.generateResponse).toHaveBeenCalled();
     });
 
     it('2. Authenticated user, rate limit exceeded -> 429', async () => {
@@ -83,7 +83,7 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(429);
         expect(data.error).toBe('Rate limit exceeded');
-        expect(mockAIClient.callModel).not.toHaveBeenCalled();
+        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
     });
 
     it('3. Guest mode (guestMode: true) -> bypasses rate limit check', async () => {
@@ -95,7 +95,7 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(200);
         expect(checkUserRateLimit).not.toHaveBeenCalled();
-        expect(mockAIClient.callModel).toHaveBeenCalled();
+        expect(mockAIClient.generateResponse).toHaveBeenCalled();
     });
 
     it('4. Invalid/missing messages array -> 400', async () => {
@@ -108,7 +108,7 @@ describe('Chat API (/api/chat)', () => {
     });
 
     it('5. AI client throws -> 500 with error message', async () => {
-        mockAIClient.callModel.mockResolvedValue({
+        mockAIClient.generateResponse.mockResolvedValue({
             success: false,
             error: 'Mock Error',
         });
@@ -128,8 +128,7 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        expect(mockAIClient.callModel).toHaveBeenCalledWith(
-            expect.any(Object),
+        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Injected Rag Context')
@@ -145,8 +144,7 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        expect(mockAIClient.callModel).toHaveBeenCalledWith(
-            expect.any(Object),
+        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Google Interviewer')
@@ -161,8 +159,7 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        expect(mockAIClient.callModel).toHaveBeenCalledWith(
-            expect.any(Object),
+        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Custom System Prompt')
@@ -178,7 +175,7 @@ describe('Chat API (/api/chat)', () => {
     });
 
     it('10. System event logged on AI error', async () => {
-        mockAIClient.callModel.mockResolvedValue({
+        mockAIClient.generateResponse.mockResolvedValue({
             success: false,
             error: 'Mock Error',
         });

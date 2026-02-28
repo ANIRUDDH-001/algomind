@@ -24,6 +24,8 @@ export interface CompletionOptions {
     temperature?: number;
     estimatedTokens?: number;
     systemPrompt?: string; // Legacy support
+    // Disables LLM intent classification pass when routing is smart
+    enableLLMPass?: boolean;
 }
 
 export interface CompletionResult {
@@ -737,63 +739,32 @@ export class UnifiedAIClient {
     async embed(texts: string | string[]): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
         const textArray = Array.isArray(texts) ? texts : [texts];
 
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
-        // 1. Try Gemini Embeddings (Preferred)
-        try {
-            if (apiKey) {
-                // Parallelize calls
-                const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, apiKey)));
-
-                // Validate results
-                if (results.every(r => r.length > 0)) {
-                    return {
-                        embeddings: results,
-                        modelUsed: "gemini-embedding-001",
-                        dimensions: results[0].length
-                    };
-                }
-            }
-        } catch (e) {
-            console.warn("⚠️ Gemini embedding failed:", e instanceof Error ? e.message : e);
-            void logSystemEvent({ type: 'embedding_failed', provider: 'gemini' });
-        }
-
-        // 2. Fallback to Local MiniLM (NOW ENABLED IN PRODUCTION)
-        try {
-            // Lazy load transformer to avoid cold start impact
-            const localEmbedder = await this.getLocalEmbedder();
-            const vectors: number[][] = [];
-
-            if (localEmbedder) {
-                const embedderFn = localEmbedder as (text: string, options?: unknown) => Promise<unknown>;
-                for (const text of textArray) {
-                    const output = await embedderFn(text, { pooling: 'mean', normalize: true });
-                    vectors.push(this.extractLocalVector(output));
-                }
-            }
-
-            if (vectors.length > 0) {
+        // Primary: Gemini Embedding
+        const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        if (geminiKey) {
+            try {
+                const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, geminiKey)));
                 return {
-                    embeddings: vectors,
-                    modelUsed: "Xenova/all-MiniLM-L6-v2",
-                    dimensions: 384
+                    embeddings: results,
+                    modelUsed: 'gemini-embedding-001',
+                    dimensions: results[0]?.length ?? 768,
                 };
+            } catch (e) {
+                console.warn('⚠️ Gemini embedding failed:', e instanceof Error ? e.message : e);
+                void logSystemEvent({ type: 'embedding_failed', provider: 'gemini' });
             }
-        } catch (e) {
-            console.warn("⚠️ Local embedding failed:", e instanceof Error ? e.message : e);
         }
 
-        // 3. Fallback to Bedrock Titan Embed
-        if (process.env.AWS_ACCESS_KEY_ID) {
+        // Secondary: AWS Bedrock Titan (if configured)
+        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
             try {
                 const { generateBedrockEmbedding } = await import('./bedrock-client');
                 const results = await Promise.all(textArray.map(t => generateBedrockEmbedding(t)));
-                if (results.every(r => r.length > 0)) {
+                if (results.every((r: number[]) => r.length > 0)) {
                     return {
                         embeddings: results,
                         modelUsed: 'amazon.titan-embed-text-v2:0',
-                        dimensions: results[0].length
+                        dimensions: results[0]?.length ?? 1024,
                     };
                 }
             } catch (e) {
@@ -801,8 +772,9 @@ export class UnifiedAIClient {
             }
         }
 
-        // 4. Last Resort: Fail Loudly
-        console.error('❌ [Embed] All providers failed (Gemini + Bedrock + local). RAG will be skipped.');
+        // No local embedder. If both fail, RAG context is unavailable — graceful degradation.
+        console.error('❌ All embedding providers failed. Interview will proceed without RAG context.');
+        void logSystemEvent({ type: 'embedding_failed', errorMessage: 'All providers failed' });
         throw new Error('All embedding providers failed. RAG context unavailable.');
     }
 
@@ -826,35 +798,7 @@ export class UnifiedAIClient {
         return data.embedding?.values || [];
     }
 
-    private localEmbedderPromise: Promise<unknown> | null = null;
-
-    private async getLocalEmbedder() {
-        if (!this.localEmbedderPromise) {
-            this.localEmbedderPromise = (async () => {
-                const { pipeline, env } = await import('@huggingface/transformers'); // Dynamic import
-
-                // Configure for Serverless / Vercel
-                // Important: Vercel only allows writing to /tmp
-                env.cacheDir = '/tmp/.cache';
-
-                // Instruct to download from HF hub if not present, don't look for local ./models folders
-                env.allowLocalModels = false;
-
-                return pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-            })();
-        }
-        return this.localEmbedderPromise;
-    }
-
-    private extractLocalVector(output: unknown): number[] {
-        // Simplified extraction logic compatible with various Xenova output shapes
-        if (output && typeof output === 'object' && 'data' in output) return Array.from((output as { data: Float32Array | number[] }).data);
-        if (Array.isArray(output)) {
-            if (Array.isArray(output[0])) return output[0]; // Nested array
-            return output as number[]; // Flat array
-        }
-        return [];
-    }
+    // Remnant of local embedder removed
 }
 
 // Singleton instance
