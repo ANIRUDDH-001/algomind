@@ -16,8 +16,10 @@ export default async function middleware(request: NextRequest) {
 
     // ⚠️ CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client).
     // Cookie names are derived from the URL — mixing URLs breaks session sync.
+    // Strip trailing slash to ensure consistent cookie name derivation.
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        supabaseUrl,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
@@ -153,6 +155,6 @@ export const config = {
          * - vad (vad models)
          * - api/auth (auth api)
          */
-        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/).*)',
+        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/|auth/).*)',
     ],
 };

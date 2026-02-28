@@ -96,10 +96,12 @@ function LoginContent() {
         }
     }, [user, router, searchParams]);
 
-    // Show error from URL params (OAuth failure)
+    // Show error from URL params (OAuth failure / callback error)
     useEffect(() => {
-        if (searchParams.get('error')) {
-            setTimeout(() => setError('Authentication failed. Please try again.'), 0);
+        const errParam = searchParams.get('error');
+        if (errParam) {
+            const msg = searchParams.get('error_description') || errParam;
+            setTimeout(() => setError(decodeURIComponent(msg)), 0);
         }
     }, [searchParams]);
 
