@@ -1,0 +1,84 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+ [32mÔ£ô[39m src/lib/voice/__tests__/vad-utils.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/vocabulary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m1. init(): creates VAD with correct config params
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m1. init(): creates VAD with correct config params
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m2. onSpeechStart callback: correctly forwarded from VAD events
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m2. onSpeechStart callback: correctly forwarded from VAD events
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m3. onSpeechEnd callback: correctly forwarded with audio data
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m3. onSpeechEnd callback: correctly forwarded with audio data
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+ [32mÔ£ô[39m src/lib/voice/__tests__/interruption-manager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m4. start()/stop(): call underlying VAD start/stop
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m4. start()/stop(): call underlying VAD start/stop
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m5. Error during init: onError callback fires, isReady stays false
+[22m[39m[VADManager] Loading ONNX RuntimeÔÇª
+
+node.exe : [90mstderr[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m 
+> [22m[2mVADManager[2m > [22m[2m5. Error during init: onError callback 
+fires, isReady stays false
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([90mstderr[2m...ady stays fals 
+   e:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[22m[39m[VADManager] Init failed: ReferenceError: document is not defined
+    at D:/algomind/src/lib/voice/vad-manager.ts:63:9
+    at new Promise (<anonymous>)
+    at loadScript (D:/algomind/src/lib/voice/vad-manager.ts:61:12)
+    at D:/algomind/src/lib/voice/vad-manager.ts:88:15
+    at loadVADScripts (D:/algomind/src/lib/voice/vad-manager.ts:96:5)
+    at VADManager.init (D:/algomind/src/lib/voice/vad-manager.ts:184:23)
+    at D:/algomind/src/lib/voice/__tests__/vad-manager.test.ts:115:26
+    at [90mfile:///D:/algomind/[39mnode_modules/[4m@vitest[24m/runner/dist
+/index.js:145:11
+    at [90mfile:///D:/algomind/[39mnode_modules/[4m@vitest[24m/runner/dist
+/index.js:915:26
+    at [90mfile:///D:/algomind/[39mnode_modules/[4m@vitest[24m/runner/dist
+/index.js:1243:20
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m6. isReady: implicitly tracked via VADState.PAUSED after successful init
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m6. isReady: implicitly tracked via VADState.PAUSED after successful init
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m7. Device type detection: adapts VAD config via dependency injection overrides
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m7. Device type detection: adapts VAD config via dependency injection overrides
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m8. Cleanup: destroy() stops VAD and prevents further callbacks
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m8. Cleanup: destroy() stops VAD and prevents further callbacks
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+ [32mÔ£ô[39m src/lib/voice/__tests__/voice-utils.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/vad-manager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[32m70 passed[39m[22m[90m (70)[39m
+[2m   Start at [22m 10:00:53
+[2m   Duration [22m 644ms[2m (transform 773ms, setup 0ms, import 1.03s, tests 89ms, environment 1ms)[22m
+

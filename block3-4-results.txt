@@ -1,0 +1,17 @@
+﻿=== TEST BLOCK 3: DB RPC & API HEALTH ===
+OK /api/health -> 200
+OK /api/health/connectivity -> 200
+OK /api/health/ai -> 200
+OK /api/flags -> 200
+
+=== TEST BLOCK 4: API SMOKE TESTS ===
+Endpoint | Status | Auth | Result
+/ | 200 | none | OK
+/login | 200 | none | OK
+/api/health | 200 | none | OK
+/api/flags | 200 | none | OK
+/api/chat | 401 | none | OK_PROTECTED
+/api/admin/health | 405 | none | OK_PROTECTED
+/api/owner/users | 405 | none | OK_PROTECTED
+/api/employer/campaigns | 401 | none | OK_PROTECTED
+/api/voice/synthesize | 401 | none | OK_PROTECTED

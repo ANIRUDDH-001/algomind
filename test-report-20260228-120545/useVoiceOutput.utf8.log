@@ -1,0 +1,57 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+ [31mÔØ»[39m src/hooks/__tests__/useVoiceOutput.test.ts [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 330[2mms[22m[39m
+     [32mÔ£ô[39m uses browser TTS when /api/flags returns ENABLE_GROQ_TTS=false[32m 64[2mms[22m[39m
+     [32mÔ£ô[39m detects Groq TTS as available when API returns ENABLE_GROQ_TTS=true[32m 62[2mms[22m[39m
+     [32mÔ£ô[39m falls back to browser on Groq network error[32m 63[2mms[22m[39m
+     [32mÔ£ô[39m currentProvider is set to "groq" when speakWithGroq succeeds[32m 79[2mms[22m[39m
+     [32mÔ£ô[39m currentProvider stays "browser" when Groq TTS fails[32m 54[2mms[22m[39m
+[31m     [31m├ù[31m stop() calls audioElement.pause()[39m[32m 6[2mms[22m[39m
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m 
+Failed Tests 1 
+[49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m src/hooks/__tests__/
+useVoiceOutput.test.ts[2m > 
+[22museVoiceOutput ÔÇö Groq TTS 
+integration[2m > [22mstop() calls 
+audioElement.pause()
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called at least once[39m
+[36m [2mÔØ»[22m src/hooks/__tests__/useVoic
+eOutput.test.ts:[2m276:32[22m[39m
+    [90m274| [39m        
+result[33m.[39m[34mstop[39m()[33m;[39m
+    [90m275| [39m
+    [90m276| [39m        [34mexpect[39m(mo
+ckAudioPause)[33m.[39m[34mtoHaveBeenCalled
+[39m()[33m;[39m
+    [90m   | [39m                           
+    [31m^[39m
+    [90m277| [39m        [34mexpect[39m(mo
+ckSetIsSpeaking)[33m.[39m[34mtoHaveBeenCall
+edWith[39m([35mfalse[39m)[33m;[39m
+    [90m278| [39m    })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»[2
+2m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (6)[39m
+[2m   Start at [22m 15:42:50
+[2m   Duration [22m 1.04s[2m (transform 197ms, setup 0ms, import 244ms, tests 330ms, environment 0ms)[22m
+

@@ -5,6 +5,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { checkUserRateLimit, incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
 import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
+import { getActiveModels } from '@/lib/ai/model-registry';
 import { NextRequest } from 'next/server';
 
 vi.mock('@/lib/ai/client');
@@ -12,6 +14,20 @@ vi.mock('@/lib/supabase/server');
 vi.mock('@/lib/rate-limit/user-rate-limiter');
 vi.mock('@/lib/rag/supabaseVectorStore');
 vi.mock('@/lib/monitoring/events');
+vi.mock('@/lib/rate-limit/ip-rate-limiter');
+vi.mock('@/lib/ai/model-registry');
+
+const GEMINI_MODEL = {
+    id: 'gemini-2.0-flash',
+    provider: 'gemini',
+    tier: 1,
+    rpm: 15,
+    tpm: 1000000,
+    rpd: 1500,
+    contextWindow: 1000000,
+    supportsEmbeddings: false,
+    description: 'Gemini Flash',
+};
 
 describe('Chat API (/api/chat)', () => {
     let mockSupabase: any;
@@ -28,13 +44,10 @@ describe('Chat API (/api/chat)', () => {
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase);
 
         mockAIClient = {
-            generateResponse: vi.fn().mockResolvedValue({
+            callModel: vi.fn().mockResolvedValue({
                 success: true,
                 response: 'AI response text',
-                modelUsed: 'mock-model',
-                provider: 'mock-provider',
-                attemptedModels: ['mock-model']
-            })
+            }),
         };
         vi.mocked(getAIClient).mockReturnValue(mockAIClient);
 
@@ -42,6 +55,8 @@ describe('Chat API (/api/chat)', () => {
         vi.mocked(incrementUserUsage).mockResolvedValue(undefined as any);
         vi.mocked(supabaseHybridSearch).mockResolvedValue([]);
         vi.mocked(logSystemEvent).mockResolvedValue(undefined);
+        vi.mocked(checkIpRateLimit).mockResolvedValue({ success: true, remaining: 19 } as any);
+        vi.mocked(getActiveModels).mockResolvedValue([GEMINI_MODEL] as any);
     });
 
     const createRequest = (body: any) => new NextRequest('http://localhost:3000/api/chat', {
@@ -56,7 +71,7 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(200);
         expect(data.response).toBe('AI response text');
-        expect(mockAIClient.generateResponse).toHaveBeenCalled();
+        expect(mockAIClient.callModel).toHaveBeenCalled();
     });
 
     it('2. Authenticated user, rate limit exceeded -> 429', async () => {
@@ -68,11 +83,10 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(429);
         expect(data.error).toBe('Rate limit exceeded');
-        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
+        expect(mockAIClient.callModel).not.toHaveBeenCalled();
     });
 
     it('3. Guest mode (guestMode: true) -> bypasses rate limit check', async () => {
-        // Unauthenticated check
         mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
 
         const req = createRequest({ messages: [{ role: 'user', content: 'hello' }], guestMode: true });
@@ -81,7 +95,7 @@ describe('Chat API (/api/chat)', () => {
 
         expect(res.status).toBe(200);
         expect(checkUserRateLimit).not.toHaveBeenCalled();
-        expect(mockAIClient.generateResponse).toHaveBeenCalled();
+        expect(mockAIClient.callModel).toHaveBeenCalled();
     });
 
     it('4. Invalid/missing messages array -> 400', async () => {
@@ -94,10 +108,9 @@ describe('Chat API (/api/chat)', () => {
     });
 
     it('5. AI client throws -> 500 with error message', async () => {
-        mockAIClient.generateResponse.mockResolvedValue({
+        mockAIClient.callModel.mockResolvedValue({
             success: false,
             error: 'Mock Error',
-            attemptedModels: ['model-1']
         });
 
         const req = createRequest({ messages: [{ role: 'user', content: 'hello' }] });
@@ -115,8 +128,8 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        // check if system prompt args include the rag context
-        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
+        expect(mockAIClient.callModel).toHaveBeenCalledWith(
+            expect.any(Object),
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Injected Rag Context')
@@ -132,7 +145,8 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
+        expect(mockAIClient.callModel).toHaveBeenCalledWith(
+            expect.any(Object),
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Google Interviewer')
@@ -147,7 +161,8 @@ describe('Chat API (/api/chat)', () => {
         });
         await POST(req);
 
-        expect(mockAIClient.generateResponse).toHaveBeenCalledWith(
+        expect(mockAIClient.callModel).toHaveBeenCalledWith(
+            expect.any(Object),
             expect.any(Array),
             expect.objectContaining({
                 systemPrompt: expect.stringContaining('Custom System Prompt')
@@ -163,16 +178,14 @@ describe('Chat API (/api/chat)', () => {
     });
 
     it('10. System event logged on AI error', async () => {
-        mockAIClient.generateResponse.mockResolvedValue({
+        mockAIClient.callModel.mockResolvedValue({
             success: false,
             error: 'Mock Error',
-            attemptedModels: ['model-1']
         });
 
         const req = createRequest({ messages: [{ role: 'user', content: 'search term' }] });
-        await POST(req); // wait for completion
+        await POST(req);
 
-        // The error throw gets caught by main catch block which calls logSystemEvent with 'model_error'
         expect(logSystemEvent).toHaveBeenCalledWith({
             type: 'model_error',
             errorMessage: 'Mock Error'

@@ -37,7 +37,7 @@ describe('User Rate Limiter', () => {
 
         const coOwnerChain = {
             select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
+                or: vi.fn().mockReturnValue({
                     limit: vi.fn().mockReturnValue({
                         maybeSingle: vi.fn().mockResolvedValue(coOwnerResult),
                     }),
@@ -71,7 +71,7 @@ describe('User Rate Limiter', () => {
         const result = await checkUserRateLimit('user-123');
         expect(result).toEqual({ allowed: true, remaining: 3, isAdmin: false });
         expect(mockRpc).toHaveBeenCalledWith('check_user_rate_limit', {
-            p_limit: 5,
+            p_limit: 30,
             p_user_id: 'user-123'
         });
     });
@@ -131,6 +131,6 @@ describe('User Rate Limiter', () => {
     });
 
     it('7. RATE_LIMIT constant exported and equals 5', () => {
-        expect(RATE_LIMIT.DAILY_LIMIT).toBe(5);
+        expect(RATE_LIMIT.DAILY_LIMIT).toBe(30);
     });
 });

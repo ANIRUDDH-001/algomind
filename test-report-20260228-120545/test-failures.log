@@ -1,0 +1,2034 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/algomind[39m
+
+node.exe : [90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mreturns 
+allowed=true when all counters are zero 
+(fresh state)
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\ANIRUDDH\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   [90mstderr[2m...o (fresh state):String)  
+   [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: TypeError: redis.expire 
+is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:105:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mreturns 
+allowed=false with reason "rpm_limit" when 
+rpm is at limit
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: TypeError: redis.expire 
+is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:112:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mallows 
+when rpm is below limit
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: TypeError: redis.expire 
+is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:119:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mreturns 
+allowed=false with reason "rpd_limit" when 
+daily limit is reached
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: TypeError: redis.expire 
+is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:125:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mfails 
+open when Redis throws an error
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: Error: Redis connection 
+refused
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:141:49
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mcanUseModel()[2m > [22m[2mchecks 
+cooldown keys for all 5 tier levels
+[22m[39mRate limiter check error for 
+llama-3.1-8b-instant: TypeError: redis.expire 
+is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:159:13
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/client.test.ts[2m > 
+[22m[2mUnifiedAIClient[2m > 
+[22m[2mcallModel() ÔåÆ Groq[2m > 
+[22m[2mreturns failure when GROQ_API_KEY is 
+missing
+[22m[39mUsing UnifiedAIClient without 
+GROQ_API_KEY
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/client.test.ts[2m > 
+[22m[2mUnifiedAIClient[2m > 
+[22m[2mcallModel() ÔåÆ Gemini[2m > 
+[22m[2mreturns failure when both Gemini API 
+keys are missing
+[22m[39mUsing UnifiedAIClient without 
+GEMINI_API_KEY or GOOGLE_API_KEY
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/client.test.ts[2m > 
+[22m[2mUnifiedAIClient[2m > 
+[22m[2mtryProvider()[2m > [22m[2mrecords 
+error in rate limiter on model failure
+[22m[39m[UnifiedAIClient] Model 
+llama-3.1-8b-instant failed: Groq API Error 
+(500): Internal Server Error
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mgetAvailableModel()[2m > 
+[22m[2mreturns first allowed model sorted 
+by tier
+[22m[39mRate limiter check error for tier1: 
+TypeError: redis.expire is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+    at 
+IntelligentRateLimiter.getAvailableModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:98:25)
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:380:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22m[2mIntelligentRateLimiter[2m > 
+[22m[2mgetAvailableModel()[2m > 
+[22m[2mfilters candidates by preferredTier
+[22m[39mRate limiter check error for tier3: 
+TypeError: redis.expire is not a function
+    at IntelligentRateLimiter.canUseModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:60:47)
+    at 
+IntelligentRateLimiter.getAvailableModel 
+(D:/algomind/src/lib/ai/rate-limiter.ts:98:25)
+    at D:/algomind/src/lib/ai/__tests__/rate-l
+imiter.test.ts:397:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+ [31mÔØ»[39m src/lib/ai/__tests__/rate-limiter.test.ts [2m([22m[2m27 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 180[2mms[22m[39m
+       [32mÔ£ô[39m returns allowed=false with reason "model_not_found" for unknown model[32m 12[2mms[22m[39m
+       [32mÔ£ô[39m fails open (allowed=true) when Redis is unavailable[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m returns allowed=true when all counters are zero (fresh state)[32m 20[2mms[22m[39m
+[31m       [31m├ù[31m returns allowed=false with reason "rpm_limit" when rpm is at limit[39m[32m 20[2mms[22m[39m
+       [32mÔ£ô[39m allows when rpm is below limit[32m 4[2mms[22m[39m
+[31m       [31m├ù[31m returns allowed=false with reason "rpd_limit" when daily limit is reached[39m[32m 9[2mms[22m[39m
+       [32mÔ£ô[39m returns allowed=false with reason "cooldown" when any cooldown key is active[32m 9[2mms[22m[39m
+       [32mÔ£ô[39m fails open when Redis throws an error[32m 6[2mms[22m[39m
+       [32mÔ£ô[39m checks cooldown keys for all 5 tier levels[32m 6[2mms[22m[39m
+       [32mÔ£ô[39m does nothing when Redis is unavailable[32m 5[2mms[22m[39m
+[31m       [31m├ù[31m sets RPM key with NX + EX=65 then increments[39m[32m 7[2mms[22m[39m
+[31m       [31m├ù[31m sets RPD key with NX + EX=86400 then increments[39m[32m 12[2mms[22m[39m
+       [32mÔ£ô[39m silently swallows Redis errors without throwing[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m calls markModelDeprecated on 404 error and does not set cooldown[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m sets cooldown tier 0 on first 429 error[32m 7[2mms[22m[39m
+       [32mÔ£ô[39m escalates to higher cooldown tier when a lower tier is already active[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m caps cooldown at tier 4 (max) even when many tiers are active[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m logs model_429 event via logSystemEvent on rate limit error[32m 6[2mms[22m[39m
+       [32mÔ£ô[39m does nothing special for generic (non-429, non-404) errors[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m handles rate limit detection from string "quota" keyword[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m delegates to recordFailure without throwing[32m 12[2mms[22m[39m
+       [32mÔ£ô[39m deletes rpm, day, and all 5 cooldown keys[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m does nothing when Redis is unavailable[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m returns first allowed model sorted by tier[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m returns allowed=false when all models are blocked[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m filters candidates by preferredTier[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns the same instance across calls[32m 1[2mms[22m[39m
+[90mstderr[2m | src/lib/rate-limit/__tests__
+/user-rate-limiter.test.ts[2m > 
+[22m[2mUser Rate Limiter[2m > [22m[2m1. 
+RPC returns { allowed: true, remaining: 3 } 
+-> passed through correctly
+[22m[39mÔØî [Rate Limit] Unexpected error: 
+TypeError: supabase.from(...).select(...).or 
+is not a function
+    at Module.checkUserRateLimit (D:/algomind/
+src/lib/rate-limit/user-rate-limiter.ts:41:81)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:71:24
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/lib/ai/__tests__/client.test.ts[2m > [22m[2mUnifiedAIClient[2m > [22m[2mgenerateResponse()[2m > [22m[2muses classifier when smart routing env is enabled and preferredModel is auto
+[22m[39m­ƒºá [SmartRouting] "What is a binary tree?" ÔåÆ simple/greeting ÔåÆ groq (conf: 0.95, 0.0ms)
+
+[90mstdout[2m | src/lib/ai/__tests__/client.test.ts[2m > [22m[2mUnifiedAIClient[2m > [22m[2mgenerateResponse()[2m > [22m[2mreturns cached response without calling AI when cache hits
+[22m[39mÔÜí [Cache HIT] "What is a binary tree?" ÔåÆ groq (hits: 3, saved ~120ms)
+
+[90mstderr[2m | src/lib/rate-limit/__tests__
+/user-rate-limiter.test.ts[2m > 
+[22m[2mUser Rate Limiter[2m > [22m[2m2. 
+RPC returns { allowed: false, remaining: 0 } 
+-> correctly blocks the request
+[22m[39mÔØî [Rate Limit] Unexpected error: 
+TypeError: supabase.from(...).select(...).or 
+is not a function
+    at Module.checkUserRateLimit (D:/algomind/
+src/lib/rate-limit/user-rate-limiter.ts:41:81)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:85:24
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/lib/ai/__tests__/client.test.ts[2m > [22m[2mUnifiedAIClient[2m > [22m[2mgenerateResponse()[2m > [22m[2mrecords telemetry decision after smart routing
+[22m[39m­ƒºá [SmartRouting] "What is a binary tree?" ÔåÆ medium/coding ÔåÆ groq (conf: 0.80, 0.0ms)
+
+[90mstdout[2m | src/lib/ai/__tests__/client.test.ts[2m > [22m[2mUnifiedAIClient[2m > [22m[2mgenerateResponse()[2m > [22m[2mfalls back to alternate provider when routed provider fails in smart routing
+[22m[39m­ƒºá [SmartRouting] "What is a binary tree?" ÔåÆ simple/greeting ÔåÆ groq (conf: 0.95, 0.0ms)
+
+[90mstderr[2m | src/lib/rate-limit/__tests__
+/user-rate-limiter.test.ts[2m > 
+[22m[2mUser Rate Limiter[2m > [22m[2m3. 
+RPC returns PGRST202 error (missing function) 
+-> fails securely returning { allowed: false, 
+remaining: 0 }
+[22m[39mÔØî [Rate Limit] Unexpected error: 
+TypeError: supabase.from(...).select(...).or 
+is not a function
+    at Module.checkUserRateLimit (D:/algomind/
+src/lib/rate-limit/user-rate-limiter.ts:41:81)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:96:24
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstderr[2m | src/lib/rate-limit/__tests__
+/user-rate-limiter.test.ts[2m > 
+[22m[2mUser Rate Limiter[2m > [22m[2m4. 
+Admin user: bypass check -> always returns { 
+allowed: true, isAdmin: true }
+[22m[39mÔØî [Rate Limit] Unexpected error: 
+TypeError: supabase.from(...).select(...).or 
+is not a function
+    at Module.checkUserRateLimit (D:/algomind/
+src/lib/rate-limit/user-rate-limiter.ts:41:81)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:108:24
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+ [31mÔØ»[39m src/lib/ai/__tests__/client.test.ts [2m([22m[2m39 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 193[2mms[22m[39m
+       [32mÔ£ô[39m logs a warning when GROQ_API_KEY is missing[32m 19[2mms[22m[39m
+       [32mÔ£ô[39m logs a warning when both Gemini keys are missing[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m does not warn when both providers are configured[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns success with content on 200 OK[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m returns failure when GROQ_API_KEY is missing[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m throws and catches on non-OK response[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns failure on empty content from Groq[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m prepends system prompt if not already in messages[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m does not double-prepend system prompt if already first message[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m logs model_429 event on 429 error[32m 6[2mms[22m[39m
+       [32mÔ£ô[39m logs model_deprecated event on 404 error[32m 9[2mms[22m[39m
+       [32mÔ£ô[39m returns success with content on 200 OK[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns failure when both Gemini API keys are missing[32m 8[2mms[22m[39m
+       [32mÔ£ô[39m uses GOOGLE_API_KEY as fallback when GEMINI_API_KEY absent[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m converts messages to Gemini role format (assistant ÔåÆ model)[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m filters out system messages from contents array[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m sets systemInstruction when systemPrompt option is provided[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m returns failure on empty Gemini response[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m skips rate-limited models and tries the next one[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns failed result when all models are rate-limited[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m records successful request in rate limiter[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m records error in rate limiter on model failure[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m sorts models by tier (lower tier = higher priority)[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m returns success on first model success (groq default)[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m maps "local" preferred provider to "groq"[32m 8[2mms[22m[39m
+       [32mÔ£ô[39m does NOT fall back to Gemini when Groq is preferred and fails[32m 6[2mms[22m[39m
+       [32mÔ£ô[39m falls back from Gemini to Groq when Gemini is preferred and fails[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns error message when all providers fail[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m bypasses smart routing when preferredModel is "groq"[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m bypasses smart routing when smart routing env is disabled[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m uses classifier when smart routing env is enabled and preferredModel is auto[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m returns cached response without calling AI when cache hits[32m 3[2mms[22m[39m
+       [32mÔ£ô[39m records telemetry decision after smart routing[32m 3[2mms[22m[39m
+[31m       [31m├ù[31m falls back to alternate provider when routed provider fails in smart routing[39m[32m 29[2mms[22m[39m
+       [32mÔ£ô[39m stores in cache when cache is enabled[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m does NOT store in cache when flag is disabled[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m returns response and modelUsed on success[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m throws when all models fail[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m returns same instance on multiple calls[32m 2[2mms[22m[39m
+[90mstderr[2m | src/app/api/voice/__tests__/
+synthesize.test.ts[2m > 
+[22m[2m/api/voice/synthesize[2m > 
+[22m[2mreturns 502 with fallback:browser 
+when Groq model returns error
+[22m[39m[Synthesize API] Groq Orpheus 
+error: [33m400[39m 
+{"error":{"message":"model decommissioned"}}
+
+ [31mÔØ»[39m src/lib/rate-limit/__tests__/user-rate-limiter.test.ts [2m([22m[2m7 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 121[2mms[22m[39m
+[31m     [31m├ù[31m 1. RPC returns { allowed: true, remaining: 3 } -> passed through correctly[39m[32m 40[2mms[22m[39m
+[31m     [31m├ù[31m 2. RPC returns { allowed: false, remaining: 0 } -> correctly blocks the request[39m[32m 7[2mms[22m[39m
+     [32mÔ£ô[39m 3. RPC returns PGRST202 error (missing function) -> fails securely returning { allowed: false, remaining: 0 }[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m 4. Admin user: bypass check -> always returns { allowed: true, isAdmin: true }[39m[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m 5. Guest user: checkUserRateLimit called with null userId -> handles gracefully[32m 53[2mms[22m[39m
+     [32mÔ£ô[39m 6. incrementUserUsage(): calls correct RPC after session completes[32m 2[2mms[22m[39m
+[31m     [31m├ù[31m 7. RATE_LIMIT constant exported and equals 5[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m src/app/api/voice/__tests__/synthesize.test.ts [2m([22m[2m7 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 108[2mms[22m[39m
+     [32mÔ£ô[39m returns 503 when ENABLE_GROQ_TTS=false[32m 26[2mms[22m[39m
+     [32mÔ£ô[39m returns 401 for unauthenticated request[32m 7[2mms[22m[39m
+     [32mÔ£ô[39m preprocesses DSA terms before sending to Groq[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m returns 503 when GROQ_API_KEY is missing[32m 4[2mms[22m[39m
+     [32mÔ£ô[39m validates text length ÔÇö truncates > 4000 chars[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m returns 502 with fallback:browser when Groq model returns error[39m[32m 47[2mms[22m[39m
+[31m     [31m├ù[31m sends the correct Orpheus model name to Groq API[39m[32m 10[2mms[22m[39m
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m1. Authenticated user, under rate limit -> streams AI response
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m1. Authenticated user, under rate limit -> streams AI response
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m1. Authenticated user, under rate 
+limit -> streams AI response
+[22m[39mUPSTASH_REDIS_REST_URL and/or 
+UPSTASH_REDIS_REST_TOKEN are not set. Redis 
+client disabled.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m1. Authenticated user, under rate 
+limit -> streams AI response
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m1. Authenticated user, under rate 
+limit -> streams AI response
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:54:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m3. Guest mode (guestMode: true) -> bypasses rate limit check
+[22m[39m­ƒæÇ [Chat API] Guest mode access
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m3. Guest mode (guestMode: true) -> 
+bypasses rate limit check
+[22m[39m[Rate Limit] DB error: Error: 
+[Supabase Service] Missing 
+SUPABASE_DIRECT_URL or 
+SUPABASE_SERVICE_ROLE_KEY
+    at getServiceClient (D:/algomind/src/lib/s
+upabase/service.ts:13:19)
+    at checkIpRateLimit (D:/algomind/src/lib/r
+ate-limit/ip-rate-limiter.ts:8:26)
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:66:39)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:79:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m3. Guest mode (guestMode: true) -> bypasses rate limit check
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m3. Guest mode (guestMode: true) -> bypasses rate limit check
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m3. Guest mode (guestMode: true) -> 
+bypasses rate limit check
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m3. Guest mode (guestMode: true) -> 
+bypasses rate limit check
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:79:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m5. AI client throws -> 500 with error message
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m5. AI client throws -> 500 with error message
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m5. AI client throws -> 500 with 
+error message
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m5. AI client throws -> 500 with 
+error message
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:104:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m6. RAG context injected when problemContext.ragContext provided
+[22m[39m­ƒöì [RAG] Query: hello
+­ƒôÜ [RAG] Using pre-embedded context (20 chars) - saving API calls
+­ƒôÜ [AI] Injecting RAG context (20 chars)
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m6. RAG context injected when 
+problemContext.ragContext provided
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m6. RAG context injected when 
+problemContext.ragContext provided
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:116:9
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m7. Company persona applied when companyPersona param present
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m7. Company persona applied when companyPersona param present
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+­ƒÅó [AI] Applying Company Persona
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m7. Company persona applied when 
+companyPersona param present
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m7. Company persona applied when 
+companyPersona param present
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:133:9
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m8. System prompt override applied when systemPrompt provided
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m8. System prompt override applied when systemPrompt provided
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m8. System prompt override applied 
+when systemPrompt provided
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m8. System prompt override applied 
+when systemPrompt provided
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:148:9
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m9. Rate limit increment called after successful response
+[22m[39m­ƒöì [RAG] Query: hello
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m9. Rate limit increment called after successful response
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m9. Rate limit increment called after 
+successful response
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m9. Rate limit increment called after 
+successful response
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:160:9
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m10. System event logged on AI error
+[22m[39m­ƒöì [RAG] Query: search term
+
+[90mstdout[2m | src/app/api/__tests__/chat.test.ts[2m > [22m[2mChat API (/api/chat)[2m > [22m[2m10. System event logged on AI error
+[22m[39mÔÜá´©Å [RAG] No relevant chunks found for query
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m10. System event logged on AI error
+[22m[39mFalling back to static CHAT_MODELS 
+configuration.
+
+[90mstderr[2m | 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22m[2mChat API (/api/chat)[2m > 
+[22m[2m10. System event logged on AI error
+[22m[39mÔØî [Chat API] Error: TypeError: 
+client.callModel is not a function
+    at Module.POST 
+(D:/algomind/src/app/api/chat/route.ts:160:49)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/app/api/__tests__/chat.
+test.ts:173:9
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+
+ [31mÔØ»[39m src/app/api/__tests__/chat.test.ts [2m([22m[2m10 tests[22m[2m | [22m[31m8 failed[39m[2m)[22m[32m 159[2mms[22m[39m
+[31m     [31m├ù[31m 1. Authenticated user, under rate limit -> streams AI response[39m[32m 62[2mms[22m[39m
+     [32mÔ£ô[39m 2. Authenticated user, rate limit exceeded -> 429[32m 8[2mms[22m[39m
+[31m     [31m├ù[31m 3. Guest mode (guestMode: true) -> bypasses rate limit check[39m[32m 16[2mms[22m[39m
+     [32mÔ£ô[39m 4. Invalid/missing messages array -> 400[32m 3[2mms[22m[39m
+[31m     [31m├ù[31m 5. AI client throws -> 500 with error message[39m[32m 16[2mms[22m[39m
+[31m     [31m├ù[31m 6. RAG context injected when problemContext.ragContext provided[39m[32m 12[2mms[22m[39m
+[31m     [31m├ù[31m 7. Company persona applied when companyPersona param present[39m[32m 7[2mms[22m[39m
+[31m     [31m├ù[31m 8. System prompt override applied when systemPrompt provided[39m[32m 7[2mms[22m[39m
+[31m     [31m├ù[31m 9. Rate limit increment called after successful response[39m[32m 8[2mms[22m[39m
+[31m     [31m├ù[31m 10. System event logged on AI error[39m[32m 12[2mms[22m[39m
+[90mstdout[2m | src/components/interview/__tests__/CompanyModeSelector.test.tsx[2m > [22m[2mCompanyModeSelector (CODE-I fix)[2m > [22m[2mcalls fetchProfiles exactly once on initial mount
+[22m[39mUsing default company profiles (DB table missing or empty)
+
+[90mstdout[2m | src/components/interview/__tests__/CompanyModeSelector.test.tsx[2m > [22m[2mCompanyModeSelector (CODE-I fix)[2m > [22m[2mdoes NOT re-fetch on parent re-renders (fetchedRef guard)
+[22m[39mUsing default company profiles (DB table missing or empty)
+
+[90mstdout[2m | src/components/interview/__tests__/CompanyModeSelector.test.tsx[2m > [22m[2mCompanyModeSelector (CODE-I fix)[2m > [22m[2mshows DEFAULT_COMPANIES when Supabase returns 404 (table missing)
+[22m[39mUsing default company profiles (DB table missing or empty)
+
+ [32mÔ£ô[39m src/components/layout/__tests__/Navbar.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1063[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. Desktop (> 768px): bottom nav is NOT rendered (has md:hidden class) [33m 372[2mms[22m[39m
+[90mstdout[2m | src/components/interview/__tests__/CompanyModeSelector.test.tsx[2m > [22m[2mCompanyModeSelector (CODE-I fix)[2m > [22m[2mcalls onSelect(null, null) when "General" is clicked
+[22m[39mUsing default company profiles (DB table missing or empty)
+
+ [32mÔ£ô[39m src/components/voice/__tests__/MicPulse.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 426[2mms[22m[39m
+ [32mÔ£ô[39m src/components/interview/__tests__/CompanyModeSelector.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1172[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls onSelect with correct company id when user clicks [33m 604[2mms[22m[39m
+ [32mÔ£ô[39m src/components/practice/__tests__/ProblemCard.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 447[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/voice-pipeline.integration.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 476[2mms[22m[39m
+ [32mÔ£ô[39m src/app/admin/analytics/__tests__/client.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1163[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 6. Stat cards use card-interactive class [33m 408[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/assessment/__tests__/integration.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1560[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. Score orb renders when overallScore is available [33m 399[2mms[22m[39m
+ [32mÔ£ô[39m src/components/interview/__tests__/ConversationView.content.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 446[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useVoiceOutput.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+ [32mÔ£ô[39m src/app/interview/__tests__/analysis.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 954[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should render score and all 8 skills correctly [33m 598[2mms[22m[39m
+ [32mÔ£ô[39m src/components/settings/__tests__/SettingsPanel.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 2768[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. All main settings sections render (Profile, Voice Options, Data Storage, App Info, Danger Zone) [33m 330[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 2. VAD Switch toggle calls setFeatureFlag with correct key and value [33m 638[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 3. Sign Out button calls signOut and redirects to / [33m 533[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 6. Demo mode toggle reflects current isDemoMode() value ÔÇö shows "Demo Mode Active" when true [33m 362[2mms[22m[39m
+ [32mÔ£ô[39m src/components/interview/__tests__/InterviewSession.panels.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1432[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. Problem panel is visible by default (showProblemPanel=true initial state) [33m 515[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/admin/__tests__/analytics-caching.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+[90mstderr[2m | 
+src/app/api/assess/__tests__/chat.test.ts[2m 
+> [22m[2mAssess Chat API 
+(/api/assess/chat)[2m > [22m[2m2. Invalid 
+session ID -> 401
+[22m[39mÔøö [Assess Chat API] Invalid 
+session token JWSInvalid: JWS Protected 
+Header is invalid
+    at flattenedVerify [90m(file:///D:/algomi
+nd/[39mnode_modules/[4mjose[24m/dist/webapi
+/jws/flattened/verify.js:37:19[90m)[39m
+    at compactVerify [90m(file:///D:/algomind
+/[39mnode_modules/[4mjose[24m/dist/webapi/j
+ws/compact/verify.js:15:28[90m)[39m
+    at Module.jwtVerify [90m(file:///D:/algom
+ind/[39mnode_modules/[4mjose[24m/dist/webap
+i/jwt/verify.js:5:28[90m)[39m
+    at Module.POST (D:/algomind/src/app/api/as
+sess/chat/route.ts:51:53)
+    at D:/algomind/src/app/api/assess/__tests_
+_/chat.test.ts:92:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20 {
+  code: [32m'ERR_JWS_INVALID'[39m
+}
+
+ [32mÔ£ô[39m src/app/api/assess/__tests__/chat.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 122[2mms[22m[39m
+[90mstderr[2m | src/lib/supabase/__tests__/s
+ave-session.test.ts[2m > 
+[22m[2msaveInterviewSession Action[2m > 
+[22m[2m1. Full happy path: valid transcript 
++ problem -> session + assessment saved
+[22m[39mUPSTASH_REDIS_REST_URL and/or 
+UPSTASH_REDIS_REST_TOKEN are not set. Redis 
+client disabled.
+
+[90mstderr[2m | src/lib/supabase/__tests__/s
+ave-session.test.ts[2m > 
+[22m[2msaveInterviewSession Action[2m > 
+[22m[2m2. Unauthenticated user -> returns 
+error, no DB writes
+[22m[39mÔØî [ACTION] Auth validation 
+failed: { authError: [1mnull[22m, userId: 
+[32m'user-123'[39m }
+
+[90mstderr[2m | src/lib/supabase/__tests__/s
+ave-session.test.ts[2m > 
+[22m[2msaveInterviewSession Action[2m > 
+[22m[2m4. Assessment AI call fails -> 
+session still saved, assessment fields 
+fallback
+[22m[39mÔÜá´©Å [ACTION] Insufficient turns 
+for assessment (1 < 3). Skipping AI analysis.
+
+[90mstderr[2m | src/lib/supabase/__tests__/s
+ave-session.test.ts[2m > 
+[22m[2msaveInterviewSession Action[2m > 
+[22m[2m5. DB insert for interview_sessions 
+fails -> returns error
+[22m[39mÔØî [ACTION] Failed to save 
+session: { message: [32m'DB Down'[39m }
+
+[90mstderr[2m | src/lib/supabase/__tests__/s
+ave-session.test.ts[2m > 
+[22m[2msaveInterviewSession Action[2m > 
+[22m[2m6. DB insert for assessments fails 
+-> session saved but assessment missing 
+(partial success)
+[22m[39mÔÜá´©Å [ACTION] Failed to save 
+assessment object (partial success): { 
+message: [32m'Fk fail'[39m }
+
+ [32mÔ£ô[39m src/lib/supabase/__tests__/save-session.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32mÔ£ô[39m src/app/__tests__/page.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 3585[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. Hero section renders with headline containing "Interview" [33m 1160[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 2. "Try for Free" button renders [33m 539[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 6. CTA section renders with "Get Started Free" text [33m 426[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1 & 2. Authenticated user sees "Go to Dashboard" button (no redirect) [33m 406[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/voice-utils.test.ts [2m([22m[2m32 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+[90mstderr[2m | src/lib/ai/__tests__/memory-
+generator.test.ts[2m > 
+[22m[2mgenerateKaiMemory()[2m > 
+[22m[2mreturns existingMemory as fallback 
+when AI call fails (success=false)
+[22m[39m[memory-generator] AI generation 
+failed: Rate limited
+
+[90mstderr[2m | src/lib/ai/__tests__/memory-
+generator.test.ts[2m > 
+[22m[2mgenerateKaiMemory()[2m > 
+[22m[2mreturns empty string as fallback 
+when AI fails and no existing memory
+[22m[39m[memory-generator] AI generation 
+failed: [90mundefined[39m
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m1. init(): creates VAD with correct config params
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m1. init(): creates VAD with correct config params
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m2. onSpeechStart callback: correctly forwarded from VAD events
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m2. onSpeechStart callback: correctly forwarded from VAD events
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m3. onSpeechEnd callback: correctly forwarded with audio data
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m3. onSpeechEnd callback: correctly forwarded with audio data
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m4. start()/stop(): call underlying VAD start/stop
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstderr[2m | src/lib/ai/__tests__/memory-
+generator.test.ts[2m > 
+[22m[2mgenerateKaiMemory()[2m > 
+[22m[2mreturns fallback and does not throw 
+when AI throws an unexpected error
+[22m[39m[memory-generator] Unexpected error 
+in generateKaiMemory: Error: Network failure
+    at D:/algomind/src/lib/ai/__tests__/memory
+-generator.test.ts:203:59
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:145:
+11
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+26
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1243
+:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/algomin
+d/[39mnode_modules/[4m@vitest[24m/runner/di
+st/index.js:1209:10[90m)[39m
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1653
+:37
+    at Traces.$ [90m(file:///D:/algomind/[39
+mnode_modules/[4mvitest[24m/dist/chunks/trac
+es.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///D:/algomind/[39mno
+de_modules/[4mvitest[24m/dist/chunks/test.B8
+ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///D:/algomind/[39m
+node_modules/[4m@vitest[24m/runner/dist/inde
+x.js:1653:12[90m)[39m
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m4. start()/stop(): call underlying VAD start/stop
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m5. Error during init: onError callback fires, isReady stays false
+[22m[39m[VADManager] Loading ONNX RuntimeÔÇª
+
+[90mstdout[2m | src/lib/ai/__tests__/memory-generator.test.ts[2m > [22m[2mupdateKaiMemory()[2m > [22m[2mfetches sessions via RPC with correct user_id and limit
+[22m[39m­ƒºá [memory-generator] Updated Kai memory for user user-abc...
+
+[90mstdout[2m | src/lib/ai/__tests__/memory-generator.test.ts[2m > [22m[2mupdateKaiMemory()[2m > [22m[2mreads existing kai_memory from learner_profiles
+[22m[39m­ƒºá [memory-generator] Updated Kai memory for user user-abc...
+
+[90mstdout[2m | src/lib/ai/__tests__/memory-generator.test.ts[2m > [22m[2mupdateKaiMemory()[2m > [22m[2mupserts new memory into learner_profiles on success
+[22m[39m­ƒºá [memory-generator] Updated Kai memory for user user-abc...
+
+[90mstderr[2m | src/lib/ai/__tests__/memory-
+generator.test.ts[2m > 
+[22m[2mupdateKaiMemory()[2m > 
+[22m[2mdoes not upsert when AI returns 
+empty memory
+[22m[39m[memory-generator] AI generation 
+failed: [90mundefined[39m
+
+[90mstderr[2m | src/lib/voice/__tests__/vad-
+manager.test.ts[2m > [22m[2mVADManager[2m 
+> [22m[2m5. Error during init: onError 
+callback fires, isReady stays false
+[22m[39m[VADManager] Init failed: 
+ReferenceError: document is not defined
+    at 
+D:/algomind/src/lib/voice/vad-manager.ts:63:9
+    at new Promise (<anonymous>)
+    at loadScript (D:/algomind/src/lib/voice/v
+ad-manager.ts:61:12)
+    at 
+D:/algomind/src/lib/voice/vad-manager.ts:88:15
+    at loadVADScripts (D:/algomind/src/lib/voi
+ce/vad-manager.ts:96:5)
+    at VADManager.init (D:/algomind/src/lib/vo
+ice/vad-manager.ts:184:23)
+    at D:/algomind/src/lib/voice/__tests__/vad
+-manager.test.ts:115:26
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:145:
+11
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+26
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1243
+:20
+
+ [32mÔ£ô[39m src/components/dashboard/__tests__/PDFReport.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1186[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m 1. Renders without crashing with minimal UserProgress prop [33m 326[2mms[22m[39m
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m6. isReady: implicitly tracked via VADState.PAUSED after successful init
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m6. isReady: implicitly tracked via VADState.PAUSED after successful init
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstderr[2m | src/lib/ai/__tests__/memory-
+generator.test.ts[2m > 
+[22m[2mupdateKaiMemory()[2m > 
+[22m[2mnever throws on unexpected errors
+[22m[39m[memory-generator] Unexpected error 
+in updateKaiMemory: Error: Catastrophic 
+failure
+    at D:/algomind/src/lib/ai/__tests__/memory
+-generator.test.ts:334:44
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:145:
+11
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+26
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1243
+:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/algomin
+d/[39mnode_modules/[4m@vitest[24m/runner/di
+st/index.js:1209:10[90m)[39m
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1653
+:37
+    at Traces.$ [90m(file:///D:/algomind/[39
+mnode_modules/[4mvitest[24m/dist/chunks/trac
+es.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///D:/algomind/[39mno
+de_modules/[4mvitest[24m/dist/chunks/test.B8
+ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///D:/algomind/[39m
+node_modules/[4m@vitest[24m/runner/dist/inde
+x.js:1653:12[90m)[39m
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m7. Device type detection: adapts VAD config via dependency injection overrides
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/ai/__tests__/memory-generator.test.ts[2m > [22m[2mupdateKaiMemory()[2m > [22m[2mpasses existing memory to AI generation
+[22m[39m­ƒºá [memory-generator] Updated Kai memory for user user-abc...
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m7. Device type detection: adapts VAD config via dependency injection overrides
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m8. Cleanup: destroy() stops VAD and prevents further callbacks
+[22m[39m[VADManager] Creating MicVAD instanceÔÇª
+
+[90mstdout[2m | src/lib/voice/__tests__/vad-manager.test.ts[2m > [22m[2mVADManager[2m > [22m[2m8. Cleanup: destroy() stops VAD and prevents further callbacks
+[22m[39m[VADManager] MicVAD ready Ô£ô
+
+ [32mÔ£ô[39m src/lib/ai/__tests__/memory-generator.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/vad-manager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/assess/__tests__/start.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 101[2mms[22m[39m
+[90mstderr[2m | src/app/api/leetcode/__tests
+__/connect.test.ts[2m > [22m[2mLeetCode 
+Connect API (/api/leetcode/connect)[2m > 
+[22m[2m2. Upsert fails due to missing 
+unique constraint (PGRST116) -> 500 "Database 
+error"
+[22m[39m[LeetCode Connect] Error updating 
+preferences: { code: [32m'PGRST116'[39m, 
+message: [32m'DB Error'[39m }
+
+[90mstderr[2m | src/app/api/assess/__tests__
+/complete.test.ts[2m > [22m[2mAssess 
+Complete API (/api/assess/complete)[2m > 
+[22m[2m4. Invalid session format -> 401
+[22m[39mÔøö [Assess Complete API] Invalid 
+session token JWSInvalid: JWS Protected 
+Header is invalid
+    at flattenedVerify [90m(file:///D:/algomi
+nd/[39mnode_modules/[4mjose[24m/dist/webapi
+/jws/flattened/verify.js:37:19[90m)[39m
+    at compactVerify [90m(file:///D:/algomind
+/[39mnode_modules/[4mjose[24m/dist/webapi/j
+ws/compact/verify.js:15:28[90m)[39m
+    at Module.jwtVerify [90m(file:///D:/algom
+ind/[39mnode_modules/[4mjose[24m/dist/webap
+i/jwt/verify.js:5:28[90m)[39m
+    at Module.POST (D:/algomind/src/app/api/as
+sess/complete/route.ts:47:53)
+    at D:/algomind/src/app/api/assess/__tests_
+_/complete.test.ts:184:21
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20 {
+  code: [32m'ERR_JWS_INVALID'[39m
+}
+
+ [32mÔ£ô[39m src/app/api/assess/__tests__/complete.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 163[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/leetcode/__tests__/connect.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+[90mstderr[2m | src/lib/ai/__tests__/model-r
+egistry.test.ts[2m > [22m[2mModel 
+Registry[2m > [22m[2mgetActiveModels()[2m 
+> [22m[2m2. returns fallback static list 
+when DB query fails
+[22m[39mDatabase error fetching model 
+registry: Error: Supabase query failed: DB 
+Error
+    at Module.getActiveModels (D:/algomind/src
+/lib/ai/model-registry.ts:63:27)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at D:/algomind/src/lib/ai/__tests__/model-
+registry.test.ts:82:28
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+20
+Falling back to static CHAT_MODELS 
+configuration.
+
+ [32mÔ£ô[39m src/lib/ai/__tests__/model-registry.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 99[2mms[22m[39m
+ [32mÔ£ô[39m src/components/dashboard/__tests__/DashboardNav.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 379[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useReviewCount.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 420[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/ai/__tests__/intent-classifier.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/admin/__tests__/admins.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+[90mstderr[2m | 
+src/__tests__/api/permissions.test.ts[2m > 
+[22m[2mowner/rate-limits API[2m > 
+[22m[2mhandles database errors gracefully
+[22m[39mRate Limits Fetch Error: Error: DB 
+failure
+    at D:/algomind/src/__tests__/api/permissio
+ns.test.ts:71:46
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:145:
+11
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:915:
+26
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1243
+:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/algomin
+d/[39mnode_modules/[4m@vitest[24m/runner/di
+st/index.js:1209:10[90m)[39m
+    at [90mfile:///D:/algomind/[39mnode_modu
+les/[4m@vitest[24m/runner/dist/index.js:1653
+:37
+    at Traces.$ [90m(file:///D:/algomind/[39
+mnode_modules/[4mvitest[24m/dist/chunks/trac
+es.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///D:/algomind/[39mno
+de_modules/[4mvitest[24m/dist/chunks/test.B8
+ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///D:/algomind/[39m
+node_modules/[4m@vitest[24m/runner/dist/inde
+x.js:1653:12[90m)[39m
+
+ [32mÔ£ô[39m src/__tests__/api/permissions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/admin/__tests__/auth-boundaries.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32mÔ£ô[39m src/app/api/voice/__tests__/synthesize-polly.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32mÔ£ô[39m src/components/practice/__tests__/DifficultyModeSelector.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 325[2mms[22m[39m
+ [32mÔ£ô[39m src/components/interview/__tests__/CodeEditor.height.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 368[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useSwipeNavigation.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 233[2mms[22m[39m
+ [32mÔ£ô[39m src/components/voice/__tests__/MicrophoneButton.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 292[2mms[22m[39m
+[90mstderr[2m | src/app/api/admin/__tests__/
+integration.test.ts[2m > [22m[2mAdmin 
+Panel API Integration[2m > [22m[2m4, 5, 6. 
+RPC check_is_admin throws PGRST202 -> GET 
+/api/admin/admins -> 403 Forbidden
+[22m[39mAdmin Check Failed: {
+  adminErr: { code: [32m'PGRST202'[39m, 
+message: [32m'Function not found'[39m },
+  isAdmin: [1mnull[22m,
+  userId: [32m'admin-123'[39m
+}
+
+ [32mÔ£ô[39m src/app/api/admin/__tests__/integration.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/startup/__tests__/validateEnv.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+[90mstderr[2m | src/lib/assessment/__tests__
+/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. 
+AI response that is malformed JSON -> error 
+handled, fallback result returned
+[22m[39mFailed to parse AI JSON response: 
+Unexpected token 'T', "This is no"... is not 
+valid JSON
+Raw response (first 500 chars): This is not 
+valid JSON string...
+Assessment attempt 1 failed: Assessment parse 
+failed: Unexpected token 'T', "This is no"... 
+is not valid JSON. The AI model may need to 
+retry.
+
+[90mstderr[2m | src/lib/assessment/__tests__
+/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. 
+AI response that is malformed JSON -> error 
+handled, fallback result returned
+[22m[39mFailed to parse AI JSON response: 
+Unexpected token 'T', "This is no"... is not 
+valid JSON
+Raw response (first 500 chars): This is not 
+valid JSON string...
+Assessment attempt 2 failed: Assessment parse 
+failed: Unexpected token 'T', "This is no"... 
+is not valid JSON. The AI model may need to 
+retry.
+
+[90mstderr[2m | src/lib/assessment/__tests__
+/analyzer.test.ts[2m > 
+[22m[2mCognitiveAnalyzer[2m > [22m[2m6. 
+AI response that is malformed JSON -> error 
+handled, fallback result returned
+[22m[39mFailed to parse AI JSON response: 
+Unexpected token 'T', "This is no"... is not 
+valid JSON
+Raw response (first 500 chars): This is not 
+valid JSON string...
+Assessment attempt 3 failed: Assessment parse 
+failed: Unexpected token 'T', "This is no"... 
+is not valid JSON. The AI model may need to 
+retry.
+Assessment failed after 3 attempts. Returning 
+fallback.
+
+ [32mÔ£ô[39m src/lib/assessment/__tests__/analyzer.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/ai/__tests__/response-cache.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/interruption-manager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+[90mstdout[2m | src/lib/supabase/__tests__/progress-store.test.ts[2m > [22m[2mSupabaseProgressStore[2m > [22m[2m9. saveProgress(): calls correct upsert with correct fields
+[22m[39m­ƒÆ¥ [SupabaseProgressStore] Starting save...
+­ƒÆ¥ [SupabaseProgressStore] User ID: user-1
+­ƒÆ¥ [SupabaseProgressStore] Session: { problemId: [32m'test'[39m, difficulty: [32m'hard'[39m, overallScore: [33m80[39m }
+
+ [32mÔ£ô[39m src/lib/supabase/__tests__/progress-store.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32mÔ£ô[39m src/app/actions/__tests__/spaced-repetition.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+[90mstderr[2m | src/app/dashboard/__tests__/
+dashboard.test.tsx[2m > [22m[2mDashboard 
+(RPC null-safety)[2m > [22m[2mshows empty 
+state when progress is null (RPC returns null)
+[22m[39m[getReviewQueue] Error: Error: 
+[Supabase Service] Missing 
+SUPABASE_DIRECT_URL or 
+SUPABASE_SERVICE_ROLE_KEY
+    at getServiceClient (D:/algomind/src/lib/s
+upabase/service.ts:13:19)
+    at getReviewQueue (D:/algomind/src/app/act
+ions/spaced-repetition.ts:60:26)
+    at 
+D:/algomind/src/hooks/useReviewCount.ts:39:33
+    at 
+D:/algomind/src/hooks/useReviewCount.ts:53:13
+    at Object.react_stack_bottom_frame [90m(D
+:\algomind\[39mnode_modules\[4mreact-dom[24
+m\cjs\react-dom-client.development.js:25989:20
+[90m)[39m
+    at runWithFiberInDEV [90m(D:\algomind\[3
+9mnode_modules\[4mreact-dom[24m\cjs\react-do
+m-client.development.js:874:13[90m)[39m
+    at commitHookEffectListMount [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:13249:29[90m)
+[39m
+    at commitHookPassiveMountEffects [90m(D:\
+algomind\[39mnode_modules\[4mreact-dom[24m\
+cjs\react-dom-client.development.js:13336:11[
+90m)[39m
+    at reconnectPassiveEffects [90m(D:\algomi
+nd\[39mnode_modules\[4mreact-dom[24m\cjs\re
+act-dom-client.development.js:15832:11[90m)[
+39m
+    at 
+recursivelyTraverseReconnectPassiveEffects [9
+0m(D:\algomind\[39mnode_modules\[4mreact-dom
+[24m\cjs\react-dom-client.development.js:1578
+4:9[90m)[39m
+
+ [32mÔ£ô[39m src/lib/spaced-repetition/__tests__/sm2.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+[90mstderr[2m | src/app/dashboard/__tests__/
+dashboard.test.tsx[2m > [22m[2mDashboard 
+(RPC null-safety)[2m > [22m[2mshows empty 
+state when sessions array is empty
+[22m[39mFailed to load LeetCode profile 
+TypeError: supabase.from(...).select(...).eq 
+is not a function
+    at fetchLeetcodeProfile 
+(D:/algomind/src/app/dashboard/page.tsx:80:22)
+    at 
+D:/algomind/src/app/dashboard/page.tsx:91:9
+    at Object.react_stack_bottom_frame [90m(D
+:\algomind\[39mnode_modules\[4mreact-dom[24
+m\cjs\react-dom-client.development.js:25989:20
+[90m)[39m
+    at runWithFiberInDEV [90m(D:\algomind\[3
+9mnode_modules\[4mreact-dom[24m\cjs\react-do
+m-client.development.js:874:13[90m)[39m
+    at commitHookEffectListMount [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:13249:29[90m)
+[39m
+    at commitHookPassiveMountEffects [90m(D:\
+algomind\[39mnode_modules\[4mreact-dom[24m\
+cjs\react-dom-client.development.js:13336:11[
+90m)[39m
+    at reconnectPassiveEffects [90m(D:\algomi
+nd\[39mnode_modules\[4mreact-dom[24m\cjs\re
+act-dom-client.development.js:15832:11[90m)[
+39m
+    at 
+recursivelyTraverseReconnectPassiveEffects [9
+0m(D:\algomind\[39mnode_modules\[4mreact-dom
+[24m\cjs\react-dom-client.development.js:1578
+4:9[90m)[39m
+    at commitPassiveMountOnFiber [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:15675:17[90m)
+[39m
+    at recursivelyTraversePassiveMountEffects 
+[90m(D:\algomind\[39mnode_modules\[4mreact-
+dom[24m\cjs\react-dom-client.development.js:1
+5439:11[90m)[39m
+
+ [32mÔ£ô[39m src/__tests__/api/verify-code.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useVoiceActivityDetection.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+[90mstderr[2m | src/app/dashboard/__tests__/
+dashboard.test.tsx[2m > [22m[2mDashboard 
+(RPC null-safety)[2m > [22m[2mrenders 
+sessions in timeline when data exists
+[22m[39mFailed to load LeetCode profile 
+TypeError: supabase.from(...).select(...).eq 
+is not a function
+    at fetchLeetcodeProfile 
+(D:/algomind/src/app/dashboard/page.tsx:80:22)
+    at 
+D:/algomind/src/app/dashboard/page.tsx:91:9
+    at Object.react_stack_bottom_frame [90m(D
+:\algomind\[39mnode_modules\[4mreact-dom[24
+m\cjs\react-dom-client.development.js:25989:20
+[90m)[39m
+    at runWithFiberInDEV [90m(D:\algomind\[3
+9mnode_modules\[4mreact-dom[24m\cjs\react-do
+m-client.development.js:874:13[90m)[39m
+    at commitHookEffectListMount [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:13249:29[90m)
+[39m
+    at commitHookPassiveMountEffects [90m(D:\
+algomind\[39mnode_modules\[4mreact-dom[24m\
+cjs\react-dom-client.development.js:13336:11[
+90m)[39m
+    at reconnectPassiveEffects [90m(D:\algomi
+nd\[39mnode_modules\[4mreact-dom[24m\cjs\re
+act-dom-client.development.js:15832:11[90m)[
+39m
+    at 
+recursivelyTraverseReconnectPassiveEffects [9
+0m(D:\algomind\[39mnode_modules\[4mreact-dom
+[24m\cjs\react-dom-client.development.js:1578
+4:9[90m)[39m
+    at commitPassiveMountOnFiber [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:15675:17[90m)
+[39m
+    at recursivelyTraversePassiveMountEffects 
+[90m(D:\algomind\[39mnode_modules\[4mreact-
+dom[24m\cjs\react-dom-client.development.js:1
+5439:11[90m)[39m
+
+ [32mÔ£ô[39m src/lib/__tests__/design-tokens.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+[90mstderr[2m | src/app/dashboard/__tests__/
+dashboard.test.tsx[2m > [22m[2mDashboard 
+(RPC null-safety)[2m > [22m[2mrenders 
+session with null overallScore without crash
+[22m[39mFailed to load LeetCode profile 
+TypeError: supabase.from(...).select(...).eq 
+is not a function
+    at fetchLeetcodeProfile 
+(D:/algomind/src/app/dashboard/page.tsx:80:22)
+    at 
+D:/algomind/src/app/dashboard/page.tsx:91:9
+    at Object.react_stack_bottom_frame [90m(D
+:\algomind\[39mnode_modules\[4mreact-dom[24
+m\cjs\react-dom-client.development.js:25989:20
+[90m)[39m
+    at runWithFiberInDEV [90m(D:\algomind\[3
+9mnode_modules\[4mreact-dom[24m\cjs\react-do
+m-client.development.js:874:13[90m)[39m
+    at commitHookEffectListMount [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:13249:29[90m)
+[39m
+    at commitHookPassiveMountEffects [90m(D:\
+algomind\[39mnode_modules\[4mreact-dom[24m\
+cjs\react-dom-client.development.js:13336:11[
+90m)[39m
+    at reconnectPassiveEffects [90m(D:\algomi
+nd\[39mnode_modules\[4mreact-dom[24m\cjs\re
+act-dom-client.development.js:15832:11[90m)[
+39m
+    at 
+recursivelyTraverseReconnectPassiveEffects [9
+0m(D:\algomind\[39mnode_modules\[4mreact-dom
+[24m\cjs\react-dom-client.development.js:1578
+4:9[90m)[39m
+    at commitPassiveMountOnFiber [90m(D:\algo
+mind\[39mnode_modules\[4mreact-dom[24m\cjs\
+react-dom-client.development.js:15675:17[90m)
+[39m
+    at recursivelyTraversePassiveMountEffects 
+[90m(D:\algomind\[39mnode_modules\[4mreact-
+dom[24m\cjs\react-dom-client.development.js:1
+5439:11[90m)[39m
+
+ [32mÔ£ô[39m src/lib/ai/__tests__/response-chunker.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mÔ£ô[39m src/app/dashboard/__tests__/dashboard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 600[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows empty state when progress is null (RPC returns null) [33m 380[2mms[22m[39m
+[90mstderr[2m | src/lib/auth/__tests__/requi
+reAdminForApi.test.ts[2m > 
+[22m[2mrequireAdminForApi[2m > [22m[2m3. 
+Logged in but not admin: check_is_admin 
+returns false
+[22m[39mAdmin Check Failed: { adminErr: 
+[1mnull[22m, isAdmin: [33mfalse[39m, 
+userId: [32m'user-123'[39m }
+
+[90mstderr[2m | src/lib/auth/__tests__/requi
+reAdminForApi.test.ts[2m > 
+[22m[2mrequireAdminForApi[2m > [22m[2m4. 
+check_is_admin RPC missing (PGRST202 error)
+[22m[39mAdmin Check Failed: {
+  adminErr: { code: [32m'PGRST202'[39m, 
+message: [32m'Function not found'[39m },
+  isAdmin: [1mnull[22m,
+  userId: [32m'user-123'[39m
+}
+
+[90mstderr[2m | src/lib/auth/__tests__/requi
+reAdminForApi.test.ts[2m > 
+[22m[2mrequireAdminForApi[2m > [22m[2m6. 
+User has email but check_is_admin returns 
+false -> 403, not 401
+[22m[39mAdmin Check Failed: { adminErr: 
+[1mnull[22m, isAdmin: [33mfalse[39m, 
+userId: [32m'user-456'[39m }
+
+ [32mÔ£ô[39m src/lib/voice/__tests__/vad-utils.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/auth/__tests__/requireAdminForApi.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32mÔ£ô[39m src/app/__tests__/css-utilities.test.ts [2m([22m[2m39 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/aws/__tests__/stubs.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/assessment/__tests__/evidence-extractor.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mÔ£ô[39m src/app/actions/__tests__/learn.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/ai/__tests__/providers.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/learn/__tests__/system-prompt.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/assessment/__tests__/confidence-calculator.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/ai/__tests__/common-questions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m src/lib/voice/__tests__/vocabulary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/config/__tests__/providers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useVoiceInput.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32mÔ£ô[39m src/hooks/__tests__/useInterview.mic.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+ [32mÔ£ô[39m src/components/interview/__tests__/InterviewSession.mobile.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2156[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Mobile: Code tab switches without MobileWarning modal [33m 1020[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m Desktop: Code Editor toggle works without warning [33m 1132[2mms[22m[39m
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed 
+Tests 19 
+[49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m1. 
+Authenticated user, under rate limit -> 
+streams AI response
+[31m[1mAssertionError[22m: expected 500 to 
+be 200 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m57:28[22m[39m
+    [90m 55| [39m        [35mconst[39m 
+data [33m=[39m [35mawait[39m 
+res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m 56| [39m
+    [90m 57| [39m        [34mexpect[39m(re
+s[33m.[39mstatus)[33m.[39m[34mtoBe[39m(
+[34m200[39m)[33m;[39m
+    [90m   | [39m                           
+[31m^[39m
+    [90m 58| [39m        [34mexpect[39m(da
+ta[33m.[39mresponse)[33m.[39m[34mtoBe[39
+m([32m'AI response text'[39m)[33m;[39m
+    [90m 59| [39m        [34mexpect[39m(mo
+ckAIClient[33m.[39mgenerateResponse)[33m.[
+39m[34mtoHaveBeenCalled[39m()[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m3. Guest 
+mode (guestMode: true) -> bypasses rate limit 
+check
+[31m[1mAssertionError[22m: expected 500 to 
+be 200 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m82:28[22m[39m
+    [90m 80| [39m        [35mconst[39m 
+_data [33m=[39m [35mawait[39m 
+res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m 81| [39m
+    [90m 82| [39m        [34mexpect[39m(re
+s[33m.[39mstatus)[33m.[39m[34mtoBe[39m(
+[34m200[39m)[33m;[39m
+    [90m   | [39m                           
+[31m^[39m
+    [90m 83| [39m        [34mexpect[39m(ch
+eckUserRateLimit)[33m.[39mnot[33m.[39m[34
+mtoHaveBeenCalled[39m()[33m;[39m
+    [90m 84| [39m        [34mexpect[39m(mo
+ckAIClient[33m.[39mgenerateResponse)[33m.[
+39m[34mtoHaveBeenCalled[39m()[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m5. AI 
+client throws -> 500 with error message
+[31m[1mAssertionError[22m: expected 
+'client.callModel is not a function' to be 
+'Mock Error' // Object.is equality[39m
+
+Expected: [32m"Mock Error"[39m
+Received: [31m"client.callModel is not a 
+function"[39m
+
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m108:28[22m[39m
+    [90m106| [39m
+    [90m107| [39m        [34mexpect[39m(re
+s[33m.[39mstatus)[33m.[39m[34mtoBe[39m(
+[34m500[39m)[33m;[39m
+    [90m108| [39m        [34mexpect[39m(da
+ta[33m.[39merror)[33m.[39m[34mtoBe[39m(
+[32m'Mock Error'[39m)[33m;[39m
+    [90m   | [39m                           
+[31m^[39m
+    [90m109| [39m    })[33m;[39m
+    [90m110| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m6. RAG 
+context injected when 
+problemContext.ragContext provided
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+Any<Array>, ObjectContaining{ÔÇª} ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m119:47[22m[39m
+    [90m117| [39m
+    [90m118| [39m        [90m// check if 
+system prompt args include the rag 
+context[39m
+    [90m119| [39m        [34mexpect[39m(mo
+ckAIClient[33m.[39mgenerateResponse)[33m.[
+39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                           
+                   [31m^[39m
+    [90m120| [39m            expect[33m.[3
+9m[34many[39m([33mArray[39m)[33m,[39m
+    [90m121| [39m            
+expect[33m.[39m[34mobjectContaining[39m({
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m7. 
+Company persona applied when companyPersona 
+param present
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+Any<Array>, ObjectContaining{ÔÇª} ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m135:47[22m[39m
+    [90m133| [39m        [35mawait[39m 
+[33mPOST[39m(req)[33m;[39m
+    [90m134| [39m
+    [90m135| [39m        [34mexpect[39m(mo
+ckAIClient[33m.[39mgenerateResponse)[33m.[
+39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                           
+                   [31m^[39m
+    [90m136| [39m            expect[33m.[3
+9m[34many[39m([33mArray[39m)[33m,[39m
+    [90m137| [39m            
+expect[33m.[39m[34mobjectContaining[39m({
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m8. 
+System prompt override applied when 
+systemPrompt provided
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+Any<Array>, ObjectContaining{ÔÇª} ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m150:47[22m[39m
+    [90m148| [39m        [35mawait[39m 
+[33mPOST[39m(req)[33m;[39m
+    [90m149| [39m
+    [90m150| [39m        [34mexpect[39m(mo
+ckAIClient[33m.[39mgenerateResponse)[33m.[
+39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                           
+                   [31m^[39m
+    [90m151| [39m            expect[33m.[3
+9m[34many[39m([33mArray[39m)[33m,[39m
+    [90m152| [39m            
+expect[33m.[39m[34mobjectContaining[39m({
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m9. Rate 
+limit increment called after successful 
+response
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+'user-123', { auth: { ÔÇª(1) } } ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m162:36[22m[39m
+    [90m160| [39m        [35mawait[39m 
+[33mPOST[39m(req)[33m;[39m
+    [90m161| [39m
+    [90m162| [39m        expect(incrementUse
+rUsage).toHaveBeenCalledWith('user-123', moÔÇª
+    [90m   | [39m                           
+        [31m^[39m
+    [90m163| [39m    })[33m;[39m
+    [90m164| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/app/api/__tests__/chat.test.ts[2m > 
+[22mChat API (/api/chat)[2m > [22m10. 
+System event logged on AI error
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ { 
+type: 'model_error', ÔÇª(1) } ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[2m    {[22m
+[32m-     "errorMessage": "Mock Error",[90m
+[31m+     "errorMessage": "client.callModel 
+is not a function",[90m
+[2m      "type": "model_error",[22m
+[2m    },[22m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2mÔØ»[22m src/app/api/__tests__/chat.
+test.ts:[2m176:32[22m[39m
+    [90m174| [39m
+    [90m175| [39m        // The error throw 
+gets caught by main catch block which callsÔÇª
+    [90m176| [39m        [34mexpect[39m(lo
+gSystemEvent)[33m.[39m[34mtoHaveBeenCalledW
+ith[39m({
+    [90m   | [39m                           
+    [31m^[39m
+    [90m177| [39m            
+type[33m:[39m 
+[32m'model_error'[39m[33m,[39m
+    [90m178| [39m            
+errorMessage[33m:[39m [32m'Mock Error'[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/ai/__tests__/client.test.ts[2m > 
+[22mUnifiedAIClient[2m > 
+[22mgenerateResponse()[2m > [22mfalls back 
+to alternate provider when routed provider 
+fails in smart routing
+[31m[1mAssertionError[22m: expected false 
+to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2mÔØ»[22m src/lib/ai/__tests__/client
+.test.ts:[2m544:36[22m[39m
+    [90m542| [39m
+    [90m543| [39m            const result = 
+await client.generateResponse(userMessages,ÔÇª
+    [90m544| [39m            [34mexpect[39
+m(result[33m.[39msuccess)[33m.[39m[34mtoB
+e[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                           
+        [31m^[39m
+    [90m545| [39m        })[33m;[39m
+    [90m546| [39m    })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/19]ÔÄ»[22m
+[39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22mIntelligentRateLimiter[2m > 
+[22mcanUseModel()[2m > [22mreturns 
+allowed=false with reason "rpm_limit" when 
+rpm is at limit
+[31m[1mAssertionError[22m: expected true 
+to be false // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+[36m [2mÔØ»[22m src/lib/ai/__tests__/rate-l
+imiter.test.ts:[2m113:36[22m[39m
+    [90m111| [39m            await 
+makeRedisMock({ rpmStr: '30', dayStr: '0', 
+mgetValueÔÇª
+    [90m112| [39m            const result = 
+await limiter.canUseModel(model.id, allModeÔÇª
+    [90m113| [39m            [34mexpect[39
+m(result[33m.[39mallowed)[33m.[39m[34mtoB
+e[39m([35mfalse[39m)[33m;[39m
+    [90m   | [39m                           
+        [31m^[39m
+    [90m114| [39m            [34mexpect[39
+m(result[33m.[39mreason)[33m.[39m[34mtoBe
+[39m([32m'rpm_limit'[39m)[33m;[39m
+    [90m115| [39m        })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22mIntelligentRateLimiter[2m > 
+[22mcanUseModel()[2m > [22mreturns 
+allowed=false with reason "rpd_limit" when 
+daily limit is reached
+[31m[1mAssertionError[22m: expected true 
+to be false // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+[36m [2mÔØ»[22m src/lib/ai/__tests__/rate-l
+imiter.test.ts:[2m126:36[22m[39m
+    [90m124| [39m            await 
+makeRedisMock({ rpmStr: '0', dayStr: '1000', 
+mgetValÔÇª
+    [90m125| [39m            const result = 
+await limiter.canUseModel(model.id, allModeÔÇª
+    [90m126| [39m            [34mexpect[39
+m(result[33m.[39mallowed)[33m.[39m[34mtoB
+e[39m([35mfalse[39m)[33m;[39m
+    [90m   | [39m                           
+        [31m^[39m
+    [90m127| [39m            [34mexpect[39
+m(result[33m.[39mreason)[33m.[39m[34mtoBe
+[39m([32m'rpd_limit'[39m)[33m;[39m
+    [90m128| [39m        })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22mIntelligentRateLimiter[2m > 
+[22mrecordRequest()[2m > [22msets RPM key 
+with NX + EX=65 then increments
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+'rl:llama-3.1-8b-instant:rpm', ÔÇª(2) ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/lib/ai/__tests__/rate-l
+imiter.test.ts:[2m189:35[22m[39m
+    [90m187| [39m            
+[35mawait[39m vi[33m.[39m[34mrunAllTimers
+Async[39m()[33m;[39m
+    [90m188| [39m
+    [90m189| [39m            [34mexpect[39
+m(mockRedis[33m.[39m[35mset[39m)[33m.[39
+m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                           
+       [31m^[39m
+    [90m190| [39m                [32m`rl:[
+39m[36m${[39mmodel[33m.[39mid[36m}[39m[
+32m:rpm`[39m[33m,[39m
+    [90m191| [39m                
+[34m0[39m[33m,[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m 
+src/lib/ai/__tests__/rate-limiter.test.ts[2m 
+> [22mIntelligentRateLimiter[2m > 
+[22mrecordRequest()[2m > [22msets RPD key 
+with NX + EX=86400 then increments
+[31m[1mAssertionError[22m: expected 
+"vi.fn()" to be called with arguments: [ 
+'rl:llama-3.1-8b-instant:day', ÔÇª(2) ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2mÔØ»[22m src/lib/ai/__tests__/rate-l
+imiter.test.ts:[2m206:35[22m[39m
+    [90m204| [39m            
+[35mawait[39m vi[33m.[39m[34mrunAllTimers
+Async[39m()[33m;[39m
+    [90m205| [39m
+    [90m206| [39m            [34mexpect[39
+m(mockRedis[33m.[39m[35mset[39m)[33m.[39
+m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                           
+       [31m^[39m
+    [90m207| [39m                [32m`rl:[
+39m[36m${[39mmodel[33m.[39mid[36m}[39m[
+32m:day`[39m[33m,[39m
+    [90m208| [39m                
+[34m0[39m[33m,[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[13/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/lib/rate-limit/_
+_tests__/user-rate-limiter.test.ts[2m > 
+[22mUser Rate Limiter[2m > [22m1. RPC 
+returns { allowed: true, remaining: 3 } -> 
+passed through correctly
+[31m[1mAssertionError[22m: expected { 
+allowed: false, remaining: +0, ÔÇª(2) } to 
+deeply equal { allowed: true, remaining: 3, 
+ÔÇª(1) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "allowed": true,[39m
+[31m+   "allowed": false,[39m
+[31m+   "error": true,[39m
+[2m    "isAdmin": false,[22m
+[32m-   "remaining": 3,[39m
+[31m+   "remaining": 0,[39m
+[2m  }[22m
+
+[36m [2mÔØ»[22m src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:[2m72:24[22m[39
+m
+    [90m 70| [39m
+    [90m 71| [39m        [35mconst[39m 
+result [33m=[39m [35mawait[39m [34mcheckU
+serRateLimit[39m([32m'user-123'[39m)[33m;
+[39m
+    [90m 72| [39m        
+expect(result).toEqual({ allowed: true, 
+remaining: 3, isAdmin:ÔÇª
+    [90m   | [39m                       
+[31m^[39m
+    [90m 73| [39m        [34mexpect[39m(mo
+ckRpc)[33m.[39m[34mtoHaveBeenCalledWith[39
+m([32m'check_user_rate_limit'[39m[33m,[39m
+ {
+    [90m 74| [39m            
+p_limit[33m:[39m [34m5[39m[33m,[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[14/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/lib/rate-limit/_
+_tests__/user-rate-limiter.test.ts[2m > 
+[22mUser Rate Limiter[2m > [22m2. RPC 
+returns { allowed: false, remaining: 0 } -> 
+correctly blocks the request
+[31m[1mAssertionError[22m: expected { 
+allowed: false, remaining: +0, ÔÇª(2) } to 
+deeply equal { allowed: false, remaining: +0, 
+ÔÇª(1) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[2m    "allowed": false,[22m
+[31m+   "error": true,[39m
+[2m    "isAdmin": false,[22m
+[2m    "remaining": 0,[22m
+[2m  }[22m
+
+[36m [2mÔØ»[22m src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:[2m86:24[22m[39
+m
+    [90m 84| [39m
+    [90m 85| [39m        [35mconst[39m 
+result [33m=[39m [35mawait[39m [34mcheckU
+serRateLimit[39m([32m'user-123'[39m)[33m;
+[39m
+    [90m 86| [39m        
+expect(result).toEqual({ allowed: false, 
+remaining: 0, isAdminÔÇª
+    [90m   | [39m                       
+[31m^[39m
+    [90m 87| [39m    })[33m;[39m
+    [90m 88| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[15/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/lib/rate-limit/_
+_tests__/user-rate-limiter.test.ts[2m > 
+[22mUser Rate Limiter[2m > [22m4. Admin 
+user: bypass check -> always returns { 
+allowed: true, isAdmin: true }
+[31m[1mAssertionError[22m: expected { 
+allowed: false, remaining: +0, ÔÇª(2) } to 
+deeply equal { allowed: true, remaining: 999, 
+ÔÇª(1) }[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "allowed": true,[39m
+[32m-   "isAdmin": true,[39m
+[32m-   "remaining": 999,[39m
+[31m+   "allowed": false,[39m
+[31m+   "error": true,[39m
+[31m+   "isAdmin": false,[39m
+[31m+   "remaining": 0,[39m
+[2m  }[22m
+
+[36m [2mÔØ»[22m src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:[2m109:24[22m[3
+9m
+    [90m107| [39m
+    [90m108| [39m        [35mconst[39m 
+result [33m=[39m [35mawait[39m [34mcheckU
+serRateLimit[39m([32m'admin-456'[39m)[33m;
+[39m
+    [90m109| [39m        
+expect(result).toEqual({ allowed: true, 
+remaining: 999, isAdmiÔÇª
+    [90m   | [39m                       
+[31m^[39m
+    [90m110| [39m    })[33m;[39m
+    [90m111| [39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[16/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/lib/rate-limit/_
+_tests__/user-rate-limiter.test.ts[2m > 
+[22mUser Rate Limiter[2m > [22m7. 
+RATE_LIMIT constant exported and equals 5
+[31m[1mAssertionError[22m: expected 30 to 
+be 5 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 5[39m
+[31m+ 30[39m
+
+[36m [2mÔØ»[22m src/lib/rate-limit/__tests_
+_/user-rate-limiter.test.ts:[2m134:40[22m[3
+9m
+    [90m132| [39m
+    [90m133| [39m    [34mit[39m([32m'7. 
+RATE_LIMIT constant exported and equals 
+5'[39m[33m,[39m () [33m=>[39m {
+    [90m134| [39m        [34mexpect[39m([
+33mRATE_LIMIT[39m[33m.[39m[33mDAILY_LIMIT
+[39m)[33m.[39m[34mtoBe[39m([34m5[39m)[3
+3m;[39m
+    [90m   | [39m                           
+            [31m^[39m
+    [90m135| [39m    })[33m;[39m
+    [90m136| [39m})[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[17/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/app/api/voice/__
+tests__/synthesize.test.ts[2m > 
+[22m/api/voice/synthesize[2m > [22mreturns 
+502 with fallback:browser when Groq model 
+returns error
+[31m[1mAssertionError[22m: expected 503 to 
+be 502 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 502[39m
+[31m+ 503[39m
+
+[36m [2mÔØ»[22m src/app/api/voice/__tests__
+/synthesize.test.ts:[2m135:28[22m[39m
+    [90m133| [39m
+    [90m134| [39m        [35mconst[39m 
+res [33m=[39m [35mawait[39m 
+[33mPOST[39m([34mmakeRequest[39m({ 
+text[33m:[39m [32m'Hello'[39m 
+}))[33m;[39m
+    [90m135| [39m        [34mexpect[39m(re
+s[33m.[39mstatus)[33m.[39m[34mtoBe[39m(
+[34m502[39m)[33m;[39m
+    [90m   | [39m                           
+[31m^[39m
+    [90m136| [39m
+    [90m137| [39m        [35mconst[39m 
+body [33m=[39m [35mawait[39m 
+res[33m.[39m[34mjson[39m()[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[18/19]ÔÄ»[22m[
+39m
+
+[41m[1m FAIL [22m[49m src/app/api/voice/__
+tests__/synthesize.test.ts[2m > 
+[22m/api/voice/synthesize[2m > [22msends 
+the correct Orpheus model name to Groq API
+[31m[1mAssertionError[22m: expected 
+'playai-tts' to be 
+'canopylabs/orpheus-v1-english' // Object.is 
+equality[39m
+
+Expected: 
+[32m"canopylabs/orpheus-v1-english"[39m
+Received: [31m"playai-tts"[39m
+
+[36m [2mÔØ»[22m src/app/api/voice/__tests__
+/synthesize.test.ts:[2m157:32[22m[39m
+    [90m155| [39m
+    [90m156| [39m        [35mconst[39m 
+sentBody [33m=[39m [33mJSON[39m[33m.[39m
+[34mparse[39m(capturedBodies[[34m0[39m])[
+33m;[39m
+    [90m157| [39m        [34mexpect[39m(se
+ntBody[33m.[39mmodel)[33m.[39m[34mtoBe[3
+9m([32m'canopylabs/orpheus-v1-english'[39m)
+[33m;[39m
+    [90m   | [39m                           
+    [31m^[39m
+    [90m158| [39m        [34mexpect[39m(se
+ntBody[33m.[39mresponse_format)[33m.[39m[
+34mtoBe[39m([32m'wav'[39m)[33m;[39m
+    [90m159| [39m    })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[19/19]ÔÄ»[22m[
+39m
+
+
+[2m Test Files [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m63 passed[39m[22m[90m (68)[39m
+[2m      Tests [22m [1m[31m19 failed[39m[22m[2m | [22m[1m[32m654 passed[39m[22m[90m (673)[39m
+[2m   Start at [22m 09:38:22
+[2m   Duration [22m 15.75s[2m (transform 19.16s, setup 0ms, import 72.32s, tests 24.68s, environment 68.38s)[22m
+
