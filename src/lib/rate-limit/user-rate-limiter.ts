@@ -2,7 +2,7 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 30; // ~3 full practice interviews per day
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
 
 export interface RateLimitResult {

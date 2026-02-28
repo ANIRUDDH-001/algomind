@@ -5,8 +5,6 @@ export function validateEnv(): void {
         { key: "NEXT_PUBLIC_SUPABASE_URL", use: "Supabase project URL" },
         { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", use: "Supabase anon key" },
         { key: "SUPABASE_SERVICE_ROLE_KEY", use: "Service role key (NEVER use fallback string for this)" },
-        { key: "UPSTASH_REDIS_REST_URL", use: "Upstash Redis URL" },
-        { key: "UPSTASH_REDIS_REST_TOKEN", use: "Upstash Redis token" },
     ];
 
     for (const { key, use } of criticalVars) {
@@ -20,6 +18,8 @@ export function validateEnv(): void {
         { key: "PISTON_URL", issue: "defaults to public emkc.org endpoint (throttle risk)" },
         { key: "GITHUB_TOKEN", issue: "cron GitHub trigger will fail" },
         { key: "GITHUB_REPO", issue: "cron GitHub trigger will fail" },
+        { key: "UPSTASH_REDIS_REST_URL", issue: "Redis disabled — AI rate limiting degrades to fail-open" },
+        { key: "UPSTASH_REDIS_REST_TOKEN", issue: "Redis disabled — AI rate limiting degrades to fail-open" },
 
     ];
 

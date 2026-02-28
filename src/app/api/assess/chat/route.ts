@@ -35,15 +35,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
         }
 
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!serviceKey) {
-            console.error('[Security] SUPABASE_SERVICE_ROLE_KEY is not set — refusing to verify JWT');
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!jwtSecret) {
+            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify JWT');
             return NextResponse.json(
                 { error: 'Server misconfiguration. Contact administrator.' },
                 { status: 500 }
             );
         }
-        const secret = new TextEncoder().encode(serviceKey);
+        const secret = new TextEncoder().encode(jwtSecret);
 
         // 🔒 Validate candidate JWT securely
         let payload;

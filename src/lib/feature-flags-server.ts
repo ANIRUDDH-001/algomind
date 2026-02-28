@@ -9,7 +9,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { FEATURE_FLAGS, type FeatureFlagKey } from './feature-flags';
 
 const CACHE_PREFIX = 'global_flag:';
-const CACHE_TTL = 30; // seconds — fast propagation
+const CACHE_TTL = 300; // 5 minutes — reduces DB queries by 10x under load
 
 interface GlobalFlag {
     key: string;
