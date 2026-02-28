@@ -160,7 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
         const { error } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+            options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                // Force token_hash flow so magic links work when opened in email
+                // app in-app browsers (which don't share cookies from the main browser,
+                // making PKCE verifier unavailable and causing auth to fail).
+                shouldCreatePKCEVerifier: false,
+            } as any,
         });
         return { error };
     }, [isConfigured]);
