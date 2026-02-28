@@ -194,10 +194,15 @@ function LoginContent() {
                             <input type="email" placeholder="Email address"
                                 value={email} onChange={e => setEmail(e.target.value)}
                                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm" />
-                            <input type="password" placeholder="Password (min 6 chars)"
+                            <input type="password" placeholder="Password (min 10 chars)"
                                 value={password} onChange={e => setPassword(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
                                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm" />
+                            {isSignUp && (
+                                <p className="text-slate-500 text-xs px-1">
+                                    Must be ≥10 chars with uppercase, lowercase, number &amp; symbol (e.g. Algomind2@26)
+                                </p>
+                            )}
                             <button onClick={handleEmailSubmit} disabled={submitting || !email || !password || !isConfigured}
                                 className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 rounded-xl text-white font-bold transition-colors text-sm">
                                 {submitting ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
