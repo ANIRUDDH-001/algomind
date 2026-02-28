@@ -121,7 +121,7 @@ describe('/api/voice/synthesize', () => {
         expect(sentBody.input.length).toBeLessThanOrEqual(4000);
     });
 
-    it('returns 502 with fallback:browser when Groq model returns error', async () => {
+    it('returns 503 with fallback:browser when Groq model returns error', async () => {
         mockGetGlobalFeatureFlag.mockResolvedValue(true);
         process.env.GROQ_API_KEY = 'test-key';
 
@@ -132,7 +132,7 @@ describe('/api/voice/synthesize', () => {
         });
 
         const res = await POST(makeRequest({ text: 'Hello' }));
-        expect(res.status).toBe(502);
+        expect(res.status).toBe(503);
 
         const body = await res.json();
         expect(body.fallback).toBe('browser');
@@ -154,7 +154,7 @@ describe('/api/voice/synthesize', () => {
         await POST(makeRequest({ text: 'Test model name' }));
 
         const sentBody = JSON.parse(capturedBodies[0]);
-        expect(sentBody.model).toBe('canopylabs/orpheus-v1-english');
+        expect(sentBody.model).toBe('playai-tts');
         expect(sentBody.response_format).toBe('wav');
     });
 });

@@ -526,19 +526,20 @@ describe('UnifiedAIClient', () => {
             vi.stubEnv('NEXT_PUBLIC_FF_ENABLE_SMART_ROUTING', 'true');
             (getActiveModels as Mock).mockResolvedValue([groqModel, geminiModel]);
 
+            // Route to 'gemini' — the source only falls back from gemini → groq
             mockClassifier.classify.mockResolvedValue({
-                complexity: 'simple',
-                category: 'greeting',
+                complexity: 'complex',
+                category: 'coding',
                 confidence: 0.95,
-                suggestedModel: 'groq',
+                suggestedModel: 'gemini',
             });
 
-            // Groq fails (rate limited), Gemini succeeds
+            // Gemini fails (rate limited), Groq succeeds
             mockRateLimiter.canUseModel
-                .mockResolvedValueOnce({ allowed: false })   // groq blocked
-                .mockResolvedValueOnce({ allowed: true, model: geminiModel }); // gemini allowed
+                .mockResolvedValueOnce({ allowed: false })   // gemini blocked
+                .mockResolvedValueOnce({ allowed: true, model: groqModel }); // groq allowed
 
-            mockFetchGeminiSuccess('Gemini fallback');
+            mockFetchGroqSuccess('Groq fallback');
 
             const result = await client.generateResponse(userMessages, { preferredModel: 'auto' });
             expect(result.success).toBe(true);
