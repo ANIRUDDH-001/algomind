@@ -1,7 +1,6 @@
 import { ModelConfig, CHAT_MODELS } from './providers';
 import { redisGet, redisSet, redisDel } from '../upstash/client';
 import { logSystemEvent } from '../monitoring/events';
-import { getServiceClient } from '@/lib/supabase/service';
 
 const CACHE_KEY = 'model_registry_v2';
 const CACHE_TTL_SECONDS = 3600; // 1 hour
@@ -42,9 +41,17 @@ export async function getActiveModels(): Promise<ModelConfig[]> {
     }
 
     // 2. Query Supabase Database
-    if (typeof window === 'undefined') { // Server-side only
-        try {
-            const supabase = getServiceClient();
+    try {
+        let supabase;
+        if (typeof window === 'undefined') { // Server-side
+            const { getServiceClient } = await import('@/lib/supabase/service');
+            supabase = getServiceClient();
+        } else { // Client-side
+            const { getSupabase } = await import('@/lib/supabase/client');
+            supabase = getSupabase();
+        }
+
+        if (supabase) {
             try {
                 const { data, error } = await supabase
                     .from('model_registry')
@@ -97,8 +104,8 @@ export async function getActiveModels(): Promise<ModelConfig[]> {
                     }
                 });
             }
-        } catch { /* missing env vars — skip DB */ }
-    }
+        }
+    } catch { /* missing env vars — skip DB */ }
 
     // 5. Fallback to static CHAT_MODELS
     console.warn('Falling back to static CHAT_MODELS configuration.');
@@ -115,8 +122,9 @@ export async function markModelDeprecated(modelId: string, reason: string): Prom
         return; // Client-side guard
     }
 
-    let supabase: ReturnType<typeof getServiceClient>;
+    let supabase;
     try {
+        const { getServiceClient } = await import('@/lib/supabase/service');
         supabase = getServiceClient();
     } catch {
         return; // Missing env vars — silently skip

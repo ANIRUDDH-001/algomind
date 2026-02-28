@@ -21,10 +21,11 @@ export async function GET() {
 
         if (profile?.account_type !== 'owner') {
             // Also check co_owners
+            const emailClause = user.email ? `,email.eq.${user.email}` : '';
             const { data: coOwner } = await supabase
                 .from('co_owners')
                 .select('id')
-                .eq('user_id', user.id)
+                .or(`user_id.eq.${user.id}${emailClause}`)
                 .limit(1)
                 .maybeSingle();
 

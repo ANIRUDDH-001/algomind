@@ -14,11 +14,12 @@ export async function GET() {
     // Test CF Worker (or direct URL)
     try {
         const controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const res = await fetch(`${supabaseUrl}/auth/v1/health`, {
             headers: { apikey: anonKey! },
             signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         results.proxy = { reachable: true, status: res.status, url: supabaseUrl };
     } catch (err) {
         results.proxy = { reachable: false, error: String(err), url: supabaseUrl };
@@ -28,11 +29,12 @@ export async function GET() {
     if (directUrl && directUrl !== supabaseUrl) {
         try {
             const controller = new AbortController();
-            setTimeout(() => controller.abort(), 5000);
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             const res = await fetch(`${directUrl}/auth/v1/health`, {
                 headers: { apikey: anonKey! },
                 signal: controller.signal,
             });
+            clearTimeout(timeoutId);
             results.direct = { reachable: true, status: res.status };
         } catch (err) {
             results.direct = { reachable: false, error: String(err) };

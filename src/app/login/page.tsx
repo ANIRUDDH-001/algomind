@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -27,9 +26,7 @@ function LoginContent() {
     useEffect(() => {
         if (user) {
             const urlRedirect = searchParams.get('redirect');
-            const storedRedirect = typeof window !== 'undefined' ? sessionStorage.getItem('redirectAfterLogin') : null;
-            const target = urlRedirect || storedRedirect || '/dashboard';
-            if (typeof window !== 'undefined') sessionStorage.removeItem('redirectAfterLogin');
+            const target = urlRedirect || '/dashboard';
             router.push(target);
         }
     }, [user, router, searchParams]);
