@@ -41,28 +41,44 @@ const allModels = [model];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function makeRedisMock(overrides: {
-    rpmStr?: string | null;
-    dayStr?: string | null;
+/**
+ * Build a mock redis object that matches the source's usage:
+ *   - mget(...keys) — for cooldown checks
+ *   - incr(key) — atomic RPM/RPD increment
+ *   - expire(key, seconds) — set TTL after first incr
+ *   - decr(key) — rollback on limit exceeded
+ *   - set(key, value, opts) — used by recordRequest (legacy, now noop)
+ *   - del(...keys) — used by resetModel
+ */
+function buildRedisMock(overrides: {
     mgetValues?: (string | null)[];
-}) {
-    const { getRedis, redisGet } = await import('@/lib/upstash/client');
+    incrRpmValue?: number;
+    incrDayValue?: number;
+} = {}) {
+    const mgetValues = overrides.mgetValues ?? [null, null, null, null, null];
+    let rpmIncrCall = 0;
+    let dayIncrCall = 0;
+    const rpmValue = overrides.incrRpmValue ?? 1;
+    const dayValue = overrides.incrDayValue ?? 1;
 
-    const mockRedis = {
-        mget: vi.fn().mockResolvedValue(overrides.mgetValues ?? [null, null, null, null, null]),
+    return {
+        mget: vi.fn().mockResolvedValue(mgetValues),
+        incr: vi.fn().mockImplementation((key: string) => {
+            if (key.includes(':rpm')) {
+                rpmIncrCall++;
+                return Promise.resolve(rpmValue);
+            }
+            if (key.includes(':day')) {
+                dayIncrCall++;
+                return Promise.resolve(dayValue);
+            }
+            return Promise.resolve(1);
+        }),
+        expire: vi.fn().mockResolvedValue(1),
+        decr: vi.fn().mockResolvedValue(0),
         set: vi.fn().mockResolvedValue('OK'),
-        incr: vi.fn().mockResolvedValue(1),
-        del: vi.fn().mockResolvedValue(1),
+        del: vi.fn().mockResolvedValue(7),
     };
-
-    (getRedis as Mock).mockReturnValue(mockRedis);
-    (redisGet as Mock).mockImplementation(async (key: string) => {
-        if (key.includes(':rpm')) return overrides.rpmStr ?? null;
-        if (key.includes(':day')) return overrides.dayStr ?? null;
-        return null;
-    });
-
-    return { mockRedis };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -87,7 +103,7 @@ describe('IntelligentRateLimiter', () => {
 
     describe('canUseModel()', () => {
         it('returns allowed=false with reason "model_not_found" for unknown model', async () => {
-            await makeRedisMock({});
+            getRedis.mockReturnValue(buildRedisMock());
             const result = await limiter.canUseModel('unknown-model', allModels);
             expect(result.allowed).toBe(false);
             expect(result.reason).toBe('model_not_found');
@@ -101,27 +117,45 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('returns allowed=true when all counters are zero (fresh state)', async () => {
-            await makeRedisMock({ rpmStr: null, dayStr: null, mgetValues: [null, null, null, null, null] });
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 1,
+                incrDayValue: 1,
+            }));
             const result = await limiter.canUseModel(model.id, allModels);
             expect(result.allowed).toBe(true);
             expect(result.model).toBeDefined();
         });
 
         it('returns allowed=false with reason "rpm_limit" when rpm is at limit', async () => {
-            await makeRedisMock({ rpmStr: '30', dayStr: '0', mgetValues: [null, null, null, null, null] });
+            // rpm incr returns 31 (> model.rpm of 30)
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 31,
+                incrDayValue: 1,
+            }));
             const result = await limiter.canUseModel(model.id, allModels);
             expect(result.allowed).toBe(false);
             expect(result.reason).toBe('rpm_limit');
         });
 
         it('allows when rpm is below limit', async () => {
-            await makeRedisMock({ rpmStr: '15', dayStr: '0', mgetValues: [null, null, null, null, null] });
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 15,
+                incrDayValue: 1,
+            }));
             const result = await limiter.canUseModel(model.id, allModels);
             expect(result.allowed).toBe(true);
         });
 
         it('returns allowed=false with reason "rpd_limit" when daily limit is reached', async () => {
-            await makeRedisMock({ rpmStr: '0', dayStr: '1000', mgetValues: [null, null, null, null, null] });
+            // day incr returns 1001 (> model.rpd of 1000)
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 1,
+                incrDayValue: 1001,
+            }));
             const result = await limiter.canUseModel(model.id, allModels);
             expect(result.allowed).toBe(false);
             expect(result.reason).toBe('rpd_limit');
@@ -129,15 +163,16 @@ describe('IntelligentRateLimiter', () => {
 
         it('returns allowed=false with reason "cooldown" when any cooldown key is active', async () => {
             // Second cooldown tier is active (index 1)
-            await makeRedisMock({ mgetValues: [null, 'true', null, null, null] });
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: [null, 'true', null, null, null],
+            }));
             const result = await limiter.canUseModel(model.id, allModels);
             expect(result.allowed).toBe(false);
             expect(result.reason).toBe('cooldown');
         });
 
         it('fails open when Redis throws an error', async () => {
-            const { getRedis: getR } = await import('@/lib/upstash/client');
-            (getR as Mock).mockReturnValue({
+            getRedis.mockReturnValue({
                 mget: vi.fn().mockRejectedValue(new Error('Redis connection refused')),
             });
             const result = await limiter.canUseModel(model.id, allModels);
@@ -145,16 +180,8 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('checks cooldown keys for all 5 tier levels', async () => {
-            const { getRedis: getR } = await import('@/lib/upstash/client');
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue([null, null, null, null, null]),
-                set: vi.fn().mockResolvedValue('OK'),
-                incr: vi.fn().mockResolvedValue(1),
-                del: vi.fn().mockResolvedValue(1),
-            };
-            const { redisGet } = await import('@/lib/upstash/client');
-            (getR as Mock).mockReturnValue(mockRedis);
-            (redisGet as Mock).mockResolvedValue(null);
+            const mockRedis = buildRedisMock();
+            getRedis.mockReturnValue(mockRedis);
 
             await limiter.canUseModel(model.id, allModels);
             expect(mockRedis.mget).toHaveBeenCalledWith(
@@ -175,49 +202,13 @@ describe('IntelligentRateLimiter', () => {
             expect(() => limiter.recordRequest(model.id, 100)).not.toThrow();
         });
 
-        it('sets RPM key with NX + EX=65 then increments', async () => {
-            const mockRedis = {
-                set: vi.fn().mockResolvedValue('OK'),
-                incr: vi.fn().mockResolvedValue(1),
-            };
+        it('does not throw when Redis is available (now a no-op)', async () => {
+            const mockRedis = buildRedisMock();
             getRedis.mockReturnValue(mockRedis);
 
             limiter.recordRequest(model.id, 100);
-            // Allow microtask queue to flush
             await vi.runAllTimersAsync();
-
-            expect(mockRedis.set).toHaveBeenCalledWith(
-                `rl:${model.id}:rpm`,
-                0,
-                { nx: true, ex: 65 }
-            );
-        });
-
-        it('sets RPD key with NX + EX=86400 then increments', async () => {
-            const mockRedis = {
-                set: vi.fn().mockResolvedValue('OK'),
-                incr: vi.fn().mockResolvedValue(1),
-            };
-            getRedis.mockReturnValue(mockRedis);
-
-            limiter.recordRequest(model.id, 0);
-            await vi.runAllTimersAsync();
-
-            expect(mockRedis.set).toHaveBeenCalledWith(
-                `rl:${model.id}:day`,
-                0,
-                { nx: true, ex: 86400 }
-            );
-        });
-
-        it('silently swallows Redis errors without throwing', async () => {
-            const mockRedis = {
-                set: vi.fn().mockRejectedValue(new Error('Write failed')),
-                incr: vi.fn(),
-            };
-            getRedis.mockReturnValue(mockRedis);
-            expect(() => limiter.recordRequest(model.id, 0)).not.toThrow();
-            await vi.runAllTimersAsync();
+            // recordRequest is now a no-op since canUseModel handles atomically
         });
     });
 
@@ -226,7 +217,7 @@ describe('IntelligentRateLimiter', () => {
     describe('recordFailure()', () => {
         it('calls markModelDeprecated on 404 error and does not set cooldown', async () => {
             const { markModelDeprecated } = await import('../model-registry');
-            getRedis.mockReturnValue({ mget: vi.fn().mockResolvedValue([null]) });
+            getRedis.mockReturnValue(buildRedisMock());
 
             await limiter.recordFailure(model.id, new Error('Model not found (404)'));
 
@@ -237,11 +228,7 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('sets cooldown tier 0 on first 429 error', async () => {
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue([null, null, null, null, null]),
-                set: vi.fn().mockResolvedValue('OK'),
-                incr: vi.fn().mockResolvedValue(1),
-            };
+            const mockRedis = buildRedisMock({ mgetValues: [null, null, null, null, null] });
             getRedis.mockReturnValue(mockRedis);
             const { redisSet } = await import('@/lib/upstash/client');
 
@@ -256,10 +243,7 @@ describe('IntelligentRateLimiter', () => {
 
         it('escalates to higher cooldown tier when a lower tier is already active', async () => {
             // Tier 0 is already active, so we should escalate to tier 1 (10 min)
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue(['true', null, null, null, null]),
-                set: vi.fn().mockResolvedValue('OK'),
-            };
+            const mockRedis = buildRedisMock({ mgetValues: ['true', null, null, null, null] });
             getRedis.mockReturnValue(mockRedis);
             const { redisSet } = await import('@/lib/upstash/client');
 
@@ -273,10 +257,7 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('caps cooldown at tier 4 (max) even when many tiers are active', async () => {
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue(['true', 'true', 'true', 'true', 'true']),
-                set: vi.fn().mockResolvedValue('OK'),
-            };
+            const mockRedis = buildRedisMock({ mgetValues: ['true', 'true', 'true', 'true', 'true'] });
             getRedis.mockReturnValue(mockRedis);
             const { redisSet } = await import('@/lib/upstash/client');
 
@@ -291,10 +272,7 @@ describe('IntelligentRateLimiter', () => {
 
         it('logs model_429 event via logSystemEvent on rate limit error', async () => {
             const { logSystemEvent } = await import('@/lib/monitoring/events');
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue([null, null, null, null, null]),
-                set: vi.fn().mockResolvedValue('OK'),
-            };
+            const mockRedis = buildRedisMock({ mgetValues: [null, null, null, null, null] });
             getRedis.mockReturnValue(mockRedis);
 
             await limiter.recordFailure(model.id, new Error('429 Too Many Requests'));
@@ -315,10 +293,7 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('handles rate limit detection from string "quota" keyword', async () => {
-            const mockRedis = {
-                mget: vi.fn().mockResolvedValue([null, null, null, null, null]),
-                set: vi.fn().mockResolvedValue('OK'),
-            };
+            const mockRedis = buildRedisMock({ mgetValues: [null, null, null, null, null] });
             getRedis.mockReturnValue(mockRedis);
             const { redisSet } = await import('@/lib/upstash/client');
 
@@ -347,7 +322,7 @@ describe('IntelligentRateLimiter', () => {
 
     describe('resetModel()', () => {
         it('deletes rpm, day, and all 5 cooldown keys', () => {
-            const mockRedis = { del: vi.fn().mockResolvedValue(7) };
+            const mockRedis = buildRedisMock();
             getRedis.mockReturnValue(mockRedis);
 
             limiter.resetModel(model.id);
@@ -375,7 +350,12 @@ describe('IntelligentRateLimiter', () => {
         it('returns first allowed model sorted by tier', async () => {
             const tier1: ModelConfig = { ...model, id: 'tier1', tier: 1 };
             const tier2: ModelConfig = { ...model, id: 'tier2', tier: 2 };
-            await makeRedisMock({ rpmStr: '0', dayStr: '0', mgetValues: [null, null, null, null, null] });
+            const mockRedis = buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 1,
+                incrDayValue: 1,
+            });
+            getRedis.mockReturnValue(mockRedis);
 
             const result = await limiter.getAvailableModel([tier2, tier1]);
             expect(result.allowed).toBe(true);
@@ -383,7 +363,9 @@ describe('IntelligentRateLimiter', () => {
         });
 
         it('returns allowed=false when all models are blocked', async () => {
-            await makeRedisMock({ mgetValues: ['true', null, null, null, null] });
+            getRedis.mockReturnValue(buildRedisMock({
+                mgetValues: ['true', null, null, null, null],
+            }));
             const result = await limiter.getAvailableModel([model]);
             expect(result.allowed).toBe(false);
             expect(result.waitMs).toBeGreaterThan(0);
@@ -392,7 +374,12 @@ describe('IntelligentRateLimiter', () => {
         it('filters candidates by preferredTier', async () => {
             const tier1: ModelConfig = { ...model, id: 'tier1', tier: 1 };
             const tier3: ModelConfig = { ...model, id: 'tier3', tier: 3 };
-            await makeRedisMock({ rpmStr: '0', dayStr: '0', mgetValues: [null, null, null, null, null] });
+            const mockRedis = buildRedisMock({
+                mgetValues: [null, null, null, null, null],
+                incrRpmValue: 1,
+                incrDayValue: 1,
+            });
+            getRedis.mockReturnValue(mockRedis);
 
             const result = await limiter.getAvailableModel([tier1, tier3], 3);
             expect(result.allowed).toBe(true);
