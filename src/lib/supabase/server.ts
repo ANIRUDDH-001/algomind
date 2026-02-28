@@ -5,10 +5,14 @@ import { cookies } from 'next/headers';
 export async function createServerSupabase(): Promise<SupabaseClient> {
     const cookieStore = await cookies();
 
-    // Server-side uses SUPABASE_DIRECT_URL (real Supabase URL, not CF Worker).
-    // Vercel servers are not affected by Indian ISP DNS blocks.
-    // SUPABASE_DIRECT_URL is a server-only env var — never sent to the browser.
-    const supabaseUrl = process.env.SUPABASE_DIRECT_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    // ⚠️ CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client) here.
+    // Supabase SSR derives the cookie name from the project URL.
+    // If server uses SUPABASE_DIRECT_URL (wfdgsmhuglmrxcmwcylz.supabase.co) and
+    // client uses NEXT_PUBLIC_SUPABASE_URL (algomind-supabase.workers.dev),
+    // they produce DIFFERENT cookie names → server can never read client session.
+    // Fix: use the same URL everywhere so cookie names always match.
+    // The CF Worker is reachable from Vercel servers (it's globally accessible).
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
     return createServerClient(
         supabaseUrl,
@@ -35,6 +39,7 @@ export async function createServerSupabase(): Promise<SupabaseClient> {
 // Service-role client for admin operations (bypasses RLS)
 export async function createServiceRoleSupabase(): Promise<SupabaseClient> {
     const { createClient } = await import('@supabase/supabase-js');
+    // Service role client uses direct URL (no cookie auth, purely JWT-based)
     const supabaseUrl = process.env.SUPABASE_DIRECT_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
     return createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
