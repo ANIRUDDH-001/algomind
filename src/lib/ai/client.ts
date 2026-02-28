@@ -494,9 +494,9 @@ export class UnifiedAIClient {
             category: options.category,
         });
 
-        // Fallback: if routed provider failed, try the alternate
-        if (!result.success) {
-            const fallbackProvider = routedTo === 'groq' ? 'gemini' : 'groq';
+        // Fallback: if routed provider failed, try the alternate (only if it was gemini)
+        if (!result.success && routedTo === 'gemini') {
+            const fallbackProvider = 'groq';
             console.warn(
                 `⚠️ [SmartRouting] ${routedTo} failed, falling back to ${fallbackProvider}`
             );
