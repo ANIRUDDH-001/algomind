@@ -26,8 +26,9 @@ function mockSupabaseResponse(data: any, error: any = null) {
     const maybeSingleMock = vi.fn().mockResolvedValue({ data, error });
     const limitMock = vi.fn().mockResolvedValue({ data, error });
     const orderMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const orMock = vi.fn().mockReturnValue({ order: orderMock });
     const lteMock = vi.fn().mockReturnValue({ order: orderMock });
-    const eqMock = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock }), lte: lteMock, maybeSingle: maybeSingleMock });
+    const eqMock = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock }), lte: lteMock, maybeSingle: maybeSingleMock, or: orMock });
     const selectMock = vi.fn().mockReturnValue({ eq: eqMock });
     const fromMock = vi.fn().mockReturnValue({ select: selectMock });
 
@@ -50,9 +51,10 @@ describe('Spaced Repetition Server Actions', () => {
     describe('upsertSpacedRepetition', () => {
         it('should call addToQueue and read back the new record', async () => {
             const mockDbData = {
-                next_review_date: '2026-02-26',
-                interval_days: 1,
+                next_review: '2026-02-26',
+                interval: 1,
                 repetitions: 1,
+                use_fsrs: false,
             };
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(mockDbData));
             (addToQueue as any).mockResolvedValue(undefined);
@@ -99,17 +101,19 @@ describe('Spaced Repetition Server Actions', () => {
                     problem_id: 'p1',
                     problem_title: 'Title 1',
                     problem_difficulty: 'easy',
-                    next_review_date: '2026-02-25',
+                    next_review: '2026-02-25',
                     repetitions: 2,
                     last_quality: 4,
+                    use_fsrs: false,
                 },
                 {
                     problem_id: 'p2',
                     problem_title: 'Title 2',
                     problem_difficulty: 'hard',
-                    next_review_date: '2026-02-26',
+                    next_review: '2026-02-26',
                     repetitions: 1,
                     last_quality: 3,
+                    use_fsrs: false,
                 },
             ];
 
@@ -143,10 +147,11 @@ describe('Spaced Repetition Server Actions', () => {
     describe('getSpacedRepForProblem', () => {
         it('should return the SM2 record for a user and problem', async () => {
             const mockDbData = {
-                interval_days: 6,
-                next_review_date: '2026-03-03',
+                interval: 6,
+                next_review: '2026-03-03',
                 repetitions: 2,
                 ease_factor: 2.6,
+                use_fsrs: false,
             };
 
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(mockDbData));

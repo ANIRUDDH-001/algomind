@@ -1,5 +1,5 @@
-import CacheStatsClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function AdminCacheStatsPage() {
-    return <CacheStatsClient />;
+export default function CacheStatsPage() {
+    redirect('/owner?tab=cache');
 }

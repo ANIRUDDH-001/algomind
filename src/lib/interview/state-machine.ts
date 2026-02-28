@@ -53,7 +53,10 @@ export class InterviewStateMachine {
                 break;
 
             case 'ai-feedback':
-                if (event === 'AI_FINISHED_SPEAKING') this.state = 'user-solving'; // Back to solving
+                if (event === 'AI_FINISHED_SPEAKING') this.state = 'user-solving';
+                if (event === 'USER_FINISHED_SPEAKING') this.state = 'ai-feedback'; // User responds mid-feedback → re-evaluate
+                if (event === 'SUBMIT_SOLUTION') this.state = 'solution-review';    // User submits final solution
+                if (event === 'FINISH_INTERVIEW') this.state = 'assessment';         // Force end (end button)
                 break;
 
             case 'solution-review':

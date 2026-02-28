@@ -8,12 +8,12 @@ export function getRemainingSeconds(state: QuestionState): number {
     if (state.status === 'completed' || state.status === 'time_expired') return 0;
     if (!state.started_at) return totalSecs;
 
-    const startedAt = new Date(state.started_at).getTime();
     const nowMs = Date.now();
-    const elapsed = Math.floor((nowMs - startedAt) / 1000) + (state.elapsed_secs || 0);
-    // NOTE: elapsed_secs stores paused time before this session; 
-    // time since started_at is live elapsed
-    return Math.max(0, totalSecs - elapsed);
+    const startedAt = new Date(state.started_at).getTime();
+    const currentSessionElapsed = Math.floor((nowMs - startedAt) / 1000);
+    const previousElapsed = state.elapsed_secs || 0; // Time accumulated before current session
+    const totalElapsed = currentSessionElapsed + previousElapsed;
+    return Math.max(0, totalSecs - totalElapsed);
 }
 
 export function getDefaultTimeMins(difficulty: string, campaign: Pick<CampaignData, 'default_easy_mins' | 'default_medium_mins' | 'default_hard_mins'>): number {

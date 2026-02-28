@@ -187,4 +187,4 @@ The system demonstrated excellent resilience and security posture under load.
    - The Cloudflare proxy to Supabase runs with near **100% uptime and <160ms average latency** handling up to 70 requests per second.
    - The Supabase database effortlessly handles 50 concurrent virtual users querying directly with 100% success rate.
 3. **Abuse Protection:** Heavy application-layer AI loads trigger aggressive rate limits exactly as intended, protecting the underlying AI model quotas (Gemini/Groq) from being exhausted by malicious traffic while keeping the application online.
-4. **External Services:** Redis/Upstash connection endpoints respond with expected latency. Groq Chat API connectivity works perfectly; however, Groq TTS is currently broken due to a hardcoded decommissioned model (`playai-tts`) and needs administrative correction.a
+4. **External Services:** Redis/Upstash connection endpoints respond with expected latency. Groq Chat API connectivity works perfectly; however, Groq TTS is currently broken due to a hardcoded decommissioned model (`playai-tts`) and needs administrative correction.

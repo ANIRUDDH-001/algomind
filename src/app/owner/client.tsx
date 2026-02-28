@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Users, Flag, Shield, Settings, Briefcase,
-    Activity, Key, LayoutGrid
+    Activity, Key, LayoutGrid, Database, BookOpen, Mic, BarChart2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // We'll extract tab contents into separate components for maintainability
@@ -15,6 +15,13 @@ import { CoOwnersTab } from './tabs/co-owners-tab';
 import { RateLimitsTab } from './tabs/rate-limits-tab';
 import { AdminsTab } from './tabs/admins-tab';
 import { EmployersTab } from './tabs/employers-tab';
+import { ModelsTab } from './tabs/models-tab';
+import { CacheTab } from './tabs/cache-tab';
+import { KnowledgeTab } from './tabs/knowledge-tab';
+import { VoiceDebugTab } from './tabs/voice-debug-tab';
+import { AnalyticsTab } from './tabs/analytics-tab';
+import { AIStatusTab } from './tabs/ai-status-tab';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export interface OwnerDashboardProps {
     stats: { totalUsers: number; totalAdmins: number; totalEmployers: number };
@@ -27,17 +34,31 @@ export interface OwnerDashboardProps {
 
 const TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
-    { id: 'users', label: 'Users', icon: Users },
     { id: 'flags', label: 'Feature Flags', icon: Flag },
-    { id: 'co-owners', label: 'Co-Owners', icon: Key },
+    { id: 'models', label: 'Models', icon: Activity },
+    { id: 'cache', label: 'Cache & Redis', icon: Database },
+    { id: 'rag', label: 'RAG Knowledge', icon: BookOpen },
+    { id: 'voice-debug', label: 'Voice Debug', icon: Mic },
+    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+    { id: 'ai-status', label: 'AI Status', icon: Activity },
     { id: 'limits', label: 'Rate Limits', icon: Activity },
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'co-owners', label: 'Co-Owners', icon: Key },
     { id: 'admins', label: 'Admins', icon: Shield },
     { id: 'employers', label: 'Employers', icon: Briefcase },
     { id: 'settings', label: 'Config', icon: Settings },
 ];
 
 export function OwnerDashboardClient(props: OwnerDashboardProps) {
-    const [activeTab, setActiveTab] = useState('overview');
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const tabFromUrl = searchParams.get('tab') || 'overview';
+    const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        router.replace(`/owner?tab=${tab}`, { scroll: false });
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-6 lg:p-10">
@@ -65,7 +86,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                                 return (
                                     <button
                                         key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
+                                        onClick={() => handleTabChange(tab.id)}
                                         className={cn(
                                             "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-sm whitespace-nowrap",
                                             isActive
@@ -90,6 +111,12 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                         {activeTab === 'limits' && <RateLimitsTab />}
                         {activeTab === 'admins' && <AdminsTab />}
                         {activeTab === 'employers' && <EmployersTab />}
+                        {activeTab === 'models' && <ModelsTab />}
+                        {activeTab === 'cache' && <CacheTab />}
+                        {activeTab === 'rag' && <KnowledgeTab />}
+                        {activeTab === 'voice-debug' && <VoiceDebugTab />}
+                        {activeTab === 'analytics' && <AnalyticsTab />}
+                        {activeTab === 'ai-status' && <AIStatusTab />}
                         {activeTab === 'settings' && (
                             <Card className="p-8 text-center text-zinc-500 border-dashed border-zinc-800 bg-transparent">
                                 <Settings className="w-12 h-12 mx-auto mb-4 opacity-20" />

@@ -168,17 +168,8 @@ export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
         rpd: 1000,
         dimensions: 768,
         description: "Gemini Embedding 1 - primary embeddings provider"
-    },
-    {
-        id: "Xenova/all-MiniLM-L6-v2",
-        provider: 'local',
-        tier: 999,
-        rpm: Number.MAX_SAFE_INTEGER,
-        tpm: Number.MAX_SAFE_INTEGER,
-        rpd: Number.MAX_SAFE_INTEGER,
-        dimensions: 384,
-        description: "HuggingFace all-MiniLM-L6-v2 (local fallback, dev only) via @huggingface/transformers"
-    },
+    }
+    // Xenova/all-MiniLM-L6-v2 removed as local huggingface fallback is defunct
 ];
 
 // Get model by ID

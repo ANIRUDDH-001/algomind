@@ -65,6 +65,15 @@ export function useInterview(options: {
     const [isProcessing, setIsProcessing] = useState(false);
     const [autoSubmitEnabled, setAutoSubmitEnabled] = useState(true);
 
+    // Interview limits
+    const [roundCount, setRoundCount] = useState(0);           // Number of completed AI response rounds
+    const [interviewStartTime, setInterviewStartTime] = useState<number | null>(null); // Unix ms
+    const [isLimitReached, setIsLimitReached] = useState(false);
+    const [limitReason, setLimitReason] = useState<'rounds' | 'time' | null>(null);
+
+    const INTERVIEW_MAX_ROUNDS = 20;
+    const INTERVIEW_MAX_MS = 10 * 60 * 1000; // 10 minutes
+
     // Problem Context helper ref
     const currentProblemRef = useRef<ProblemContext | null>(null);
     const pendingAutoSubmitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,6 +138,27 @@ export function useInterview(options: {
 
     const isProcessingRef = useRef(false);
     useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+
+    // Time limit enforcement: check every 30 seconds
+    useEffect(() => {
+        if (!interviewStartTime || isLimitReached || state === 'idle' || state === 'completed') return;
+
+        const interval = setInterval(() => {
+            const elapsedMs = Date.now() - interviewStartTime;
+            if (elapsedMs >= INTERVIEW_MAX_MS) {
+                setIsLimitReached(true);
+                setLimitReason('time');
+                clearInterval(interval);
+                // Stop mic and transition
+                setIsMicEnabled(false);
+                stopListening();
+                stateMachine.current.transition('SUBMIT_SOLUTION');
+                setState(stateMachine.current.getState());
+            }
+        }, 30_000);
+
+        return () => clearInterval(interval);
+    }, [interviewStartTime, isLimitReached, state, stopListening]);
 
     const fetchWithRetry = useCallback(async (url: string, fetchOptions: RequestInit, retries = 3, backoff = 1000): Promise<{ response: string } | any> => {
         const runFetch = async (currentRetries: number, currentBackoff: number): Promise<any> => {
@@ -217,9 +247,8 @@ export function useInterview(options: {
         stateMachine.current.transition('USER_FINISHED_SPEAKING');
         setState(stateMachine.current.getState());
 
-        const methodHistory = conversationHistoryRef.current
-            .map(m => `${m.role.toUpperCase()}: ${m.content}`)
-            .join('\n');
+        // Conversation history is passed via messages[] array, not embedded in prompt text
+        const methodHistory = ''; // No longer embedded in prompt (was causing duplicate context)
 
         // Check for recent interrupted AI message → inject context
         const lastInterrupted = conversationHistoryRef.current
@@ -237,7 +266,7 @@ export function useInterview(options: {
             problemContent: problemContext.content,
             transcript: userText,
             conversationHistory: methodHistory,
-            ragContext: "__FETCH_VIA_RAG__", // Flag for API to do its magic
+            ragContext: '', // Chat API performs live RAG lookup — do not pass literal string here
             interruptionContext: interruptionCtx,
         });
 
@@ -259,13 +288,31 @@ export function useInterview(options: {
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
+
+            // Increment round count and check limits
+            const newRoundCount = roundCount + 1;
+            setRoundCount(newRoundCount);
+
+            const elapsedMs = interviewStartTime ? Date.now() - interviewStartTime : 0;
+            const roundLimitHit = newRoundCount >= INTERVIEW_MAX_ROUNDS;
+            const timeLimitHit = elapsedMs >= INTERVIEW_MAX_MS;
+
+            if (roundLimitHit || timeLimitHit) {
+                setIsLimitReached(true);
+                setLimitReason(roundLimitHit ? 'rounds' : 'time');
+                // Auto-transition to solution-review after short delay
+                setTimeout(() => {
+                    stateMachine.current.transition('SUBMIT_SOLUTION');
+                    setState(stateMachine.current.getState());
+                }, 1500); // Give time for TTS to finish current sentence
+            }
         } catch (e) {
             console.error('❌ [ERROR] Failed to process user response:', e);
             addMessage({ id: generateMessageId(), role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date(), status: 'complete' });
         } finally {
             setIsProcessing(false);
         }
-    }, [stopListening, addMessage, resetTranscript, callChatApi, speak]);
+    }, [stopListening, addMessage, resetTranscript, callChatApi, speak, roundCount, interviewStartTime]);
 
     // Mic Intent State
     const [isMicEnabled, setIsMicEnabled] = useState(false);
@@ -309,6 +356,13 @@ export function useInterview(options: {
         difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint',
         difficulty?: 'easy' | 'medium' | 'hard'
     ) => {
+        // Reset state machine if restarting after completion
+        if (stateMachine.current.getState() === 'completed') {
+            stateMachine.current.reset();
+        }
+        // Reset conversation history for fresh interview
+        conversationHistoryRef.current = [];
+        setMessages([]);
         currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory, problemId, difficultyMode, difficulty };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
@@ -334,6 +388,11 @@ export function useInterview(options: {
             conversationHistory: '',
             ragContext: ragContext || ''
         });
+
+        setRoundCount(0);
+        setInterviewStartTime(Date.now());
+        setIsLimitReached(false);
+        setLimitReason(null);
 
         setIsProcessing(true);
         try {
@@ -379,10 +438,12 @@ export function useInterview(options: {
 
     // Test Hook: Expose trigger for Playwright
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-
+        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
                 submitUserResponse(message, currentProblemRef.current || { title: 'Test', content: 'Test' });
+            };
+            return () => {
+                delete (window as any).__TRIGGER_AI_CALL__;
             };
         }
     }, [submitUserResponse]);
@@ -495,6 +556,11 @@ export function useInterview(options: {
         setIsProcessing(false);
         setIsMicEnabled(false); // Disable mic on reset
         stopListening();
+        // Reset limits
+        setRoundCount(0);
+        setInterviewStartTime(null);
+        setIsLimitReached(false);
+        setLimitReason(null);
     }, [resetTranscript, stopListening]);
 
     const toggleMic = useCallback(() => {
@@ -524,6 +590,9 @@ export function useInterview(options: {
                 lastAiMsg.content.length,
             );
 
+            // STOP SPEAKING BEFORE RECORDING INTERRUPTION
+            stopSpeaking();
+
             // Update the message in both state and ref
             const updated: Message = {
                 ...lastAiMsg,
@@ -547,6 +616,15 @@ export function useInterview(options: {
         });
     }, []);
 
+    const endInterview = useCallback(() => {
+        if (roundCount < 1) return; // Minimum 1 round required
+        setIsMicEnabled(false);
+        stopListening();
+        stopSpeaking();
+        stateMachine.current.transition('SUBMIT_SOLUTION');
+        setState(stateMachine.current.getState());
+    }, [roundCount, stopListening, stopSpeaking]);
+
     return {
         state,
         messages,
@@ -555,6 +633,11 @@ export function useInterview(options: {
         resetInterview,
         submitUserResponse,
         handleInterruption,
+        endInterview,
+        roundCount,
+        interviewStartTime,
+        isLimitReached,
+        limitReason,
         autoSubmitEnabled,
         setAutoSubmitEnabled,
         loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {

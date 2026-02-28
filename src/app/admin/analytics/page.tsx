@@ -1,5 +1,5 @@
-import AnalyticsAdminClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function AnalyticsAdminPage() {
-    return <AnalyticsAdminClient />;
+export default function AnalyticsPage() {
+    redirect('/owner?tab=analytics');
 }

@@ -344,6 +344,16 @@ class VADManager implements VADManagerInterface {
 let _instance: VADManager | null = null;
 
 export function getVADManager(): VADManager {
+    if (typeof window !== 'undefined') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = window as any;
+        if (w.__VAD_MGR__ && w.__VAD_MGR__.state !== VADState.DESTROYED) {
+            return w.__VAD_MGR__;
+        }
+        w.__VAD_MGR__ = new VADManager();
+        _instance = w.__VAD_MGR__;
+        return _instance!;
+    }
     if (!_instance || _instance.state === VADState.DESTROYED) {
         _instance = new VADManager();
     }

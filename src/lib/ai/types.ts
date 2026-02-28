@@ -31,6 +31,8 @@ export interface GenerateResponseOptions {
     streamCallback?: (chunk: string) => void;
     /** Category hint (e.g. 'speed', 'reasoning') — forwarded to rate limiter */
     category?: string;
+    /** Disables LLM intent classification pass when routing is smart */
+    enableLLMPass?: boolean;
 }
 
 export interface AIResponse {

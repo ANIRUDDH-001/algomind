@@ -82,7 +82,10 @@ const TTS_REPLACEMENTS: [RegExp, string][] = [
     // Symbols that TTS struggles with
     [/\*/g, ' times '],
     [/\//g, ' divided by '],
-    [/%/g, ' modulo '],
+    // % after a number in code context → modulo; otherwise → percent
+    [/(\d)\s*%(?!\s*\w)/g, '$1 modulo '],   // "n%2" → "n modulo 2" (code)
+    [/(\d)\s*%(?=\s*\w|\s*$)/g, '$1 percent '], // "40% efficiency" → "40 percent efficiency"
+    [/(?<!\d)%/g, ' percent '],              // standalone % → percent
 ];
 
 /**
