@@ -151,6 +151,6 @@ export const config = {
          * - vad (vad models)
          * - api/auth (auth api)
          */
-        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/).*)',
+        '/((?!_next/static|_next/image|favicon.ico|public/|vad/|api/auth/|debug-auth).*)',
     ],
 };
