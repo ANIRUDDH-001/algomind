@@ -54,17 +54,24 @@ export class IntelligentRateLimiter {
                 }
             }
 
-            // b. Get rpm counter
-            const rpmStr = await redisGet(`rl:${modelId}:rpm`);
-            const currentRpm = rpmStr ? parseInt(rpmStr, 10) : 0;
-            if (currentRpm >= model.rpm) {
+            // b. Check rpm counter with atomic INCR
+            const rpmKey = `rl:${modelId}:rpm`;
+            const currentRpm = await redis.incr(rpmKey);
+            if (currentRpm === 1) await redis.expire(rpmKey, 65);
+
+            if (currentRpm > model.rpm) {
+                await redis.decr(rpmKey);
                 return { allowed: false, model, reason: 'rpm_limit' };
             }
 
-            // c. Get day counter
-            const dayStr = await redisGet(`rl:${modelId}:day`);
-            const currentDay = dayStr ? parseInt(dayStr, 10) : 0;
-            if (currentDay >= model.rpd) {
+            // c. Check day counter
+            const dayKey = `rl:${modelId}:day`;
+            const currentDay = await redis.incr(dayKey);
+            if (currentDay === 1) await redis.expire(dayKey, 86400);
+
+            if (currentDay > model.rpd) {
+                await redis.decr(dayKey);
+                await redis.decr(rpmKey); // Rollback RPM too
                 return { allowed: false, model, reason: 'rpd_limit' };
             }
 
@@ -102,22 +109,12 @@ export class IntelligentRateLimiter {
     }
 
     /**
-     * Record a successful request. Fire-and-forget logic using atomic Redis counters.
+     * Record a successful request. Nothing to do for RPM/RPD since canUseModel handles it atomically.
      */
     recordRequest(modelId: string, _tokensUsed: number = 0): void {
         const redis = getRedis();
         if (!redis) return;
-
-        // Use SET NX EX for atomic key initialization, then INCR
-        // RPM counter (65s TTL to cover 1-minute window with small buffer)
-        void redis.set(`rl:${modelId}:rpm`, 0, { nx: true, ex: 65 })
-            .then(() => redis.incr(`rl:${modelId}:rpm`))
-            .catch(() => { /* Silently swallow — rate limiter errors must not affect user requests */ });
-
-        // RPD counter (86400s = 24h TTL)
-        void redis.set(`rl:${modelId}:day`, 0, { nx: true, ex: 86400 })
-            .then(() => redis.incr(`rl:${modelId}:day`))
-            .catch(() => { /* Silently swallow */ });
+        // Legacy: previously ran set NX EX + INCR but we moved it. Kept for typescript usage.
     }
 
     /**

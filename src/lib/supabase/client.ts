@@ -18,6 +18,7 @@ export function isSupabaseConfigured(): boolean {
 // ── Client singleton ─────────────────────────────────────────────────────────
 
 let _instance: SupabaseClient | null = null;
+let _currentUrl: string | null = null;
 
 export function createClient(): SupabaseClient | null {
     if (!isSupabaseConfigured()) return null;
@@ -30,8 +31,10 @@ export function createClient(): SupabaseClient | null {
 }
 
 export function getSupabase(): SupabaseClient | null {
-    if (!_instance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!_instance || _currentUrl !== url) {
         _instance = createClient();
+        _currentUrl = url || null;
     }
     return _instance;
 }

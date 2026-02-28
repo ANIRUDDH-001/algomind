@@ -36,10 +36,9 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
 
     try {
         // Check if user is owner or co-owner — they get unlimited access
-        const [{ data: profile }, { data: coOwner }] = await Promise.all([
-            supabase.from('profiles').select('account_type, rate_limit_override').eq('id', userId).single(),
-            supabase.from('co_owners').select('id').eq('user_id', userId).limit(1).maybeSingle(),
-        ]);
+        const { data: profile } = await supabase.from('profiles').select('account_type, rate_limit_override, email').eq('id', userId).single();
+        const emailClause = profile?.email ? `,email.eq.${profile.email}` : '';
+        const { data: coOwner } = await supabase.from('co_owners').select('id').or(`user_id.eq.${userId}${emailClause}`).limit(1).maybeSingle();
 
         if (profile?.account_type === 'owner' || coOwner) {
             return { allowed: true, remaining: 999, isAdmin: true };
@@ -108,8 +107,6 @@ export async function incrementUserUsage(userId: string, supabaseClient?: Supaba
     }
 
     try {
-        const _today = new Date().toISOString().split('T')[0];
-
         // We use upsert to simplify the logic: 
         // if row exists, we want to increment. 
         // BUT standard REST upsert overrides the row. 

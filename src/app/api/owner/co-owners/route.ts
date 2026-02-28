@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
             .from('co_owners')
             .insert({
                 email,
-                granted_by: user.email || 'System'
+                granted_by: user.id
             })
             .select()
             .single();

@@ -99,10 +99,11 @@ export default async function middleware(request: NextRequest) {
         // Also check co_owners table
         let isCoOwner = false;
         if (!isOwner) {
+            const emailClause = user.email ? `,email.eq.${user.email}` : '';
             const { data: coOwner } = await supabase
                 .from('co_owners')
                 .select('id')
-                .eq('user_id', user.id)
+                .or(`user_id.eq.${user.id}${emailClause}`)
                 .limit(1)
                 .maybeSingle();
             isCoOwner = !!coOwner;
@@ -118,13 +119,18 @@ export default async function middleware(request: NextRequest) {
     // ROUTING-001: Employer account type redirect
     // If authenticated user is on dashboard or home, check if they're an employer
     if (user && (isDashboard || pathname === '/')) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('account_type')
-            .eq('id', user.id)
-            .single();
+        let accountType = user.app_metadata?.account_type || user.user_metadata?.account_type;
 
-        if (profile?.account_type === 'employer') {
+        if (!accountType) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('account_type')
+                .eq('id', user.id)
+                .single();
+            accountType = profile?.account_type;
+        }
+
+        if (accountType === 'employer') {
             const url = request.nextUrl.clone();
             url.pathname = '/employer/dashboard';
             return NextResponse.redirect(url);
