@@ -48,16 +48,16 @@ export async function POST(request: NextRequest) {
         const message = err instanceof Error ? err.message : 'Unknown error';
 
         if (message === 'AWS_POLLY_DISABLED') {
-            return NextResponse.json({ error: 'Polly disabled', fallback: 'groq' }, { status: 503 });
+            return NextResponse.json({ error: 'Polly disabled', fallback: 'browser' }, { status: 503 });
         }
         if (message === 'AWS_POLLY_NOT_CONFIGURED') {
-            return NextResponse.json({ error: 'AWS not configured', fallback: 'groq' }, { status: 503 });
+            return NextResponse.json({ error: 'AWS not configured', fallback: 'browser' }, { status: 503 });
         }
         if (message === 'AWS_POLLY_FAILED') {
-            return NextResponse.json({ error: 'Polly synthesis failed', fallback: 'groq' }, { status: 502 });
+            return NextResponse.json({ error: 'Polly synthesis failed', fallback: 'browser' }, { status: 502 });
         }
 
         console.error('[Polly API] Unexpected error:', err);
-        return NextResponse.json({ error: 'Internal error', fallback: 'groq' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal error', fallback: 'browser' }, { status: 500 });
     }
 }

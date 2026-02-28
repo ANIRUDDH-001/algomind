@@ -66,6 +66,34 @@ export async function POST(req: NextRequest) {
 
         if (redis && submissionId) {
             const messageCountKey = `assess:${submissionId}:msgCount`;
+            let messageCount = await redis.get<string | null>(messageCountKey);
+
+            if (messageCount === null || messageCount === '0') {
+                // Redis was cleared or never set — re-sync from DB
+                const { data: submission } = await getServiceClient()
+                    .from('candidate_submissions')
+                    .select('current_transcript')
+                    .eq('id', submissionId)
+                    .single();
+
+                const dbMessageCount = submission?.current_transcript
+                    ? (Array.isArray(submission.current_transcript) ? submission.current_transcript.length : 0)
+                    : 0;
+
+                if (dbMessageCount > 0) {
+                    // Re-seed Redis counter from DB
+                    // Ensure TTL stays in sync with JWT
+                    const jwtExp = payload.exp as number | undefined;
+                    const expirySeconds = jwtExp
+                        ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
+                        : 90 * 60;
+
+                    await redis.set(messageCountKey, String(dbMessageCount), { ex: expirySeconds });
+                    messageCount = String(dbMessageCount);
+                    console.log(`[Assess Chat] Re-synced message count from DB: ${dbMessageCount}`);
+                }
+            }
+
             currentCount = await redis.incr(messageCountKey);
 
             if (currentCount === 1) {

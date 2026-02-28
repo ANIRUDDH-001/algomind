@@ -12,7 +12,7 @@ interface PromptContext {
     problemTitle: string;
     problemContent: string;
     transcript: string; // The specific recent user input
-    conversationHistory: string; // Full history
+    conversationHistory?: string; // DEPRECATED: kept for backward compat, not used in prompt
     ragContext: string; // Retrieved chunks
     /** Optional context from an interrupted AI response. */
     interruptionContext?: string;
@@ -91,10 +91,10 @@ ${problemContent}
 
 Relevant Knowledge:
 ${ragContext}
-
-Conversation History:
-${conversationHistory}
 `;
+    // NOTE: Conversation history is NOT included here.
+    // It is passed via the messages[] array in the API request body.
+    // Including it here would duplicate the context and inflate token usage.
 
     // Map state machine states to prompt phases
     const stateToPhase: Record<InterviewState, string> = {
@@ -115,7 +115,7 @@ ${conversationHistory}
     const advancedPrompt = generateAdvancedTurnPrompt(
         phase as 'intro' | 'approach' | 'coding' | 'testing' | 'complexity' | 'wrap-up',
         transcript,
-        conversationHistory
+        conversationHistory || ''
     );
 
     // Append interruption context if present

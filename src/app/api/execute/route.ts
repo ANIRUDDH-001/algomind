@@ -75,12 +75,33 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid or missing language or code parameters' }, { status: 400 });
         }
 
+        if (code.length > 100_000) {
+            return NextResponse.json({ error: 'Code exceeds maximum length (100KB)' }, { status: 413 });
+        }
+        if ((stdin || '').length > 10_000) {
+            return NextResponse.json({ error: 'Input exceeds maximum length (10KB)' }, { status: 413 });
+        }
+
         // 3. Rate limiting (10 executions per minute per user)
         const rateLimitKey = `exec:${user.id}:rpm`;
-        const currentUsage = await redisIncr(rateLimitKey, EXEC_RATE_WINDOW_SECONDS);
 
-        // If redisIncr returns > 0, we can enforce limits
-        // (if redis is unavailable, it gracefully returns 0, so we let it bypass rate limiting)
+        let currentUsage: number;
+        try {
+            currentUsage = await redisIncr(rateLimitKey, EXEC_RATE_WINDOW_SECONDS);
+            if (currentUsage === 0) {
+                // Redis returned 0 — could be error or genuinely first request
+                // Treat as allowed but log for monitoring
+                console.warn('[Execute] Redis returned 0 for rate limit key — Redis may be unavailable');
+            }
+        } catch (redisError) {
+            console.error('[Execute] Redis unavailable for rate limiting:', redisError);
+            // Fail closed: if we can't check rate limit, deny the request
+            return NextResponse.json(
+                { error: 'Rate limiting service temporarily unavailable. Please try again in a moment.' },
+                { status: 503 }
+            );
+        }
+
         if (currentUsage > EXEC_RATE_LIMIT) {
             return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 });
         }

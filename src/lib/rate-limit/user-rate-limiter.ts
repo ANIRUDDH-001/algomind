@@ -38,7 +38,19 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         // Check if user is owner or co-owner — they get unlimited access
         const { data: profile } = await supabase.from('profiles').select('account_type, rate_limit_override, email').eq('id', userId).single();
         const emailClause = profile?.email ? `,email.eq.${profile.email}` : '';
-        const { data: coOwner } = await supabase.from('co_owners').select('id').or(`user_id.eq.${userId}${emailClause}`).limit(1).maybeSingle();
+        // Safe: use separate parameterized queries instead of string interpolation
+        const { data: coOwnerById } = await supabase
+            .from('co_owners')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1)
+            .maybeSingle();
+
+        const coOwnerByEmail = profile?.email
+            ? await supabase.from('co_owners').select('id').eq('email', profile.email).limit(1).maybeSingle()
+            : { data: null };
+
+        const coOwner = coOwnerById || coOwnerByEmail?.data;
 
         if (profile?.account_type === 'owner' || coOwner) {
             return { allowed: true, remaining: 999, isAdmin: true };

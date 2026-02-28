@@ -234,8 +234,9 @@ export class SupabaseProgressStore {
                 sessions: transformedSessions,
                 trends,
                 totalSessions: sessions.length,
-                averageScore: avgScore,
-                averageScores,
+                averageScore: avgScore, // based on last 5 sessions (not all-time)
+                averageScores, // based on last 5 sessions
+                recentSessionsUsedForAverage: 5,
                 lastUpdated: new Date(),
                 narrative: profile?.narrative,
                 narrativeGeneratedAt: profile?.narrative_generated_at ? new Date(profile.narrative_generated_at) : undefined,
@@ -256,8 +257,8 @@ export class SupabaseProgressStore {
         const trends: SkillTrend[] = [];
 
         ALL_COGNITIVE_SKILLS.forEach((skillId) => {
-            const recentScores = sessions.slice(0, 5).map((s) => s.skills[skillId] || 0);
-            const older = sessions.slice(3, 6);
+            const recentScores = sessions.slice(0, 3).map((s) => s.skills[skillId] || 0); // Most recent 3
+            const older = sessions.slice(3, 6); // Previous 3 — no overlap
 
             if (older.length === 0 || recentScores.length === 0) return;
 

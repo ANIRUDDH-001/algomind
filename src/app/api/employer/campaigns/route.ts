@@ -22,8 +22,10 @@ export async function GET(_req: NextRequest) {
                 uses_count,
                 is_active,
                 public_token,
+                entry_code,
                 created_at,
-                show_score_to_candidate
+                show_score_to_candidate,
+                campaign_questions
             `)
             .eq('created_by', auth.user.id)
             .order('created_at', { ascending: false });

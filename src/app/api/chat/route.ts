@@ -136,80 +136,25 @@ export async function POST(req: NextRequest) {
             console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
         }
 
-        const FALLBACK_CHAIN = [
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-8b'
-        ];
+        // Use the full model registry with proper fallback (same as assess/chat route)
+        const result = await client.generateResponse(messages, {
+            preferredModel: 'gemini' as any, // Start with fastest Gemini, fall to Groq automatically
+            category: 'speed',
+            maxTokens: 4096,
+            systemPrompt: enhancedSystemPrompt,
+            estimatedTokens: 500,
+            enableLLMPass: false, // BUG-AI-004 regex only — saves one Groq RPM per request
+        });
 
-        let result: any;
-        let lastError;
-
-        // Import inside or resolve
-        const { getActiveModels } = await import('@/lib/ai/model-registry');
-        const activeModels = await getActiveModels();
-
-        for (const modelId of FALLBACK_CHAIN) {
-            try {
-                const modelConfig = activeModels.find(m => m.id === modelId);
-                if (!modelConfig) {
-                    console.warn(`⚠️ [Chat] Model ${modelId} not found in registry`);
-                    continue;
-                }
-
-                const callResult = await client.callModel(modelConfig, messages, {
-                    category: 'speed', // Hints/Chat
-                    maxTokens: 4096,
-                    systemPrompt: enhancedSystemPrompt,
-                    estimatedTokens: 500
-                });
-
-                if (callResult.success) {
-                    result = {
-                        success: true,
-                        response: callResult.response,
-                        modelUsed: modelId,
-                        provider: modelConfig.provider
-                    };
-                    break;
-                } else {
-                    const errStatus = callResult.error?.includes('429') || callResult.error?.includes('RATE_LIMIT') ? 429 : 500;
-                    if (errStatus === 429) {
-                        void logSystemEvent({ type: 'model_rate_limited', model_id: modelId } as any);
-                        console.warn(`⚠️ [Chat] ${modelId} rate limited, trying next model`);
-                        lastError = new Error(callResult.error);
-                        continue;
-                    }
-                    throw new Error(callResult.error || "Failed to generate response");
-                }
-            } catch (err: any) {
-                if (err?.status === 429 || err?.message?.includes('429') || err?.code === 'RATE_LIMIT') {
-                    void logSystemEvent({ type: 'model_rate_limited', model_id: modelId } as any);
-                    console.warn(`⚠️ [Chat] ${modelId} rate limited, trying next model`);
-                    lastError = err;
-                    continue;
-                }
-                throw err;
-            }
-        }
-
-        if (!result || !result.success) {
-            console.error(`❌ [AI] Generation failed. All models exhausted.`);
-            throw lastError || new Error("Failed to generate response after exhausting models");
+        if (!result.success) {
+            console.error('❌ [AI] Generation failed. All models exhausted:', result.error);
+            throw new Error(result.error || 'Failed to generate response after exhausting all models');
         }
 
         console.log(`✨ [AI] Response generated using ${result.modelUsed} (${result.provider})`);
-        if (result.routing?.smartRoutingUsed) {
-            console.log(
-                `🧠 [AI] Smart routing: ${result.routing.classification.complexity} → ` +
-                `${result.routing.routedTo} (${result.routing.classificationTimeMs.toFixed(1)}ms classify, ` +
-                `${result.routing.totalTimeMs.toFixed(0)}ms total)`
-            );
-        }
 
-        // 💾 Track usage for authenticated users
+        // Track usage for authenticated users
         if (user && !guestMode) {
-            // Fire and forget - don't block response
             incrementUserUsage(user.id, supabase).catch(err =>
                 console.error('❌ [Chat API] Failed to track usage:', err)
             );
@@ -219,14 +164,6 @@ export async function POST(req: NextRequest) {
             response: result.response,
             modelUsed: result.modelUsed,
             provider: result.provider,
-            ...(result.routing ? {
-                routing: {
-                    complexity: result.routing.classification.complexity,
-                    category: result.routing.classification.category,
-                    suggestedModel: result.routing.routedTo,
-                    classificationTimeMs: Math.round(result.routing.classificationTimeMs),
-                }
-            } : {}),
         });
 
     } catch (error: unknown) {

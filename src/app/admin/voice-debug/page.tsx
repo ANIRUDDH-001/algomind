@@ -1,5 +1,5 @@
-import VoiceDebugClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function VoiceDebugPage() {
-    return <VoiceDebugClient />;
+export default function VoiceDebugPage() {
+    redirect('/owner?tab=voice-debug');
 }

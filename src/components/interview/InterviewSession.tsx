@@ -12,6 +12,7 @@ import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { CompanyModeSelector } from './CompanyModeSelector';
+import { InterviewLimitBar } from './InterviewLimitBar';
 import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
 import { VoiceOnboarding } from './VoiceOnboarding';
@@ -213,7 +214,12 @@ export function InterviewSession({
         submitUserResponse,
         handleInterruption,
         loadTranscript,
-        voice
+        voice,
+        endInterview,
+        roundCount,
+        interviewStartTime,
+        isLimitReached,
+        limitReason
     } = useInterview({
         vadEnabled,
         isReviewMode,
@@ -538,17 +544,28 @@ export function InterviewSession({
 
                                     {/* Top-left Timer Display */}
                                     <div className="absolute top-2 left-2 z-30 flex flex-col gap-1">
-                                        <div className={cn(
-                                            "bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
-                                            limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
-                                                limits.timeRemaining <= 300 ? "border-amber-500/50 text-amber-400" :
-                                                    "border-zinc-800 text-zinc-300"
-                                        )}>
-                                            <Clock className="w-3 h-3" />
-                                            <span className="font-mono font-bold">{limits.formattedElapsed}</span>
-                                            <span className="text-zinc-500">/</span>
-                                            <span className="font-mono text-zinc-500">20:00</span>
-                                        </div>
+                                        {(!isAssessment && state !== 'idle' && state !== 'completed' && interviewStartTime) ? (
+                                            <InterviewLimitBar
+                                                startTime={interviewStartTime}
+                                                maxMs={10 * 60 * 1000}
+                                                roundCount={roundCount}
+                                                maxRounds={20}
+                                                isLimitReached={isLimitReached}
+                                                limitReason={limitReason}
+                                            />
+                                        ) : (
+                                            <div className={cn(
+                                                "bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
+                                                limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
+                                                    limits.timeRemaining <= 300 ? "border-amber-500/50 text-amber-400" :
+                                                        "border-zinc-800 text-zinc-300"
+                                            )}>
+                                                <Clock className="w-3 h-3" />
+                                                <span className="font-mono font-bold">{limits.formattedElapsed}</span>
+                                                <span className="text-zinc-500">/</span>
+                                                <span className="font-mono text-zinc-500">{timeLimitMins ? `${timeLimitMins}:00` : "20:00"}</span>
+                                            </div>
+                                        )}
                                         {isGuest && !isAssessment && (
                                             <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
                                                 🌟 Trial Mode ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} turns left)
@@ -653,8 +670,9 @@ export function InterviewSession({
                                             <div className="w-full mt-2 shrink-0">
                                                 <Button
                                                     variant="outline"
-                                                    onClick={handleFinish}
-                                                    disabled={isAnalyzing}
+                                                    onClick={endInterview}
+                                                    disabled={roundCount < 1 || isProcessing || isAnalyzing}
+                                                    title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
                                                     className="w-full h-10 text-[11px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
                                                 >
                                                     <Flag className="w-4 h-4 mr-1.5" /> End & Analyze
@@ -685,8 +703,9 @@ export function InterviewSession({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleFinish}
-                            disabled={isAnalyzing}
+                            onClick={endInterview}
+                            disabled={roundCount < 1 || isProcessing || isAnalyzing}
+                            title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
                             className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
                         >
                             <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze

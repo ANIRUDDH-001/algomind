@@ -18,6 +18,12 @@ interface VoiceOutputOptions {
 
 export type TTSProviderStatus = 'polly' | 'groq' | 'browser' | 'detecting';
 
+const _prefsCache = new Map<string, {
+    preferredVoiceName: string | null;
+    preferredVoiceLang: string;
+    voiceRate: number;
+}>();
+
 export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const { user } = useAuth();
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -36,10 +42,12 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const isPausedRef = useRef(false);
     useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-    // <audio> element for Groq TTS playback (routes to media volume on iOS)
+    // <audio> element for Groq/Polly TTS playback (routes to media volume on iOS)
     const audioElementRef = useRef<HTMLAudioElement | null>(null);
     // Track whether Groq TTS is available (avoids retrying after first 503)
     const groqAvailableRef = useRef<boolean | null>(null); // null = not yet probed
+
+    const speakInvocationRef = useRef(0);
 
     // ─── Detect Groq availability on mount ─────────────────────────────
 
@@ -87,7 +95,15 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 if (isSpeaking) return;
 
                 try {
-                    const prefs = await getUserPreferences(user?.id || null);
+                    const cacheKey = user?.id || 'anonymous';
+                    let prefs;
+                    if (_prefsCache.has(cacheKey)) {
+                        prefs = _prefsCache.get(cacheKey)!;
+                    } else {
+                        prefs = await getUserPreferences(user?.id || null);
+                        _prefsCache.set(cacheKey, prefs);
+                    }
+
                     setRate(prefs.voiceRate || 0.9);
 
                     const bestVoice = findBestMatchingVoice(processed, prefs.preferredVoiceName);
@@ -125,13 +141,16 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
 
     const speakWithPolly = useCallback(async (text: string): Promise<boolean> => {
         if (!user) return false;
+
+        const currentInvId = speakInvocationRef.current;
+
         try {
             const response = await fetch('/api/voice/synthesize-polly', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text }),
             });
-            if (!response.ok) {
+            if (!response.ok || speakInvocationRef.current !== currentInvId) {
                 if (response.status === 503) {
                     // Polly disabled or not integrated — mark unavailable
                     setTtsProvider(prev => prev === 'polly' ? 'groq' : prev);
@@ -139,6 +158,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 return false;
             }
             const arrayBuffer = await response.arrayBuffer();
+            if (speakInvocationRef.current !== currentInvId) return false;
+
             const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
@@ -146,8 +167,16 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             audioElementRef.current = audio;
 
             return new Promise<boolean>((resolve) => {
-                audio.onended = () => { URL.revokeObjectURL(url); audioElementRef.current = null; resolve(true); };
-                audio.onerror = () => { URL.revokeObjectURL(url); audioElementRef.current = null; resolve(false); };
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    if (speakInvocationRef.current === currentInvId) audioElementRef.current = null;
+                    resolve(true);
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    if (speakInvocationRef.current === currentInvId) audioElementRef.current = null;
+                    resolve(false);
+                };
                 audio.play().catch(() => resolve(false));
             });
         } catch { return false; }
@@ -161,6 +190,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         if (groqAvailableRef.current === false) return false;
         if (!user) return false;
 
+        const currentInvId = speakInvocationRef.current;
+
         try {
             const response = await fetch('/api/voice/synthesize', {
                 method: 'POST',
@@ -168,7 +199,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 body: JSON.stringify({ text }),
             });
 
-            if (!response.ok) {
+            if (!response.ok || speakInvocationRef.current !== currentInvId) {
                 if (response.status === 503 || response.status === 502) {
                     groqAvailableRef.current = false;
                     setTtsProvider('browser');
@@ -177,6 +208,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             }
 
             const arrayBuffer = await response.arrayBuffer();
+            if (speakInvocationRef.current !== currentInvId) return false;
+
             const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
             const url = URL.createObjectURL(blob);
 
@@ -193,12 +226,12 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             return new Promise<boolean>((resolve) => {
                 audio.onended = () => {
                     URL.revokeObjectURL(url);
-                    audioElementRef.current = null;
+                    if (speakInvocationRef.current === currentInvId) audioElementRef.current = null;
                     resolve(true);
                 };
                 audio.onerror = () => {
                     URL.revokeObjectURL(url);
-                    audioElementRef.current = null;
+                    if (speakInvocationRef.current === currentInvId) audioElementRef.current = null;
                     resolve(false);
                 };
                 // ✅ Required on iOS: must call play() from a user gesture context
@@ -243,8 +276,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         });
     }, [currentVoice, rate, options.pitch, options.volume]);
 
-    const processQueueBrowser = useCallback(async () => {
-        while (queueRef.current.length > 0) {
+    const processQueueBrowser = useCallback(async (invId: number) => {
+        while (queueRef.current.length > 0 && invId === speakInvocationRef.current) {
             if (isPausedRef.current) {
                 await new Promise(r => setTimeout(r, 100));
                 continue;
@@ -262,6 +295,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     const speak = useCallback(async (text: string) => {
         if (!text) return;
 
+        const invId = ++speakInvocationRef.current;
+
         // Clean text (remove markdown-ish artifacts)
         let cleanText = text.replace(/[*_#`]/g, '');
         cleanText = preprocessForTTS(cleanText);
@@ -273,6 +308,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             if (audioElementRef.current.src.startsWith('blob:')) {
                 URL.revokeObjectURL(audioElementRef.current.src);
             }
+            audioElementRef.current.onended = null;
+            audioElementRef.current.onerror = null;
             audioElementRef.current = null;
         }
         if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -290,7 +327,7 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
         if (ttsProvider === 'detecting' || ttsProviderRef.current === 'detecting') {
             await new Promise<void>((resolve) => {
                 const interval = setInterval(() => {
-                    if (ttsProviderRef.current !== 'detecting') {
+                    if (ttsProviderRef.current !== 'detecting' || invId !== speakInvocationRef.current) {
                         clearInterval(interval);
                         resolve();
                     }
@@ -300,8 +337,15 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             });
         }
 
+        if (invId !== speakInvocationRef.current) {
+            processingRef.current = false;
+            setIsSpeaking(false);
+            return;
+        }
+
         try {
             await new Promise(r => setTimeout(r, 50));
+            if (invId !== speakInvocationRef.current) return;
 
             let success = false;
 
@@ -310,31 +354,33 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
                 success = await speakWithPolly(cleanText);
                 if (success) {
                     setCurrentProvider('polly');
-                } else {
+                } else if (invId === speakInvocationRef.current) {
                     console.warn('[TTS] Polly failed, falling back to Groq');
                     setCurrentProvider('groq');
                 }
             }
 
-            if (!success && (ttsProvider === 'groq' || ttsProviderRef.current === 'groq')) {
+            if (invId === speakInvocationRef.current && !success && (ttsProvider === 'groq' || ttsProviderRef.current === 'groq')) {
                 success = await speakWithGroq(cleanText);
                 if (success) {
                     setCurrentProvider('groq');
-                } else {
+                } else if (invId === speakInvocationRef.current) {
                     console.warn('[TTS] Groq failed, falling back to browser');
                     setCurrentProvider('browser');
                 }
             }
 
-            if (!success) {
+            if (invId === speakInvocationRef.current && !success) {
                 setCurrentProvider('browser');
                 queueRef.current = chunkTextForSpeech(cleanText);
-                await processQueueBrowser();
+                await processQueueBrowser(invId);
             }
         } finally {
-            setIsSpeaking(false);
-            processingRef.current = false;
-            if (options.onEnd) options.onEnd();
+            if (invId === speakInvocationRef.current) {
+                setIsSpeaking(false);
+                processingRef.current = false;
+                if (options.onEnd) options.onEnd();
+            }
         }
     }, [ttsProvider, speakWithPolly, speakWithGroq, processQueueBrowser, options]);
 
@@ -364,6 +410,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
     }, []);
 
     const stop = useCallback(() => {
+        ++speakInvocationRef.current; // invalidate any in-flight speak() call
+
         // ✅ Stop <audio> element
         if (audioElementRef.current) {
             audioElementRef.current.pause();
@@ -371,6 +419,8 @@ export function useVoiceOutput(options: VoiceOutputOptions = {}) {
             if (audioElementRef.current.src.startsWith('blob:')) {
                 URL.revokeObjectURL(audioElementRef.current.src);
             }
+            audioElementRef.current.onended = null;
+            audioElementRef.current.onerror = null;
             audioElementRef.current = null;
         }
         // Stop browser TTS

@@ -1,5 +1,5 @@
-import FeaturesAdminClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function FeaturesAdminPage() {
-    return <FeaturesAdminClient />;
+export default function FeaturesPage() {
+    redirect('/owner?tab=flags');
 }

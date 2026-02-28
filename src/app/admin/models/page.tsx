@@ -1,5 +1,5 @@
-import ModelsAdminClient from './client';
+import { redirect } from 'next/navigation';
 
-export default async function ModelsAdminPage() {
-    return <ModelsAdminClient />;
+export default function ModelsPage() {
+    redirect('/owner?tab=models');
 }
