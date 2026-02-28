@@ -24,14 +24,14 @@ export function createClient(): SupabaseClient | null {
     if (!isSupabaseConfigured()) return null;
     // NEXT_PUBLIC_SUPABASE_URL is the Cloudflare Worker URL in production.
     // This bypasses Indian ISP DNS blocks on *.supabase.co.
-    return createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
+    // Strip trailing slash to ensure consistent cookie name derivation.
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    return createBrowserClient(url, key);
 }
 
 export function getSupabase(): SupabaseClient | null {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
     if (!_instance || _currentUrl !== url) {
         _instance = createClient();
         _currentUrl = url || null;

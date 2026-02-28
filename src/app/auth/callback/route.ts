@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,31 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    const supabase = await createServerSupabase();
+    const cookieStore = await cookies();
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
+
+    // Create a redirect response first so we can attach cookies to it
+    const redirectTo = next.startsWith('/') ? `${origin}${next}` : `${origin}/dashboard`;
+    const response = NextResponse.redirect(redirectTo);
+
+    const supabase = createServerClient(
+        supabaseUrl,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    // Write cookies BOTH to the cookie store AND to the response headers
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        try { cookieStore.set(name, value, options); } catch { /* server component */ }
+                        response.cookies.set(name, value, options);
+                    });
+                },
+            },
+        }
+    );
 
     // PKCE code exchange (OAuth + magic link new flow)
     if (code) {
@@ -28,7 +53,7 @@ export async function GET(request: NextRequest) {
                 `${origin}/login?error=${encodeURIComponent('Authentication failed. Please try again.')}`
             );
         }
-        return NextResponse.redirect(`${origin}${next.startsWith('/') ? next : '/dashboard'}`);
+        return response; // ← return response with cookies attached, not a fresh redirect
     }
 
     // Token hash — magic link legacy flow
@@ -42,7 +67,7 @@ export async function GET(request: NextRequest) {
                 `${origin}/login?error=${encodeURIComponent(verifyError.message)}`
             );
         }
-        return NextResponse.redirect(`${origin}/dashboard`);
+        return response; // ← return response with cookies attached
     }
 
     return NextResponse.redirect(`${origin}/login?error=invalid_callback`);

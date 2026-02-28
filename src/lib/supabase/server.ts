@@ -12,7 +12,7 @@ export async function createServerSupabase(): Promise<SupabaseClient> {
     // they produce DIFFERENT cookie names → server can never read client session.
     // Fix: use the same URL everywhere so cookie names always match.
     // The CF Worker is reachable from Vercel servers (it's globally accessible).
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 
     return createServerClient(
         supabaseUrl,

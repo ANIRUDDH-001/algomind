@@ -135,7 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isConfigured) return { error: { message: 'Supabase is not configured' } as AuthError };
         const supabase = getSupabase();
         if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            console.error('[AUTH] signInWithEmail failed:', error.message, error.status, error.code);
+        } else {
+            console.log('[AUTH] signInWithEmail success, session:', !!data.session);
+        }
         return { error };
     }, [isConfigured]);
 
@@ -143,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isConfigured) return { error: { message: 'Supabase is not configured' } as AuthError };
         const supabase = getSupabase();
         if (!supabase) return { error: { message: 'Supabase client not available' } as AuthError };
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -151,6 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 emailRedirectTo: `${window.location.origin}/auth/callback`,
             },
         });
+        if (error) {
+            console.error('[AUTH] signUpWithEmail failed:', error.message, error.status);
+        } else {
+            console.log('[AUTH] signUpWithEmail result:', data.user?.id, 'confirmed:', data.user?.email_confirmed_at);
+        }
         return { error };
     }, [isConfigured]);
 
