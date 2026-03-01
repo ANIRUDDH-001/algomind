@@ -496,14 +496,10 @@ export function useInterview(options: {
             return;
         }
 
-        // Mic is Enabled (Intent) AND (AI is silent OR VAD is enabled): Resume Mic
-        // CRITICAL: Only attempt once per "AI finished" cycle to prevent loop
-        if (!isListeningRef.current && !micResumeAttemptedRef.current && !micPausedForSilenceRef.current) {
-            micResumeAttemptedRef.current = true; // Mark that we're attempting
-
+        // Mic is Enabled (Intent) AND AI is silent: Resume Mic
+        if (!isListeningRef.current && !micPausedForSilenceRef.current) {
             // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
             const timer = setTimeout(() => {
-                // Read from refs — these are always current
                 const currentlyListening = isListeningRef.current;
                 const currentlySpeaking = isSpeakingRef.current;
                 const currentlyProcessing = isProcessingRef.current;
@@ -511,11 +507,10 @@ export function useInterview(options: {
 
                 const stillShouldStop = (currentlySpeaking && !options.vadEnabled) || currentlyProcessing;
                 if (micStillEnabled && !stillShouldStop && !currentlyListening) {
-                    // CRITICAL: Reset transcript before resuming to prevent carryover
                     resetTranscript();
                     startListening();
                 }
-            }, 350); // Reduced from 1500ms — 350ms is sufficient for TTS audio drain
+            }, 350);
             return () => clearTimeout(timer);
         }
     }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
@@ -527,29 +522,8 @@ export function useInterview(options: {
         }
     }, [isListening]);
 
-    // 7-SECOND SILENCE TIMEOUT: Auto-stop mic if no voice detected for 7 seconds
-    // DISBLED IF VAD IS ACTIVE: We want continuous listening for interruptions
-    useEffect(() => {
-        if (!isListening || !isMicEnabled || options.vadEnabled) return;
-
-        const SILENCE_TIMEOUT = 7000; // 7 seconds
-
-        const checkSilence = setInterval(() => {
-            if (lastResultTime === 0) return;
-            const timeSinceLastResult = Date.now() - lastResultTime;
-            if (timeSinceLastResult >= SILENCE_TIMEOUT && !transcript && !interimTranscript) {
-                // Soft stop: just stop listening for now, don't disable the intent
-                // The mic sync effect will restart it when conditions are right
-                stopListening();
-                // DON'T call setIsMicEnabled(false)
-                // Instead, set a "paused for silence" ref to prevent immediate restart:
-                micPausedForSilenceRef.current = true;
-                setTimeout(() => { micPausedForSilenceRef.current = false; }, 3000); // 3s before auto-restart allowed
-            }
-        }, 1000);
-
-        return () => clearInterval(checkSilence);
-    }, [isListening, isMicEnabled, lastResultTime, transcript, interimTranscript, options.vadEnabled, stopListening]);
+    // Silence timeout removed — was causing erratic mic stops.
+    // The mic stays on until user explicitly stops it or AI starts speaking.
 
     const resetInterview = useCallback(() => {
         setMessages([]);
