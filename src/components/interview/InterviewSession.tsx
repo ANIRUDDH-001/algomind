@@ -15,6 +15,10 @@ import { CompanyModeSelector } from './CompanyModeSelector';
 import { InterviewLimitBar } from './InterviewLimitBar';
 import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
+import { GuestModeBanner } from './GuestModeBanner';
+import { GuestResultsOverlay } from './GuestResultsOverlay';
+import { GuestProblemSelectorModal } from './GuestProblemSelectorModal';
+import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
@@ -131,7 +135,7 @@ export function InterviewSession({
         return () => window.removeEventListener('resize', handleResize);
     }, [showCodeEditor, activeTab]);
 
-    // Ensure CodeEditor state merges with mobile tab elegantly
+    // Handle screen resize fallback properly
     useEffect(() => {
         if (typeof window !== 'undefined' && window.innerWidth < 1024) {
             if (activeTab === 'code' && !showCodeEditor) setShowCodeEditor(true);
@@ -139,6 +143,21 @@ export function InterviewSession({
         }
     }, [activeTab, showCodeEditor]);
 
+    // Guest mode: problem selector + result overlay
+    const [showGuestSelector, setShowGuestSelector] = useState<boolean>(isGuest);
+    const [activeProblem, setActiveProblem] = useState(problem);
+    const [guestDurationSecs, setGuestDurationSecs] = useState(0);
+
+    const handleGuestProblemSelect = useCallback((selected: typeof GUEST_PROBLEMS[number]) => {
+        setActiveProblem(selected);
+        setShowGuestSelector(false);
+        // Clear any existing session data so the new problem starts fresh
+        try {
+            sessionStorage.removeItem('algomind_guest_trial');
+            sessionStorage.removeItem('algomind_guest_session_user');
+            sessionStorage.removeItem('algomind_guest_session_ai');
+        } catch { /* ignore */ }
+    }, []);
 
     // --- Company Mode Selection ---
     const [selectedCompany, setSelectedCompany] = useState<string | null>(isAssessment ? null : searchParams.get('company'));
@@ -179,8 +198,9 @@ export function InterviewSession({
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
     const limits = useInterviewLimits({
-        maxDurationMins: timeLimitMins,
-        startTimeOffsetSeconds
+        maxDurationMins: isGuest ? 5 : timeLimitMins,
+        startTimeOffsetSeconds,
+        maxTurns: isGuest ? 5 : undefined,
     });
     const guestSession = useGuestSession(isGuest);
 
@@ -225,7 +245,10 @@ export function InterviewSession({
         isReviewMode,
         apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
         sessionToken: isAssessment ? assessmentSessionToken : undefined,
-        onUserMessage: handleUserMessage
+        onUserMessage: handleUserMessage,
+        isGuest: isGuest,
+        maxRounds: isGuest ? 5 : undefined,
+        maxDurationMs: isGuest ? (5 * 60 * 1000) : undefined,
     });
 
     // Added an effect to sync AI turns
@@ -277,7 +300,26 @@ export function InterviewSession({
         observerRef.current.reset();
         setNudge(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [problem.id]);
+    }, [activeProblem.id]);
+
+    // Guest session cleanup — clear all ephemeral data when component unmounts
+    useEffect(() => {
+        if (!isGuest) return;
+
+        return () => {
+            try {
+                sessionStorage.removeItem('algomind_guest_trial');
+                sessionStorage.removeItem('algomind_guest_session_user');
+                sessionStorage.removeItem('algomind_guest_session_ai');
+                sessionStorage.removeItem('algomind_guest_banner_dismissed');
+                // Clear the demo cookie so navigating to /interview again
+                // without ?demo=true doesn't stay in guest mode
+                document.cookie = 'algomind_demo_mode=; path=/; max-age=0; SameSite=Lax';
+            } catch {
+                // Ignore — cleanup is best-effort
+            }
+        };
+    }, [isGuest]);
 
     const { isSpeaking, isListening, stopListening } = voice;
     useEffect(() => {
@@ -308,14 +350,14 @@ export function InterviewSession({
         startTimeRef.current = Date.now();
         limits.startTimer();
         startInterview(
-            problem.title,
-            problem.description,
+            activeProblem.title,
+            activeProblem.description,
             ragContext,
             companyPersona || undefined,
             kaiMemory || undefined,
-            problem.id,
+            activeProblem.id,
             difficultyMode,
-            problem.difficulty
+            activeProblem.difficulty
         );
     };
 
@@ -324,10 +366,10 @@ export function InterviewSession({
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
-        submitUserResponse(codeMessage, { title: problem.title, content: problem.description });
+        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
         setShowCodeEditor(false);
         setActiveTab('interview');
-    }, [codeLanguage, problem, submitUserResponse]);
+    }, [codeLanguage, activeProblem, submitUserResponse]);
 
     const isSavingRef = useRef(false);
 
@@ -354,7 +396,7 @@ export function InterviewSession({
                 try {
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
-                        { title: problem.title, description: problem.description || '', difficulty: problem.difficulty },
+                        { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty },
                         transcript
                     );
                     if (!assessment) {
@@ -362,6 +404,13 @@ export function InterviewSession({
                         return;
                     }
 
+                    // Capture duration for guest results overlay
+                    if (isGuest) {
+                        const elapsed = startTimeRef.current
+                            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                            : 0;
+                        setGuestDurationSecs(elapsed);
+                    }
                     // ✅ FIX: Save immediately after analysis — don't wait for state machine
                     if (user && !isGuest) {
                         try {
@@ -375,7 +424,7 @@ export function InterviewSession({
                                 : durationSecs;
 
                             const { success, error: saveError, sessionId } = await saveInterviewSession(
-                                user.id, problem.id, problem.title, fullTranscript, duration, assessment,
+                                user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode }
                             );
                             if (!success) {
@@ -425,13 +474,30 @@ export function InterviewSession({
     }, [showBadge]);
 
     if (result) {
+        if (isGuest) {
+            return (
+                <GuestResultsOverlay
+                    assessment={result}
+                    durationSecs={guestDurationSecs}
+                    roundCount={roundCount}
+                    problemTitle={activeProblem.title}
+                    onTryAnother={() => {
+                        resetAssessment();
+                        setShowGuestSelector(true);
+                        setActiveProblem(problem); // reset to original prop
+                    }}
+                    onSignUp={() => { window.location.href = '/login'; }}
+                    onClose={resetAssessment}
+                />
+            );
+        }
         return <ReportCard assessment={result!} onClose={resetAssessment} />;
     }
 
     // --- Sub-components (Visual Rendering) --- //
 
     const renderProblemCardContent = () => {
-        const leetcodeUrl = problem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(problem.title)}`;
+        const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
 
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent" data-tour="problem-panel">
@@ -439,15 +505,15 @@ export function InterviewSession({
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                             <CardTitle className="text-sm font-bold text-white truncate">
-                                {problem.title}
+                                {activeProblem.title}
                             </CardTitle>
                             <Badge className={cn(
                                 "text-[10px] px-2 py-0 h-5 shrink-0 border",
-                                problem.difficulty === 'easy' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-                                problem.difficulty === 'medium' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                                problem.difficulty === 'hard' && 'bg-red-500/15 text-red-400 border-red-500/25'
+                                activeProblem.difficulty === 'easy' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+                                activeProblem.difficulty === 'medium' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+                                activeProblem.difficulty === 'hard' && 'bg-red-500/15 text-red-400 border-red-500/25'
                             )}>
-                                {problem.difficulty}
+                                {activeProblem.difficulty}
                             </Badge>
                         </div>
                         <a href={leetcodeUrl} target="_blank" rel="noopener noreferrer"
@@ -458,9 +524,9 @@ export function InterviewSession({
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
-                    <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
+                    <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
                     <div className="space-y-3 lg:space-y-4 pt-2">
-                        {problem.examples && problem.examples.map((example, idx) => (
+                        {activeProblem.examples && activeProblem.examples.map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
                                 <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-zinc-500 mb-2 lg:mb-3 group-hover:text-indigo-400 transition-colors">Example {idx + 1}:</p>
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
@@ -563,7 +629,9 @@ export function InterviewSession({
                                                 <Clock className="w-3 h-3" />
                                                 <span className="font-mono font-bold">{limits.formattedElapsed}</span>
                                                 <span className="text-zinc-500">/</span>
-                                                <span className="font-mono text-zinc-500">{timeLimitMins ? `${timeLimitMins}:00` : "20:00"}</span>
+                                                <span className="font-mono text-zinc-500">
+                                                    {isGuest ? '5:00' : timeLimitMins ? `${timeLimitMins}:00` : '20:00'}
+                                                </span>
                                             </div>
                                         )}
                                         {isGuest && !isAssessment && (
@@ -737,6 +805,14 @@ export function InterviewSession({
                 )}
             </div>
             <div className="rounded-2xl border flex flex-col flex-1 overflow-hidden min-h-[200px]" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                {/* Guest Mode Banner — shown after interview starts, guides user */}
+                {isGuest && hasStarted && !isAssessment && (
+                    <GuestModeBanner
+                        turnsUsed={guestSession.userTurns}
+                        timeRemaining={limits.timeRemaining}
+                        onSignUp={() => { window.location.href = '/login'; }}
+                    />
+                )}
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
@@ -746,7 +822,7 @@ export function InterviewSession({
                         handleInterruption();
                     }}
                     onContinuePreviousResponse={() => {
-                        submitUserResponse('Please continue your previous response.', { title: problem.title, content: problem.description, ragContext });
+                        submitUserResponse('Please continue your previous response.', { title: activeProblem.title, content: activeProblem.description, ragContext });
                     }}
                     onVadError={(err) => {
                         console.log('VAD init failed, falling back to simple mic mode:', err.message);
@@ -810,7 +886,10 @@ export function InterviewSession({
                                 {limits.isTimeUp ? 'Time\'s Up!' : 'Turn Limit Reached'}
                             </h3>
                             <p className="text-zinc-400 text-sm">
-                                {limits.isTimeUp ? 'Your 20-minute interview session has ended.' : 'You\'ve reached the 20-turn limit for this session.'} Let's analyze your performance!
+                                {limits.isTimeUp
+                                    ? `Your ${isGuest ? '5' : '20'}-minute session has ended.`
+                                    : `You've reached the ${isGuest ? '5' : '20'}-turn limit.`
+                                } Let's analyze your performance!
                             </p>
                             <Button onClick={() => { setShowLimitModal(false); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
                                 <Flag className="w-4 h-4 mr-2" /> View My Assessment
@@ -1048,6 +1127,13 @@ export function InterviewSession({
                 </div>
             </div>
 
+            {/* Guest Problem Selector — shown before interview starts */}
+            {isGuest && (
+                <GuestProblemSelectorModal
+                    isOpen={showGuestSelector}
+                    onSelect={handleGuestProblemSelect}
+                />
+            )}
         </div>
     );
 }

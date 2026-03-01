@@ -52,11 +52,14 @@ export function useInterview(options: {
     apiEndpoint?: string;
     sessionToken?: string;
     onUserMessage?: (msg: Message, messageCount: number) => void;
+    isGuest?: boolean;        // ADD: passed to Chat API as guestMode
+    maxRounds?: number;       // ADD: overrides INTERVIEW_MAX_ROUNDS (default 20)
+    maxDurationMs?: number;   // ADD: overrides INTERVIEW_MAX_MS (default 10 min)
 } = {}) {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.vadEnabled, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage]
+        [options.vadEnabled, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest, options.maxRounds, options.maxDurationMs]
     );
 
     // State
@@ -71,8 +74,8 @@ export function useInterview(options: {
     const [isLimitReached, setIsLimitReached] = useState(false);
     const [limitReason, setLimitReason] = useState<'rounds' | 'time' | null>(null);
 
-    const INTERVIEW_MAX_ROUNDS = 20;
-    const INTERVIEW_MAX_MS = 10 * 60 * 1000; // 10 minutes
+    const INTERVIEW_MAX_ROUNDS = options.maxRounds ?? 20;
+    const INTERVIEW_MAX_MS = options.maxDurationMs ?? (10 * 60 * 1000);
 
     // Problem Context helper ref
     const currentProblemRef = useRef<ProblemContext | null>(null);
@@ -210,7 +213,8 @@ export function useInterview(options: {
                     companyPersona: problemContext.companyPersona,
                     kaiMemory: problemContext.kaiMemory,
                     problemId: problemContext.problemId,
-                    sessionToken: optionsRef.current.sessionToken
+                    sessionToken: optionsRef.current.sessionToken,
+                    guestMode: optionsRef.current.isGuest ?? false,   // ADD THIS LINE
                 })
             });
 
