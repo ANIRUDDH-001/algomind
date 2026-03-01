@@ -660,10 +660,13 @@ export function useInterview(options: {
             startListening: () => {
                 setIsMicEnabled(true);
                 setOptimisticListening(true);
+                // Directly invoke recognition.start() — don't rely solely on the mic sync effect
+                startListening();
             },
             stopListening: () => {
                 setIsMicEnabled(false);
                 setOptimisticListening(false);
+                stopListening();
             },
             toggleMic, // New toggle
             isMicEnabled, // Expose state
