@@ -82,7 +82,6 @@ describe('useInterview — mic lifecycle', () => {
 
     it('submitUserResponse reference is stable across re-renders', () => {
         const { result, rerender } = renderHook(
-            // @ts-ignore
             (props: { config: any; isReviewMode: boolean }) => useInterview(props),
             { initialProps: { config: mockConfig, isReviewMode: false } }
         );

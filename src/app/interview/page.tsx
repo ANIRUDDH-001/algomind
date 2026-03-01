@@ -118,10 +118,10 @@ function InterviewContent() {
 
                 // ── Co-owner check ────────────────────────────────────────────────────────────
                 let isCoOwner = false;
-                // @ts-ignore
+                // @ts-expect-error - Profile type missing
                 if (userId && !isGuest && profile?.account_type === 'candidate') {
                     // Only check for candidates — owners/admins already have unlimited access
-                    // @ts-ignore
+                    // @ts-expect-error - Profile type missing
                     const { data: co } = await supabase.from('co_owners').select('id').eq('user_id', userId).maybeSingle();
                     isCoOwner = !!co;
                 }
@@ -139,10 +139,10 @@ function InterviewContent() {
                 const resolvedConfig: InterviewConfig = isGuest
                     ? resolveGuestConfig()
                     : resolvePracticeConfig({
-                        // @ts-ignore
+                        // @ts-expect-error - Profile type missing
                         accountType: profile?.account_type ?? 'candidate',
                         isCoOwner,
-                        // @ts-ignore
+                        // @ts-expect-error - Profile type missing
                         rateOverride: profile?.rate_limit_override ?? null,
                         difficultyMode,
                         ragContext,
@@ -232,7 +232,6 @@ function InterviewContent() {
             <InterviewErrorBoundary>
                 {problem && interviewConfig && (
                     <InterviewSession
-                        // @ts-ignore
                         problem={problem}
                         interviewConfig={interviewConfig}
                         readOnly={!!sessionId}

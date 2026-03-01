@@ -156,6 +156,7 @@ export async function saveInterviewSession(
                     debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
                     model_used: finalResult.modelUsed ?? 'unknown',
                     confidence: 0.8,
+                    validation_pass_done: finalResult.validationPassDone ?? false,
                 });
 
             if (assessmentError) {

@@ -244,7 +244,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('1. Problem panel is visible by default (showProblemPanel=true initial state)', () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
         // The problem panel is an absolute left-side drawer. "Problem" text appears in its header.
         const problemHeader = screen.getAllByText('Problem');
         expect(problemHeader.length).toBeGreaterThan(0);
@@ -255,14 +255,14 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('2. History panel is hidden by default (showHistoryPanel=false initial state)', () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
         // No absolute right-0 panel should exist
         const historyPanel = container.querySelector('.absolute.right-0.top-0.bottom-0');
         expect(historyPanel).toBeNull();
     });
 
     it('3. Clicking Problem toggle button closes the problem panel', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         // The toggle button is a motion.button with text "Problem" in the floating sidebar
         // It's inside `.absolute.left-2.top-1/2` or similar
@@ -281,7 +281,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('4. Clicking Problem toggle button again re-opens panel', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         const getToggle = () => Array.from(container.querySelectorAll('button')).find(b =>
             b.textContent?.includes('Problem') && b.getAttribute('class')?.includes('rounded-xl')
@@ -296,7 +296,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('5. Clicking History toggle button opens history panel', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         // History toggle button
         const historyToggle = Array.from(container.querySelectorAll('button')).find(b =>
@@ -312,14 +312,14 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('6. When problem panel is open: main content has marginLeft style containing 380px', () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
         const mainContent = getMainContent(container);
         expect(mainContent).not.toBeNull();
         expect((mainContent as HTMLElement).style.marginLeft).toBe('380px');
     });
 
     it('7. When history panel is open: main content has marginRight style containing 340px', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         const historyToggle = Array.from(container.querySelectorAll('button')).find(b =>
             b.textContent?.includes('History') && b.getAttribute('class')?.includes('rounded-xl')
@@ -332,7 +332,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('8. Both panels can be open simultaneously', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         const historyToggle = Array.from(container.querySelectorAll('button')).find(b =>
             b.textContent?.includes('History') && b.getAttribute('class')?.includes('rounded-xl')
@@ -350,7 +350,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('9. Close button (×) inside problem panel hides the panel', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
         const closeBtn = getProblemDrawerCloseButton(container);
         expect(closeBtn).not.toBeNull();
 
@@ -359,7 +359,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('10. Close button (×) inside history panel hides the panel', async () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         // First open history panel
         const historyToggle = Array.from(container.querySelectorAll('button')).find(b =>
@@ -376,7 +376,7 @@ describe('InterviewSession Desktop Panel Behavior', () => {
     });
 
     it('11. Panel toggle buttons are accessible (keyboard focusable, have visible text labels)', () => {
-        const { container } = render(<InterviewSession problem={mockProblem} />);
+        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={{ difficultyMode: 'practice' } as any} />);
 
         const problemToggle = Array.from(container.querySelectorAll('button')).find(b =>
             b.textContent?.includes('Problem') && b.getAttribute('class')?.includes('rounded-xl')
