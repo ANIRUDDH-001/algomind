@@ -2,6 +2,7 @@ import { CognitiveSkill } from '@/types/assessment';
 import { SKILL_DEFINITIONS } from './skill-registry';
 import { ConversationTurn, generateAssessmentPrompt } from './prompts';
 import { calculateConfidence } from './confidence-calculator';
+import { validateAndCorrectScores, applyValidation } from './score-validator';
 
 export interface SkillScore {
     score: number;
@@ -21,6 +22,7 @@ export interface AssessmentResult {
     knowledgeGaps?: string[];
     modelUsed?: string;
     analysisFailure?: 'user_fault' | 'system_fault';
+    validationPassDone?: boolean;
 }
 
 interface ParsedAssessmentResponse {
@@ -57,12 +59,17 @@ export class CognitiveAnalyzer {
                 const rawResponse = await this.callAI(prompt);
                 const parsedData = this.parseResponse(rawResponse.text) as unknown as ParsedAssessmentResponse;
 
+                // Two-pass validation
+                const userTurnCount = transcript.filter(t => t.role === 'user').length;
+                const validation = await validateAndCorrectScores(parsedData.skills, userTurnCount);
+                const validatedSkills = applyValidation(parsedData.skills, validation);
+
                 // Post-process: calculate confidence and finalize structure
                 const sessionConfidence = calculateConfidence(transcript, parsedData);
 
                 const finalizedSkills: Record<string, SkillScore> = {};
                 Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
-                    const data = parsedData.skills[skillId] || {
+                    const data = validatedSkills[skillId] || {
                         score: 5,
                         evidence: [],
                         strengths: [],
@@ -78,11 +85,12 @@ export class CognitiveAnalyzer {
                     sessionId,
                     timestamp: new Date(),
                     problem,
-                    skills: finalizedSkills,
+                    skills: finalizedSkills as Record<CognitiveSkill, SkillScore>,
                     overallFeedback: parsedData.overallFeedback || "No feedback generated.",
                     nextSteps: parsedData.nextSteps || ["Review the session manually."],
                     knowledgeGaps: parsedData.knowledgeGaps || [],
-                    modelUsed: rawResponse.model ?? 'gemini-2.0-flash'
+                    modelUsed: rawResponse.model ?? 'gemini-2.0-flash',
+                    validationPassDone: true
                 };
 
             } catch (error: unknown) {

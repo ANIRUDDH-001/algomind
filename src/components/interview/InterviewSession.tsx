@@ -45,6 +45,7 @@ import { GuestRegisterModal } from './GuestRegisterModal';
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
 import { SilentObserverNudge } from './SilentObserverNudge';
+import { classifyTurnSignal } from '@/lib/interview/turn-classifier';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
 
@@ -92,6 +93,8 @@ export function InterviewSession({
     const [hasStarted, setHasStarted] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
     const [lastBadgeSkill, setLastBadgeSkill] = useState<CognitiveSkill>('pattern-recognition');
+    const [badgeTriggerPhrase, setBadgeTriggerPhrase] = useState<string>('Signal detected');
+    const [firedDimensions] = useState<Set<string>>(new Set());
     const [error, setError] = useState<string | null>(null);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
@@ -197,11 +200,17 @@ export function InterviewSession({
         if (!hasStarted) {
             setHasStarted(true);
         }
-        if (!showBadge && messageCount > 2) {
-            setLastBadgeSkill(messageCount > 4 ? 'algorithmic-thinking' : 'pattern-recognition');
-            setShowBadge(true);
+        if (!isGuest && hasStarted && _msg.content.trim().length > 20) {
+            classifyTurnSignal(_msg.content, activeProblem.title).then((signal) => {
+                if (signal && !showBadge && !firedDimensions.has(signal.dimension)) {
+                    firedDimensions.add(signal.dimension);
+                    setLastBadgeSkill(signal.dimension);
+                    setBadgeTriggerPhrase(signal.triggerPhrase);
+                    setShowBadge(true);
+                }
+            }).catch(() => { /* silent fail */ });
         }
-    }, [isGuest, hasStarted, recordUserTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge]);
+    }, [isGuest, hasStarted, recordUserTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge, activeProblem.title, firedDimensions]);
 
     const {
         state,
@@ -896,7 +905,7 @@ export function InterviewSession({
             )}
 
             <div className="fixed top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
-                <SkillBadge skillId={lastBadgeSkill} points={2} shown={showBadge} />
+                <SkillBadge skillId={lastBadgeSkill} triggerPhrase={badgeTriggerPhrase} shown={showBadge} />
             </div>
 
             {hasStarted && <VoiceOnboarding />}
