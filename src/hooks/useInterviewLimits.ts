@@ -23,8 +23,13 @@ export interface InterviewLimits {
     reset: () => void;
 }
 
-export function useInterviewLimits(options?: { maxDurationMins?: number; startTimeOffsetSeconds?: number; }): InterviewLimits {
+export function useInterviewLimits(options?: {
+    maxDurationMins?: number;
+    startTimeOffsetSeconds?: number;
+    maxTurns?: number;            // ADD: override the turn ceiling
+}): InterviewLimits {
     const maxDurationMs = (options?.maxDurationMins || 20) * 60 * 1000;
+    const effectiveMaxTurns = options?.maxTurns ?? MAX_TURNS;  // ADD this line
     const initialElapsed = options?.startTimeOffsetSeconds || 0;
 
     const [elapsedTime, setElapsedTime] = useState(initialElapsed); // in seconds
@@ -81,10 +86,10 @@ export function useInterviewLimits(options?: { maxDurationMins?: number; startTi
 
     // Derived values
     const timeRemaining = Math.max(0, Math.floor(maxDurationMs / 1000) - elapsedTime);
-    const turnsRemaining = Math.max(0, MAX_TURNS - turnsUsed);
+    const turnsRemaining = Math.max(0, effectiveMaxTurns - turnsUsed);
     const isTimeUp = elapsedTime >= maxDurationMs / 1000;
-    const isTurnsUp = turnsUsed >= MAX_TURNS;
-    const shouldShowTurnWarning = turnsRemaining > 0 && turnsRemaining <= WARNING_TURNS_REMAINING;
+    const isTurnsUp = turnsUsed >= effectiveMaxTurns;
+    const shouldShowTurnWarning = turnsRemaining <= WARNING_TURNS_REMAINING && !isTurnsUp;
 
     // Format time as MM:SS
     const formatTime = (seconds: number): string => {
