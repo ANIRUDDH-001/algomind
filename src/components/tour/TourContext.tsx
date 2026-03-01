@@ -143,34 +143,12 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        const hasCompletedTour = localStorage.getItem('algomind_tour_completed');
-        const hasSkippedTour = localStorage.getItem('algomind_tour_skipped');
-        const isNewUser = !hasCompletedTour && !hasSkippedTour;
-
-        // 2. Auto-Start for New Users
-        // We use a ref to ensure we only schedule this ONCE per session/mount
-        if (isNewUser && user && !tourScheduledRef.current) {
-            tourScheduledRef.current = true;
-            setIsFirstVisit(true);
-
-            console.log('🆕 [TOUR] New user detected, scheduling tour start...');
-
-            // Delay auto-start slightly for better UX and to ensure UI is ready
-            // We do NOT return the cleanup function to clear this timeout
-            // because we want it to persist even if the component re-renders 
-            // (unless the user explicitly logs out, handled above)
-            setTimeout(() => {
-                // Check if still valid to start (e.g. didn't log out in the last 2 seconds)
-                // We re-check localStorage in case they finished it in another tab (unlikely but safe)
-                const currentCompleted = localStorage.getItem('algomind_tour_completed');
-                const currentSkipped = localStorage.getItem('algomind_tour_skipped');
-
-                if (!currentCompleted && !currentSkipped && !isDemoMode()) {
-                    console.log('🚀 [TOUR] Starting auto-tour now');
-                    startTour();
-                }
-            }, 1500);
-        }
+        // AUTO-START DISABLED: Tour is broken/inaccurate. Re-enable once tour is updated.
+        // Users can still start the tour manually from Settings.
+        // const hasCompletedTour = localStorage.getItem('algomind_tour_completed');
+        // const hasSkippedTour = localStorage.getItem('algomind_tour_skipped');
+        // const isNewUser = !hasCompletedTour && !hasSkippedTour;
+        // if (isNewUser && user && !tourScheduledRef.current) { ... }
     }, [loading, user, startTour]);
 
     // Listen for custom start event (from settings)

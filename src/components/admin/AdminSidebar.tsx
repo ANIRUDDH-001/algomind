@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const STATIC_NAV_ITEMS = [
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
-    { name: 'Students', href: '/admin/users', icon: Users },
+    { name: 'All Users', href: '/admin/users', icon: Users },  // redirects to /owner?tab=users
 ];
 
 export function AdminSidebar() {
