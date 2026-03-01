@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion, useSpring, useTransform } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, AlertTriangle, Mic, Pause } from 'lucide-react';
+import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
@@ -31,6 +31,7 @@ interface TranscriptTurn {
 interface AssessmentData {
     overallScore: number;
     skills: Record<CognitiveSkill, number>;
+    subCriteria?: Record<string, Record<string, number>>;
     overallFeedback: string;
     nextSteps: string[];
     skillEvidence: Record<string, unknown>;
@@ -101,14 +102,23 @@ function AnimatedScore({ score, max = 10 }: { score: number; max?: number }) {
 
 // ─── Skill Bar ──────────────────────────────────────────────────────────────
 
-function SkillBar({ skill, score }: { skill: CognitiveSkill; score: number }) {
+function SkillBar({ skill, score, subCriteria }: { skill: CognitiveSkill; score: number; subCriteria?: Record<string, number> }) {
+    const [expanded, setExpanded] = useState(false);
     const def = SKILL_DEFINITIONS[skill];
     const pct = Math.min((score / 10) * 100, 100);
 
     return (
         <div className="group">
-            <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-semibold text-zinc-300">{def.name}</span>
+            <div
+                className="flex justify-between items-center mb-1 cursor-pointer"
+                onClick={() => setExpanded(!expanded)}
+            >
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-zinc-300">{def.name}</span>
+                    {subCriteria && Object.keys(subCriteria).length > 0 && (
+                        <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                    )}
+                </div>
                 <span className="text-[10px] font-black tabular-nums" style={{ color: def.color }}>
                     {score.toFixed(1)}
                 </span>
@@ -122,11 +132,73 @@ function SkillBar({ skill, score }: { skill: CognitiveSkill; score: number }) {
                     transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 />
             </div>
+
+            {/* sub-criteria breakdown */}
+            <AnimatePresence>
+                {expanded && subCriteria && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="pl-2 space-y-1.5 mt-2 mb-3 border-l-2" style={{ borderColor: def.color + '40' }}>
+                            {def.subCriteria?.map(sc => (
+                                <div key={sc.id} className="flex items-center justify-between">
+                                    <span className="text-[10px] text-zinc-400">{sc.label}</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-16 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full"
+                                                style={{
+                                                    width: `${((subCriteria[sc.id] || 0) / 10) * 100}%`,
+                                                    background: def.color
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-zinc-500 w-4 text-right tabular-nums">
+                                            {subCriteria[sc.id] != null ? subCriteria[sc.id].toFixed(0) : '—'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
 
-// ─── Key Moments ────────────────────────────────────────────────────────────
+// ─── Key Moments & Weak Sub-Criteria ──────────────────────────────────────────
+
+function extractWeakSubCriteria(
+    subCriteriaDict?: Record<string, Record<string, number>>
+) {
+    if (!subCriteriaDict) return [];
+
+    const weaks: { skill: CognitiveSkill; scId: string; label: string; description: string; score: number; color: string }[] = [];
+    (Object.keys(subCriteriaDict) as CognitiveSkill[]).forEach(skill => {
+        const sub = subCriteriaDict[skill];
+        const def = SKILL_DEFINITIONS[skill];
+        if (sub && def && def.subCriteria) {
+            def.subCriteria.forEach(sc => {
+                const score = sub[sc.id];
+                if (score !== undefined && score <= 4) {
+                    weaks.push({
+                        skill,
+                        scId: sc.id,
+                        label: sc.label,
+                        description: sc.description,
+                        score,
+                        color: def.color
+                    });
+                }
+            });
+        }
+    });
+    return weaks.sort((a, b) => a.score - b.score);
+}
 
 interface KeyMoment {
     time: string;
@@ -202,6 +274,7 @@ export function AnalysisClient({
     flags,
 }: AnalysisClientProps) {
     const skills = assessment?.skills;
+    const weakSubCriteria = extractWeakSubCriteria(assessment?.subCriteria);
     const moments = extractKeyMoments(session.transcript, assessment?.skillEvidence || {});
     const hasTranscript = session.transcript && session.transcript.length > 0;
 
@@ -272,7 +345,32 @@ export function AnalysisClient({
                     {skills && (
                         <div className="space-y-3 pt-2">
                             {(Object.keys(SKILL_DEFINITIONS) as CognitiveSkill[]).map((skill) => (
-                                <SkillBar key={skill} skill={skill} score={skills[skill] || 0} />
+                                <SkillBar
+                                    key={skill}
+                                    skill={skill}
+                                    score={skills[skill] || 0}
+                                    subCriteria={assessment?.subCriteria?.[skill]}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Weak sub-criteria */}
+                    {weakSubCriteria.length > 0 && (
+                        <div className="pt-4 border-t space-y-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                                <AlertTriangle className="w-3 h-3 text-amber-500" /> Improvement Areas
+                            </h3>
+                            {weakSubCriteria.slice(0, 3).map((w, idx) => (
+                                <div key={idx} className="bg-white/[0.02] border rounded-lg p-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-bold text-zinc-300">{w.label}</span>
+                                        <span className="text-[10px] font-black" style={{ color: w.color }}>{w.score}/10</span>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-500">
+                                        You scored low on this aspect: <span className="text-zinc-400">"{w.description}"</span>.
+                                    </p>
+                                </div>
                             ))}
                         </div>
                     )}

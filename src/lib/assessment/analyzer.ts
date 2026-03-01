@@ -4,8 +4,17 @@ import { ConversationTurn, generateAssessmentPrompt } from './prompts';
 import { calculateConfidence } from './confidence-calculator';
 import { validateAndCorrectScores, applyValidation } from './score-validator';
 
+export interface CodeQualityScore {
+    score: number | null;
+    correctness: string;
+    clarity: string;
+    consistency: string;
+    issues: string[];
+}
+
 export interface SkillScore {
     score: number;
+    subCriteria: Record<string, number>;
     evidence: string[];
     strengths: string[];
     improvements: string[];
@@ -20,18 +29,34 @@ export interface AssessmentResult {
     overallFeedback: string;
     nextSteps: string[];
     knowledgeGaps?: string[];
+    codeQuality?: null | CodeQualityScore;
     modelUsed?: string;
     analysisFailure?: 'user_fault' | 'system_fault';
     validationPassDone?: boolean;
 }
 
+function computeWeightedScore(
+    subCriteriaScores: Record<string, number>,
+    skillId: CognitiveSkill
+): number {
+    const def = SKILL_DEFINITIONS[skillId];
+    if (!def || !def.subCriteria) return 5;
+    let total = 0;
+    for (const sc of def.subCriteria) {
+        total += (subCriteriaScores[sc.id] ?? 5) * sc.weight;
+    }
+    return Math.round(total * 10) / 10;
+}
+
 interface ParsedAssessmentResponse {
     skills: Record<string, {
         score: number;
+        subCriteria: Record<string, number>;
         evidence: string[];
         strengths: string[];
         improvements: string[];
     }>;
+    codeQuality?: CodeQualityScore | null;
     overallFeedback: string;
     nextSteps: string[];
     knowledgeGaps?: string[];
@@ -59,6 +84,17 @@ export class CognitiveAnalyzer {
                 const rawResponse = await this.callAI(prompt);
                 const parsedData = this.parseResponse(rawResponse.text) as unknown as ParsedAssessmentResponse;
 
+                // Pre-process: verify subset scores
+                for (const skillId of Object.keys(parsedData.skills)) {
+                    const skill = parsedData.skills[skillId];
+                    if (skill && skill.subCriteria) {
+                        const weighted = computeWeightedScore(skill.subCriteria, skillId as CognitiveSkill);
+                        if (Math.abs(skill.score - weighted) > 0.5) {
+                            skill.score = weighted;
+                        }
+                    }
+                }
+
                 // Two-pass validation
                 const userTurnCount = transcript.filter(t => t.role === 'user').length;
                 const validation = await validateAndCorrectScores(parsedData.skills, userTurnCount);
@@ -71,12 +107,14 @@ export class CognitiveAnalyzer {
                 Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
                     const data = validatedSkills[skillId] || {
                         score: 5,
+                        subCriteria: {},
                         evidence: [],
                         strengths: [],
                         improvements: []
                     };
                     finalizedSkills[skillId] = {
                         ...data,
+                        subCriteria: data.subCriteria || {},
                         confidence: sessionConfidence
                     };
                 });
@@ -89,6 +127,7 @@ export class CognitiveAnalyzer {
                     overallFeedback: parsedData.overallFeedback || "No feedback generated.",
                     nextSteps: parsedData.nextSteps || ["Review the session manually."],
                     knowledgeGaps: parsedData.knowledgeGaps || [],
+                    codeQuality: parsedData.codeQuality || null,
                     modelUsed: rawResponse.model ?? 'gemini-2.0-flash',
                     validationPassDone: true
                 };
@@ -119,6 +158,7 @@ export class CognitiveAnalyzer {
         Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
             fallbackSkills[skillId] = {
                 score: fallbackScore,
+                subCriteria: {},
                 evidence: [isUserFault ? "Insufficient user interaction to assess skills." : "Session analysis failed."],
                 strengths: [],
                 improvements: [isUserFault ? "Provide more detailed code and explanations." : "Unable to analyze due to technical constraints."],

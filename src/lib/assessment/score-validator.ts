@@ -17,6 +17,7 @@ import { getAIClient } from '@/lib/ai/client';
 
 export interface ParsedSkillScore {
     score: number;
+    subCriteria: Record<string, number>;
     evidence: string[];
     strengths: string[];
     improvements: string[];

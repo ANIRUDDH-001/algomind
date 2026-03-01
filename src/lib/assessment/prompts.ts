@@ -14,6 +14,16 @@ export function generateAssessmentPrompt(
     .map(turn => `${turn.role.toUpperCase()}: ${turn.content}`)
     .join('\n');
 
+  const skillsJsonShape = Object.entries(skillDefinitions).map(([id, def]) => `    "${id}": {
+      "score": <weighted average of sub-criteria, 1-10>,
+      "subCriteria": {
+${def.subCriteria.map(sc => `        "${sc.id}": <1-10>`).join(',\n')}
+      },
+      "evidence": ["Exact quote from transcript", "..."],
+      "strengths": ["..."],
+      "improvements": ["..."]
+    }`).join(',\n');
+
   return `
 You are an expert technical interviewer and cognitive scientist evaluating a candidate's DSA problem-solving session.
 
@@ -32,6 +42,7 @@ For each skill, provide an objective score based on the rubric, supporting evide
 COGNITIVE SKILLS TO EVALUATE:
 ${Object.entries(skillDefinitions).map(([_id, def]) => `
 - ${def.name}: ${def.description}
+  Sub-criteria weights: ${def.subCriteria.map(sc => `${sc.label} (${sc.id}) = ${sc.weight}`).join(', ')}
   Rubric:
   1-2 (Level 1): ${def.rubric.level1}
   3-4 (Level 2): ${def.rubric.level2}
@@ -43,13 +54,14 @@ ${Object.entries(skillDefinitions).map(([_id, def]) => `
 OUTPUT FORMAT (JSON ONLY):
 {
   "skills": {
-    "problem-decomposition": {
-      "score": number,
-      "evidence": ["Exact quote from transcript", "..."],
-      "strengths": ["..."],
-      "improvements": ["..."]
-    },
-    ... (repeat for all 8 skills)
+${skillsJsonShape}
+  },
+  "codeQuality": {
+    "score": <1-10 or null if no code submitted>,
+    "correctness": "<Does the code handle the examples? What fails?>",
+    "clarity": "<Variable naming, code structure, readability>",
+    "consistency": "<Does code match verbal approach described?>",
+    "issues": ["specific issue 1", "specific issue 2"]
   },
   "overallFeedback": "High-level summary of performance",
   "nextSteps": ["Actionable recommendation 1", "..."],
@@ -57,10 +69,19 @@ OUTPUT FORMAT (JSON ONLY):
 }
 
 IMPORTANT:
+- Score each sub-criterion independently first. Then calculate the dimension score as the weighted average of its sub-criteria.
+- Do not round-trip — the sub-criteria scores are authoritative.
 - Return ONLY the JSON object.
 - Quote EXACT phrases from the transcript as evidence.
 - Be constructively critical. Don't give 10/10 unless the performance is truly exemplary.
 - Consider problem difficulty. A "Hard" problem solved with minor gaps is better than an "Easy" problem solved perfectly but slowly.
 - **knowledgeGaps**: List 1-3 specific technical concepts the candidate lacked or struggled with. If none, leave empty.
+
+CODE QUALITY ASSESSMENT:
+If the transcript includes a [FINAL CODE SUBMITTED] block:
+- Evaluate whether the code is logically correct for the given problem
+- Note naming quality (are variables meaningful?)
+- Note whether the code structure matches what the candidate described verbally
+- If the transcript has no code block, set codeQuality to null
 `;
 }
