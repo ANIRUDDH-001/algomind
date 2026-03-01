@@ -62,14 +62,6 @@ export const FEATURE_FLAGS = {
 
     // ── Phase 0 Flags ──────────────────────────────────────────────────
 
-    // Groq PlayAI TTS
-    ENABLE_GROQ_TTS: {
-        storageKey: 'feature_ENABLE_GROQ_TTS',
-        defaultValue: false,
-        description: 'Groq PlayAI TTS (Aaliya-PlayAI Indian English voice). Primary TTS when enabled. Fallback: Browser Web Speech API.',
-        requiresBrowserSupport: false,
-    },
-
     // AWS Polly Neural TTS
     ENABLE_AWS_POLLY_TTS: {
         storageKey: 'feature_ENABLE_AWS_POLLY_TTS',

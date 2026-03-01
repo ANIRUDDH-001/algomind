@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
@@ -73,46 +72,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
         }
 
-        // Get latest message content or problem context for RAG retrieval
-        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-        const query = lastUserMessage ? lastUserMessage.content : (problemContext ? `${problemContext.title} ${problemContext.content}` : '');
-
-        console.log('🔍 [RAG] Query:', query.substring(0, 100) + (query.length > 100 ? '...' : ''));
-
-        // Initialize and Load Vector Store
-
-        // Perform RAG retrieval - use pre-embedded context if provided (for guests)
         let ragContext = '';
         if (problemContext?.ragContext && problemContext.ragContext.length > 0) {
-            // Use pre-embedded RAG context (guest users with hardcoded problems)
             ragContext = problemContext.ragContext;
             console.log(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - saving API calls`);
-        } else if (query) {
-            // Perform live RAG retrieval (authenticated users) via Supabase
-            try {
-                // Determine limit based on query complexity/length if needed, default to 3
-                const searchResults = await supabaseHybridSearch(query, 3);
-
-                if (searchResults.length > 0) {
-                    console.log(`✅ [RAG] Found ${searchResults.length} relevant chunks:`);
-                    searchResults.forEach((r, idx) => {
-                        console.log(`   ${idx + 1}. ${r.chunk.topic}/${r.chunk.subtopic} (${r.matchType}, score: ${r.score.toFixed(3)})`);
-                    });
-
-                    ragContext = searchResults.map(r =>
-                        `### ${r.chunk.title}\n${r.chunk.content}`
-                    ).join('\n\n---\n\n');
-                } else {
-                    console.log('⚠️ [RAG] No relevant chunks found for query');
-                }
-            } catch (searchError) {
-                console.warn('❌ [RAG] Embedding failed — proceeding without RAG context:', searchError);
-                void logSystemEvent({
-                    type: 'embedding_failed',
-                    errorMessage: searchError instanceof Error ? searchError.message : String(searchError)
-                });
-                // Continue without RAG if search fails
-            }
         }
 
         const client = getAIClient();

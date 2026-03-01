@@ -210,6 +210,16 @@ const mockProblem = {
 
 // ─── Tests ───
 describe('InterviewSession BUG-V7-05 Regression', () => {
+    const mockConfig: any = {
+        mode: 'practice',
+        difficultyMode: 'practice',
+        maxDurationMs: 1200000,
+        maxTurnsPerProblem: 20,
+        isUnlimited: false,
+        ragContext: 'test rag',
+        kaiMemory: 'test memory'
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -219,7 +229,7 @@ describe('InterviewSession BUG-V7-05 Regression', () => {
         Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 });
         vi.mocked(deviceDetection.isMobileDevice).mockReturnValue(true);
 
-        render(<InterviewSession problem={mockProblem} />);
+        render(<InterviewSession problem={mockProblem} interviewConfig={mockConfig} />);
 
         // On mobile, the default view is "interview" so the code editor isn't there initially.
         expect(screen.queryByTestId('mock-code-editor')).toBeNull();
@@ -245,7 +255,7 @@ describe('InterviewSession BUG-V7-05 Regression', () => {
         Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 });
         vi.mocked(deviceDetection.isMobileDevice).mockReturnValue(false);
 
-        render(<InterviewSession problem={mockProblem} />);
+        render(<InterviewSession problem={mockProblem} interviewConfig={mockConfig} />);
 
         // Click "Begin Interview Experience" to start
         const beginBtns = screen.getAllByRole('button', { name: /Begin Interview Experience/i });

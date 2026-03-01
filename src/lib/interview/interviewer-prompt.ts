@@ -25,8 +25,6 @@ export interface InterviewConfig {
     turnsRemaining?: number;
     timeRemaining?: number;
     ragContext?: string;
-    companyId?: string;
-    kaiPersona?: string;
     kaiMemory?: string;
 }
 
@@ -53,7 +51,7 @@ export const COGNITIVE_DIMENSIONS: CognitiveDimension[] = [
 // ============================================================================
 
 export function generateInterviewerSystemPrompt(config: InterviewConfig): string {
-    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiPersona, kaiMemory } = config;
+    const { problem, difficulty, ragContext, turnsRemaining, timeRemaining, kaiMemory } = config;
 
     const modeInstructions: Record<string, string> = {
         'warm-up': `
@@ -250,10 +248,6 @@ When the interview ends (either completion OR termination), provide structured f
 
 BEGIN INTERVIEW NOW. Your first message should be a warm, professional introduction of the problem.
 `;
-
-    if (kaiPersona) {
-        prompt += '\n\n## COMPANY INTERVIEW STYLE\n' + kaiPersona;
-    }
 
     if (kaiMemory) {
         prompt += '\n\n## YOUR MEMORY OF THIS STUDENT\n' + kaiMemory +
