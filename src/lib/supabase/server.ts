@@ -5,13 +5,11 @@ import { cookies } from 'next/headers';
 export async function createServerSupabase(): Promise<SupabaseClient> {
     const cookieStore = await cookies();
 
-    // ⚠️ CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client) here.
-    // Supabase SSR derives the cookie name from the project URL.
-    // If server uses SUPABASE_DIRECT_URL (wfdgsmhuglmrxcmwcylz.supabase.co) and
-    // client uses NEXT_PUBLIC_SUPABASE_URL (algomind-supabase.workers.dev),
-    // they produce DIFFERENT cookie names → server can never read client session.
-    // Fix: use the same URL everywhere so cookie names always match.
-    // The CF Worker is reachable from Vercel servers (it's globally accessible).
+    // CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client) here.
+    // Supabase SSR derives cookie names from the project URL.
+    // If server and client use different URLs, they generate different cookie names
+    // and the server can never read the client session.
+    // Fix: use the same URL everywhere (NEXT_PUBLIC_SUPABASE_URL = direct supabase.co URL).
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 
     return createServerClient(

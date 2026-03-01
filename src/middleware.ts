@@ -14,7 +14,7 @@ export default async function middleware(request: NextRequest) {
         request: { headers: requestHeaders },
     });
 
-    // ⚠️ CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client).
+    // CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client).
     // Cookie names are derived from the URL — mixing URLs breaks session sync.
     // Strip trailing slash to ensure consistent cookie name derivation.
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');

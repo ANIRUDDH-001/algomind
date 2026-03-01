@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let subscriptionCleanup: (() => void) | null = null;
 
         const initAuth = async () => {
-            // CF Worker is always-on — no probing needed.
+            // Supabase is configured — initialize auth
             const supabase = getSupabase();
             if (!supabase) {
                 if (mounted) setLoading(false);

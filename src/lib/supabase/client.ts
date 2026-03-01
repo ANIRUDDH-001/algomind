@@ -22,8 +22,6 @@ let _currentUrl: string | null = null;
 
 export function createClient(): SupabaseClient | null {
     if (!isSupabaseConfigured()) return null;
-    // NEXT_PUBLIC_SUPABASE_URL is the Cloudflare Worker URL in production.
-    // This bypasses Indian ISP DNS blocks on *.supabase.co.
     // Strip trailing slash to ensure consistent cookie name derivation.
     const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -38,6 +36,3 @@ export function getSupabase(): SupabaseClient | null {
     }
     return _instance;
 }
-
-// ── Removed: probeAndAutoProxy, isProxyMode, enableProxyMode, disableProxyMode
-// These are no longer needed — CF Worker is always-on and always reachable.
