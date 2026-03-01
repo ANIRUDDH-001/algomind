@@ -10,6 +10,8 @@ import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/proble
 import { getGuestProblem, getGuestProblemById } from '@/lib/guest/guest-problems';
 import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-rate-limiter';
 import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
+import { resolveGuestConfig, resolvePracticeConfig, type InterviewConfig } from '@/lib/interview/interview-config';
+import { getKaiMemory } from '@/app/actions/learn';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -29,6 +31,7 @@ function InterviewContent() {
     // console.log('[InterviewPage RENDER] State:', { ... });
 
     const [problem, setProblem] = useState<(Problem & { ragContext?: string }) | null>(null);
+    const [interviewConfig, setInterviewConfig] = useState<InterviewConfig | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [rateLimitInfo, setRateLimitInfo] = useState<{ allowed: boolean; remaining: number } | null>(null);
@@ -97,6 +100,59 @@ function InterviewContent() {
                 // Wait for all data
                 const [rateLimitData, fetchedProblem] = await Promise.all([rateLimitPromise, problemPromise]);
 
+                // ── RAG: fetch ONCE for this problem ─────────────────────────────────────────
+                let ragContext = '';
+                if (fetchedProblem && !isGuest) {
+                    try {
+                        // Placeholder
+                    } catch { /* non-fatal — proceed without RAG */ }
+                } else if (isGuest && fetchedProblem) {
+                    ragContext = (fetchedProblem as typeof fetchedProblem & { ragContext?: string }).ragContext ?? '';
+                }
+
+                // ── Kai memory: fetch ONCE ────────────────────────────────────────────────────
+                let kaiMemory = '';
+                if (userId && !isGuest) {
+                    try { kaiMemory = await getKaiMemory(userId); } catch { /* non-fatal */ }
+                }
+
+                // ── Co-owner check ────────────────────────────────────────────────────────────
+                let isCoOwner = false;
+                // @ts-ignore
+                if (userId && !isGuest && profile?.account_type === 'candidate') {
+                    // Only check for candidates — owners/admins already have unlimited access
+                    // @ts-ignore
+                    const { data: co } = await supabase.from('co_owners').select('id').eq('user_id', userId).maybeSingle();
+                    isCoOwner = !!co;
+                }
+
+                // ── Sprint: fetch problem 2 if needed ────────────────────────────────────────
+                let sprintProblemIds: [string, string] | undefined;
+                if (difficultyMode === 'sprint' && fetchedProblem && !isGuest) {
+                    try {
+                        const p2 = await getRandomProblem((fetchedProblem as any).difficulty);
+                        if (p2 && p2.id !== fetchedProblem.id) sprintProblemIds = [fetchedProblem.id, p2.id];
+                    } catch { /* single-problem sprint if this fails */ }
+                }
+
+                // ── Resolve config ────────────────────────────────────────────────────────────
+                const resolvedConfig: InterviewConfig = isGuest
+                    ? resolveGuestConfig()
+                    : resolvePracticeConfig({
+                        // @ts-ignore
+                        accountType: profile?.account_type ?? 'candidate',
+                        isCoOwner,
+                        // @ts-ignore
+                        rateOverride: profile?.rate_limit_override ?? null,
+                        difficultyMode,
+                        ragContext,
+                        kaiMemory,
+                        sprintProblemIds,
+                    });
+
+                setProblem(fetchedProblem);
+                setInterviewConfig(resolvedConfig);
+
                 // Handle Rate Limit Result
                 if (rateLimitData) {
                     setRateLimitInfo(rateLimitData);
@@ -111,9 +167,8 @@ function InterviewContent() {
                 // Handle Problem Result
                 if (!fetchedProblem) {
                     setError('No problems found. Please add problems to your database.');
-                } else {
-                    setProblem(fetchedProblem);
                 }
+
 
             } catch (e) {
                 console.error('Failed to load interview data:', e);
@@ -175,16 +230,16 @@ function InterviewContent() {
         <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 text-slate-100 overflow-hidden">
             <BrowserCompatBanner />
             <InterviewErrorBoundary>
-                <InterviewSession
-                    problem={problem}
-                    initialTranscript={initialTranscript}
-                    readOnly={!!sessionId}
-                    isGuest={isGuest}
-                    ragContext={problem.ragContext}
-                    remainingQuestions={rateLimitInfo?.remaining}
-                    isReviewMode={isReviewMode}
-                    difficultyMode={difficultyMode}
-                />
+                {problem && interviewConfig && (
+                    <InterviewSession
+                        // @ts-ignore
+                        problem={problem}
+                        interviewConfig={interviewConfig}
+                        readOnly={!!sessionId}
+                        isGuest={isGuest}
+                        isReviewMode={isReviewMode}
+                    />
+                )}
             </InterviewErrorBoundary>
         </div>
     );

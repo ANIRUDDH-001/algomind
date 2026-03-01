@@ -4,10 +4,8 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Bot, User, RotateCcw, AlertTriangle } from 'lucide-react';
 import { InterruptionIndicator } from './InterruptionIndicator';
-import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
 import { InterruptionManager } from '@/lib/voice/interruption-manager';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
-import { voiceAnalytics } from '@/lib/analytics/voice-analytics';
 import { Badge } from '@/components/ui/badge';
 
 // ---------------------------------------------------------------------------
@@ -103,7 +101,7 @@ export function ConversationView({
     const isVadEnabled = isVadFlagEnabled && propVadEnabled;
 
     // VAD Hook
-    const {
+    /* const {
         isListening: isVadListening,
         error: vadError,
     } = useVoiceActivityDetection({
@@ -135,35 +133,32 @@ export function ConversationView({
                 onSpeechEnd(audio);
             }
         },
-        onError: (err) => {
-            voiceAnalytics.track('vad_error', { error: err.message });
+        onError: (err: any) => {
+            debugLog('vad_error', { error: err.message });
             if (onVadError) onVadError(err);
         }
-    });
+    }); */
+
+    // const isVadSupported = true; // Use simple fallback
+    // const vadError = null;
 
     // ── Analytics: Track VAD Init ──────────────────────────────
     useEffect(() => {
         if (isVadEnabled) {
-            voiceAnalytics.track('vad_init', {
+            debugLog('vad_init', {
                 browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
                 supported: isVadSupported
             });
         }
     }, [isVadEnabled, isVadSupported]);
 
-    // ── VAD Error Handling ─────────────────────────────────────
-    useEffect(() => {
-        if (vadError && onVadError) {
-            onVadError(vadError);
-        }
-    }, [vadError, onVadError]);
 
     // ── InterruptionManager setup ──────────────────────────
     const handleInterruption = useCallback(() => {
         if (!isVadEnabled) return;
 
         debugLog('User interrupted AI speech');
-        voiceAnalytics.track('interruption', {
+        debugLog('interruption', {
             timestamp: Date.now()
         });
 
@@ -261,7 +256,7 @@ export function ConversationView({
             )}
 
             {/* VAD Active Indicator (Debug/Info) */}
-            {isVadEnabled && isVadListening && (
+            {isVadEnabled && (
                 <div className="flex justify-center mb-2">
                     <Badge variant="outline" className="text-[10px] text-green-500 border-green-900/30 bg-green-900/10">
                         🎤 VAD Active

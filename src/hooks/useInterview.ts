@@ -2,14 +2,13 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import { generateSystemPrompt, generateTurnPrompt } from '@/lib/interview/prompts';
-import { generateInterviewerSystemPrompt, InterviewConfig } from '@/lib/interview/interviewer-prompt';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
-import { useWhisperInput } from '@/hooks/useWhisperInput';
-import { useVoiceOutput } from '@/hooks/useVoiceOutput';
+import { generateInterviewerSystemPrompt } from '@/lib/interview/interviewer-prompt';
+import { useTTS } from '@/hooks/useTTS';
+import { useSTT } from '@/hooks/useSTT';
+import { useVAD } from '@/hooks/useVAD';
+import type { InterviewConfig } from '@/lib/interview/interview-config';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
-import { WhisperSTT } from '@/lib/voice/whisper-stt';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
-import { trackInterruption } from '@/lib/analytics/interruption-analytics';
 
 /** Unique ID for stable message identification. */
 function generateMessageId(): string {
@@ -47,19 +46,17 @@ interface ProblemContext {
 }
 
 export function useInterview(options: {
-    vadEnabled?: boolean;
+    config: InterviewConfig;
     isReviewMode?: boolean;
     apiEndpoint?: string;
     sessionToken?: string;
-    onUserMessage?: (msg: Message, messageCount: number) => void;
-    isGuest?: boolean;        // ADD: passed to Chat API as guestMode
-    maxRounds?: number;       // ADD: overrides INTERVIEW_MAX_ROUNDS (default 20)
-    maxDurationMs?: number;   // ADD: overrides INTERVIEW_MAX_MS (default 10 min)
-} = {}) {
+    onUserMessage?: (msg: Message, count: number) => void;
+    isGuest?: boolean;
+}) {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.vadEnabled, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest, options.maxRounds, options.maxDurationMs]
+        [options.config, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
     );
 
     // State
@@ -74,8 +71,8 @@ export function useInterview(options: {
     const [isLimitReached, setIsLimitReached] = useState(false);
     const [limitReason, setLimitReason] = useState<'rounds' | 'time' | null>(null);
 
-    const INTERVIEW_MAX_ROUNDS = options.maxRounds ?? 20;
-    const INTERVIEW_MAX_MS = options.maxDurationMs ?? (10 * 60 * 1000);
+    const INTERVIEW_MAX_ROUNDS = options.config.maxTurnsPerProblem;
+    const INTERVIEW_MAX_MS = options.config.maxDurationMs;
 
     // Problem Context helper ref
     const currentProblemRef = useRef<ProblemContext | null>(null);
@@ -85,30 +82,68 @@ export function useInterview(options: {
     const stateMachine = useRef(new InterviewStateMachine());
     const conversationHistoryRef = useRef<Message[]>([]);
 
-    // ── STT provider selection ───────────────────────────────────────
+    // ── STT & TTS ───────────────────────────────────────
     const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT');
+    const sttProvider = (
+        whisperEnabled &&
+        typeof window !== 'undefined' &&
+        typeof window.MediaRecorder !== 'undefined'
+    ) ? 'whisper' as const : 'browser' as const;
 
-    // Call BOTH hooks unconditionally (React rules), pick the active one
-    const whisperOptions = useMemo(() => ({ enabled: whisperEnabled }), [whisperEnabled]);
-    const whisperInput = useWhisperInput(whisperOptions);
+    const [hasPendingSend, setHasPendingSend] = useState(false);
+    const [isMicEnabled, setIsMicEnabled] = useState(false);
+    const [voiceError, setVoiceError] = useState<Error | null>(null);
+    const hasPendingRef = useRef(false);
+    useEffect(() => { hasPendingRef.current = hasPendingSend; }, [hasPendingSend]);
 
-    const browserOptions = useMemo(() => ({ continuous: true, interimResults: true }), []);
-    const browserInput = useVoiceInput(browserOptions);
+    const tts = useTTS({
+        onSpeakStart: () => {
+            stt.stopListening();
+            setHasPendingSend(false);
+            setIsMicEnabled(false);
+        },
+        onSpeakEnd: () => {
+            setTimeout(() => {
+                if (!tts.isSpeaking && !hasPendingRef.current) {
+                    setIsMicEnabled(true);
+                    stt.startListening();
+                }
+            }, 400);
+        },
+    });
 
-    // Use Whisper if enabled AND supported, else browser STT
-    const useWhisper = whisperEnabled && WhisperSTT.isSupported();
-    const {
-        isListening,
-        transcript,
-        interimTranscript,
-        startListening,
-        stopListening,
-        abortListening,
-        resetTranscript,
-        error: voiceError,
-        lastResultTime,
-        transcribeVADAudio
-    } = useWhisper ? whisperInput : browserInput as any;
+    const stt = useSTT({
+        provider: sttProvider,
+        silenceMs: 5000,
+        onTranscript: () => { },
+        onSilenceTimeout: () => {
+            stt.stopListening();
+            setHasPendingSend(stt.transcript.length > 0);
+            setIsMicEnabled(false);
+        },
+        onError: (err) => setVoiceError(new Error(err)),
+    });
+
+    const vad = useVAD({
+        enabled: optionsRef.current.config.mode !== 'guest' && optionsRef.current.config.difficultyMode !== undefined,
+        onSpeechEnd: (audio) => stt.transcribeAudio(audio),
+    });
+
+    // Legacy aliases
+    const isSpeaking = tts.isSpeaking;
+    const speak = tts.speak;
+    const stopSpeaking = tts.stop;
+    const isListening = stt.isListening;
+    const transcript = stt.transcript;
+    const interimTranscript = stt.interimTranscript;
+    const startListening = stt.startListening;
+    const stopListening = stt.stopListening;
+    const abortListening = stt.stopListening;
+    const resetTranscript = stt.resetTranscript;
+    const lastResultTime = Date.now(); // unused essentially
+    const transcribeVADAudio = stt.transcribeAudio;
+    const pauseSpeaking = () => { };
+    const resumeSpeaking = () => { };
 
     // ── Stable refs for values read inside timers / effects ──────────
     const isListeningRef = useRef(false);
@@ -124,17 +159,6 @@ export function useInterview(options: {
             setTimeout(() => setOptimisticListening(null), 0);
         }
     }, [isListening, optimisticListening]);
-
-    // Voice Hooks
-    const voiceOutputOptions = useRef({}).current; // Or useMemo(() => ({}), [])
-
-    const {
-        speak,
-        pause: pauseSpeaking,
-        resume: resumeSpeaking,
-        stop: stopSpeaking,
-        isSpeaking,
-    } = useVoiceOutput(voiceOutputOptions);
 
     const isSpeakingRef = useRef(false);
     useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
@@ -209,12 +233,14 @@ export function useInterview(options: {
                         { role: 'user', content: prompt }
                     ],
                     systemPrompt,
-                    problemContext,
-                    companyPersona: problemContext.companyPersona,
-                    kaiMemory: problemContext.kaiMemory,
-                    problemId: problemContext.problemId,
+                    problemContext: {
+                        title: currentProblemRef.current?.title ?? '',
+                        content: currentProblemRef.current?.content ?? '',
+                        ragContext: optionsRef.current.config.ragContext,
+                    },
                     sessionToken: optionsRef.current.sessionToken,
-                    guestMode: optionsRef.current.isGuest ?? false,   // ADD THIS LINE
+                    guestMode: optionsRef.current.isGuest ?? false,
+                    kaiMemory: optionsRef.current.config.kaiMemory,
                 })
             });
 
@@ -274,13 +300,12 @@ export function useInterview(options: {
             interruptionContext: interruptionCtx,
         });
 
-        const config: InterviewConfig = {
+        const config: any = {
             problem: { title: problemContext.title, description: problemContext.content, difficulty: problemContext.difficulty || 'medium', id: problemContext.problemId || '' } as any,
             difficulty: problemContext.difficulty || 'medium',
-            difficultyMode: problemContext.difficultyMode ?? 'practice',
-            ragContext: problemContext.ragContext,
-            kaiPersona: problemContext.companyPersona,
-            kaiMemory: problemContext.kaiMemory,
+            difficultyMode: optionsRef.current.config.difficultyMode,
+            ragContext: optionsRef.current.config.ragContext,
+            kaiMemory: optionsRef.current.config.kaiMemory,
         };
 
         try {
@@ -319,8 +344,6 @@ export function useInterview(options: {
     }, [stopListening, addMessage, resetTranscript, callChatApi, speak, roundCount, interviewStartTime]);
 
     // Mic Intent State
-    const [isMicEnabled, setIsMicEnabled] = useState(false);
-
     const isMicEnabledRef = useRef(false);
     useEffect(() => { isMicEnabledRef.current = isMicEnabled; }, [isMicEnabled]);
 
@@ -374,13 +397,13 @@ export function useInterview(options: {
         // Auto-enable mic on start if desired
         setIsMicEnabled(true);
 
-        const config: InterviewConfig = {
+        const config = {
             problem: { title: problemTitle, description: problemContent, difficulty: difficulty || 'medium', id: problemId || '' } as any,
             difficulty: difficulty || 'medium',
             difficultyMode: difficultyMode ?? 'practice',
-            ragContext,
+            ragContext: ragContext || '',
             kaiPersona: companyPersona,
-            kaiMemory
+            kaiMemory: kaiMemory || ''
         };
 
         const sysPrompt = generateInterviewerSystemPrompt(config);
@@ -404,7 +427,7 @@ export function useInterview(options: {
             if (optionsRef.current.isReviewMode) {
                 responseText = `Let's review ${problemTitle} which you've seen before. Without looking at your previous solution, explain your approach to this problem.`;
             } else {
-                responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current);
+                responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current!);
             }
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
@@ -472,8 +495,8 @@ export function useInterview(options: {
         }
 
         // CRITICAL: Stop mic when AI is processing (waiting for API)
-        // OR when AI is speaking AND VAD is disabled (to prevent echo)
-        const shouldStopForSpeaking = isSpeaking && !options.vadEnabled;
+        // OR when AI is speaking (to prevent echo)
+        const shouldStopForSpeaking = isSpeaking;
 
         if (shouldStopForSpeaking || isProcessing) {
             if (isListeningRef.current) {
@@ -505,7 +528,7 @@ export function useInterview(options: {
                 const currentlyProcessing = isProcessingRef.current;
                 const micStillEnabled = isMicEnabledRef.current;
 
-                const stillShouldStop = (currentlySpeaking && !options.vadEnabled) || currentlyProcessing;
+                const stillShouldStop = currentlySpeaking || currentlyProcessing;
                 if (micStillEnabled && !stillShouldStop && !currentlyListening) {
                     resetTranscript();
                     startListening();
@@ -513,7 +536,7 @@ export function useInterview(options: {
             }, 350);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript]);
 
     // Reset micResumeAttemptedRef once we confirm mic is actually live
     useEffect(() => {
@@ -560,13 +583,6 @@ export function useInterview(options: {
 
             const now = Date.now();
             const partial = spokenContent || lastAiMsg.content;
-
-            // Track analytics
-            trackInterruption(
-                sessionIdRef.current,
-                partial.length,
-                lastAiMsg.content.length,
-            );
 
             // STOP SPEAKING BEFORE RECORDING INTERRUPTION
             stopSpeaking();
@@ -618,6 +634,23 @@ export function useInterview(options: {
         limitReason,
         autoSubmitEnabled,
         setAutoSubmitEnabled,
+        hasPendingSend,
+        isMicEnabled,
+        vadMode: vad.mode,
+        ttsProvider: tts.provider,
+        sttProvider,
+        handleMicStop: () => {
+            stt.stopListening();
+            setHasPendingSend(stt.transcript.trim().length > 0);
+            setIsMicEnabled(false);
+        },
+        sendPendingTranscript: () => {
+            const text = stt.transcript.trim();
+            if (!text) return;
+            stt.resetTranscript();
+            setHasPendingSend(false);
+            submitUserResponse(text, currentProblemRef.current!);
+        },
         loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {
             const withIds = msgs.map(m => ({
                 ...m,

@@ -9,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Mic, Play, Settings, Volume2 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '@/lib/supabase/user-preferences';
-import type { TTSProviderStatus } from '@/hooks/useVoiceOutput';
+import type { TTSProvider } from '@/lib/voice/tts-engine';
 
 interface VoiceSettingsProps {
     inline?: boolean;
-    ttsProvider?: TTSProviderStatus;
-    currentProvider?: 'groq' | 'browser';
+    ttsProvider?: TTSProvider | 'groq' | 'detecting';
+    currentProvider?: 'groq' | 'browser' | 'polly';
 }
 
 export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSettingsProps) {

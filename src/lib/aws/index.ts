@@ -6,8 +6,6 @@
  */
 
 export { synthesizeWithPolly, resetPollyClient, type PollyVoice, type PollyError } from './polly';
-export { startTranscriptionJob, waitForTranscriptionResult, resetTranscribeClient, type TranscribeError } from './transcribe';
-export { uploadTranscript, getTranscript, getAudioUploadUrl, getAudioDownloadUrl, deleteObject, resetS3Client, type S3Error } from './s3';
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { env } from '@/lib/startup/validateEnv';

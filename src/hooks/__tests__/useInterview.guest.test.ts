@@ -55,13 +55,21 @@ vi.mock('../../hooks/useGlobalFeatureFlag', () => ({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('useInterview — guest mode limits', () => {
+    const mockGuestConfig: any = {
+        mode: 'guest',
+        difficultyMode: 'practice',
+        maxDurationMs: 300000,
+        maxTurnsPerProblem: 5,
+        isUnlimited: false,
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     it('INTERVIEW_MAX_ROUNDS is 5 when maxRounds=5 passed', () => {
         const { result } = renderHook(() =>
-            useInterview({ vadEnabled: false, isGuest: true, maxRounds: 5 })
+            useInterview({ config: mockGuestConfig, isGuest: true })
         );
         // Can't directly read INTERVIEW_MAX_ROUNDS (it's internal)
         // but we can verify roundCount starts at 0 and isLimitReached is false
@@ -72,7 +80,7 @@ describe('useInterview — guest mode limits', () => {
     it('guestMode is passed in callChatApi body when isGuest=true', () => {
         // This test verifies the option is accepted without throwing
         expect(() =>
-            renderHook(() => useInterview({ vadEnabled: false, isGuest: true }))
+            renderHook(() => useInterview({ config: mockGuestConfig, isGuest: true }))
         ).not.toThrow();
     });
 });

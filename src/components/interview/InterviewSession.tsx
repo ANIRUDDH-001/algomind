@@ -11,7 +11,6 @@ import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
-import { CompanyModeSelector } from './CompanyModeSelector';
 import { InterviewLimitBar } from './InterviewLimitBar';
 import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
@@ -47,23 +46,22 @@ import { GuestRegisterModal } from './GuestRegisterModal';
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
 import { SilentObserverNudge } from './SilentObserverNudge';
 
+import type { InterviewConfig } from '@/lib/interview/interview-config';
+
 interface InterviewSessionProps {
     problem: Problem;
-    initialTranscript?: { role: string; content: string }[];
-    readOnly?: boolean;
+    interviewConfig: InterviewConfig;  // New single source
     isGuest?: boolean;
-    ragContext?: string;
-    remainingQuestions?: number;
     isReviewMode?: boolean;
-    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
+    readOnly?: boolean;
+    initialTranscript?: { role: string; content: string }[];
 
-    // Assessment capabilities
+    // Employer assessment
     isAssessment?: boolean;
     assessmentSessionToken?: string;
     assessmentApiEndpoint?: string;
-    timeLimitMins?: number;
     startTimeOffsetSeconds?: number;
-    onAssessmentComplete?: (durationSecs: number, transcript: { speaker: string, text: string }[]) => Promise<void>;
+    onAssessmentComplete?: (duration: number, transcript: any[]) => Promise<void>;
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
@@ -71,17 +69,14 @@ type MobileTab = typeof mobileTabs[number];
 
 export function InterviewSession({
     problem,
+    interviewConfig,
     initialTranscript,
     readOnly = false,
     isGuest = false,
-    ragContext,
-    remainingQuestions,
     isReviewMode = false,
-    difficultyMode,
     isAssessment = false,
     assessmentSessionToken,
     assessmentApiEndpoint,
-    timeLimitMins,
     startTimeOffsetSeconds,
     onAssessmentComplete
 }: InterviewSessionProps) {
@@ -143,6 +138,8 @@ export function InterviewSession({
         }
     }, [activeTab, showCodeEditor]);
 
+    const [sprintTransitionMsg, setSprintTransitionMsg] = useState<string | null>(null);
+
     // Guest mode: problem selector + result overlay
     const [showGuestSelector, setShowGuestSelector] = useState<boolean>(isGuest);
     const [activeProblem, setActiveProblem] = useState(problem);
@@ -163,10 +160,6 @@ export function InterviewSession({
         } catch { /* ignore */ }
     }, []);
 
-    // --- Company Mode Selection ---
-    const [selectedCompany, setSelectedCompany] = useState<string | null>(isAssessment ? null : searchParams.get('company'));
-    const [companyPersona, setCompanyPersona] = useState<string | null>(null);
-
     // --- Kai Memory ---
     const [kaiMemory, setKaiMemory] = useState<string | null>(null);
 
@@ -184,28 +177,9 @@ export function InterviewSession({
             .catch(() => { });
     }, [user, isGuest]);
 
-    const handleCompanySelect = (id: string | null, persona: string | null) => {
-        setSelectedCompany(id);
-        setCompanyPersona(persona);
-
-        if (typeof window !== 'undefined') {
-            const url = new URL(window.location.href);
-            if (id) {
-                url.searchParams.set('company', id);
-            } else {
-                url.searchParams.delete('company');
-            }
-            window.history.replaceState(null, '', url.toString());
-        }
-    };
-
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
-    const limits = useInterviewLimits({
-        maxDurationMins: isGuest ? 5 : timeLimitMins,
-        startTimeOffsetSeconds,
-        maxTurns: isGuest ? 5 : undefined,
-    });
+    const limits = useInterviewLimits(interviewConfig as any);
     const guestSession = useGuestSession(isGuest);
 
     // --- 3. Interview Logic & Callbacks ---
@@ -245,14 +219,12 @@ export function InterviewSession({
         isLimitReached,
         limitReason
     } = useInterview({
-        vadEnabled,
+        config: interviewConfig,
         isReviewMode,
         apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
         sessionToken: isAssessment ? assessmentSessionToken : undefined,
         onUserMessage: handleUserMessage,
         isGuest: isGuest,
-        maxRounds: isGuest ? 5 : undefined,
-        maxDurationMs: isGuest ? (5 * 60 * 1000) : undefined,
     });
 
     // Added an effect to sync AI turns
@@ -356,11 +328,11 @@ export function InterviewSession({
         startInterview(
             activeProblem.title,
             activeProblem.description,
-            ragContext,
-            companyPersona || undefined,
-            kaiMemory || undefined,
+            interviewConfig.ragContext,
+            undefined,
+            interviewConfig.kaiMemory,
             activeProblem.id,
-            difficultyMode,
+            interviewConfig.difficultyMode,
             activeProblem.difficulty
         );
     };
@@ -429,7 +401,7 @@ export function InterviewSession({
 
                             const { success, error: saveError, sessionId } = await saveInterviewSession(
                                 user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
-                                { difficultyMode }
+                                { difficultyMode: interviewConfig.difficultyMode }
                             );
                             if (!success) {
                                 console.error('Failed to save session:', saveError);
@@ -591,11 +563,6 @@ export function InterviewSession({
 
                 {!hasStarted ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8">
-                        {!isAssessment && (
-                            <div className="w-full max-w-2xl mb-8">
-                                <CompanyModeSelector selectedCompany={selectedCompany} onSelect={handleCompanySelect} />
-                            </div>
-                        )}
                         <Button
                             size="lg"
                             className="w-full max-w-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(99,102,241,0.2)] transition-all duration-300 rounded-2xl"
@@ -634,7 +601,7 @@ export function InterviewSession({
                                                 <span className="font-mono font-bold">{limits.formattedElapsed}</span>
                                                 <span className="text-zinc-500">/</span>
                                                 <span className="font-mono text-zinc-500">
-                                                    {isGuest ? '5:00' : timeLimitMins ? `${timeLimitMins}:00` : '20:00'}
+                                                    {Math.floor(interviewConfig.maxDurationMs / 60000)}:00
                                                 </span>
                                             </div>
                                         )}
@@ -647,11 +614,6 @@ export function InterviewSession({
                                             <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
                                                 <AlertTriangle className="w-3 h-3" />
                                                 {limits.turnsRemaining} turns remaining
-                                            </div>
-                                        )}
-                                        {!isGuest && remainingQuestions !== undefined && !isAssessment && (
-                                            <div className="bg-zinc-800/70 border border-zinc-700 px-2 py-0.5 rounded text-[9px] text-zinc-400">
-                                                {remainingQuestions}/{RATE_LIMIT.DAILY_LIMIT} questions remaining today
                                             </div>
                                         )}
                                         {isReviewMode && (
@@ -856,7 +818,7 @@ export function InterviewSession({
                         handleInterruption();
                     }}
                     onContinuePreviousResponse={() => {
-                        submitUserResponse('Please continue your previous response.', { title: activeProblem.title, content: activeProblem.description, ragContext });
+                        submitUserResponse('Please continue your previous response.', { title: activeProblem.title, content: activeProblem.description, ragContext: interviewConfig.ragContext });
                     }}
                     onVadError={(err) => {
                         console.log('VAD init failed, falling back to simple mic mode:', err.message);
@@ -1167,6 +1129,17 @@ export function InterviewSession({
                     isOpen={showGuestSelector}
                     onSelect={handleGuestProblemSelect}
                 />
+            )}
+
+            {sprintTransitionMsg && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade-in">
+                    <div className="bg-slate-800 border border-emerald-500/50 rounded-2xl p-8 text-center max-w-sm mx-4">
+                        <div className="text-5xl mb-4">⚡</div>
+                        <h2 className="text-xl font-bold text-white mb-2">Sprint Progress</h2>
+                        <p className="text-emerald-400 text-lg font-medium">{sprintTransitionMsg}</p>
+                        <p className="text-slate-400 text-sm mt-3">Problem 1 of 2 complete · Timer continues</p>
+                    </div>
+                </div>
             )}
         </div>
     );
