@@ -127,7 +127,7 @@ describe('getProcesedVoices()', () => {
         expect(getProcesedVoices(null as unknown as SpeechSynthesisVoice[])).toEqual([]);
     });
 
-    it('filters non-English, non-Hindi voices', () => {
+    it('filters non-English voices', () => {
         const voices = [
             makeVoice('French', 'fr-FR'),
             makeVoice('English US', 'en-US'),
@@ -136,8 +136,8 @@ describe('getProcesedVoices()', () => {
         expect(getProcesedVoices(voices)[0].lang).toBe('en-US');
     });
 
-    it('includes hi-IN voices', () => {
-        expect(getProcesedVoices([makeVoice('Hindi', 'hi-IN')])).toHaveLength(1);
+    it('filters out hi-IN voices', () => {
+        expect(getProcesedVoices([makeVoice('Hindi', 'hi-IN')])).toHaveLength(0);
     });
 
     it('deduplicates voices with the same normalised name', () => {
@@ -148,16 +148,15 @@ describe('getProcesedVoices()', () => {
         expect(getProcesedVoices(voices)).toHaveLength(1);
     });
 
-    it('sorts en-US → en-GB → en-IN → hi-IN', () => {
+    it('sorts en-US → en-GB → others', () => {
         const voices = [
-            makeVoice('H', 'hi-IN'),
-            makeVoice('I', 'en-IN'),
+            makeVoice('A', 'en-AU'),
             makeVoice('G', 'en-GB'),
             makeVoice('U', 'en-US'),
         ];
         const result = getProcesedVoices(voices);
         expect(result[0].lang).toBe('en-US');
-        expect(result[3].lang).toBe('hi-IN');
+        expect(result[1].lang).toBe('en-GB');
     });
 
     it('caps output at 8 voices when many are available', () => {
@@ -169,14 +168,11 @@ describe('getProcesedVoices()', () => {
         const voices = [
             ...Array.from({ length: 6 }, (_, i) => makeVoice(`US ${i}`, 'en-US')),
             makeVoice('British', 'en-GB'),
-            makeVoice('Indian English', 'en-IN'),
-            makeVoice('Hindi', 'hi-IN'),
+            makeVoice('Australian', 'en-AU'),
         ];
         const result = getProcesedVoices(voices);
         const langs = result.map(v => v.lang);
         expect(langs).toContain('en-GB');
-        expect(langs).toContain('en-IN');
-        expect(langs).toContain('hi-IN');
     });
 });
 
@@ -185,7 +181,6 @@ describe('findBestMatchingVoice()', () => {
         makeVoice('Google US English', 'en-US'),
         makeVoice('Microsoft Zira', 'en-US'),
         makeVoice('English GB', 'en-GB'),
-        makeVoice('Hindi', 'hi-IN'),
         makeVoice('Generic', 'en-AU'),
     ];
 
@@ -216,9 +211,9 @@ describe('findBestMatchingVoice()', () => {
         expect(findBestMatchingVoice(onlyGB, null)?.lang).toBe('en-GB');
     });
 
-    it('falls back to hi-IN when no English available', () => {
-        const hindiOnly = [makeVoice('Hindi', 'hi-IN')];
-        expect(findBestMatchingVoice(hindiOnly, null)?.lang).toBe('hi-IN');
+    it('falls back to first voice when no English available', () => {
+        const onlyFrench = [makeVoice('French', 'fr-FR')];
+        expect(findBestMatchingVoice(onlyFrench, null)?.name).toBe('French');
     });
 
     it('returns first voice as absolute last resort', () => {

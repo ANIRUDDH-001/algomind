@@ -8,7 +8,7 @@ import { enableDemoMode } from '@/lib/demo/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mic, BarChart, Brain, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
+import { Mic, BarChart, Brain, ArrowRight, Play, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 
@@ -102,11 +102,7 @@ export default function HomePage() {
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
     setShowOnboarding(false);
-    if (!user) {
-      enableDemoMode();
-      window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
-      router.push('/dashboard');
-    }
+    // Stay on home page — let user explore before committing
   };
 
   if (showOnboarding) {
@@ -140,6 +136,22 @@ export default function HomePage() {
 
       {/* SECTION 1: HERO (Snap Item) */}
       <section className="snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-10 px-4 overflow-hidden border-b border-transparent">
+
+        {/* Supabase Maintenance Banner */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 backdrop-blur-xl px-5 py-4 shadow-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1.5">
+                <p className="text-sm font-bold text-amber-200">⚡ Auth temporarily down — Supabase maintenance</p>
+                <p className="text-xs text-amber-400/80 leading-relaxed">
+                  Login / Sign-up is currently unavailable. You can still practice in <strong className="text-amber-300">Guest Mode</strong> — click
+                  {' '}<strong className="text-amber-300">&quot;Try for Free&quot;</strong> below to start a full AI voice interview instantly. No account needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Background Particles field */}
         <div className="absolute inset-0 pointer-events-none" style={{ perspective: '1000px' }}>
@@ -228,15 +240,6 @@ export default function HomePage() {
                   <ArrowRight className="w-5 h-5 ml-1" />
                 </>
               )}
-            </Button>
-            <Button
-              onClick={() => window.open('https://algomind.video.demo', '_blank')} // Placeholder
-              size="lg"
-              className="w-full sm:w-auto btn-ghost h-14 px-8 text-base rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 relative overflow-hidden group"
-            >
-              <Play className="w-5 h-5 mr-2 text-indigo-400 group-hover:scale-110 transition-transform" />
-              Watch Demo
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
           </motion.div>
         </motion.div>
