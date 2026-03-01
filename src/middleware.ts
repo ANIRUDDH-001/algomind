@@ -54,6 +54,7 @@ export default async function middleware(request: NextRequest) {
     const isEmployer = pathname.startsWith('/employer');
     const isAssess = pathname.startsWith('/assess');
     const isOwnerRoute = pathname.startsWith('/owner');
+    const isLearn = pathname.startsWith('/learn');
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -71,11 +72,12 @@ export default async function middleware(request: NextRequest) {
         request.cookies.get('algomind_demo_mode')?.value === 'true';
 
     // Redirect to login if accessing protected route without user
-    // Bypass for Playwright E2E testing to allow client-side mocking
-    const isE2ETest = process.env.NODE_ENV !== 'production' &&
+    // E2E bypass is ONLY active in local development.
+    // Never in staging, preview, or production environments.
+    const isE2ETest = process.env.NODE_ENV === 'development' &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
-        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute) {
+        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute || isLearn) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             // Optionally append a redirect so they come back to the assessment link after login
@@ -100,14 +102,17 @@ export default async function middleware(request: NextRequest) {
 
         const isOwner = profile?.account_type === 'owner';
 
-        // Also check co_owners table
+        // Check co_owners by user_id ONLY. Email-based lookup is used only
+        // during invite acceptance, not for ongoing session permission checks.
+        // Reason: co_owners.email has a UNIQUE constraint but Supabase auth email
+        // is not enforced unique across all edge cases. OR-email creates a privilege
+        // escalation vector.
         let isCoOwner = false;
         if (!isOwner) {
-            const emailClause = user.email ? `,email.eq.${user.email}` : '';
             const { data: coOwner } = await supabase
                 .from('co_owners')
                 .select('id')
-                .or(`user_id.eq.${user.id}${emailClause}`)
+                .eq('user_id', user.id)
                 .limit(1)
                 .maybeSingle();
             isCoOwner = !!coOwner;
