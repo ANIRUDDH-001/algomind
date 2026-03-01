@@ -1,0 +1,1 @@
+        const hasCompletedTour = localStorage.getItem('algomind_tour_completed'); 
