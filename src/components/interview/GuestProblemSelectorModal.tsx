@@ -36,7 +36,7 @@ export function GuestProblemSelectorModal({ isOpen, onSelect }: GuestProblemSele
             style={{ background: 'rgba(2, 6, 23, 0.97)', backdropFilter: 'blur(16px)' }}
             data-testid="guest-selector-modal"
         >
-            <div className="w-full max-w-xl space-y-5">
+            <div className="w-full max-w-xl space-y-5 max-h-[90dvh] overflow-y-auto custom-scrollbar">
 
                 {/* Header */}
                 <div className="text-center space-y-3">
