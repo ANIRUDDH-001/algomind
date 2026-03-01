@@ -92,17 +92,43 @@ export async function validateDB(): Promise<void> {
 
         for (const { name, args } of rpcChecks) {
             const { error } = await supabase.rpc(name, args);
-            // PGRST202 is "Function not found", which is the only one that truly means it's missing.
             if (error?.code === 'PGRST202') {
-                console.error(`[DB VALIDATION] MISSING RPC: ${name} — run supabase/migrations/001_master.sql`);
+                // PGRST202 = "Function not found" — migration not applied
+                const msg = `[DB VALIDATION] MISSING RPC: ${name}. ` +
+                    `ALL admin functionality will return 403 until this is fixed. ` +
+                    `Apply 001_master.sql: supabase db push`;
+                console.error(msg);
+                // For check_is_admin specifically: this is severe enough to warn loudly
+                if (name === 'check_is_admin') {
+                    console.error('[DB VALIDATION] CRITICAL: check_is_admin missing — admin panel is completely broken');
+                }
+            } else if (error && !['PGRST301', '42501'].includes(error.code ?? '')) {
+                // 42501 = permission denied for dummy UUID (expected for security)
+                // Any other error is unexpected
+                console.warn(`[DB VALIDATION] RPC ${name} returned unexpected error: ${error.code} — ${error.message}`);
             }
         }
 
-        const criticalTables = ['admin_users', 'user_preferences', 'system_events', 'company_profiles'];
+        const criticalTables = [
+            'admin_users',
+            'user_preferences',
+            'system_events',
+            'company_profiles',
+            'global_feature_flags',  // DB-002: must exist for all feature flags to work
+            'profiles',              // Core user table
+            'interview_sessions',    // Core session storage
+        ];
         for (const table of criticalTables) {
             const { error } = await supabase.from(table).select('id').limit(0);
             if (error?.code === '42P01') {
-                console.error(`[DB VALIDATION] MISSING TABLE: ${table} — run supabase/migrations/001_master.sql`);
+                console.error(
+                    `[DB VALIDATION] MISSING TABLE: ${table}. ` +
+                    `This means 001_master.sql was not applied or the migration is incomplete. ` +
+                    `Run: supabase db push or apply migrations manually.`
+                );
+            } else if (error && error.code !== 'PGRST301') {
+                // PGRST301 = "no rows" which is fine for empty tables; any other error is suspicious
+                console.warn(`[DB VALIDATION] Unexpected error on table ${table}: ${error.code} — ${error.message}`);
             }
         }
     } catch (e) {
