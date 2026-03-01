@@ -73,7 +73,7 @@ export function GuestRegisterModal({ isOpen, onClose }: GuestRegisterModalProps)
                             Get Started for Free
                         </Button>
                         <button
-                            onClick={onClose}
+                            onClick={() => router.push('/')}
                             className="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors"
                         >
                             Continue Browsing
