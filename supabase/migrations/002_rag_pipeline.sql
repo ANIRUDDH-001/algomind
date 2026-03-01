@@ -77,3 +77,17 @@ CREATE TRIGGER on_profile_account_type_change
   AFTER UPDATE OF account_type ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.sync_account_type_to_jwt();
+
+-- ── DB-001: Index on profiles.account_type ────────────────────────────────
+-- Prevents full table scan on account_type-based queries.
+-- NOTE: Applied directly via SQL editor with CONCURRENTLY for zero-downtime.
+-- Included here for schema documentation / replay purposes.
+CREATE INDEX IF NOT EXISTS idx_profiles_account_type
+    ON public.profiles (account_type);
+
+-- Partial index for employer lookups specifically.
+-- Middleware redirect filters for account_type = 'employer'.
+CREATE INDEX IF NOT EXISTS idx_profiles_account_type_employer
+    ON public.profiles (id)
+    WHERE account_type = 'employer';
+

@@ -45,7 +45,7 @@ describe('validateDB', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    it('2. check_is_admin missing (PGRST202) → console.error with message containing "MISSING RPC: check_is_admin"', async () => {
+    it('2. check_is_admin missing (PGRST202) → console.error with MISSING RPC and CRITICAL messages', async () => {
         mockSupabase.rpc.mockImplementation((rpcName: string) => {
             if (rpcName === 'check_is_admin') {
                 return Promise.resolve({ data: null, error: { code: 'PGRST202' } });
@@ -58,9 +58,12 @@ describe('validateDB', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
             expect.stringContaining('MISSING RPC: check_is_admin')
         );
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('CRITICAL: check_is_admin missing')
+        );
     });
 
-    it('3. All 4 critical RPCs missing → 4 console.error calls', async () => {
+    it('3. All 4 critical RPCs missing → 5 console.error calls (4 MISSING + 1 CRITICAL check_is_admin)', async () => {
         mockSupabase.rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202' } });
 
         await validateDB();
@@ -69,6 +72,10 @@ describe('validateDB', () => {
             (call: unknown[]) => typeof call[0] === 'string' && (call[0] as string).includes('MISSING RPC')
         );
         expect(rpcErrors).toHaveLength(4);
+        // Plus the extra CRITICAL message for check_is_admin
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('CRITICAL: check_is_admin missing')
+        );
     });
 
     it('4. DB connection fails entirely → logs warning, does not throw', async () => {
@@ -95,6 +102,23 @@ describe('validateDB', () => {
 
         expect(consoleErrorSpy).toHaveBeenCalledWith(
             expect.stringContaining('MISSING TABLE: admin_users')
+        );
+    });
+
+    it('6. global_feature_flags table missing → console.error with "MISSING TABLE: global_feature_flags"', async () => {
+        mockSupabase.from.mockImplementation((table: string) => ({
+            select: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: table === 'global_feature_flags' ? { code: '42P01' } : null,
+                }),
+            }),
+        }));
+
+        await validateDB();
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('MISSING TABLE: global_feature_flags')
         );
     });
 });
