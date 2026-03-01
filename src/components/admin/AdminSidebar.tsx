@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-    ShieldAlert, Users, Settings, Briefcase,
+    ShieldAlert, Settings, Briefcase,
     LayoutDashboard, ChevronDown, ChevronRight, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const STATIC_NAV_ITEMS = [
     { name: 'Admin Users', href: '/admin/admins', icon: ShieldAlert },
-    { name: 'All Users', href: '/admin/users', icon: Users },  // redirects to /owner?tab=users
 ];
 
 export function AdminSidebar() {

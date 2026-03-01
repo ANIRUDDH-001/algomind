@@ -127,7 +127,7 @@ export default async function middleware(request: NextRequest) {
 
     // ROUTING-001: Employer account type redirect
     // If authenticated user is on dashboard or home, check if they're an employer
-    if (user && (isDashboard || pathname === '/')) {
+    if (user && isDashboard) {
         let accountType = user.app_metadata?.account_type || user.user_metadata?.account_type;
 
         if (!accountType) {
