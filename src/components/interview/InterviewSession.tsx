@@ -775,7 +775,7 @@ export function InterviewSession({
                                             <div className="w-full mt-2 shrink-0">
                                                 <Button
                                                     variant="outline"
-                                                    onClick={endInterview}
+                                                    onClick={() => { endInterview(); handleFinish(); }}
                                                     disabled={roundCount < 1 || isProcessing || isAnalyzing}
                                                     title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
                                                     className="w-full h-10 text-[11px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
@@ -808,7 +808,7 @@ export function InterviewSession({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={endInterview}
+                            onClick={() => { endInterview(); handleFinish(); }}
                             disabled={roundCount < 1 || isProcessing || isAnalyzing}
                             title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
                             className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
