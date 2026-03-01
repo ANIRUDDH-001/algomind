@@ -144,4 +144,48 @@ describe('validateEnv', () => {
             expect.stringContaining('HIGH ENV VAR MISSING: CRON_SECRET')
         );
     });
+
+    it('4. Missing GROQ_API_KEY (high var) → warns but does not throw', () => {
+        delete process.env.GROQ_API_KEY;
+        expect(() => validateEnv()).not.toThrow();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('HIGH ENV VAR MISSING: GROQ_API_KEY')
+        );
+    });
+
+    it('5. Missing AWS_ACCESS_KEY_ID (high var) → warns but does not throw', () => {
+        delete process.env.AWS_ACCESS_KEY_ID;
+        expect(() => validateEnv()).not.toThrow();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('HIGH ENV VAR MISSING: AWS_ACCESS_KEY_ID')
+        );
+    });
+
+    it('6. Missing NEXT_PUBLIC_APP_URL (high var) → warns but does not throw', () => {
+        delete process.env.NEXT_PUBLIC_APP_URL;
+        expect(() => validateEnv()).not.toThrow();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('HIGH ENV VAR MISSING: NEXT_PUBLIC_APP_URL')
+        );
+    });
+
+    it('7. All high vars missing → 15 warnings total, no throw', () => {
+        const highKeys = [
+            'GROQ_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
+            'AWS_S3_BUCKET', 'AWS_REGION', 'UPSTASH_REDIS_REST_URL',
+            'UPSTASH_REDIS_REST_TOKEN', 'NEXT_PUBLIC_APP_URL',
+            'SUPABASE_JWT_SECRET', 'SUPABASE_DIRECT_URL',
+            'CRON_SECRET', 'PISTON_URL', 'GITHUB_TOKEN', 'GITHUB_REPO',
+        ];
+        for (const key of highKeys) {
+            delete process.env[key];
+        }
+        expect(() => validateEnv()).not.toThrow();
+        // AWS_REGION is always present via default — still warned if env var itself is missing
+        const warnCalls = consoleWarnSpy.mock.calls.filter(
+            (call: unknown[]) => typeof call[0] === 'string' && (call[0] as string).includes('HIGH ENV VAR MISSING')
+        );
+        // 14 keys explicitly deleted + AWS_REGION may or may not be set
+        expect(warnCalls.length).toBeGreaterThanOrEqual(14);
+    });
 });

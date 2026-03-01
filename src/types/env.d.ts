@@ -28,6 +28,12 @@ declare namespace NodeJS {
         UPSTASH_REDIS_REST_TOKEN?: string;
         CACHE_BACKEND?: 'memory' | 'redis';
 
+        // AWS (flag-gated: ENABLE_AWS_POLLY_TTS / ENABLE_AWS_S3_STORAGE)
+        AWS_ACCESS_KEY_ID?: string;
+        AWS_SECRET_ACCESS_KEY?: string;
+        AWS_S3_BUCKET?: string;
+        AWS_REGION?: string;
+
         // Feature Flags
         NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE?: string;
         NEXT_PUBLIC_FF_ENABLE_SMART_ROUTING?: string;
