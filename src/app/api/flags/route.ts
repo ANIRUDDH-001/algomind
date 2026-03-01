@@ -3,14 +3,22 @@ import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getAllGlobalFeatureFlags, setGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/flags — return all server-side flags and their current values.
  * Public (no auth required) so client hooks can read flags on page load.
+ * Rate-limited to 60 requests/min per IP to prevent abuse.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const rateLimitResult = await checkIpRateLimit(ip, { maxRequests: 60, windowSeconds: 60, endpoint: 'flags' });
+    if (!rateLimitResult.allowed) {
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const flags = await getAllGlobalFeatureFlags();
     return NextResponse.json(flags);
 }
