@@ -67,13 +67,17 @@ export function CompanyModeSelector({ selectedCompany, onSelect }: CompanyModeSe
         if (fetchedRef.current) return;
         fetchedRef.current = true;
         async function fetchProfiles() {
+            // Abort after 3s — Supabase may be down; fall back to defaults quickly
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
             try {
                 const supabase = getSupabase();
                 if (!supabase) throw new Error("Supabase not configured");
                 const { data, error } = await supabase
                     .from('company_profiles')
                     .select('*')
-                    .order('name');
+                    .order('name')
+                    .abortSignal(controller.signal);
 
                 if (error || !data || data.length === 0) {
                     console.log('Using default company profiles (DB table missing or empty)');
@@ -98,6 +102,7 @@ export function CompanyModeSelector({ selectedCompany, onSelect }: CompanyModeSe
                 console.warn('Failed to fetch company profiles, using defaults', err);
                 setCompanies(DEFAULT_COMPANIES);
             } finally {
+                clearTimeout(timeout);
                 setIsLoading(false);
             }
         }
