@@ -511,7 +511,7 @@ export function useInterview(options: {
                     resetTranscript();
                     startListening();
                 }
-            }, 1500);
+            }, 350); // Reduced from 1500ms — 350ms is sufficient for TTS audio drain
             return () => clearTimeout(timer);
         }
     }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, options.vadEnabled]);
