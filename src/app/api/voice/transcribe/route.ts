@@ -9,7 +9,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({
+            error: 'Unauthorized',
+            hint: 'Whisper STT requires a signed-in user. Assessment candidates should use browser speech recognition instead.'
+        }, { status: 401 });
     }
 
     // Check if Whisper is enabled globally
