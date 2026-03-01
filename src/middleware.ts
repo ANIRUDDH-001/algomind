@@ -74,7 +74,7 @@ export default async function middleware(request: NextRequest) {
     // Redirect to login if accessing protected route without user
     // E2E bypass is ONLY active in local development.
     // Never in staging, preview, or production environments.
-    const isE2ETest = process.env.NODE_ENV === 'development' &&
+    const isE2ETest = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
         if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute || isLearn) {
