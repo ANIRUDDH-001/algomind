@@ -75,7 +75,12 @@ export default async function AnalysisPage({
     // 2. Fetch assessment
     const { data: assessment } = await supabase
         .from('assessments')
-        .select('overall_score, problem_decomposition, pattern_recognition, algorithmic_thinking, complexity_analysis, communication_clarity, edge_case_awareness, optimization_mindset, debugging_approach, overall_feedback, next_steps, skill_evidence')
+        .select(`
+            overall_score, problem_decomposition, pattern_recognition, algorithmic_thinking, 
+            complexity_analysis, communication_clarity, edge_case_awareness, 
+            optimization_mindset, debugging_approach, overall_feedback, next_steps, 
+            skill_evidence, sub_criteria, code_quality
+        `)
         .eq('session_id', sessionId)
         .maybeSingle();
 
@@ -124,6 +129,7 @@ export default async function AnalysisPage({
                 overallFeedback: assessment.overall_feedback || '',
                 nextSteps: assessment.next_steps || [],
                 skillEvidence: assessment.skill_evidence || {},
+                subCriteria: assessment.sub_criteria || {},
             } : null}
             sm2={sm2Data}
             previousAttempts={(previousAttempts || []).map(a => ({

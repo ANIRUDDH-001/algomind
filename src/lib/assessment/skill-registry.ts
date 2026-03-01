@@ -14,6 +14,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Clear decomposition with well-defined subproblems and clear interfaces',
             level5: 'Exemplary decomposition; identifies all edge cases, sub-problems, and dependencies immediately',
         },
+        subCriteria: [
+            { id: 'clarifiesAmbiguity', label: 'Clarifies Ambiguity', weight: 0.30, description: 'Asked clarifying questions before diving in' },
+            { id: 'identifiesSubproblems', label: 'Identifies Subproblems', weight: 0.30, description: 'Explicitly broke problem into named sub-steps' },
+            { id: 'definesInterfaces', label: 'Defines Interfaces', weight: 0.20, description: 'Defined inputs/outputs for each sub-step' },
+            { id: 'handlesDependencies', label: 'Handles Dependencies', weight: 0.20, description: 'Addressed ordering/dependency between parts' },
+        ],
     },
 
     'pattern-recognition': {
@@ -29,6 +35,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Quickly recognizes patterns and suggests appropriate approaches with justification',
             level5: 'Identifies subtle patterns even in obfuscated problems; adapts solutions creatively',
         },
+        subCriteria: [
+            { id: 'namesPattern', label: 'Names Pattern', weight: 0.30, description: 'Explicitly named algorithm pattern (e.g. sliding window)' },
+            { id: 'justifiesFit', label: 'Justifies Fit', weight: 0.30, description: 'Explained WHY pattern applies to this problem' },
+            { id: 'unprompted', label: 'Without Prompting', weight: 0.25, description: 'Identified pattern before being asked' },
+            { id: 'generalisesVariant', label: 'Generalises to Variants', weight: 0.15, description: 'Connected pattern to related problems or variations' },
+        ],
     },
 
     'algorithmic-thinking': {
@@ -44,6 +56,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Designs efficient algorithm with clear logic and considers constraints',
             level5: 'Optimal algorithm designed from first principles; considers multiple valid approaches',
         },
+        subCriteria: [
+            { id: 'proposesWorkingAlgo', label: 'Proposes Working Algo', weight: 0.35, description: 'Stated a concrete algorithm that would solve the problem' },
+            { id: 'avoidsFlawedApproach', label: 'Avoids Flawed Approach', weight: 0.20, description: 'Did not pursue a fundamentally broken path' },
+            { id: 'articulatesSteps', label: 'Articulates Steps', weight: 0.25, description: 'Described step-by-step logic verbally before coding' },
+            { id: 'considersAlternatives', label: 'Considers Alternatives', weight: 0.20, description: 'Mentioned at least one other valid approach' },
+        ],
     },
 
     'complexity-analysis': {
@@ -59,6 +77,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Accurate analysis for most scenarios including standard recursion and sorting',
             level5: 'Precise analysis including amortized complexity and nuanced space-time tradeoffs',
         },
+        subCriteria: [
+            { id: 'correctTimeComplexity', label: 'Correct Time Complexity', weight: 0.30, description: 'Stated correct Big-O time complexity' },
+            { id: 'correctSpaceComplexity', label: 'Correct Space Complexity', weight: 0.20, description: 'Stated correct Big-O space complexity' },
+            { id: 'explainsWhy', label: 'Explains Reasoning', weight: 0.30, description: 'Explained derivation, not just recited answer' },
+            { id: 'handlesRecursion', label: 'Handles Recursion/Amort', weight: 0.20, description: 'Correctly handled recursion trees or amortized cases' },
+        ],
     },
 
     'communication-clarity': {
@@ -74,6 +98,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Well-structured explanation that guides the listener through the decision map',
             level5: 'Exceptionally clear and engaging; uses analogies and "voice-visualizations"',
         },
+        subCriteria: [
+            { id: 'thinksAloud', label: 'Thinks Aloud', weight: 0.35, description: 'Narrated thought process while coding or reasoning' },
+            { id: 'correctTerminology', label: 'Correct Terminology', weight: 0.25, description: 'Used accurate CS/algorithm terminology' },
+            { id: 'checksUnderstanding', label: 'Checks Understanding', weight: 0.20, description: 'Confirmed interviewer understanding at key points' },
+            { id: 'structuredExplanation', label: 'Structured Explanation', weight: 0.20, description: 'Used clear logical structure (e.g. first/then/finally)' },
+        ],
     },
 
     'edge-case-awareness': {
@@ -89,6 +119,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Proactively identifies most edge cases before fully committing to code',
             level5: 'Comprehensive edge case analysis; builds robustness into the initial design',
         },
+        subCriteria: [
+            { id: 'emptyInput', label: 'Empty Input', weight: 0.20, description: 'Addressed empty array/string/null input' },
+            { id: 'singleElement', label: 'Single Element', weight: 0.20, description: 'Addressed single-element edge case' },
+            { id: 'duplicatesOverflow', label: 'Duplicates/Overflow', weight: 0.25, description: 'Addressed duplicates, integer overflow, or boundary values' },
+            { id: 'logicSpecificCases', label: 'Logic-Specific Cases', weight: 0.35, description: 'Identified edge cases specific to this problem\'s logic, not generic' },
+        ],
     },
 
     'optimization-mindset': {
@@ -104,6 +140,12 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Proposes multiple optimization strategies and can articulate their impact',
             level5: 'Discusses complex tradeoffs (CPU vs Memory) and finds optimal solutions',
         },
+        subCriteria: [
+            { id: 'identifiesBruteForce', label: 'States Brute Force', weight: 0.20, description: 'Explicitly identified and dismissed the naive solution' },
+            { id: 'recognisesOpportunity', label: 'Recognises Opportunity', weight: 0.25, description: 'Identified that improvement was possible' },
+            { id: 'articulatesTradeoff', label: 'Articulates Tradeoff', weight: 0.30, description: 'Explained the time/space tradeoff of the optimisation' },
+            { id: 'implementsOrExplains', label: 'Implements/Explains', weight: 0.25, description: 'Either implemented optimisation or clearly explained how' },
+        ],
     },
 
     'debugging-approach': {
@@ -119,5 +161,11 @@ export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {
             level4: 'Systematic debugging with hypothesis testing and logical elimination',
             level5: 'Proactive bug prevention; deep root-cause analysis even for edge cases',
         },
+        subCriteria: [
+            { id: 'tracesManually', label: 'Traces Manually', weight: 0.30, description: 'Traced through an example by hand to find issue' },
+            { id: 'isolatesFailing', label: 'Isolates Failing Case', weight: 0.25, description: 'Identified the specific input that causes failure' },
+            { id: 'formsHypothesis', label: 'Forms Hypothesis', weight: 0.30, description: 'Stated what they thought was wrong before changing code' },
+            { id: 'verifiesFix', label: 'Verifies Fix', weight: 0.15, description: 'Re-ran or re-traced to confirm fix was correct' },
+        ],
     },
 };

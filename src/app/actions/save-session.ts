@@ -157,6 +157,10 @@ export async function saveInterviewSession(
                     model_used: finalResult.modelUsed ?? 'unknown',
                     confidence: 0.8,
                     validation_pass_done: finalResult.validationPassDone ?? false,
+                    code_quality: finalResult.codeQuality ?? null,
+                    sub_criteria: Object.fromEntries(
+                        Object.entries(skills).map(([k, v]) => [k, (v as any).subCriteria || {}])
+                    )
                 });
 
             if (assessmentError) {

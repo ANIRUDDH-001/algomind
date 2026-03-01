@@ -8,6 +8,13 @@ export type CognitiveSkill =
     | 'optimization-mindset'
     | 'debugging-approach';
 
+export interface SubCriterion {
+    id: string;
+    label: string;
+    weight: number;  // weights sum to 1.0 per dimension
+    description: string;
+}
+
 export interface SkillDefinition {
     id: CognitiveSkill;
     name: string;
@@ -15,6 +22,7 @@ export interface SkillDefinition {
     color: string;            // For radar chart / branding
     weight: number;           // Importance (0-1), sum of all weights should be 1.0
     rubric: ScoringRubric;
+    subCriteria: SubCriterion[];  // NEW
 }
 
 export interface ScoringRubric {
