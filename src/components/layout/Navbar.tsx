@@ -127,7 +127,9 @@ export function Navbar() {
                                     { href: '/practice', label: 'Practice', authOnly: false },
                                     ...(user ? [
                                         { href: dashboardHref, label: 'Dashboard', authOnly: true },
-                                        { href: '/dashboard/interview-history', label: 'Assessments', authOnly: true },
+                                        ...(accountType === 'employer'
+                                            ? []
+                                            : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
                                     ] : []),
                                 ].map((link) => {
                                     const isActive = pathname === link.href;

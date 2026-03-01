@@ -18,7 +18,10 @@ vi.mock('@/lib/supabase/client', () => ({
             fetchCallCount++;
             return {
                 select: () => ({
-                    order: () => mockSelectImpl().order(),
+                    order: () => ({
+                        ...mockSelectImpl().order(),
+                        abortSignal: () => mockSelectImpl().order(),
+                    }),
                 }),
             };
         },

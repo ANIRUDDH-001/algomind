@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 
 export async function GET(req: NextRequest) {
@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get('q');
 
-    let dbQuery = supabase
+    // Use service role client for data reads (bypasses RLS)
+    const adminSupabase = await createServiceRoleSupabase();
+    let dbQuery = adminSupabase
         .from('profiles')
         .select('id, account_type, email, updated_at, rate_limit_override, is_suspended, suspended_reason, suspended_at')
         .order('updated_at', { ascending: false })
@@ -43,6 +45,9 @@ export async function PATCH(req: NextRequest) {
     const isOwner = await isOwnerOrCoOwner(user.id);
     if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Use service role client for data modifications (bypasses RLS)
+    const adminSupabase = await createServiceRoleSupabase();
+
     try {
         const body = await req.json();
         const { userId, accountType, suspend, rateLimitOverride } = body;
@@ -53,7 +58,7 @@ export async function PATCH(req: NextRequest) {
 
         // Prevent owners from demoting or suspending other owners
         if (accountType || suspend !== undefined) {
-            const { data: target } = await supabase
+            const { data: target } = await adminSupabase
                 .from('profiles')
                 .select('account_type')
                 .eq('id', userId)
@@ -73,7 +78,7 @@ export async function PATCH(req: NextRequest) {
         }
         if (rateLimitOverride !== undefined) updates.rate_limit_override = rateLimitOverride;
 
-        const { error } = await supabase
+        const { error } = await adminSupabase
             .from('profiles')
             .update(updates)
             .eq('id', userId);
