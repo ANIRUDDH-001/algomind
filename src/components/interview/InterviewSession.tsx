@@ -26,7 +26,7 @@ import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, Keyboard } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -147,6 +147,10 @@ export function InterviewSession({
     const [showGuestSelector, setShowGuestSelector] = useState<boolean>(isGuest);
     const [activeProblem, setActiveProblem] = useState(problem);
     const [guestDurationSecs, setGuestDurationSecs] = useState(0);
+
+    // Text input fallback — for when mic fails silently (Brave, some mobile browsers)
+    const [showTextInput, setShowTextInput] = useState(false);
+    const [textInput, setTextInput] = useState('');
 
     const handleGuestProblemSelect = useCallback((selected: typeof GUEST_PROBLEMS[number]) => {
         setActiveProblem(selected);
@@ -723,17 +727,47 @@ export function InterviewSession({
                                             </div>
                                         </div>
 
-                                        {/* Send button: always visible, disabled when no transcript.
-                                            In Whisper/VAD mode isListening is always false so the old guard hid this.
-                                            In browser STT mode we now show while listening so user can send partial. */}
+                                        {/* Text input fallback — shown when user taps "Type instead" */}
+                                        <div className="w-full">
+                                            <button
+                                                onClick={() => setShowTextInput(!showTextInput)}
+                                                className="flex items-center gap-1.5 text-[10px] text-zinc-500 hover:text-indigo-400 transition-colors font-bold uppercase tracking-wider mb-2"
+                                            >
+                                                <Keyboard className="w-3 h-3" />
+                                                {showTextInput ? 'Hide text input' : 'Mic not working? Type instead'}
+                                            </button>
+                                            {showTextInput && (
+                                                <textarea
+                                                    value={textInput}
+                                                    onChange={(e) => setTextInput(e.target.value)}
+                                                    placeholder="Type your response here…"
+                                                    className="w-full h-24 bg-zinc-900/60 border border-zinc-700/50 rounded-xl p-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey && textInput.trim()) {
+                                                            e.preventDefault();
+                                                            submitUserResponse(textInput.trim(), { title: activeProblem.title, content: activeProblem.description });
+                                                            setTextInput('');
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Send button: works with voice transcript OR typed text */}
                                         <Button
                                             className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                                            onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
-                                            disabled={!voice.transcript || isProcessing}
-                                            title={!voice.transcript ? 'Speak or type first' : 'Send your response'}
+                                            onClick={() => {
+                                                const content = (showTextInput && textInput.trim()) ? textInput.trim() : voice.transcript;
+                                                if (content) {
+                                                    submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
+                                                    setTextInput('');
+                                                }
+                                            }}
+                                            disabled={(!voice.transcript && !textInput.trim()) || isProcessing}
+                                            title={(!voice.transcript && !textInput.trim()) ? 'Speak or type first' : 'Send your response'}
                                         >
                                             <Send className="w-3 h-3 mr-2" />
-                                            {voice.transcript ? 'Send Message' : 'Waiting for speech\u2026'}
+                                            {(voice.transcript || textInput.trim()) ? 'Send Message' : 'Waiting for speech…'}
                                         </Button>
 
                                         {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
