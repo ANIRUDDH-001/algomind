@@ -18,15 +18,9 @@ export function useAdmin() {
 
     useEffect(() => {
         checkAdminStatus();
-
-        // Subscribe to auth changes
-        const supabase = getSupabase();
-        if (supabase) {
-            const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-                checkAdminStatus();
-            });
-            return () => subscription.unsubscribe();
-        }
+        // NOTE: No onAuthStateChange here — AuthProvider already handles auth state.
+        // Adding another subscriber here caused SIGNED_IN to appear 3x per event
+        // and triggered re-render cascades that reset mic state mid-interview.
     }, []);
 
     const checkAdminStatus = async () => {
