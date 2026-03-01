@@ -3,8 +3,8 @@
  * Utility functions for voice management
  */
 
-// Common English/Hindi variants to look for
-const TARGET_LOCALES = ['en-US', 'en-GB', 'en-IN', 'hi-IN'];
+// Common English variants to look for
+const TARGET_LOCALES = ['en-US', 'en-GB'];
 
 /**
  * loads and filters available voices with smart deduplication
@@ -16,8 +16,7 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
     // 1. Filter for target languages
     const filtered = allVoices.filter(v =>
         TARGET_LOCALES.includes(v.lang) ||
-        v.lang.startsWith('en') ||
-        v.lang.startsWith('hi') // Hindi
+        v.lang.startsWith('en')
     );
 
     // 2. Smart Deduplication
@@ -48,14 +47,12 @@ export const getProcesedVoices = (allVoices: SpeechSynthesisVoice[]): SpeechSynt
     let distinctVoices = Array.from(uniqueMap.values());
 
     // 3. Sort by priority
-    // Order: US -> UK -> India (English) -> Hindi -> Others
+    // Order: US -> UK -> Others
     distinctVoices.sort((a, b) => {
         const getScore = (v: SpeechSynthesisVoice) => {
             if (v.lang === 'en-US') return 1;
             if (v.lang === 'en-GB') return 2;
-            if (v.lang === 'en-IN') return 3;
-            if (v.lang === 'hi-IN') return 4;
-            return 5;
+            return 3;
         };
 
         const scoreA = getScore(a);
@@ -103,12 +100,11 @@ export const findBestMatchingVoice = (voices: SpeechSynthesisVoice[], preferredN
     }
 
     // 2. Fallback to defaults
-    // US English -> Microsoft Zira -> Any English -> Hindi
+    // US English -> Microsoft Zira -> Any English
     return voices.find(v => v.name.includes("Google US English")) ||
         voices.find(v => v.name.includes("Microsoft Zira")) ||
         voices.find(v => v.lang === 'en-US') ||
         voices.find(v => v.lang.startsWith('en')) ||
-        voices.find(v => v.lang.startsWith('hi')) ||
         voices[0];
 };
 
