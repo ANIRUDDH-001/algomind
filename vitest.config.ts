@@ -26,23 +26,31 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'text-summary', 'lcov', 'json-summary'],
-            include: [
-                'src/lib/voice/**/*.ts',
-                'src/lib/ai/**/*.ts',
-                'src/hooks/useVoiceActivityDetection.ts',
-            ],
+            // ── Scope ─────────────────────────────────────────────────
+            // Cover all source files, not just voice/ai.
+            include: ['src/**/*.ts', 'src/**/*.tsx'],
             exclude: [
                 'src/**/__tests__/**',
                 'src/**/*.test.ts',
+                'src/**/*.test.tsx',
                 'src/test-utils/**',
+                'src/components/ui/**',         // shadcn primitives
+                'src/data/**',                  // static JSON/MD data
+                'src/types/**',                 // TypeScript type-only files
+                'src/app/**/layout.tsx',        // Next.js layouts (tested via E2E)
+                'src/app/**/page.tsx',          // Next.js pages (tested via E2E)
+                'src/scripts/**',
                 'src/lib/voice/types.ts',
                 'src/lib/ai/types.ts',
             ],
+            // ── Thresholds ────────────────────────────────────────────
+            // Intentionally conservative first pass.
+            // Raise by 5% per quarter as coverage improves.
             thresholds: {
-                statements: 70,
-                branches: 65,
-                functions: 70,
-                lines: 70,
+                statements: 30,
+                branches: 20,
+                functions: 30,
+                lines: 30,
             },
         },
 
