@@ -82,15 +82,18 @@ function AnimatedCounter({ value, label }: { value: string, label: string }) {
 }
 
 export default function HomePage() {
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return shouldShowOnboarding();
-    }
-    return false;
-  });
-
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  // Only show onboarding animation for logged-out first-time visitors.
+  // Never block logged-in users with it — they should see the home page directly.
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (!loading && !user) {
+      setShowOnboarding(shouldShowOnboarding());
+    }
+    // If user is logged in, never show onboarding
+  }, [user, loading]);
 
   // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
   const [mounted, setMounted] = useState(false);

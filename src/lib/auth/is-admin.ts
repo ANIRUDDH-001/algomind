@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { type User } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 
 import { cookies } from 'next/headers';
 
@@ -19,10 +20,15 @@ export async function requireAdmin(): Promise<User> {
         redirect('/login');
     }
 
-    const { data: isAdmin, error: adminErr } = await supabase.rpc('check_is_admin');
+    // Check admin status AND owner status in parallel
+    const [{ data: isAdmin, error: adminErr }, ownerStatus] = await Promise.all([
+        supabase.rpc('check_is_admin'),
+        isOwnerOrCoOwner(user.id),
+    ]);
 
-    if (adminErr || !isAdmin) {
-        redirect('/dashboard'); // Not an admin — send to normal dashboard
+    // Allow access if user is an admin OR an owner/co-owner
+    if ((adminErr || !isAdmin) && !ownerStatus) {
+        redirect('/dashboard'); // Neither admin nor owner — send to normal dashboard
     }
 
     return user;
