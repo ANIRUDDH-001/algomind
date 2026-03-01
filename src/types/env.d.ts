@@ -21,7 +21,6 @@ declare namespace NodeJS {
         SUPABASE_SERVICE_ROLE_KEY: string;
         SUPABASE_DIRECT_URL?: string;               // Direct Supabase URL (server-only, bypasses CF Worker)
         SUPABASE_JWT_SECRET?: string;               // Found in Supabase Dashboard → Project Settings → API → JWT Secret
-        GROQ_TTS_MODEL?: string;                    // Groq TTS model override
 
         // Redis / Upstash
         UPSTASH_REDIS_REST_URL?: string;

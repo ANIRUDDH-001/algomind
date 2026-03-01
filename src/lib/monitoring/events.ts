@@ -17,7 +17,8 @@ export type SystemEventType =
     | 'cron_running'
     | 'batch_job_complete'
     | 'admin_action'
-    | 'assessment_insufficient';
+    | 'assessment_insufficient'
+    | 'voice_session_start';
 
 export interface SystemEventPayload {
     type: SystemEventType;

@@ -1,6 +1,0 @@
-﻿
-> algomind@0.1.0 type-check
-> tsc --noEmit
-
-src/app/learn/LearnSessionClient.tsx(59,27): error TS2339: Property 'speak' does not exist on type '{ isListening: boolean; transcript: string; interimTranscript: string; startListening: () => void; stopListening: () => void; toggleMic: () => void; isMicEnabled: boolean; isSpeaking: boolean; pauseSpeaking: () => void; resumeSpeaking: () => void; stopSpeaking: () => void; error: string | null; }'.
-src/app/learn/LearnSessionClient.tsx(59,40): error TS2339: Property 'speak' does not exist on type '{ isListening: boolean; transcript: string; interimTranscript: string; startListening: () => void; stopListening: () => void; toggleMic: () => void; isMicEnabled: boolean; isSpeaking: boolean; pauseSpeaking: () => void; resumeSpeaking: () => void; stopSpeaking: () => void; error: string | null; }'.

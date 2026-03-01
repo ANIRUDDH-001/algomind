@@ -39,7 +39,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
         handleInterruption,
         startInterview
     } = useInterview({
-        vadEnabled: true,
+        config: { mode: 'practice' } as any,
         apiEndpoint: '/api/learn/chat',
     });
 
