@@ -7,7 +7,7 @@ import { InterviewErrorBoundary } from '@/components/interview/InterviewErrorBou
 import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
-import { getGuestProblem } from '@/lib/guest/guest-problems';
+import { getGuestProblem, getGuestProblemById } from '@/lib/guest/guest-problems';
 import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-rate-limiter';
 import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
 
@@ -66,8 +66,15 @@ function InterviewContent() {
                 // 2. Fetch Problem
                 let problemPromise: Promise<Problem | null>;
                 if (isGuest && !sessionId) {
-                    // Guest: Use hardcoded problem (instant)
-                    problemPromise = Promise.resolve(getGuestProblem());
+                    const guestProblemId = searchParams.get('guestProblemId');
+                    if (guestProblemId) {
+                        // Deep link to a specific problem (e.g., from "Try Another" redirect)
+                        const specific = getGuestProblemById(guestProblemId);
+                        problemPromise = Promise.resolve(specific ?? getGuestProblem());
+                    } else {
+                        // No pre-selection: load random. Selector in InterviewSession will override.
+                        problemPromise = Promise.resolve(getGuestProblem());
+                    }
                 } else {
                     // Authenticated: Fetch from DB or Cache
                     const cachedProblem = sessionStorage.getItem('currentProblem');
