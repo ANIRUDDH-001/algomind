@@ -6,11 +6,11 @@ import { Zap } from 'lucide-react';
 
 interface SkillBadgeProps {
     skillId: CognitiveSkill;
-    points: number;
+    triggerPhrase: string;
     shown: boolean;
 }
 
-export function SkillBadge({ skillId, points, shown }: SkillBadgeProps) {
+export function SkillBadge({ skillId, triggerPhrase, shown }: SkillBadgeProps) {
     const definition = SKILL_DEFINITIONS[skillId];
 
     return (
@@ -31,7 +31,7 @@ export function SkillBadge({ skillId, points, shown }: SkillBadgeProps) {
                             {definition.name}
                         </p>
                         <p className="text-sm font-bold text-white leading-none">
-                            Insight detected <span className="text-emerald-400">+{points}</span>
+                            {triggerPhrase}
                         </p>
                     </div>
                 </motion.div>

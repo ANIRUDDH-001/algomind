@@ -10,6 +10,12 @@ vi.mock('@/lib/ai/client', () => {
     };
 });
 
+// Mock the validation layer so it doesn't trigger extra AI calls
+vi.mock('../score-validator', () => ({
+    validateAndCorrectScores: vi.fn().mockResolvedValue({}),
+    applyValidation: vi.fn((skills) => skills)
+}));
+
 describe('CognitiveAnalyzer', () => {
     let analyzer: CognitiveAnalyzer;
     let mockGenerateCompletion: any;

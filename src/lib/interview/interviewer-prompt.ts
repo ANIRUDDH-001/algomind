@@ -374,6 +374,22 @@ Generate comprehensive feedback in the following JSON format:
 }
 \`\`\`
 
+## STRICTNESS ENFORCEMENT — READ CAREFULLY
+
+You MUST apply these score gates. Violating them will be caught by a validator:
+
+| Score | Gate |
+|-------|------|
+| 1–3   | No understanding shown, or refused to engage |
+| 4–5   | VAGUE answers only — "use a hashmap", "O(n) I think" without explanation |
+| 6–7   | CORRECT but prompted — only answered when directly asked |
+| 8–9   | CORRECT and unprompted — volunteered the insight themselves |
+| 10    | EXCEPTIONAL — proactively exceeded all expectations |
+
+If evidence is a paraphrase like "candidate seemed to understand complexity" → score MAX 4.
+If evidence shows candidate only answered after direct question → score MAX 6.
+Do NOT give 7+ for "good effort". 7 means interview-pass quality unprompted performance.
+
 Be specific. Reference actual moments from the conversation. Do not make up positive feedback if there was none.
 `;
 }
