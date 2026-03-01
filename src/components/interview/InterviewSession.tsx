@@ -46,6 +46,7 @@ import { GuestRegisterModal } from './GuestRegisterModal';
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
 import { SilentObserverNudge } from './SilentObserverNudge';
 import { classifyTurnSignal } from '@/lib/interview/turn-classifier';
+import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
 
@@ -367,12 +368,19 @@ export function InterviewSession({
         isSavingRef.current = true;
         setError(null);
         try {
-            const transcript = messages.map(m => ({ role: m.role, content: m.content }));
+            const baseTranscript = messages.map(m => ({ role: m.role, content: m.content }));
             const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
+
+            const enrichedTranscript = buildEnrichedTranscript(
+                baseTranscript,
+                userCode,
+                codeLanguage,
+                activeProblem.title
+            );
 
             if (isAssessment && onAssessmentComplete) {
                 try {
-                    await onAssessmentComplete(durationSecs, transcript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })));
+                    await onAssessmentComplete(durationSecs, enrichedTranscript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })));
                 } catch (err: unknown) {
                     console.error("❌ Assessment error:", err);
                     setError(err instanceof Error ? err.message : "Failed to submit assessment.");
@@ -382,7 +390,7 @@ export function InterviewSession({
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
                         { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty },
-                        transcript
+                        enrichedTranscript
                     );
                     if (!assessment) {
                         setError("Assessment failed. Please try again or check the console for details.");
