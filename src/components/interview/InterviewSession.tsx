@@ -655,15 +655,18 @@ export function InterviewSession({
                                             </div>
                                         </div>
 
-                                        {voice.transcript && !voice.isListening && (
-                                            <Button
-                                                className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20"
-                                                onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
-                                                disabled={isProcessing}
-                                            >
-                                                <Send className="w-3 h-3 mr-2" /> Send Message
-                                            </Button>
-                                        )}
+                                        {/* Send button: always visible, disabled when no transcript.
+                                            In Whisper/VAD mode isListening is always false so the old guard hid this.
+                                            In browser STT mode we now show while listening so user can send partial. */}
+                                        <Button
+                                            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            onClick={() => submitUserResponse(voice.transcript, { title: problem.title, content: problem.description })}
+                                            disabled={!voice.transcript || isProcessing}
+                                            title={!voice.transcript ? 'Speak or type first' : 'Send your response'}
+                                        >
+                                            <Send className="w-3 h-3 mr-2" />
+                                            {voice.transcript ? 'Send Message' : 'Waiting for speech\u2026'}
+                                        </Button>
 
                                         {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
                                         {isMobile && hasStarted && !readOnly && (

@@ -14,10 +14,10 @@ export function useWhisperInput(options: UseWhisperInputOptions = {}) {
     const [error, setError] = useState<string | null>(null);
     const [interimTranscript, setInterimTranscript] = useState('');
     const [lastResultTime, setLastResultTime] = useState(0);
+    const [isActive, setIsActive] = useState(false);
     const whisperRef = useRef<WhisperSTT | null>(null);
     const shouldListenRef = useRef(false);
     const isSupported = WhisperSTT.isSupported();
-    const startListeningRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
     const onTranscriptRef = useRef(options.onTranscript);
     useEffect(() => { onTranscriptRef.current = options.onTranscript; }, [options.onTranscript]);
@@ -51,10 +51,23 @@ export function useWhisperInput(options: UseWhisperInputOptions = {}) {
         setInterimTranscript('');
     }, []);
 
-    const resetTranscript = useCallback(() => {
-        setTranscript('');
-        setInterimTranscript('');
+    // startListening: signals the hook consumer that VAD is armed
+    const startListening = useCallback(() => {
+        setIsActive(true);
+        console.warn('[useWhisperInput] startListening called — VAD manages the audio stream, not Whisper directly');
     }, []);
+
+    // stopListening: disarms VAD expectation and clears pending transcript
+    const stopListening = useCallback(() => {
+        setIsActive(false);
+        clearTranscript();
+    }, [clearTranscript]);
+
+    // abortListening: same as stop but semantically indicates cancellation
+    const abortListening = useCallback(() => {
+        setIsActive(false);
+        clearTranscript();
+    }, [clearTranscript]);
 
     useEffect(() => {
         return () => {
@@ -63,12 +76,15 @@ export function useWhisperInput(options: UseWhisperInputOptions = {}) {
     }, []);
 
     return {
+        // VAD-triggered mode: VAD owns the audio stream, Whisper is never "listening" continuously.
+        // isListening is always false — the Send button logic must NOT gate on this in Whisper mode.
         isListening: false,
-        stopListening: () => { },
-        startListening: () => { },
-        abortListening: () => { },
+        isActive,                  // true when VAD is armed and Whisper transcription is expected
+        startListening,
+        stopListening,
+        abortListening,
         transcript,
-        interimTranscript,
+        interimTranscript,         // Always '' in Whisper mode (no streaming partial results)
         error,
         lastResultTime,
         isSupported,
