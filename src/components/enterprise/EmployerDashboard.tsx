@@ -11,6 +11,7 @@ import { RadarChart } from '@/components/charts/RadarChart';
 import { useRouter } from 'next/navigation';
 import { CandidateTranscriptViewer } from './CandidateTranscriptViewer';
 import { CreateCampaignModal } from './CreateCampaignModal';
+import { CohortStatsPanel } from './CohortStatsPanel';
 import { CampaignData as CampaignType, CampaignQuestion } from '@/types/campaign';
 
 interface ProblemData {
@@ -53,6 +54,8 @@ interface SubmissionData {
     rank?: number;
 
     // Joined from assessments
+    hire_decision?: string | null;
+    integrity_flags?: string[];
     problem_decomposition: number;
     pattern_recognition: number;
     algorithmic_thinking: number;
@@ -91,6 +94,10 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     // Compare State
     const [compareSelection, setCompareSelection] = useState<string[]>([]);
     const [showCompareModal, setShowCompareModal] = useState(false);
+
+    // Sort State
+    const [sortColumn, setSortColumn] = useState<string>('overall_score');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
     // Transcript Viewer State
     const [viewTranscriptSessionId, setViewTranscriptSessionId] = useState<string | null>(null);
@@ -429,6 +436,8 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             {
                 activeTab === 'submissions' && (
                     <div className="space-y-6">
+                        {/* Cohort Stats Panel */}
+                        <CohortStatsPanel submissions={submissions} />
                         {/* ... (rest of submissions tab remains the same) */}
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
                             <div className="flex items-center gap-3">
@@ -531,13 +540,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                         <th scope="col" className="px-3 py-3 text-center" title="Edge Case Awareness">Edge</th>
                                         <th scope="col" className="px-3 py-3 text-center" title="Optimization Mindset">Optim</th>
                                         <th scope="col" className="px-3 py-3 text-center" title="Debugging Approach">Debug</th>
+                                        <th scope="col" className="px-3 py-3 text-center" title="Hire Decision">Decision</th>
+                                        <th scope="col" className="px-3 py-3 text-center" title="Integrity Flags">Flags</th>
                                         <th scope="col" className="px-4 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {submissions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={13} className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan={16} className="px-6 py-12 text-center text-slate-500">
                                                 {selectedCampaignId ? "No candidates have completed this assessment yet." : "Please select a campaign."}
                                             </td>
                                         </tr>
@@ -575,6 +586,35 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                         </td>
                                                     );
                                                 })}
+
+                                                {/* Hire Decision */}
+                                                <td className="px-3 py-3 text-center">
+                                                    {sub.hire_decision ? (
+                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sub.hire_decision === 'STRONG_HIRE' || sub.hire_decision === 'HIRE' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' :
+                                                                sub.hire_decision === 'BORDERLINE' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' :
+                                                                    'bg-red-500/15 text-red-400 border border-red-500/25'
+                                                            }`}>
+                                                            {sub.hire_decision.replace('_', ' ')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-zinc-600">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Integrity Flags */}
+                                                <td className="px-3 py-3 text-center">
+                                                    {sub.integrity_flags && sub.integrity_flags.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1 justify-center">
+                                                            {sub.integrity_flags.map((flag, fi) => (
+                                                                <span key={fi} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/15 text-red-400 border border-red-500/25" data-testid="integrity-flag">
+                                                                    🚩 {flag.replace(/_/g, ' ')}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-zinc-600 text-xs">✓</span>
+                                                    )}
+                                                </td>
 
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex gap-1 justify-end">
