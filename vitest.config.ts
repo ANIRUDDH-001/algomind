@@ -51,6 +51,12 @@ export default defineConfig({
                 branches: 20,
                 functions: 30,
                 lines: 30,
+                'src/lib/assessment/': { lines: 85, functions: 90 },
+                'src/lib/interview/': { lines: 80, functions: 85 },
+                'src/lib/spaced-repetition/': { lines: 85, functions: 90 },
+                'src/lib/rag/': { lines: 75, functions: 80 },
+                'src/lib/recommendations/': { lines: 75, functions: 80 },
+                'src/lib/ai/memory-generator': { lines: 80, functions: 85 },
             },
         },
 

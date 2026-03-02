@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getInsightSnapshot, InsightSnapshot } from '@/lib/recommendations/insight-engine';
-import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink, Activity, Sparkles, TrendingDown, Clock, Map } from 'lucide-react';
+import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink, Activity, Sparkles, TrendingDown, Clock, Map, BarChart2, TrendingUp, Scale, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -17,6 +17,10 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
     unexplored_pattern: <Map className="w-4 h-4 text-emerald-400" />,
     momentum: <Activity className="w-4 h-4 text-blue-400" />,
     streak_at_risk: <Clock className="w-4 h-4 text-orange-400" />,
+    consistency_gap: <BarChart2 className="w-4 h-4 text-orange-400" />,
+    difficulty_plateau: <TrendingUp className="w-4 h-4 text-purple-400" />,
+    skill_imbalance: <Scale className="w-4 h-4 text-red-400" />,
+    problem_type_gap: <AlertCircle className="w-4 h-4 text-yellow-400" />,
 };
 
 export function InsightsPanel({ userId }: InsightsPanelProps) {
