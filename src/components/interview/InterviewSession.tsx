@@ -49,6 +49,7 @@ import { classifyTurnSignal } from '@/lib/interview/turn-classifier';
 import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -166,6 +167,7 @@ export function InterviewSession({
 
     // --- Kai Memory ---
     const [kaiMemory, setKaiMemory] = useState<string | null>(null);
+    const [kaiMemoryStructured, setKaiMemoryStructured] = useState<KaiMemoryStructured | null>(null);
 
     // --- Silent Observer ---
     const observerRef = useRef(new SilentObserver());
@@ -175,8 +177,9 @@ export function InterviewSession({
         if (!user || isGuest) return;
         fetch('/api/user/memory')
             .then(r => r.ok ? r.json() : null)
-            .then((data: { kaiMemory: string | null } | null) => {
+            .then((data: { kaiMemory: string | null, kaiMemoryStructured: KaiMemoryStructured | null } | null) => {
                 if (data?.kaiMemory) setKaiMemory(data.kaiMemory);
+                if (data?.kaiMemoryStructured) setKaiMemoryStructured(data.kaiMemoryStructured);
             })
             .catch(() => { });
     }, [user, isGuest]);
@@ -201,17 +204,8 @@ export function InterviewSession({
         if (!hasStarted) {
             setHasStarted(true);
         }
-        if (!isGuest && hasStarted && _msg.content.trim().length > 20) {
-            classifyTurnSignal(_msg.content, activeProblem.title).then((signal) => {
-                if (signal && !showBadge && !firedDimensions.has(signal.dimension)) {
-                    firedDimensions.add(signal.dimension);
-                    setLastBadgeSkill(signal.dimension);
-                    setBadgeTriggerPhrase(signal.triggerPhrase);
-                    setShowBadge(true);
-                }
-            }).catch(() => { /* silent fail */ });
-        }
-    }, [isGuest, hasStarted, recordUserTurn, isTrialComplete, showLoginModal, incrementTurn, showBadge, activeProblem.title, firedDimensions]);
+        // Badge detection moved to Silent Observer
+    }, [isGuest, hasStarted, recordUserTurn, isTrialComplete, showLoginModal, incrementTurn]);
 
     const {
         state,
@@ -257,25 +251,35 @@ export function InterviewSession({
     useEffect(() => { messagesRef.current = messages; }, [messages]);
 
     useEffect(() => {
-        if (!observerEnabled || !hasStarted || readOnly) return;
+        if (!observerEnabled || !hasStarted || readOnly || isAssessment) return;
         if (state === 'completed' || state === 'idle' || isAnalyzing) return;
 
+        // Run observer more frequently (e.g. every 15s) since it handles its own cooldowns now,
+        // and needs to catch badges close to when the user spoke.
         const interval = setInterval(async () => {
             const currentMessages = messagesRef.current;
             const currentElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            const tip = await observerRef.current.analyze({
-                recentTurns: currentMessages.slice(-3).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            const result = await observerRef.current.analyze({
+                recentTurns: currentMessages.slice(-4).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
                 interviewState: state as InterviewState,
                 elapsedSeconds: currentElapsed,
+                problemTitle: activeProblem.title,
             });
 
-            if (tip) {
-                setNudge(tip);
+            if (result.nudgeText) {
+                setNudge(result.nudgeText);
             }
-        }, 60_000);
+
+            if (result.badgeSignal && !showBadge && !firedDimensions.has(result.badgeSignal.dimension)) {
+                firedDimensions.add(result.badgeSignal.dimension);
+                setLastBadgeSkill(result.badgeSignal.dimension);
+                setBadgeTriggerPhrase(result.badgeSignal.triggerPhrase);
+                setShowBadge(true);
+            }
+        }, 15_000);
 
         return () => clearInterval(interval);
-    }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing]);
+    }, [hasStarted, readOnly, observerEnabled, state, isAnalyzing, isAssessment, activeProblem.title, showBadge, firedDimensions]);
 
     useEffect(() => {
         setHasStarted(false);
@@ -340,10 +344,11 @@ export function InterviewSession({
             activeProblem.description,
             interviewConfig.ragContext,
             undefined,
-            interviewConfig.kaiMemory,
+            kaiMemory || interviewConfig.kaiMemory,
             activeProblem.id,
             interviewConfig.difficultyMode,
-            activeProblem.difficulty
+            activeProblem.difficulty,
+            kaiMemoryStructured || interviewConfig.kaiMemoryStructured
         );
     };
 

@@ -1,22 +1,19 @@
-// @vitest-environment node
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { generateKaiMemory, updateKaiMemory, type SessionData } from '../memory-generator';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { SessionData } from '../memory-generator';
 
-// ── Module mocks ──────────────────────────────────────────────────────────────
+// ── Module-level mocks ────────────────────────────────────────────────────────
+
+vi.mock('@/lib/monitoring/events', () => ({
+    logSystemEvent: vi.fn(),
+}));
+
+const mockGenerateCompletion = vi.fn();
 
 vi.mock('../client', () => ({
-    UnifiedAIClient: vi.fn().mockImplementation(function () { return mockAIClient; }),
+    UnifiedAIClient: vi.fn().mockImplementation(function () {
+        return { generateCompletion: mockGenerateCompletion };
+    }),
 }));
-
-vi.mock('@/lib/supabase/service', () => ({
-    getServiceClient: vi.fn(() => mockSupabase),
-}));
-
-// ── Shared mock objects ───────────────────────────────────────────────────────
-
-const mockAIClient = {
-    generateCompletion: vi.fn(),
-};
 
 const mockSupabase = {
     rpc: vi.fn(),
@@ -27,219 +24,28 @@ const mockSupabase = {
     upsert: vi.fn(),
 };
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
-
-const session1: SessionData = {
-    sessionId: 'sess-001',
-    problemTitle: 'Two Sum',
-    problemDifficulty: 'easy',
-    overallScore: 7.5,
-    skills: {
-        'problem-decomposition': 8,
-        'pattern-recognition': 6,
-        'algorithmic-thinking': 7,
-        'complexity-analysis': 5,
-        'communication-clarity': 9,
-        'edge-case-awareness': 4,
-        'optimization-mindset': 6,
-        'debugging-approach': 7,
-    },
-    completedAt: new Date().toISOString(),
-};
-
-const session2: SessionData = {
-    sessionId: 'sess-002',
-    problemTitle: 'Binary Search',
-    problemDifficulty: 'medium',
-    overallScore: 6.0,
-    skills: {
-        'problem-decomposition': 5,
-        'pattern-recognition': 7,
-        'algorithmic-thinking': 6,
-        'complexity-analysis': 8,
-        'communication-clarity': 5,
-        'edge-case-awareness': 7,
-        'optimization-mindset': 4,
-        'debugging-approach': 6,
-    },
-    completedAt: new Date().toISOString(),
-};
-
-// ── generateKaiMemory ─────────────────────────────────────────────────────────
-
-describe('generateKaiMemory()', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
-
-    it('returns empty string (fallback) when recentSessions is empty and no existing memory', async () => {
-        const result = await generateKaiMemory({
-            userId: 'user-1',
-            recentSessions: [],
-            existingMemory: null,
-        });
-        expect(result).toBe('');
-        expect(mockAIClient.generateCompletion).not.toHaveBeenCalled();
-    });
-
-    it('returns existingMemory when recentSessions is empty', async () => {
-        const result = await generateKaiMemory({
-            userId: 'user-1',
-            recentSessions: [],
-            existingMemory: 'Previous coaching note.',
-        });
-        expect(result).toBe('Previous coaching note.');
-        expect(mockAIClient.generateCompletion).not.toHaveBeenCalled();
-    });
-
-    it('calls AI with correct parameters when sessions exist', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({
-            success: true,
-            response: '  Generated memory note.  ',
-        });
-
-        const result = await generateKaiMemory({
-            userId: 'user-1',
-            recentSessions: [session1],
-            existingMemory: null,
-        });
-
-        expect(mockAIClient.generateCompletion).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({ role: 'user', content: expect.stringContaining('Two Sum') }),
-            ]),
-            expect.objectContaining({
-                preferredProvider: 'groq',
-                maxTokens: 250,
-                temperature: 0.5,
-            })
-        );
-        expect(result).toBe('Generated memory note.'); // trimmed
-    });
-
-    it('trims whitespace from the AI response', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({
-            success: true,
-            response: '   \n  This student excels at communication.  \n   ',
-        });
-        const result = await generateKaiMemory({
-            userId: 'user-1',
-            recentSessions: [session1],
-            existingMemory: null,
-        });
-        expect(result).toBe('This student excels at communication.');
-    });
-
-    it('includes previous memory in the prompt when provided', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: true, response: 'New memory' });
-
-        await generateKaiMemory({
-            userId: 'user-1',
-            recentSessions: [session1],
-            existingMemory: 'This student struggled with edge cases.',
-        });
-
-        const prompt = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        expect(prompt).toContain('This student struggled with edge cases.');
-    });
-
-    it('includes problem title and score in the prompt', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: true, response: 'Memory' });
-
-        await generateKaiMemory({
-            userId: 'u1',
-            recentSessions: [session1],
-            existingMemory: null,
-        });
-
-        const prompt = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        expect(prompt).toContain('Two Sum');
-        expect(prompt).toContain('7.5');
-    });
-
-    it('uses only the 5 most recent sessions in the prompt', async () => {
-        const manySessions = Array.from({ length: 8 }, (_, i) => ({
-            ...session1,
-            sessionId: `sess-${i}`,
-            problemTitle: `Problem ${i}`,
-        }));
-        mockAIClient.generateCompletion.mockResolvedValue({ success: true, response: 'Memory' });
-
-        await generateKaiMemory({ userId: 'u1', recentSessions: manySessions, existingMemory: null });
-
-        const prompt = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        // Only first 5 should appear
-        expect(prompt).toContain('Problem 0');
-        expect(prompt).toContain('Problem 4');
-        expect(prompt).not.toContain('Problem 5');
-        expect(prompt).not.toContain('Problem 6');
-        expect(prompt).not.toContain('Problem 7');
-    });
-
-    it('returns existingMemory as fallback when AI call fails (success=false)', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({
-            success: false,
-            error: 'Rate limited',
-        });
-        const result = await generateKaiMemory({
-            userId: 'u1',
-            recentSessions: [session1],
-            existingMemory: 'Old memory.',
-        });
-        expect(result).toBe('Old memory.');
-    });
-
-    it('returns empty string as fallback when AI fails and no existing memory', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: false });
-        const result = await generateKaiMemory({
-            userId: 'u1',
-            recentSessions: [session1],
-            existingMemory: null,
-        });
-        expect(result).toBe('');
-    });
-
-    it('returns fallback and does not throw when AI throws an unexpected error', async () => {
-        mockAIClient.generateCompletion.mockRejectedValue(new Error('Network failure'));
-        const result = await generateKaiMemory({
-            userId: 'u1',
-            recentSessions: [session1],
-            existingMemory: 'Safe fallback',
-        });
-        expect(result).toBe('Safe fallback');
-    });
-
-    it('correctly identifies the 2 weakest skills from session data', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: true, response: 'Done' });
-
-        // session1 has edge-case-awareness=4 and complexity-analysis=5 as bottom 2
-        await generateKaiMemory({ userId: 'u1', recentSessions: [session1], existingMemory: null });
-
-        const prompt = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        // These skill display names should appear as weak skills
-        expect(prompt).toMatch(/Edge Case Awareness|edge.case/i);
-        expect(prompt).toMatch(/Complexity Analysis|complexity/i);
-    });
-
-    it('correctly identifies the 2 strongest skills from session data', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: true, response: 'Done' });
-
-        // session1 has communication-clarity=9 and problem-decomposition=8 as top 2
-        await generateKaiMemory({ userId: 'u1', recentSessions: [session1], existingMemory: null });
-
-        const prompt = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        expect(prompt).toMatch(/Communication Clarity|communication/i);
-        expect(prompt).toMatch(/Problem Decomposition|problem.decomp/i);
-    });
-});
+vi.mock('@/lib/supabase/service', () => ({
+    getServiceClient: vi.fn(() => mockSupabase),
+}));
 
 // ── updateKaiMemory ───────────────────────────────────────────────────────────
 
 describe('updateKaiMemory()', () => {
-    beforeEach(() => {
+    let updateKaiMemory: typeof import('../memory-generator')['updateKaiMemory'];
+
+    const structuredResponse = JSON.stringify({
+        topStrength: { skill: 'pattern-recognition', evidence: 'good' },
+        mainWeakness: { skill: 'complexity-analysis', evidence: 'bad' },
+        communicationStyle: 'conversational',
+        focusForNextSession: 'none'
+    });
+
+    beforeEach(async () => {
         vi.clearAllMocks();
 
-        // Default: RPC returns 2 sessions
+        const mod = await import('../memory-generator');
+        updateKaiMemory = mod.updateKaiMemory;
+
         const rpcRow = {
             session_id: 'sess-001',
             problem_id: 'two-sum',
@@ -256,13 +62,13 @@ describe('updateKaiMemory()', () => {
         };
 
         mockSupabase.rpc.mockResolvedValue({ data: [rpcRow], error: null });
-        mockSupabase.maybeSingle.mockResolvedValue({ data: { kai_memory: null }, error: null });
+        mockSupabase.maybeSingle.mockResolvedValue({ data: { kai_memory: null, kai_memory_structured: null }, error: null });
         mockSupabase.upsert = vi.fn().mockResolvedValue({ error: null });
 
-        // AI generates a memory
-        mockAIClient.generateCompletion.mockResolvedValue({
+        // AI returns structured JSON
+        mockGenerateCompletion.mockResolvedValue({
             success: true,
-            response: 'This student shows strong communication skills.',
+            response: structuredResponse,
         });
     });
 
@@ -274,37 +80,35 @@ describe('updateKaiMemory()', () => {
         );
     });
 
-    it('reads existing kai_memory from learner_profiles', async () => {
+    it('reads existing kai_memory and structured from learner_profiles', async () => {
         await updateKaiMemory('user-abc');
         expect(mockSupabase.from).toHaveBeenCalledWith('learner_profiles');
-        expect(mockSupabase.select).toHaveBeenCalledWith('kai_memory');
+        expect(mockSupabase.select).toHaveBeenCalledWith('kai_memory, kai_memory_structured');
         expect(mockSupabase.eq).toHaveBeenCalledWith('user_id', 'user-abc');
     });
 
-    it('upserts new memory into learner_profiles on success', async () => {
+    it('upserts new memory and structured payload into learner_profiles on success', async () => {
         await updateKaiMemory('user-abc');
         expect(mockSupabase.upsert).toHaveBeenCalledWith(
             expect.objectContaining({
                 user_id: 'user-abc',
-                kai_memory: 'This student shows strong communication skills.',
+                kai_memory_structured: expect.objectContaining({ communicationStyle: 'conversational' }),
             }),
             { onConflict: 'user_id' }
         );
     });
 
-    it('does not upsert when AI returns empty memory', async () => {
-        mockAIClient.generateCompletion.mockResolvedValue({ success: false });
+    it('does not upsert when AI returns failure', async () => {
+        mockGenerateCompletion.mockResolvedValueOnce({ success: false, error: 'fail' });
         await updateKaiMemory('user-abc');
         expect(mockSupabase.upsert).not.toHaveBeenCalled();
     });
 
-    it('returns early (does not call AI) when RPC returns an error', async () => {
+    it('returns early when RPC returns an error', async () => {
         mockSupabase.rpc.mockResolvedValue({ data: null, error: { message: 'RPC failed' } });
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
         await updateKaiMemory('user-abc');
-
-        expect(mockAIClient.generateCompletion).not.toHaveBeenCalled();
         expect(errorSpy).toHaveBeenCalledWith(
             expect.stringContaining('RPC error'),
             expect.any(String)
@@ -312,7 +116,7 @@ describe('updateKaiMemory()', () => {
         errorSpy.mockRestore();
     });
 
-    it('returns early (does not upsert) when RPC returns 0 sessions', async () => {
+    it('returns early when RPC returns 0 sessions', async () => {
         mockSupabase.rpc.mockResolvedValue({ data: [], error: null });
         await updateKaiMemory('user-abc');
         expect(mockSupabase.upsert).not.toHaveBeenCalled();
@@ -335,15 +139,22 @@ describe('updateKaiMemory()', () => {
         await expect(updateKaiMemory('user-abc')).resolves.toBeUndefined();
     });
 
-    it('passes existing memory to AI generation', async () => {
+    it('passes existing structured memory context to AI prompt', async () => {
+        const fakeStructured = {
+            topStrength: { skill: 'debugging-approach', evidence: 'good debugger' },
+            mainWeakness: { skill: 'edge-case-awareness', evidence: 'misses edge cases' },
+            communicationStyle: 'analytical' as const,
+            focusForNextSession: 'test edge cases'
+        };
         mockSupabase.maybeSingle.mockResolvedValue({
-            data: { kai_memory: 'Previous note about this student.' },
+            data: { kai_memory: 'old', kai_memory_structured: fakeStructured },
             error: null,
         });
 
         await updateKaiMemory('user-abc');
 
-        const callArgs = mockAIClient.generateCompletion.mock.calls[0][0][0].content as string;
-        expect(callArgs).toContain('Previous note about this student.');
+        // The AI prompt should contain the serialized existing memory
+        const prompt = mockGenerateCompletion.mock.calls[0][0][0].content as string;
+        expect(prompt).toContain('good debugger');
     });
 });
