@@ -76,7 +76,7 @@ export function DifficultyModeSelector({ selectedMode, onChange, children }: Dif
     if (!isEnabled) return null;
 
     return (
-        <div className="mb-6 space-y-4">
+        <div className="mb-6 space-y-4" data-tour="difficulty-mode-selector">
             {/* Mode Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {MODES.map((mode) => {

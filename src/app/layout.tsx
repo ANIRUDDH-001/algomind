@@ -7,8 +7,8 @@ import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
 
 import { Toaster } from "@/components/ui/toaster";
-import { TourProvider } from "@/components/tour/TourContext";
-import { IntroTour } from "@/components/tour/IntroTour";
+import { TourProvider } from "@/components/tour/TourProvider";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 import { validateDB } from "@/lib/startup/validateEnv";
 
 const geistSans = Geist({
@@ -95,7 +95,7 @@ export default async function RootLayout({
                     <main className={`flex-1 flex flex-col min-h-0 pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
                       {children}
                     </main>
-                    <IntroTour />
+                    <TourOverlay />
                     <Toaster />
                   </TourProvider>
                 </ErrorBoundary>
