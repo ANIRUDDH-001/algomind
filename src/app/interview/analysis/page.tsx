@@ -63,7 +63,7 @@ export default async function AnalysisPage({
     // 1. Fetch interview session
     const { data: session } = await supabase
         .from('interview_sessions')
-        .select('id, user_id, problem_id, problem_title, problem_difficulty, transcript, duration, overall_score, completed_at, status')
+        .select('id, user_id, problem_id, problem_title, problem_difficulty, transcript, duration, overall_score, completed_at, status, difficulty_mode')
         .eq('id', sessionId)
         .eq('user_id', user.id)
         .single();
@@ -76,7 +76,7 @@ export default async function AnalysisPage({
     const { data: assessment } = await supabase
         .from('assessments')
         .select(`
-            overall_score, adjusted_score, problem_decomposition, pattern_recognition, algorithmic_thinking, 
+            overall_score, adjusted_score, hire_decision, problem_decomposition, pattern_recognition, algorithmic_thinking, 
             complexity_analysis, communication_clarity, edge_case_awareness, 
             optimization_mindset, debugging_approach, overall_feedback, next_steps, 
             skill_evidence, sub_criteria, code_quality
@@ -113,6 +113,7 @@ export default async function AnalysisPage({
                 duration: session.duration || 0,
                 overallScore: session.overall_score || 0,
                 completedAt: session.completed_at,
+                difficultyMode: session.difficulty_mode || undefined,
             }}
             assessment={assessment ? {
                 overallScore: assessment.overall_score || 0,
@@ -132,6 +133,9 @@ export default async function AnalysisPage({
                 skillEvidence: assessment.skill_evidence || {},
                 subCriteria: assessment.sub_criteria || {},
                 codeQuality: assessment.code_quality as any || null,
+                hireDecision: assessment.hire_decision || null,
+                keyMoments: (assessment.skill_evidence as any)?.keyMoments || [],
+                improvementExamples: (assessment.skill_evidence as any)?.improvementExamples || [],
             } : null}
             sm2={sm2Data}
             previousAttempts={(previousAttempts || []).map(a => ({

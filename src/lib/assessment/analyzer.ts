@@ -22,6 +22,8 @@ export interface SkillScore {
     confidence: number;
 }
 
+export type HireDecision = 'STRONG_HIRE' | 'HIRE' | 'BORDERLINE' | 'NO_HIRE' | 'STRONG_NO_HIRE';
+
 export interface AssessmentResult {
     sessionId: string;
     timestamp: Date;
@@ -37,6 +39,7 @@ export interface AssessmentResult {
     modelUsed?: string;
     analysisFailure?: 'user_fault' | 'system_fault';
     validationPassDone?: boolean;
+    hireDecision?: HireDecision | null;
 }
 
 function computeWeightedScore(
@@ -79,6 +82,7 @@ interface ParsedAssessmentResponse {
     overallFeedback: string;
     nextSteps: string[];
     knowledgeGaps?: string[];
+    hireDecision?: string;
 }
 
 export class CognitiveAnalyzer {
@@ -154,6 +158,13 @@ export class CognitiveAnalyzer {
                     10.0
                 );
 
+                // Extract and validate hireDecision
+                const VALID_HIRE_DECISIONS = ['STRONG_HIRE', 'HIRE', 'BORDERLINE', 'NO_HIRE', 'STRONG_NO_HIRE'];
+                const rawHireDecision = parsedData.hireDecision;
+                const hireDecision = (rawHireDecision && VALID_HIRE_DECISIONS.includes(rawHireDecision))
+                    ? rawHireDecision as HireDecision
+                    : null;
+
                 return {
                     sessionId,
                     timestamp: new Date(),
@@ -167,7 +178,8 @@ export class CognitiveAnalyzer {
                     knowledgeGaps: parsedData.knowledgeGaps || [],
                     codeQuality: parsedData.codeQuality || null,
                     modelUsed: rawResponse.model ?? 'gemini-2.0-flash',
-                    validationPassDone: true
+                    validationPassDone: true,
+                    hireDecision,
                 };
 
             } catch (error: unknown) {

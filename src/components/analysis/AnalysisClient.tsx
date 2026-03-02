@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Pause } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
@@ -20,12 +20,31 @@ interface SessionData {
     duration: number;
     overallScore: number;
     completedAt: string;
+    difficultyMode?: string;
 }
 
 interface TranscriptTurn {
     speaker: string;
     text: string;
     timestamp?: number;
+}
+
+interface AIKeyMoment {
+    timestampIndex: number;
+    momentType: string;
+    quote: string;
+    significance: string;
+    dimension: string | null;
+    sentiment: 'positive' | 'negative' | 'neutral';
+}
+
+interface ImprovementExample {
+    skill: CognitiveSkill;
+    subCriterionLabel: string;
+    score: number;
+    whatWasSaid: string;
+    level6Response: string;
+    level9Response: string;
 }
 
 interface AssessmentData {
@@ -43,6 +62,9 @@ interface AssessmentData {
     overallFeedback: string;
     nextSteps: string[];
     skillEvidence: Record<string, unknown>;
+    hireDecision?: string | null;
+    keyMoments?: AIKeyMoment[];
+    improvementExamples?: ImprovementExample[];
 }
 
 interface SM2Data {
@@ -69,6 +91,50 @@ interface AnalysisClientProps {
         enableLearnMode: boolean;
     };
 }
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const MOMENT_ICONS: Record<string, string> = {
+    approach_identified: '💡',
+    optimization_transition: '⚡',
+    self_correction: '🔄',
+    complexity_explained: '📊',
+    impressive_statement: '⭐',
+    missed_opportunity: '⚠️',
+    stuck_point: '⏸',
+};
+
+const MOMENT_TYPE_LABELS: Record<string, string> = {
+    approach_identified: 'Approach Identified',
+    optimization_transition: 'Optimization Transition',
+    self_correction: 'Self Correction',
+    complexity_explained: 'Complexity Explained',
+    impressive_statement: 'Impressive Statement',
+    missed_opportunity: 'Missed Opportunity',
+    stuck_point: 'Stuck Point',
+};
+
+const MOMENT_COLORS: Record<string, string> = {
+    positive: '#10b981',
+    negative: '#ef4444',
+    neutral: '#6b7280',
+};
+
+const HIRE_STYLES: Record<string, string> = {
+    STRONG_HIRE: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+    HIRE: 'bg-green-500/10 border-green-500/30 text-green-400',
+    BORDERLINE: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+    NO_HIRE: 'bg-red-500/10 border-red-500/30 text-red-400',
+    STRONG_NO_HIRE: 'bg-red-600/10 border-red-600/30 text-red-500',
+};
+
+const HIRE_LABELS: Record<string, string> = {
+    STRONG_HIRE: '✅ Strong Hire',
+    HIRE: '👍 Hire',
+    BORDERLINE: '⚖️ Borderline',
+    NO_HIRE: '👎 No Hire',
+    STRONG_NO_HIRE: '❌ Strong No Hire',
+};
 
 // ─── Animated Score Circle ──────────────────────────────────────────────────
 
@@ -178,7 +244,7 @@ function SkillBar({ skill, score, subCriteria }: { skill: CognitiveSkill; score:
     );
 }
 
-// ─── Key Moments & Weak Sub-Criteria ──────────────────────────────────────────
+// ─── Utility functions ──────────────────────────────────────────────────────
 
 function extractWeakSubCriteria(
     subCriteriaDict?: Record<string, Record<string, number>>
@@ -208,65 +274,6 @@ function extractWeakSubCriteria(
     return weaks.sort((a, b) => a.score - b.score);
 }
 
-interface KeyMoment {
-    time: string;
-    label: string;
-    type: 'evidence' | 'pause' | 'phase';
-    color: string;
-}
-
-function extractKeyMoments(
-    transcript: TranscriptTurn[],
-    skillEvidence: Record<string, unknown>
-): KeyMoment[] {
-    const moments: KeyMoment[] = [];
-
-    if (!transcript || transcript.length === 0) return moments;
-
-    // Extract silence gaps > 15s
-    for (let i = 1; i < transcript.length; i++) {
-        const prev = transcript[i - 1];
-        const curr = transcript[i];
-        if (prev.timestamp != null && curr.timestamp != null) {
-            const gap = curr.timestamp - prev.timestamp;
-            if (gap > 15) {
-                const min = Math.floor(prev.timestamp / 60);
-                const sec = Math.floor(prev.timestamp % 60);
-                moments.push({
-                    time: `${min}:${sec.toString().padStart(2, '0')}`,
-                    label: `Long pause (${Math.round(gap)}s)`,
-                    type: 'pause',
-                    color: '#f59e0b',
-                });
-            }
-        }
-    }
-
-    // Extract skill evidence moments
-    if (skillEvidence && typeof skillEvidence === 'object') {
-        const evidenceEntries = Object.entries(skillEvidence);
-        for (const [skill, evidence] of evidenceEntries) {
-            if (evidence && typeof evidence === 'object' && 'timestamp' in (evidence as Record<string, unknown>)) {
-                const ev = evidence as { timestamp?: number; moment?: string };
-                const ts = ev.timestamp || 0;
-                const min = Math.floor(ts / 60);
-                const sec = Math.floor(ts % 60);
-                const skillDef = SKILL_DEFINITIONS[skill as CognitiveSkill];
-                moments.push({
-                    time: `${min}:${sec.toString().padStart(2, '0')}`,
-                    label: ev.moment || `${skillDef?.name || skill} demonstrated`,
-                    type: 'evidence',
-                    color: skillDef?.color || '#6366f1',
-                });
-            }
-        }
-    }
-
-    // Sort by time and limit to 5
-    moments.sort((a, b) => a.time.localeCompare(b.time));
-    return moments.slice(0, 5);
-}
-
 function formatDuration(seconds: number): string {
     const m = Math.floor(seconds / 60);
     return m < 1 ? 'less than a minute' : `${m} minute${m !== 1 ? 's' : ''}`;
@@ -283,8 +290,11 @@ export function AnalysisClient({
 }: AnalysisClientProps) {
     const skills = assessment?.skills;
     const weakSubCriteria = extractWeakSubCriteria(assessment?.subCriteria);
-    const moments = extractKeyMoments(session.transcript, assessment?.skillEvidence || {});
     const hasTranscript = session.transcript && session.transcript.length > 0;
+    const aiMoments = assessment?.keyMoments || [];
+    const improvementExamples = assessment?.improvementExamples || [];
+    const [showImprovements, setShowImprovements] = useState(false);
+    const isWarmUp = session.difficultyMode === 'warm-up';
 
     // Extract first actionable sentence from feedback
     const oneThingFeedback = (() => {
@@ -348,6 +358,18 @@ export function AnalysisClient({
                         )}
                     </div>
 
+                    {/* Hire Decision Badge */}
+                    {assessment?.hireDecision && !isWarmUp && (
+                        <div className={`px-4 py-2 rounded-xl border text-sm font-bold text-center ${HIRE_STYLES[assessment.hireDecision] || ''}`}
+                            data-testid="hire-decision-badge"
+                        >
+                            {HIRE_LABELS[assessment.hireDecision] || assessment.hireDecision}
+                            <span className="text-xs font-normal opacity-60 ml-2">
+                                Based on this session
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-center gap-3">
                         <span className="text-sm font-bold text-white">{session.problemTitle}</span>
                         <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${difficultyColors[session.problemDifficulty] || 'bg-zinc-700 text-zinc-400'}`}>
@@ -387,10 +409,67 @@ export function AnalysisClient({
                                         <span className="text-[10px] font-black" style={{ color: w.color }}>{w.score}/10</span>
                                     </div>
                                     <p className="text-[10px] text-zinc-500">
-                                        You scored low on this aspect: <span className="text-zinc-400">"{w.description}"</span>.
+                                        You scored low on this aspect: <span className="text-zinc-400">&quot;{w.description}&quot;</span>.
                                     </p>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* "What You Should Have Said" Section */}
+                    {improvementExamples.length > 0 && (
+                        <div className="pt-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
+                            <button
+                                className="w-full flex items-center justify-between text-left"
+                                onClick={() => setShowImprovements(!showImprovements)}
+                                data-testid="show-improvements-toggle"
+                            >
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1.5">
+                                    <Lightbulb className="w-3 h-3 text-amber-400" /> What You Should Have Said
+                                </h3>
+                                <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${showImprovements ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {showImprovements && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="space-y-4 mt-3">
+                                            {improvementExamples.map((ex, idx) => (
+                                                <div key={idx} className="bg-white/[0.02] border rounded-xl p-4 space-y-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-zinc-300">{ex.subCriterionLabel}</span>
+                                                        <span className="text-[10px] font-black text-red-400">{ex.score}/10</span>
+                                                    </div>
+
+                                                    {ex.whatWasSaid && (
+                                                        <div>
+                                                            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">What was said:</span>
+                                                            <p className="text-xs text-zinc-400 font-mono bg-zinc-900/50 rounded px-2 py-1 mt-1 italic">
+                                                                &ldquo;{ex.whatWasSaid}&rdquo;
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    <div>
+                                                        <span className="text-[9px] font-bold text-amber-500/80 uppercase tracking-wider">Good answer (6/10):</span>
+                                                        <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{ex.level6Response}</p>
+                                                    </div>
+
+                                                    <div>
+                                                        <span className="text-[9px] font-bold text-emerald-500/80 uppercase tracking-wider">Great answer (9/10):</span>
+                                                        <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{ex.level9Response}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     )}
 
@@ -425,7 +504,7 @@ export function AnalysisClient({
                                 Voice data not available for this session
                             </p>
                         </div>
-                    ) : moments.length === 0 ? (
+                    ) : aiMoments.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
                                 <Clock className="w-5 h-5 text-zinc-600" />
@@ -435,25 +514,50 @@ export function AnalysisClient({
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-1">
-                            {moments.map((moment, idx) => (
+                        <div className="space-y-1 relative">
+                            {/* Vertical timeline line */}
+                            <div className="absolute left-3 top-2 bottom-2 w-px bg-zinc-800" />
+
+                            {aiMoments.map((moment, idx) => (
                                 <motion.div
                                     key={idx}
-                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors"
+                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
                                     initial={{ opacity: 0, x: -12 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.4 + idx * 0.1 }}
                                 >
-                                    <span className="text-xs font-mono font-bold text-zinc-500 tabular-nums mt-0.5 w-10 shrink-0">
-                                        {moment.time}
-                                    </span>
-                                    <div className="flex items-start gap-2">
-                                        {moment.type === 'pause' ? (
-                                            <Pause className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: moment.color }} />
-                                        ) : (
-                                            <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: moment.color }} />
-                                        )}
-                                        <span className="text-sm text-zinc-300">{moment.label}</span>
+                                    {/* Timeline dot */}
+                                    <div
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
+                                        style={{
+                                            background: MOMENT_COLORS[moment.sentiment] + '20',
+                                            border: `2px solid ${MOMENT_COLORS[moment.sentiment]}`,
+                                        }}
+                                    >
+                                        {MOMENT_ICONS[moment.momentType] || '📌'}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider"
+                                                style={{ color: MOMENT_COLORS[moment.sentiment] }}
+                                            >
+                                                {MOMENT_TYPE_LABELS[moment.momentType] || moment.momentType}
+                                            </span>
+                                            {moment.dimension && (
+                                                <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
+                                                    {SKILL_DEFINITIONS[moment.dimension as CognitiveSkill]?.name || moment.dimension}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <p className="text-xs text-zinc-200 font-mono bg-zinc-900/50 rounded px-2 py-1 mb-1 break-words">
+                                            &ldquo;{moment.quote}&rdquo;
+                                        </p>
+
+                                        <p className="text-[10px] text-zinc-500 leading-relaxed">
+                                            {moment.significance}
+                                        </p>
                                     </div>
                                 </motion.div>
                             ))}

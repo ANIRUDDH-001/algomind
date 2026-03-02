@@ -139,6 +139,10 @@ export async function saveInterviewSession(
         if (finalResult) {
             // Map skill keys (hyphenated) to DB columns (underscored)
             const skills = finalResult.skills || {};
+            // Determine hire_decision — null for warm-up mode
+            const isWarmUp = options?.difficultyMode === 'warm-up';
+            const hireDecision = isWarmUp ? null : (finalResult.hireDecision ?? null);
+
             const { error: assessmentError } = await supabase
                 .from('assessments')
                 .insert({
@@ -149,6 +153,7 @@ export async function saveInterviewSession(
                     overall_feedback: finalResult.overallFeedback,
                     next_steps: finalResult.nextSteps,
                     skill_evidence: finalResult.skills,
+                    hire_decision: hireDecision,
                     // ✅ FIX: Individual skill score columns
                     problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
                     pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
@@ -170,6 +175,38 @@ export async function saveInterviewSession(
             if (assessmentError) {
                 console.error('⚠️ [ACTION] Failed to save assessment object (partial success):', assessmentError);
                 // Requirement 6: We return success: true because the session itself is saved
+            }
+
+            // Hire readiness trend tracking
+            if (hireDecision) {
+                try {
+                    const { data: diffData } = await supabase
+                        .from('problems')
+                        .select('difficulty')
+                        .eq('id', problemId)
+                        .maybeSingle();
+
+                    const newEntry = {
+                        sessionId: sessionData.id,
+                        hireDecision,
+                        score: finalResult.adjustedScore ?? overallScore,
+                        completedAt: new Date().toISOString(),
+                        problemDifficulty: diffData?.difficulty || 'medium',
+                    };
+
+                    const { data: profile } = await supabase
+                        .from('learner_profiles')
+                        .select('hire_readiness_trend')
+                        .eq('user_id', userId)
+                        .maybeSingle();
+
+                    const trend = [...((profile?.hire_readiness_trend as any[]) ?? []), newEntry].slice(-20);
+
+                    await supabase.from('learner_profiles')
+                        .upsert({ user_id: userId, hire_readiness_trend: trend });
+                } catch (trendErr) {
+                    console.error('[save-session] hire_readiness_trend update failed:', trendErr);
+                }
             }
         }
 
