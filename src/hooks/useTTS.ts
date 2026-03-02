@@ -54,6 +54,11 @@ export function useTTS(opts: UseTTSOptions = {}) {
     useEffect(() => {
         engineRef.current?.destroy();
         const engine = new TTSEngine();
+        engine.setVoiceConfig(
+            prefVoice,
+            opts.voiceRate ?? 1.0,
+            opts.voicePitch ?? 1.0
+        );
         engine.onSpeakingChange = (v) => {
             setIsSpeaking(v);
             if (v) optsRef.current.onSpeakStart?.();

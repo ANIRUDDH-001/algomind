@@ -22,27 +22,21 @@ const mockPause = vi.fn();
 const mockResume = vi.fn();
 const mockStopSpeaking = vi.fn();
 
-vi.mock('../../hooks/useVoiceInput', () => ({
-    useVoiceInput: () => ({
+vi.mock('../../hooks/useSTT', () => ({
+    useSTT: () => ({
         isListening: false,
         stopListening: mockStop,
         startListening: mockStart,
-        abortListening: mockAbort,
         transcript: '',
         interimTranscript: '',
         resetTranscript: mockReset,
-        lastResultTime: 0,
-        transcribeVADAudio: mockTranscribeVAD,
-        error: null,
-        isSupported: true,
+        transcribeAudio: mockTranscribeVAD,
     }),
 }));
 
-vi.mock('../../hooks/useVoiceOutput', () => ({
-    useVoiceOutput: () => ({
+vi.mock('../../hooks/useTTS', () => ({
+    useTTS: () => ({
         speak: mockSpeak,
-        pause: mockPause,
-        resume: mockResume,
         stop: mockStopSpeaking,
         isSpeaking: false,
     }),

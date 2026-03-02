@@ -50,6 +50,7 @@ import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
+import { getSupabase } from '@/lib/supabase/client';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -165,28 +166,40 @@ export function InterviewSession({
         } catch { /* ignore */ }
     }, []);
 
-    // --- Kai Memory ---
-    const [kaiMemory, setKaiMemory] = useState<string | null>(null);
-    const [kaiMemoryStructured, setKaiMemoryStructured] = useState<KaiMemoryStructured | null>(null);
+    const [voicePrefs, setVoicePrefs] = useState<{
+        name: string | null;
+        rate: number;
+        pitch: number;
+    }>({ name: null, rate: 1.0, pitch: 1.0 });
+
+    useEffect(() => {
+        if (!user || isGuest) return;
+        const supabase = getSupabase();
+        if (!supabase) return;
+        supabase
+            .from('user_preferences')
+            .select('preferred_voice_name, voice_rate, voice_pitch')
+            .eq('user_id', user.id)
+            .single()
+            .then((res: any) => {
+                const data = res.data;
+                if (data) {
+                    setVoicePrefs({
+                        name: data.preferred_voice_name ?? null,
+                        rate: Number(data.voice_rate ?? 1.0),
+                        pitch: Number(data.voice_pitch ?? 1.0),
+                    });
+                }
+            });
+    }, [user, isGuest]);
 
     // --- Silent Observer ---
     const observerRef = useRef(new SilentObserver());
     const [nudge, setNudge] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!user || isGuest) return;
-        fetch('/api/user/memory')
-            .then(r => r.ok ? r.json() : null)
-            .then((data: { kaiMemory: string | null, kaiMemoryStructured: KaiMemoryStructured | null } | null) => {
-                if (data?.kaiMemory) setKaiMemory(data.kaiMemory);
-                if (data?.kaiMemoryStructured) setKaiMemoryStructured(data.kaiMemoryStructured);
-            })
-            .catch(() => { });
-    }, [user, isGuest]);
-
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
-    const limits = useInterviewLimits(interviewConfig as any);
+    const limits = useInterviewLimits(interviewConfig);
     const guestSession = useGuestSession(isGuest);
 
     // --- 3. Interview Logic & Callbacks ---
@@ -224,6 +237,8 @@ export function InterviewSession({
         limitReason
     } = useInterview({
         config: interviewConfig,
+        isTimeUp: limits.isTimeUp,
+        voicePrefs,
         isReviewMode,
         apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
         sessionToken: isAssessment ? assessmentSessionToken : undefined,
@@ -339,17 +354,16 @@ export function InterviewSession({
         setHasStarted(true);
         startTimeRef.current = Date.now();
         limits.startTimer();
-        startInterview(
-            activeProblem.title,
-            activeProblem.description,
-            interviewConfig.ragContext,
-            undefined,
-            kaiMemory || interviewConfig.kaiMemory,
-            activeProblem.id,
-            interviewConfig.difficultyMode,
-            activeProblem.difficulty,
-            kaiMemoryStructured || interviewConfig.kaiMemoryStructured
-        );
+        startInterview({
+            problemTitle: activeProblem.title,
+            problemContent: activeProblem.description,
+            ragContext: interviewConfig.ragContext,
+            kaiMemory: interviewConfig.kaiMemory,
+            problemId: activeProblem.id,
+            difficultyMode: interviewConfig.difficultyMode,
+            difficulty: activeProblem.difficulty,
+            kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined
+        });
     };
 
 
@@ -637,7 +651,7 @@ export function InterviewSession({
                                                 <span className="font-mono font-bold">{limits.formattedElapsed}</span>
                                                 <span className="text-zinc-500">/</span>
                                                 <span className="font-mono text-zinc-500">
-                                                    {Math.floor(interviewConfig.maxDurationMs / 60000)}:00
+                                                    {interviewConfig.isUnlimited ? '∞' : limits.formattedRemaining}
                                                 </span>
                                             </div>
                                         )}

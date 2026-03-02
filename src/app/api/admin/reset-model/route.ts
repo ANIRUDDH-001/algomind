@@ -1,23 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getRateLimiter } from "@/lib/ai/rate-limiter";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 
 export async function POST(req: NextRequest) {
     try {
         // 1. Admin Security Check
-        const supabase = await createServerSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-        const { data: adminRecord } = await supabase
-            .from('admin_users')
-            .select('id')
-            .eq('email', user.email!)
-            .single();
-
-        if (!adminRecord) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
         // 2. Parse Body
         const body = await req.json();
@@ -32,7 +21,7 @@ export async function POST(req: NextRequest) {
         rateLimiter.resetModel(modelId);
 
         if (process.env.NODE_ENV === 'development') {
-            console.log(`[Admin] Reset rate limits for model: ${modelId} by ${user.email}`);
+            console.log(`[Admin] Reset rate limits for model: ${modelId}`);
         }
 
         return NextResponse.json({

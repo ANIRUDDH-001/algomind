@@ -12,6 +12,16 @@ export class TTSEngine {
     private _speaking = false;
     onSpeakingChange?: (v: boolean) => void;
 
+    private _voice: SpeechSynthesisVoice | null = null;
+    private _rate = 1.0;
+    private _pitch = 1.0;
+
+    setVoiceConfig(voice: SpeechSynthesisVoice | null, rate: number, pitch: number) {
+        this._voice = voice;
+        this._rate = Math.max(0.5, Math.min(2.0, rate));
+        this._pitch = Math.max(0.5, Math.min(2.0, pitch));
+    }
+
     get isSpeaking() { return this._speaking; }
 
     private setSpeaking(v: boolean) {
@@ -92,6 +102,9 @@ export class TTSEngine {
             if (typeof window === 'undefined' || !window.speechSynthesis || id !== this.invId) { resolve(); return; }
             const utt = new SpeechSynthesisUtterance(text);
             utt.volume = 1.0;
+            utt.rate = this._rate;
+            utt.pitch = this._pitch;
+            if (this._voice) utt.voice = this._voice;
             utt.onend = () => resolve();
             utt.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') console.warn('[TTS] Browser error:', e.error); resolve(); };
             window.speechSynthesis.speak(utt);

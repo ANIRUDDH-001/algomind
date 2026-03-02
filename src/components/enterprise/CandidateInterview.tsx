@@ -145,7 +145,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     campaignToken: campaign.public_token,
                     candidateName: name.trim(),
                     candidateEmail: email.trim() || undefined,
-                    entryCodeVerified: true
+                    entryCode: entryCode.trim().toUpperCase()
                 })
             });
 

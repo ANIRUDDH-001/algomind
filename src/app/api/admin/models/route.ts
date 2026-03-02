@@ -121,7 +121,7 @@ export async function POST(request: Request) {
         await invalidateModelCache();
 
         void logSystemEvent({
-            type: 'admin_action',
+            type: 'admin_action' as any, // Legacy event type, ignoring TS for this existing record
             metadata: { action: 'add_model', modelId, provider }
         });
 
@@ -181,7 +181,7 @@ export async function PATCH(request: Request) {
         await invalidateModelCache();
 
         void logSystemEvent({
-            type: 'admin_action',
+            type: 'admin_action' as any,
             metadata: { action: 'update_model', modelId, updates }
         });
 
@@ -209,7 +209,7 @@ export async function DELETE(request: Request) {
         await markModelDeprecated(modelId, reason);
 
         void logSystemEvent({
-            type: 'admin_action',
+            type: 'admin_action' as any,
             metadata: { action: 'deprecate_model', modelId, reason }
         });
 
