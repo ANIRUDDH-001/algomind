@@ -34,6 +34,9 @@ const mockAssessment: AssessmentResult = {
     skills: {} as AssessmentResult['skills'],
     overallFeedback: 'Good work',
     nextSteps: [],
+    overallScore: 8.5,
+    rawScore: 8.0,
+    adjustedScore: 8.5,
 };
 
 import { GuestResultsOverlay } from '../GuestResultsOverlay';

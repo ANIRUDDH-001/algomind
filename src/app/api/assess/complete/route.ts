@@ -10,7 +10,7 @@ validateEnv();
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        let { sessionToken, transcript, duration, questionStates, totalDuration } = body;
+        let { sessionToken, transcript, duration, questionStates, totalDuration, integrityFlags } = body;
 
         // Normalize if old format was sent
         if (!questionStates && transcript) {
@@ -222,7 +222,8 @@ export async function POST(req: NextRequest) {
             .update({
                 status: 'completed',
                 session_id: sessionData.id,
-                overall_score: overallScore
+                overall_score: overallScore,
+                integrity_flags: integrityFlags || []
             })
             .eq('id', submissionId);
 

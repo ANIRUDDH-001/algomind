@@ -1,4 +1,6 @@
 import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
+import { MODE_ASSESSMENT_CONFIGS } from '../interview/mode-assessment-config';
+import type { DifficultyMode } from '../interview/interview-config';
 
 export interface ConversationTurn {
   role: 'user' | 'assistant' | 'system';
@@ -6,10 +8,12 @@ export interface ConversationTurn {
 }
 
 export function generateAssessmentPrompt(
-  problem: { title: string; description: string; difficulty: string },
+  problem: { title: string; description: string; difficulty: string; difficultyMode?: DifficultyMode | 'employer' },
   transcript: ConversationTurn[],
   skillDefinitions: Record<CognitiveSkill, SkillDefinition>
 ): string {
+  const mode = problem.difficultyMode ?? 'practice';
+  const modeConfig = MODE_ASSESSMENT_CONFIGS[mode];
   const formattedTranscript = transcript
     .map(turn => `${turn.role.toUpperCase()}: ${turn.content}`)
     .join('\n');
@@ -24,7 +28,14 @@ ${def.subCriteria.map(sc => `        "${sc.id}": <1-10>`).join(',\n')}
       "improvements": ["..."]
     }`).join(',\n');
 
-  return `
+  return `# GENERATE FINAL INTERVIEW FEEDBACK
+
+${modeConfig.contextBlock}
+
+**Problem:** "${problem.title}"
+**Difficulty:** ${problem.difficulty.toUpperCase()}
+**Mode:** ${mode}
+
 You are an expert technical interviewer and cognitive scientist evaluating a candidate's DSA problem-solving session.
 
 PROBLEM STATEMENT:
@@ -34,6 +45,24 @@ Difficulty Level: ${problem.difficulty}
 
 CONVERSATION TRANSCRIPT:
 ${formattedTranscript}
+
+## STRICTNESS ENFORCEMENT
+${modeConfig.strictnessNote}
+
+| Score | Gate (standard) |
+|-------|-----------------|
+| 1–3   | No understanding shown |
+| 4–5   | Vague only — no explanation |
+| 6–7   | Correct but prompted |
+| 8–9   | Correct and unprompted |
+| 10    | Exceptional, proactive |
+
+## DIFFICULTY CALIBRATION
+Problem difficulty is ${problem.difficulty.toUpperCase()}.
+- EASY: A 6/10 performance means average — expected most candidates to reach here.
+- MEDIUM: A 6/10 means the candidate met the bar. A 7+ means above average.
+- HARD: A 6/10 means the candidate understood the approach. A 7+ is genuinely strong.
+Calibrate your scores accordingly. Do not grade Easy problems on Hard-problem scale.
 
 YOUR TASK:
 Analyze this interview session and score the candidate across 8 cognitive skills.
@@ -56,6 +85,8 @@ OUTPUT FORMAT (JSON ONLY):
   "skills": {
 ${skillsJsonShape}
   },
+  ${modeConfig.bonusDimension ? `"${modeConfig.bonusDimension.jsonKey}": { "score": <1-10>, "evidence": ["..."] },` : ''}
+  ${modeConfig.includeHireDecision ? '"hireDecision": "STRONG_HIRE|HIRE|BORDERLINE|NO_HIRE|STRONG_NO_HIRE",' : ''}
   "codeQuality": {
     "score": <1-10 or null if no code submitted>,
     "correctness": "<Does the code handle the examples? What fails?>",
@@ -83,5 +114,7 @@ If the transcript includes a [FINAL CODE SUBMITTED] block:
 - Note naming quality (are variables meaningful?)
 - Note whether the code structure matches what the candidate described verbally
 - If the transcript has no code block, set codeQuality to null
+
+${modeConfig.feedbackTone}
 `;
 }

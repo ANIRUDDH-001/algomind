@@ -76,7 +76,7 @@ export default async function AnalysisPage({
     const { data: assessment } = await supabase
         .from('assessments')
         .select(`
-            overall_score, problem_decomposition, pattern_recognition, algorithmic_thinking, 
+            overall_score, adjusted_score, problem_decomposition, pattern_recognition, algorithmic_thinking, 
             complexity_analysis, communication_clarity, edge_case_awareness, 
             optimization_mindset, debugging_approach, overall_feedback, next_steps, 
             skill_evidence, sub_criteria, code_quality
@@ -116,6 +116,7 @@ export default async function AnalysisPage({
             }}
             assessment={assessment ? {
                 overallScore: assessment.overall_score || 0,
+                adjustedScore: assessment.adjusted_score || assessment.overall_score || 0,
                 skills: {
                     'problem-decomposition': assessment.problem_decomposition || 0,
                     'pattern-recognition': assessment.pattern_recognition || 0,
@@ -130,6 +131,7 @@ export default async function AnalysisPage({
                 nextSteps: assessment.next_steps || [],
                 skillEvidence: assessment.skill_evidence || {},
                 subCriteria: assessment.sub_criteria || {},
+                codeQuality: assessment.code_quality as any || null,
             } : null}
             sm2={sm2Data}
             previousAttempts={(previousAttempts || []).map(a => ({

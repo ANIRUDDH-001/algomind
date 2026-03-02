@@ -30,8 +30,16 @@ interface TranscriptTurn {
 
 interface AssessmentData {
     overallScore: number;
+    adjustedScore?: number;
     skills: Record<CognitiveSkill, number>;
     subCriteria?: Record<string, Record<string, number>>;
+    codeQuality?: {
+        score: number | null;
+        correctness: string;
+        clarity: string;
+        consistency: string;
+        issues: string[];
+    } | null;
     overallFeedback: string;
     nextSteps: string[];
     skillEvidence: Record<string, unknown>;
@@ -327,7 +335,18 @@ export function AnalysisClient({
                         Your Performance
                     </h2>
 
-                    <AnimatedScore score={assessment?.overallScore || session.overallScore || 0} />
+                    <div className="flex flex-col items-center">
+                        <AnimatedScore score={assessment?.adjustedScore || assessment?.overallScore || session.overallScore || 0} />
+                        {assessment?.adjustedScore && Math.abs(assessment.adjustedScore - assessment.overallScore) > 0.01 && (
+                            <span
+                                className="text-[10px] font-bold text-zinc-400 mt-3 flex items-center gap-1 cursor-help"
+                                title={`Raw Score: ${assessment.overallScore.toFixed(1)} / 10.0\nDifficulty Multiplier Applied`}
+                            >
+                                <AlertTriangle className="w-3 h-3" />
+                                DIFFICULTY-ADJUSTED
+                            </span>
+                        )}
+                    </div>
 
                     <div className="flex items-center justify-center gap-3">
                         <span className="text-sm font-bold text-white">{session.problemTitle}</span>

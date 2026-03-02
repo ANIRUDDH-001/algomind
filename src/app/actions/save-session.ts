@@ -117,6 +117,8 @@ export async function saveInterviewSession(
                 duration: finalDuration,
                 feedback: finalResult,
                 overall_score: overallScore,
+                raw_score: finalResult?.rawScore ?? null, // Added raw_score
+                adjusted_score: finalResult?.adjustedScore ?? null, // Added adjusted_score
                 created_at: new Date().toISOString(),
                 status: 'completed',
                 completed_at: new Date().toISOString(),
@@ -142,6 +144,7 @@ export async function saveInterviewSession(
                     session_id: sessionData.id,
                     user_id: userId,
                     overall_score: overallScore,
+                    adjusted_score: finalResult.adjustedScore ?? null,
                     overall_feedback: finalResult.overallFeedback,
                     next_steps: finalResult.nextSteps,
                     skill_evidence: finalResult.skills,
@@ -201,7 +204,7 @@ export async function saveInterviewSession(
                 problemId,
                 problemTitle,
                 problemDifficulty: probDiff?.difficulty || 'medium',
-                overallScore: overallScore
+                overallScore: finalResult?.rawScore ?? 5
             });
         } catch (err) { console.error('[save-session] addToQueue failed:', err); }
 

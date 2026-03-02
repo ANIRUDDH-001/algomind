@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { AssessmentResult, CognitiveAnalyzer } from '@/lib/assessment/analyzer';
 import { ConversationTurn } from '@/lib/assessment/prompts';
+import type { DifficultyMode } from '@/lib/interview/interview-config';
 
 export function useAssessment() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -9,7 +10,7 @@ export function useAssessment() {
 
     const analyzeSession = useCallback(async (
         sessionId: string,
-        problem: { title: string; description: string; difficulty: string },
+        problem: { title: string; description: string; difficulty: string; difficultyMode?: DifficultyMode | 'employer' },
         transcript: ConversationTurn[]
     ) => {
         if (transcript.length < 2) {
