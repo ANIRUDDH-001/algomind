@@ -18,7 +18,8 @@ describe('Two-pass assessment validation', () => {
                 score: 8,
                 evidence: ['candidate seemed to understand complexity'],
                 strengths: [],
-                improvements: []
+                improvements: [],
+                subCriteria: {}
             }
         };
 
@@ -67,7 +68,8 @@ describe('Two-pass assessment validation', () => {
                     score: 9,
                     evidence: ['candidate independently proposed the topological sort'],
                     strengths: [],
-                    improvements: []
+                    improvements: [],
+                    subCriteria: {}
                 }
             }, 15);
 
@@ -119,7 +121,7 @@ describe('Two-pass assessment validation', () => {
     describe('applyValidation', () => {
         it('applyValidation merges corrections into skill objects correctly', () => {
             const initial: Record<string, ParsedSkillScore> = {
-                'problem-decomposition': { score: 8, evidence: [], strengths: [], improvements: [] }
+                'problem-decomposition': { score: 8, evidence: [], strengths: [], improvements: [], subCriteria: {} }
             };
 
             const validation: ValidationResult = {
@@ -134,7 +136,7 @@ describe('Two-pass assessment validation', () => {
 
         it('applyValidation adds validator note to improvements array', () => {
             const initial: Record<string, ParsedSkillScore> = {
-                'complexity-analysis': { score: 9, evidence: [], strengths: [], improvements: ['Speak louder'] }
+                'complexity-analysis': { score: 9, evidence: [], strengths: [], improvements: ['Speak louder'], subCriteria: {} }
             };
 
             const validation: ValidationResult = {

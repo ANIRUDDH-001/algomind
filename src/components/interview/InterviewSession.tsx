@@ -63,7 +63,7 @@ interface InterviewSessionProps {
     assessmentSessionToken?: string;
     assessmentApiEndpoint?: string;
     startTimeOffsetSeconds?: number;
-    onAssessmentComplete?: (duration: number, transcript: any[]) => Promise<void>;
+    onAssessmentComplete?: (duration: number, transcript: any[], flags?: string[]) => Promise<void>;
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
@@ -378,9 +378,23 @@ export function InterviewSession({
                 activeProblem.title
             );
 
+            // Detect Integrity Flags
+            const flags: string[] = [];
+            if (durationSecs < 120) flags.push('fast_solution');
+
+            const userMessages = baseTranscript.filter(m => m.role === 'user');
+            const hasMeaningfulTalk = userMessages.some(m => m.content.split(/\s+/).length > 10);
+            if (!hasMeaningfulTalk && userCode.trim().length > 50) {
+                flags.push('no_verbal_discussion');
+            }
+
             if (isAssessment && onAssessmentComplete) {
                 try {
-                    await onAssessmentComplete(durationSecs, enrichedTranscript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })));
+                    await onAssessmentComplete(
+                        durationSecs,
+                        enrichedTranscript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })),
+                        flags
+                    );
                 } catch (err: unknown) {
                     console.error("❌ Assessment error:", err);
                     setError(err instanceof Error ? err.message : "Failed to submit assessment.");
@@ -389,7 +403,7 @@ export function InterviewSession({
                 try {
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
-                        { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty },
+                        { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty, difficultyMode: interviewConfig.difficultyMode },
                         enrichedTranscript
                     );
                     if (!assessment) {

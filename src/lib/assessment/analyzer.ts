@@ -1,4 +1,5 @@
 import { CognitiveSkill } from '@/types/assessment';
+import type { DifficultyMode } from '../interview/interview-config';
 import { SKILL_DEFINITIONS } from './skill-registry';
 import { ConversationTurn, generateAssessmentPrompt } from './prompts';
 import { calculateConfidence } from './confidence-calculator';
@@ -26,6 +27,9 @@ export interface AssessmentResult {
     timestamp: Date;
     problem: { title: string; description: string; difficulty: string };
     skills: Record<CognitiveSkill, SkillScore>;
+    overallScore: number;
+    rawScore: number;
+    adjustedScore: number;
     overallFeedback: string;
     nextSteps: string[];
     knowledgeGaps?: string[];
@@ -46,6 +50,21 @@ function computeWeightedScore(
         total += (subCriteriaScores[sc.id] ?? 5) * sc.weight;
     }
     return Math.round(total * 10) / 10;
+}
+
+function computeOverallScore(skills: Record<string, SkillScore>): number {
+    let totalWeight = 0;
+    let weightedSum = 0;
+
+    Object.keys(skills).forEach(skillId => {
+        const def = SKILL_DEFINITIONS[skillId as CognitiveSkill];
+        if (def) {
+            totalWeight += def.weight;
+            weightedSum += skills[skillId].score * def.weight;
+        }
+    });
+
+    return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : 5;
 }
 
 interface ParsedAssessmentResponse {
@@ -72,7 +91,7 @@ export class CognitiveAnalyzer {
      */
     async analyze(
         sessionId: string,
-        problem: { title: string; description: string; difficulty: string },
+        problem: { title: string; description: string; difficulty: string; difficultyMode?: DifficultyMode | 'employer' },
         transcript: ConversationTurn[]
     ): Promise<AssessmentResult> {
         const prompt = generateAssessmentPrompt(problem, transcript, SKILL_DEFINITIONS);
@@ -119,11 +138,30 @@ export class CognitiveAnalyzer {
                     };
                 });
 
+                const rawOverall = computeOverallScore(finalizedSkills);
+
+                const DIFFICULTY_MULTIPLIER: Record<string, number> = {
+                    easy: 1.00,
+                    medium: 1.15,
+                    hard: 1.30,
+                };
+
+                // If difficulty string contains easy/medium/hard (could be uppercase or have spaces)
+                const normDiff = problem.difficulty.toLowerCase().trim();
+                const multiplier = DIFFICULTY_MULTIPLIER[normDiff] ?? 1.0;
+                const adjustedOverall = Math.min(
+                    Math.round(rawOverall * multiplier * 100) / 100,
+                    10.0
+                );
+
                 return {
                     sessionId,
                     timestamp: new Date(),
                     problem,
                     skills: finalizedSkills as Record<CognitiveSkill, SkillScore>,
+                    overallScore: rawOverall,
+                    rawScore: rawOverall,
+                    adjustedScore: adjustedOverall,
                     overallFeedback: parsedData.overallFeedback || "No feedback generated.",
                     nextSteps: parsedData.nextSteps || ["Review the session manually."],
                     knowledgeGaps: parsedData.knowledgeGaps || [],
@@ -166,11 +204,23 @@ export class CognitiveAnalyzer {
             };
         });
 
+        // Fallback scoring values
+        const rawOverallFallback = fallbackScore;
+        const normDiffFallback = problem.difficulty.toLowerCase().trim();
+        const multiplierFallback = { easy: 1.0, medium: 1.15, hard: 1.3 }[normDiffFallback] ?? 1.0;
+        const adjustedOverallFallback = Math.min(
+            Math.round(rawOverallFallback * multiplierFallback * 100) / 100,
+            10.0
+        );
+
         return {
             sessionId,
             timestamp: new Date(),
             problem,
             skills: fallbackSkills as Record<CognitiveSkill, SkillScore>,
+            overallScore: rawOverallFallback,
+            rawScore: rawOverallFallback,
+            adjustedScore: adjustedOverallFallback,
             overallFeedback: isUserFault
                 ? "Not enough interaction to properly assess skills. Please write more code or detail your thoughts more."
                 : "Automated analysis failed. Manual review required.",
