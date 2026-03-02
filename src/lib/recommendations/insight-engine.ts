@@ -36,7 +36,11 @@ export interface InsightCard {
     | 'declining_trend'
     | 'unexplored_pattern'
     | 'momentum'
-    | 'streak_at_risk';
+    | 'streak_at_risk'
+    | 'consistency_gap'
+    | 'difficulty_plateau'
+    | 'skill_imbalance'
+    | 'problem_type_gap';
     title: string;
     body: string;
     priority: 'high' | 'medium' | 'low';
@@ -213,7 +217,7 @@ async function buildReinforceLeetcodeCards(
     return cards;
 }
 
-async function buildDecliningTrendCards(
+export async function buildDecliningTrendCards(
     supabase: SupabaseClient,
     sessions: RpcSessionRow[],
     tier: DifficultyTier
@@ -224,18 +228,34 @@ async function buildDecliningTrendCards(
     const cards: InsightCard[] = [];
 
     for (const skill of SKILL_KEYS) {
-        const getScore = (row: RpcSessionRow): number =>
-            Number((row as unknown as Record<string, number>)[skill] ?? 0);
+        let declineFound = false;
+        let recentAvg = 0;
+        let olderAvg = 0;
 
-        const recent = sessions.slice(0, 3).map(getScore);
-        const older = sessions.slice(3, 6).map(getScore);
+        for (const diff of ['easy', 'medium', 'hard'] as const) {
+            const diffSessions = sessions.filter(s => s.problem_difficulty === diff);
+            if (diffSessions.length < 4) continue;
 
-        if (older.length < 1) continue;
+            const getScore = (row: RpcSessionRow): number =>
+                Number((row as unknown as Record<string, number>)[skill] ?? 0);
 
-        const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-        const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+            const recent = diffSessions.slice(0, 3).map(getScore);
+            const older = diffSessions.slice(3, 6).map(getScore);
 
-        if (olderAvg - recentAvg < 0.8) continue;
+            if (older.length < 1) continue;
+
+            const curRecentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+            const curOlderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+
+            if (curOlderAvg - curRecentAvg >= 0.8) {
+                declineFound = true;
+                recentAvg = curRecentAvg;
+                olderAvg = curOlderAvg;
+                break;
+            }
+        }
+
+        if (!declineFound) continue;
 
         // Fetch 2 problems matching skill tags + tier difficulty
         const difficulty = selectProblemDifficulty(tier);
@@ -254,7 +274,7 @@ async function buildDecliningTrendCards(
         cards.push({
             type: 'declining_trend',
             title: `${SKILL_LABELS[skill]} is slipping`,
-            body: `Your ${SKILL_LABELS[skill].toLowerCase()} score dropped from ${olderAvg.toFixed(1)}→${recentAvg.toFixed(1)} over your last 3 sessions. This usually means rushing the approach phase. Slow down before you code.`,
+            body: `Your ${SKILL_LABELS[skill].toLowerCase()} score dropped from ${olderAvg.toFixed(1)}→${recentAvg.toFixed(1)} on similar constraints. This usually means rushing the approach phase. Slow down before you code.`,
             priority: 'high',
             problemSuggestions: suggestions.length ? suggestions : undefined,
         });
@@ -367,6 +387,153 @@ function buildStreakAtRiskCard(sessions: RpcSessionRow[]): InsightCard | null {
     };
 }
 
+export async function buildConsistencyGapCards(
+    sessions: RpcSessionRow[]
+): Promise<InsightCard[]> {
+    if (sessions.length < 5) return [];
+    const cards: InsightCard[] = [];
+
+    for (const skill of Object.keys(SKILL_LABELS)) {
+        const scores = sessions.map(s => (s as unknown as Record<string, number>)[skill]).filter((v: number) => v > 0);
+        if (scores.length < 3) continue;
+
+        const mean = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+        const MathPow = Math.pow;
+        const variance = Math.sqrt(
+            scores.map((v: number) => MathPow(v - mean, 2)).reduce((a: number, b: number) => a + b, 0) / scores.length
+        );
+
+        if (variance > 2.5 && Math.max(...scores) - Math.min(...scores) >= 4) {
+            cards.push({
+                type: 'consistency_gap',
+                title: `Inconsistent ${SKILL_LABELS[skill]}`,
+                body: `Your ${SKILL_LABELS[skill]} scores range from ${Math.min(...scores).toFixed(0)} to ${Math.max(...scores).toFixed(0)}. This variance (${variance.toFixed(1)}) suggests the skill is pattern-dependent rather than deeply understood. Focus on understanding the underlying principle, not memorizing solutions.`,
+                priority: variance > 3.5 ? 'high' : 'medium',
+                problemSuggestions: [],
+            });
+        }
+    }
+
+    return cards.slice(0, 2);
+}
+
+export async function buildDifficultyPlateauCard(
+    sessions: RpcSessionRow[]
+): Promise<InsightCard | null> {
+    if (sessions.length < 8) return null;
+
+    const hardCount = sessions.filter(s => s.problem_difficulty === 'hard').length;
+    const mediumCount = sessions.filter(s => s.problem_difficulty === 'medium').length;
+    const easyCount = sessions.filter(s => s.problem_difficulty === 'easy').length;
+
+    // User has done mostly easy/medium but no hard
+    if (mediumCount >= 6 && hardCount === 0) {
+        const recentMediumAvg = sessions
+            .filter(s => s.problem_difficulty === 'medium')
+            .slice(0, 5)
+            .reduce((sum, s) => sum + s.overall_score, 0) / 5;
+
+        if (recentMediumAvg >= 6.5) {
+            return {
+                type: 'difficulty_plateau',
+                title: 'Ready for Hard Problems',
+                body: `You've averaged ${recentMediumAvg.toFixed(1)}/10 on Medium problems over your last 5 attempts. This is a strong signal you're ready to stretch. Hard problems require the same patterns you already know, applied under constraints you haven't practiced yet. Attempt one Hard problem this week with no time pressure.`,
+                priority: 'high',
+                problemSuggestions: [],
+            };
+        }
+    }
+
+    // User is stuck on easy
+    if (easyCount >= 5 && mediumCount === 0) {
+        return {
+            type: 'difficulty_plateau',
+            title: 'Time to Move Beyond Easy',
+            body: `You have ${easyCount} Easy sessions but haven't attempted Medium yet. Easy problems confirm you know the basics — Medium problems test whether you can apply them under constraints. The jump is achievable.`,
+            priority: 'medium',
+            problemSuggestions: [],
+        };
+    }
+
+    return null;
+}
+
+export async function buildSkillImbalanceCard(
+    sessions: RpcSessionRow[]
+): Promise<InsightCard | null> {
+    if (sessions.length < 4) return null;
+
+    const skillAvgs: Record<string, number> = {};
+    for (const skill of Object.keys(SKILL_LABELS)) {
+        const scores = sessions.map(s => (s as unknown as Record<string, number>)[skill]).filter((v: number) => v > 0);
+        if (scores.length > 0) {
+            skillAvgs[skill] = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+        }
+    }
+
+    const avgValues = Object.values(skillAvgs);
+    if (avgValues.length === 0) return null;
+    const overallAvg = avgValues.reduce((a, b) => a + b, 0) / avgValues.length;
+
+    const worstSkill = Object.entries(skillAvgs).sort(([, a], [, b]) => a - b)[0];
+    if (!worstSkill) return null;
+
+    const gap = overallAvg - worstSkill[1];
+
+    if (gap >= 2.5) {
+        return {
+            type: 'skill_imbalance',
+            title: `${SKILL_LABELS[worstSkill[0]]} is Your Bottleneck`,
+            body: `Your average across all skills is ${overallAvg.toFixed(1)}/10, but ${SKILL_LABELS[worstSkill[0]]} is ${worstSkill[1].toFixed(1)}/10 — a ${gap.toFixed(1)} point gap. In real interviews, one weak dimension can cause a rejection even with strong overall performance. This imbalance is your highest-priority focus area.`,
+            priority: 'high',
+            problemSuggestions: [],
+        };
+    }
+
+    return null;
+}
+
+export async function buildProblemTypeGapCard(
+    supabase: SupabaseClient,
+    sessions: RpcSessionRow[]
+): Promise<InsightCard | null> {
+    if (sessions.length < 5) return null;
+
+    const usedTags = new Set<string>();
+    for (const s of sessions) {
+        const patternTags = s.pattern_tags as string[] | null;
+        if (patternTags) patternTags.forEach(t => usedTags.add(t));
+    }
+
+    // High-priority patterns that must be covered at any level
+    const CRITICAL_PATTERNS = [
+        'dynamic-programming', 'binary-search', 'graphs', 'bfs', 'dfs',
+        'sliding-window', 'two-pointer', 'heap',
+    ];
+
+    const missingCritical = CRITICAL_PATTERNS.filter(p => !usedTags.has(p));
+
+    if (missingCritical.length === 0) return null;
+
+    const gap = missingCritical[0];
+
+    const { data: starterProblem } = await supabase
+        .from('problems')
+        .select('id, title, difficulty, external_url, tags')
+        .contains('tags', [gap])
+        .eq('difficulty', 'medium')
+        .limit(1)
+        .maybeSingle();
+
+    return {
+        type: 'problem_type_gap',
+        title: `Zero ${patternLabel(gap)} Practice`,
+        body: `You have not attempted any ${patternLabel(gap)} problems. This is a top-3 interview category at most companies. One session with a core ${patternLabel(gap)} problem will build foundational familiarity that applies across dozens of problems.`,
+        priority: missingCritical.length >= 3 ? 'high' : 'medium',
+        problemSuggestions: starterProblem ? [rowToSuggestion(starterProblem as ProblemRow)] : undefined,
+    };
+}
+
 // ─── Main export: server-side ──────────────────────────────────────────────────
 
 export async function computeInsightsForUser(userId: string): Promise<InsightSnapshot> {
@@ -455,30 +622,68 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
         catch (err) { console.error('[insight-engine] Momentum card error:', err); return null; }
     };
 
-    const [lcCards, trendCards, patternCards, streakRiskCard, momentumCard] = await Promise.all([
+    const buildConsistencyCards = async () => {
+        try { return await buildConsistencyGapCards(sessions); }
+        catch (err) { console.error('[insight-engine] Consistency card error:', err); return []; }
+    };
+
+    const buildPlateauCardSafely = async () => {
+        try { return await buildDifficultyPlateauCard(sessions); }
+        catch (err) { console.error('[insight-engine] Plateau card error:', err); return null; }
+    };
+
+    const buildImbalanceCardSafely = async () => {
+        try { return await buildSkillImbalanceCard(sessions); }
+        catch (err) { console.error('[insight-engine] Imbalance card error:', err); return null; }
+    };
+
+    const buildTypeGapCardSafely = async () => {
+        try { return await buildProblemTypeGapCard(supabase, sessions); }
+        catch (err) { console.error('[insight-engine] Type gap card error:', err); return null; }
+    };
+
+    const [
+        lcCards,
+        trendCards,
+        patternCards,
+        streakRiskCard,
+        momentumCard,
+        consistencyCards,
+        plateauCard,
+        imbalanceCard,
+        typeGapCard
+    ] = await Promise.all([
         buildLcCards(),
         buildTrendCards(),
         buildPatternCards(),
         buildStreakRiskCard(),
         buildMomentumCardSafe(),
+        buildConsistencyCards(),
+        buildPlateauCardSafely(),
+        buildImbalanceCardSafely(),
+        buildTypeGapCardSafely(),
     ]);
 
     const allCards: InsightCard[] = [
         ...lcCards,
         ...trendCards,
         ...patternCards,
+        ...consistencyCards,
     ];
 
     if (streakRiskCard) allCards.push(streakRiskCard);
     if (momentumCard && !allCards.some((c) => c.type === 'streak_at_risk')) {
         allCards.push(momentumCard);
     }
+    if (plateauCard) allCards.push(plateauCard);
+    if (imbalanceCard) allCards.push(imbalanceCard);
+    if (typeGapCard) allCards.push(typeGapCard);
 
-    // Sort: high → medium → low, cap at 4
+    // Sort: high → medium → low, cap at 6
     const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
     const insights = allCards
         .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
-        .slice(0, 4);
+        .slice(0, 6);
 
     // ── Step D: Recommended problems ──────────────────────────────────────────
 

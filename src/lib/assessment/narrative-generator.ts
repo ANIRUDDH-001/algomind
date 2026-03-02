@@ -1,4 +1,5 @@
 import { getAIClient } from '@/lib/ai/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
 import { SessionData } from '@/lib/ai/memory-generator'; // Reuse the type from memory-generator, or assessment
 import { SessionHistory, CognitiveSkill } from '@/types/assessment';
@@ -11,14 +12,66 @@ interface SkillStats {
     variance: number;
 }
 
+// When to generate a narrative:
+export const NARRATIVE_MILESTONES = [1, 3, 5, 10, 15, 20, 30, 40, 50];
+
+export function shouldGenerateNarrative(
+    totalSessions: number,
+    lastNarrativeCount: number
+): boolean {
+    return NARRATIVE_MILESTONES.some(
+        milestone => totalSessions >= milestone && lastNarrativeCount < milestone
+    );
+}
+
+export async function fetchBenchmarkContext(
+    supabase: SupabaseClient,
+    sessions: SessionHistory[]
+): Promise<string> {
+    if (sessions.length === 0) return '';
+
+    // Compute user's average score per difficulty
+    const byDifficulty: Record<string, number[]> = { easy: [], medium: [], hard: [] };
+    sessions.forEach(s => {
+        byDifficulty[s.problemDifficulty]?.push(s.overallScore);
+    });
+
+    const userAvgs: Record<string, number> = {};
+    for (const [diff, scores] of Object.entries(byDifficulty)) {
+        if (scores.length > 0) {
+            userAvgs[diff] = scores.reduce((a, b) => a + b, 0) / scores.length;
+        }
+    }
+
+    // Fetch benchmarks for relevant difficulties
+    const difficulties = Object.keys(userAvgs);
+    const { data: benchmarks } = await supabase
+        .from('score_benchmarks')
+        .select('difficulty, p25, p50, p75')
+        .in('difficulty', difficulties)
+        .eq('skill_id', 'overall');  // overall score benchmark
+
+    if (!benchmarks || benchmarks.length === 0) return '';
+
+    return benchmarks.map(b => {
+        const userAvg = userAvgs[b.difficulty];
+        if (!userAvg) return '';
+        const percentile = userAvg < b.p25 ? 'bottom 25%'
+            : userAvg < b.p50 ? '25th-50th percentile'
+                : userAvg < b.p75 ? '50th-75th percentile'
+                    : 'top 25%';
+        return `${b.difficulty} problems: user avg ${userAvg.toFixed(1)}/10 = ${percentile} (median ${b.p50}/10)`;
+    }).filter(Boolean).join('\n');
+}
+
 export async function generateNarrative(params: {
     userId: string;
     sessions: SessionHistory[];
+    benchmarkContext?: string;
 }): Promise<string> {
-    const { sessions } = params;
+    const { sessions, benchmarkContext } = params;
 
-    // Double check it's strictly a multiple of 5
-    if (sessions.length === 0 || sessions.length % 5 !== 0) {
+    if (sessions.length === 0) {
         return '';
     }
 
@@ -76,7 +129,12 @@ Write a 350-400 word profile that:
 PARAGRAPH 1 (2 sentences): Their defining cognitive signature — the one thing that sets them apart, positively OR as a limitation. Be direct and specific.
 PARAGRAPH 2 (3 sentences): Top 2 genuine strengths with specific behavioral evidence from the data.
 PARAGRAPH 3 (3 sentences): Top 2 growth areas with specific failure modes observed. Name the exact pattern.
-PARAGRAPH 4 (2 sentences): Readiness assessment — 'Currently performing at [Company] [Level] standard. With focus on [skill], [Level+1] is achievable in [timeframe]'.
+PARAGRAPH 4 (2 sentences): Readiness assessment using ONLY the benchmark data provided.
+Format: "Compared to other ${difficultyCounts.easy + difficultyCounts.medium + difficultyCounts.hard > 0 ? Object.keys(difficultyCounts).filter(k => (difficultyCounts as any)[k] > 0).join('/') : 'problem'} attempts, this student is at the [percentile] — [above/below/at] median performance.
+${benchmarkContext ? `Reference the specific percentile data: ${benchmarkContext}` : 'Insufficient benchmark data to give percentile comparison — state this honestly.'}"
+
+DO NOT invent company names or level labels (L4, E4, SDE2).
+If benchmark data is not available, say: "Benchmark comparison is not yet available with current session data."
 PARAGRAPH 5 (bullet list of 3): Specific ranked actions for next 4 weeks. Each action starts with a verb.
 
 Tone: Direct. Honest. Coach-like. Not a performance review. Not generic.
@@ -140,8 +198,8 @@ export async function updateNarrativeIfDue(userId: string): Promise<boolean> {
 
     const totalSessions = allSessions.length;
 
-    // Check if due: multiple of 5 AND we haven't already generated for this milestone
-    if (totalSessions > 0 && totalSessions % 5 === 0 && totalSessions > lastNarrativeCount) {
+    // Check if due we haven't already generated for this milestone
+    if (totalSessions > 0 && shouldGenerateNarrative(totalSessions, lastNarrativeCount)) {
 
         // Map DB sessions to SessionHistory format
         const transformedSessions: SessionHistory[] = allSessions.map((s: any) => {
@@ -167,10 +225,16 @@ export async function updateNarrativeIfDue(userId: string): Promise<boolean> {
             };
         });
 
+        const MAX_SESSIONS_FOR_NARRATIVE = 20;
+        const sessionsForNarrative = transformedSessions.slice(0, MAX_SESSIONS_FOR_NARRATIVE);
+
+        const benchmarkContext = await fetchBenchmarkContext(supabase, sessionsForNarrative);
+
         // 3. Generate narrative
         const narrative = await generateNarrative({
             userId,
-            sessions: transformedSessions
+            sessions: sessionsForNarrative,
+            benchmarkContext
         });
 
         if (narrative) {
@@ -178,6 +242,7 @@ export async function updateNarrativeIfDue(userId: string): Promise<boolean> {
             await supabase.from('learner_profiles').upsert({
                 user_id: userId,
                 narrative,
+                narrative_benchmark_context: benchmarkContext,
                 narrative_generated_at: new Date().toISOString(),
                 sessions_at_last_narrative: totalSessions
             });

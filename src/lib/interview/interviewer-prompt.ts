@@ -342,12 +342,17 @@ export function generateFeedbackPrompt(
     conversationHistory: string,
     problemTitle: string,
     terminated: boolean = false,
-    terminationReason?: string
+    terminationReason?: string,
+    difficultyMode: 'warm-up' | 'practice' | 'crunch' | 'sprint' = 'practice',
+    difficulty: 'easy' | 'medium' | 'hard' = 'medium'
 ): string {
+    const isWarmUp = difficultyMode === 'warm-up';
+    const isCrunch = difficultyMode === 'crunch';
+
     return `# GENERATE FINAL INTERVIEW FEEDBACK
 
 You are concluding the technical interview for "${problemTitle}".
-${terminated ? `⚠️ INTERVIEW WAS TERMINATED: ${terminationReason}` : ''}
+${terminated ? `⚠️ INTERVIEW WAS TERMINATED: ${terminationReason}\n` : ''}${isWarmUp ? '⚠️ WARM-UP MODE active.\n' : ''}${isCrunch ? '⚠️ CRUNCH MODE active. Assess timeEfficiency.\n' : ''}
 
 ## Conversation History:
 ${conversationHistory}
@@ -366,12 +371,11 @@ Generate comprehensive feedback in the following JSON format:
     "communicationClarity": { "score": 1-10, "evidence": "specific example" },
     "edgeCaseAwareness": { "score": 1-10, "evidence": "specific example" },
     "optimizationMindset": { "score": 1-10, "evidence": "specific example" },
-    "debuggingApproach": { "score": 1-10, "evidence": "specific example" }
+    "debuggingApproach": { "score": 1-10, "evidence": "specific example" }${isCrunch ? ',\n    "timeEfficiency": { "score": 1-10, "evidence": "speed and optimal time" }' : ''}
   },
   "strengths": ["specific strength 1", "specific strength 2"],
   "areasForImprovement": ["specific area 1", "specific area 2", "specific area 3"],
-  "actionableNextSteps": ["step 1", "step 2", "step 3"],
-  "hireDecision": "STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE",
+  "actionableNextSteps": ["step 1", "step 2", "step 3"],${isWarmUp ? '' : '\n  "hireDecision": "STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE",'}
   "overallScore": 1-10,
   "technicalDeepDive": {
     "optimalSolution": "Detailed explanation of the most efficient approach",
