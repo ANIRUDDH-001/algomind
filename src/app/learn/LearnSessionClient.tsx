@@ -50,7 +50,11 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
             initialGreetingSent.current = true;
 
             // Initialize interview context
-            startInterview(problem.title, problem.description || '', undefined, undefined, undefined, problem.id);
+            startInterview({
+                problemTitle: problem.title,
+                problemContent: problem.description || '',
+                problemId: problem.id
+            });
 
             // Inject the first assistant message manually and speak it
             const introMsg = `Namaste! Main Kai hoon, aapka DSA tutor. Aaj hum ${problem.title} samjhenge.`;

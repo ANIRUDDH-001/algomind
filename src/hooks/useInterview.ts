@@ -39,7 +39,6 @@ interface ProblemContext {
     title: string;
     content: string;
     ragContext?: string;
-    companyPersona?: string;
     kaiMemory?: string;
     problemId?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
@@ -48,6 +47,8 @@ interface ProblemContext {
 
 export function useInterview(options: {
     config: InterviewConfig;
+    isTimeUp?: boolean;          // ← ADD THIS: from useInterviewLimits
+    voicePrefs?: { name: string | null; rate: number; pitch: number };
     isReviewMode?: boolean;
     apiEndpoint?: string;
     sessionToken?: string;
@@ -57,7 +58,7 @@ export function useInterview(options: {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.config, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
+        [options.config, options.isTimeUp, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
     );
 
     // State
@@ -65,6 +66,11 @@ export function useInterview(options: {
     const [state, setState] = useState<InterviewState>('idle');
     const [isProcessing, setIsProcessing] = useState(false);
     const [autoSubmitEnabled, setAutoSubmitEnabled] = useState(true);
+    const [transcript, setTranscript] = useState('');
+    const [interimTranscript, setInterimTranscript] = useState('');
+    const lastTranscriptTimeRef = useRef<number>(0);
+    const transcriptRef = useRef('');
+    useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
     // Interview limits
     const [roundCount, setRoundCount] = useState(0);           // Number of completed AI response rounds
@@ -111,15 +117,25 @@ export function useInterview(options: {
                 }
             }, 400);
         },
+        voiceName: optionsRef.current.voicePrefs?.name ?? null,
+        voiceRate: optionsRef.current.voicePrefs?.rate ?? 1.0,
+        voicePitch: optionsRef.current.voicePrefs?.pitch ?? 1.0,
     });
 
     const stt = useSTT({
         provider: sttProvider,
         silenceMs: 5000,
-        onTranscript: () => { },
+        onTranscript: (text: string, isFinal: boolean) => {
+            if (isFinal) {
+                setTranscript(prev => prev ? `${prev} ${text}` : text);
+            } else {
+                setInterimTranscript(text);
+            }
+            lastTranscriptTimeRef.current = Date.now(); // update for auto-submit timer
+        },
         onSilenceTimeout: () => {
             stt.stopListening();
-            setHasPendingSend(stt.transcript.length > 0);
+            setHasPendingSend(transcriptRef.current.length > 0);
             setIsMicEnabled(false);
         },
         onError: (err) => setVoiceError(new Error(err)),
@@ -135,13 +151,15 @@ export function useInterview(options: {
     const speak = tts.speak;
     const stopSpeaking = tts.stop;
     const isListening = stt.isListening;
-    const transcript = stt.transcript;
-    const interimTranscript = stt.interimTranscript;
     const startListening = stt.startListening;
     const stopListening = stt.stopListening;
     const abortListening = stt.stopListening;
-    const resetTranscript = stt.resetTranscript;
-    const lastResultTime = Date.now(); // unused essentially
+    const resetTranscript = useCallback(() => {
+        stt.resetTranscript();
+        setTranscript('');
+        setInterimTranscript('');
+        lastTranscriptTimeRef.current = 0;
+    }, [stt.resetTranscript]);
     const transcribeVADAudio = stt.transcribeAudio;
     const pauseSpeaking = () => { };
     const resumeSpeaking = () => { };
@@ -167,26 +185,17 @@ export function useInterview(options: {
     const isProcessingRef = useRef(false);
     useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
 
-    // Time limit enforcement: check every 30 seconds
+    // Time limit enforcement: tied strictly to global UI hook
     useEffect(() => {
-        if (!interviewStartTime || isLimitReached || state === 'idle' || state === 'completed') return;
-
-        const interval = setInterval(() => {
-            const elapsedMs = Date.now() - interviewStartTime;
-            if (elapsedMs >= INTERVIEW_MAX_MS) {
-                setIsLimitReached(true);
-                setLimitReason('time');
-                clearInterval(interval);
-                // Stop mic and transition
-                setIsMicEnabled(false);
-                stopListening();
-                stateMachine.current.transition('SUBMIT_SOLUTION');
-                setState(stateMachine.current.getState());
-            }
-        }, 30_000);
-
-        return () => clearInterval(interval);
-    }, [interviewStartTime, isLimitReached, state, stopListening]);
+        if (!options.isTimeUp) return;
+        if (isLimitReached || state === 'idle' || state === 'completed') return;
+        setIsLimitReached(true);
+        setLimitReason('time');
+        setIsMicEnabled(false);
+        stopListening();
+        stateMachine.current.transition('SUBMIT_SOLUTION');
+        setState(stateMachine.current.getState());
+    }, [options.isTimeUp, isLimitReached, state, stopListening]);
 
     const fetchWithRetry = useCallback(async (url: string, fetchOptions: RequestInit, retries = 3, backoff = 1000): Promise<{ response: string } | any> => {
         const runFetch = async (currentRetries: number, currentBackoff: number): Promise<any> => {
@@ -358,8 +367,9 @@ export function useInterview(options: {
     useEffect(() => {
         if (!autoSubmitEnabled || !isListening || !transcript || isProcessing) return;
 
-        const timeSinceLastResult = Date.now() - lastResultTime;
-        if (timeSinceLastResult >= AUTO_SUBMIT_DELAY && currentProblemRef.current) {
+        const sinceLastWord = Date.now() - lastTranscriptTimeRef.current;
+        const remaining = Math.max(100, AUTO_SUBMIT_DELAY - sinceLastWord);
+        if (sinceLastWord >= AUTO_SUBMIT_DELAY && currentProblemRef.current) {
             submitUserResponse(transcript, currentProblemRef.current);
         } else if (currentProblemRef.current) {
             const timer = setTimeout(() => {
@@ -367,27 +377,28 @@ export function useInterview(options: {
                 if (isListening && transcript && currentProblemRef.current) {
                     submitUserResponse(transcript, currentProblemRef.current);
                 }
-            }, AUTO_SUBMIT_DELAY - timeSinceLastResult);
+            }, remaining);
             pendingAutoSubmitRef.current = timer;
             return () => {
                 clearTimeout(timer);
                 pendingAutoSubmitRef.current = null;
             };
         }
-    }, [transcript, lastResultTime, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
+    }, [transcript, isListening, autoSubmitEnabled, isProcessing, submitUserResponse]);
 
     // Core Logic
-    const startInterview = useCallback(async (
-        problemTitle: string,
-        problemContent: string,
-        ragContext?: string,
-        companyPersona?: string,
-        kaiMemory: string = '',
-        problemId: string = '',
-        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint',
-        difficulty?: 'easy' | 'medium' | 'hard',
-        kaiMemoryStructured?: KaiMemoryStructured | null
-    ) => {
+    const startInterview = useCallback(async (opts: {
+        problemTitle: string;
+        problemContent: string;
+        ragContext?: string;
+        kaiMemory?: string;
+        problemId?: string;
+        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
+        difficulty?: 'easy' | 'medium' | 'hard';
+        kaiMemoryStructured?: KaiMemoryStructured | null;
+    }) => {
+        const { problemTitle, problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty, kaiMemoryStructured } = opts;
+
         // Reset state machine if restarting after completion
         if (stateMachine.current.getState() === 'completed') {
             stateMachine.current.reset();
@@ -395,7 +406,7 @@ export function useInterview(options: {
         // Reset conversation history for fresh interview
         conversationHistoryRef.current = [];
         setMessages([]);
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, companyPersona, kaiMemory, problemId, difficultyMode, difficulty };
+        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
@@ -407,8 +418,8 @@ export function useInterview(options: {
             difficulty: difficulty || 'medium',
             difficultyMode: difficultyMode ?? 'practice',
             ragContext: ragContext || '',
-            kaiPersona: companyPersona,
-            kaiMemory: kaiMemory || ''
+            kaiMemory: kaiMemory || '',
+            kaiMemoryStructured: kaiMemoryStructured ?? undefined
         };
 
         const sysPrompt = generateInterviewerSystemPrompt(config);
@@ -646,13 +657,13 @@ export function useInterview(options: {
         sttProvider,
         handleMicStop: () => {
             stt.stopListening();
-            setHasPendingSend(stt.transcript.trim().length > 0);
+            setHasPendingSend(transcript.trim().length > 0);
             setIsMicEnabled(false);
         },
         sendPendingTranscript: () => {
-            const text = stt.transcript.trim();
+            const text = transcript.trim();
             if (!text) return;
-            stt.resetTranscript();
+            resetTranscript();
             setHasPendingSend(false);
             submitUserResponse(text, currentProblemRef.current!);
         },

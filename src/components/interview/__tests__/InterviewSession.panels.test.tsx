@@ -44,8 +44,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 // ─── Mock auth ───
+const mockAuthUser = { id: 'test-user' };
 vi.mock('@/components/auth/AuthProvider', () => ({
-    useAuth: () => ({ user: { id: 'test-user' } }),
+    useAuth: () => ({ user: mockAuthUser }),
 }));
 
 // ─── Mock all hooks ───
@@ -104,7 +105,14 @@ vi.mock('@/hooks/useSwipeNavigation', () => ({
 
 vi.mock('@/lib/supabase/client', () => {
     const mock = {
-        from: () => ({ select: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }),
+        from: () => ({
+            select: () => ({
+                order: () => Promise.resolve({ data: [], error: null }),
+                eq: () => ({
+                    single: () => Promise.resolve({ data: { preferred_voice_name: 'test', voice_rate: 1, voice_pitch: 1 }, error: null })
+                })
+            })
+        }),
         auth: {
             getUser: () => Promise.resolve({ data: { user: null }, error: null }),
             onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }),

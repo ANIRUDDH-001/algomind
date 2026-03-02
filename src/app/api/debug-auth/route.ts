@@ -36,6 +36,19 @@ function redact(val: string | undefined, show = 12): string {
 }
 
 export async function GET(request: NextRequest) {
+    // Auth guard: this endpoint reveals infrastructure details.
+    // Must be admin or owner to access.
+    const { createServerSupabase } = await import('@/lib/supabase/server');
+    const authSupabase = await createServerSupabase();
+    const { data: { user: authUser } } = await authSupabase.auth.getUser();
+    if (!authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { data: isAdmin } = await authSupabase.rpc('check_is_admin');
+    if (!isAdmin) {
+        return NextResponse.json({ error: 'Forbidden — admin access required' }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
 

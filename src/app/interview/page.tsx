@@ -12,6 +12,7 @@ import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-
 import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
 import { resolveGuestConfig, resolvePracticeConfig, type InterviewConfig } from '@/lib/interview/interview-config';
 import { getKaiMemory } from '@/app/actions/learn';
+import { getSupabase } from '@/lib/supabase/client';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -100,12 +101,36 @@ function InterviewContent() {
                 // Wait for all data
                 const [rateLimitData, fetchedProblem] = await Promise.all([rateLimitPromise, problemPromise]);
 
+                // Fetch profile for authenticated users
+                const supabase = getSupabase();
+                let profile: { account_type: string; rate_limit_override: number | null } | null = null;
+                if (userId && !isGuest && supabase) {
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('account_type, rate_limit_override')
+                        .eq('id', userId)
+                        .single();
+                    profile = profileData;
+                }
+
                 // ── RAG: fetch ONCE for this problem ─────────────────────────────────────────
                 let ragContext = '';
                 if (fetchedProblem && !isGuest) {
                     try {
-                        // Placeholder
-                    } catch { /* non-fatal — proceed without RAG */ }
+                        const { supabaseHybridSearch } = await import('@/lib/rag/supabaseVectorStore');
+                        const query = `${fetchedProblem.title} ${fetchedProblem.description}`.slice(0, 500);
+                        let chunks: any[] = [];
+                        if (supabase) {
+                            chunks = await supabaseHybridSearch(supabase, query, 3);
+                        }
+                        if (Array.isArray(chunks) && chunks.length > 0) {
+                            ragContext = chunks
+                                .map((r: any) => `### ${r.chunk?.title ?? ''}\n${r.chunk?.content ?? ''}`)
+                                .join('\n\n---\n\n');
+                        }
+                    } catch (e) {
+                        console.warn('[RAG] Failed to fetch context — proceeding without it:', e);
+                    }
                 } else if (isGuest && fetchedProblem) {
                     ragContext = (fetchedProblem as typeof fetchedProblem & { ragContext?: string }).ragContext ?? '';
                 }
@@ -118,10 +143,8 @@ function InterviewContent() {
 
                 // ── Co-owner check ────────────────────────────────────────────────────────────
                 let isCoOwner = false;
-                // @ts-expect-error - Profile type missing
-                if (userId && !isGuest && profile?.account_type === 'candidate') {
+                if (userId && !isGuest && profile?.account_type === 'candidate' && supabase) {
                     // Only check for candidates — owners/admins already have unlimited access
-                    // @ts-expect-error - Profile type missing
                     const { data: co } = await supabase.from('co_owners').select('id').eq('user_id', userId).maybeSingle();
                     isCoOwner = !!co;
                 }
@@ -130,7 +153,7 @@ function InterviewContent() {
                 let sprintProblemIds: [string, string] | undefined;
                 if (difficultyMode === 'sprint' && fetchedProblem && !isGuest) {
                     try {
-                        const p2 = await getRandomProblem((fetchedProblem as any).difficulty);
+                        const p2 = await getRandomProblem(fetchedProblem.difficulty);
                         if (p2 && p2.id !== fetchedProblem.id) sprintProblemIds = [fetchedProblem.id, p2.id];
                     } catch { /* single-problem sprint if this fails */ }
                 }
@@ -139,10 +162,8 @@ function InterviewContent() {
                 const resolvedConfig: InterviewConfig = isGuest
                     ? resolveGuestConfig()
                     : resolvePracticeConfig({
-                        // @ts-expect-error - Profile type missing
                         accountType: profile?.account_type ?? 'candidate',
                         isCoOwner,
-                        // @ts-expect-error - Profile type missing
                         rateOverride: profile?.rate_limit_override ?? null,
                         difficultyMode,
                         ragContext,
