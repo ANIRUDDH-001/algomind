@@ -289,7 +289,7 @@ export default function PracticePage() {
                         ) : (
                             <>
                                 {/* Problems List */}
-                                <motion.div layout className="space-y-4">
+                                <motion.div layout className="space-y-4" data-tour="problem-list">
                                     {displayedProblems.map((problem) => (
                                         <ProblemCard
                                             key={problem.id}

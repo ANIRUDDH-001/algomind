@@ -186,6 +186,18 @@ function DashboardContent() {
                     <EmptyState
                         title="Your journey hasn't started yet!"
                         description="Complete your first voice-enabled interview to see your cognitive skill profile here."
+                        actionLabel={
+                            typeof window !== 'undefined' &&
+                                localStorage.getItem('algomind_tour_completed') === 'true'
+                                ? 'Start My First Session'
+                                : undefined
+                        }
+                        onAction={
+                            typeof window !== 'undefined' &&
+                                localStorage.getItem('algomind_tour_completed') === 'true'
+                                ? () => router.push('/interview')
+                                : undefined
+                        }
                     />
                 ) : (
                     <AnimatePresence mode="wait">

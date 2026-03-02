@@ -102,7 +102,8 @@ export default function HomePage() {
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
     setShowOnboarding(false);
-    // Stay on home page — let user explore before committing
+    // Fire tour trigger — TourProvider listens and starts if not completed/skipped
+    window.dispatchEvent(new CustomEvent('tour-ready'));
   };
 
   if (showOnboarding) {
@@ -217,6 +218,7 @@ export default function HomePage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+            data-tour="home-hero-cta"
           >
             <Button
               onClick={() => {
@@ -241,6 +243,28 @@ export default function HomePage() {
                 </>
               )}
             </Button>
+            {user && (
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
+                className="w-full sm:w-auto h-14 px-8 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  color: 'rgba(165,180,252,0.85)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(99,102,241,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)';
+                }}
+              >
+                <span style={{ fontSize: 16 }}>✦</span>
+                Take a Tour
+              </button>
+            )}
           </motion.div>
         </motion.div>
 
