@@ -1,0 +1,9 @@
+src/components/interview/__tests__/GuestResultsOverlay.test.tsx(30,7): error TS2739: Type '{ sessionId: string; timestamp: Date; problem: { title: string; description: string; difficulty: string; }; skills: Record<CognitiveSkill, SkillScore>; overallFeedback: string; nextSteps: never[]; }' is missing the following properties from type 'AssessmentResult': overallScore, rawScore, adjustedScore
+src/hooks/useAssessment.ts(25,66): error TS2345: Argument of type '{ title: string; description: string; difficulty: string; difficultyMode?: string | undefined; }' is not assignable to parameter of type '{ title: string; description: string; difficulty: string; difficultyMode?: DifficultyMode | "employer" | undefined; }'.
+  Types of property 'difficultyMode' are incompatible.
+    Type 'string | undefined' is not assignable to type 'DifficultyMode | "employer" | undefined'.
+      Type 'string' is not assignable to type 'DifficultyMode | "employer" | undefined'.
+src/lib/assessment/__tests__/score-validator.test.ts(17,13): error TS2741: Property 'subCriteria' is missing in type '{ score: number; evidence: string[]; strengths: never[]; improvements: never[]; }' but required in type 'ParsedSkillScore'.
+src/lib/assessment/__tests__/score-validator.test.ts(66,17): error TS2741: Property 'subCriteria' is missing in type '{ score: number; evidence: string[]; strengths: never[]; improvements: never[]; }' but required in type 'ParsedSkillScore'.
+src/lib/assessment/__tests__/score-validator.test.ts(122,17): error TS2741: Property 'subCriteria' is missing in type '{ score: number; evidence: never[]; strengths: never[]; improvements: never[]; }' but required in type 'ParsedSkillScore'.
+src/lib/assessment/__tests__/score-validator.test.ts(137,17): error TS2741: Property 'subCriteria' is missing in type '{ score: number; evidence: never[]; strengths: never[]; improvements: string[]; }' but required in type 'ParsedSkillScore'.
