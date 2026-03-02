@@ -102,6 +102,56 @@ export async function addToQueue(params: {
     }
 }
 
+export async function updateSkillRepetition(params: {
+    userId: string;
+    sessionId: string;
+    dimensionScores: Record<string, number>;  // 8 skill_id → score
+}): Promise<void> {
+    const supabase = getServiceClient();
+
+    for (const [skillId, score] of Object.entries(params.dimensionScores)) {
+        try {
+            // Fetch existing skill record
+            const { data: existing } = await supabase
+                .from('skill_repetition')
+                .select('*')
+                .eq('user_id', params.userId)
+                .eq('skill_id', skillId)
+                .maybeSingle();
+
+            const record = existing ?? createNewFSRSCardData();
+            const nextCard = computeNextReviewFSRS(record, score);
+
+            await supabase
+                .from('skill_repetition')
+                .upsert({
+                    user_id: params.userId,
+                    skill_id: skillId,
+                    fsrs_stability: nextCard.fsrs_stability,
+                    fsrs_difficulty: nextCard.fsrs_difficulty,
+                    fsrs_elapsed_days: nextCard.fsrs_elapsed_days,
+                    fsrs_scheduled_days: nextCard.fsrs_scheduled_days,
+                    fsrs_reps: nextCard.fsrs_reps,
+                    fsrs_lapses: nextCard.fsrs_lapses,
+                    fsrs_state: nextCard.fsrs_state,
+                    fsrs_last_review: nextCard.fsrs_last_review,
+                    fsrs_due: nextCard.fsrs_due,
+                    last_score: score,
+                    last_session_id: params.sessionId,
+                    updated_at: new Date().toISOString(),
+                }, {
+                    onConflict: 'user_id,skill_id',
+                });
+        } catch (error: any) {
+            void logSystemEvent({
+                type: 'db_error',
+                errorMessage: error.message || 'Failed to update skill repetition',
+                metadata: { operation: 'updateSkillRepetition', skillId, userId: params.userId }
+            });
+        }
+    }
+}
+
 export async function getDueReviews(userId: string): Promise<SpacedRepetitionRecord[]> {
     const supabase = getSupabase();
     if (!supabase) return [];
