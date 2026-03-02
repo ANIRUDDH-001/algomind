@@ -141,7 +141,7 @@ describe('SkillBadge integration in InterviewSession', () => {
         vi.spyOn(turnClassifier, 'classifyTurnSignal').mockResolvedValue(null);
     });
 
-    it('does NOT fire badge on message 3 by count', async () => {
+    it('does NOT call classifyTurnSignal directly from handleUserMessage (moved to observer)', async () => {
         const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig as any} />);
 
         await act(async () => {
@@ -156,70 +156,13 @@ describe('SkillBadge integration in InterviewSession', () => {
             mockHandleUserMessage({ role: 'user', content: 'test 12345678901234567890' }, 3);
         });
 
-        // Because classifyTurnSignal returns null, badge shouldn't show
+        // classifyTurnSignal should NOT be called from handleUserMessage anymore
+        // Badge detection is now handled by the SilentObserver on a 15s interval
+        expect(turnClassifier.classifyTurnSignal).not.toHaveBeenCalled();
+
+        // No badge should show
         const badge = screen.queryByText(/insight detected/i) || screen.queryByText(/signal/i);
         expect(badge).toBeNull();
-    });
-
-    it('fires badge when classifyTurnSignal returns high-confidence signal', async () => {
-        vi.spyOn(turnClassifier, 'classifyTurnSignal').mockResolvedValue({
-            dimension: 'pattern-recognition',
-            confidence: 0.9,
-            triggerPhrase: 'Correctly chose Hash Map'
-        });
-
-        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig as any} />);
-
-        await act(async () => {
-            const startBtn = container.querySelector('[data-tour="begin-button"]') as HTMLButtonElement;
-            startBtn.click();
-        });
-
-        await act(async () => {
-            mockHandleUserMessage({ role: 'user', content: 'I will use a hash map for O(1) lookups which is fast enough.' }, 1);
-        });
-
-        await waitFor(() => {
-            expect(screen.getByText('Correctly chose Hash Map')).toBeTruthy();
-        });
-    });
-
-    it('does not fire same dimension badge twice per session', async () => {
-        let calls = 0;
-        vi.spyOn(turnClassifier, 'classifyTurnSignal').mockImplementation(async () => {
-            calls++;
-            return {
-                dimension: 'algorithmic-thinking',
-                confidence: 0.9,
-                triggerPhrase: `Dynamic trigger ${calls}`
-            };
-        });
-
-        const { container } = render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig as any} />);
-
-        await act(async () => {
-            const startBtn = container.querySelector('[data-tour="begin-button"]') as HTMLButtonElement;
-            startBtn.click();
-        });
-
-        await act(async () => {
-            mockHandleUserMessage({ role: 'user', content: 'I will write a loop. 1234567890123' }, 1);
-        });
-
-        await waitFor(() => {
-            expect(screen.getByText('Dynamic trigger 1')).toBeTruthy();
-        });
-
-        await act(async () => {
-            mockHandleUserMessage({ role: 'user', content: 'Another complex loop statement. 1234' }, 2);
-        });
-
-        // It shouldn't show "Dynamic trigger 2" because it's the same dimension, but mock clears badge after timeout normally
-        // Actually, we prevented standard double-fire inside usecallback.
-        await waitFor(() => {
-            const found = screen.queryByText('Dynamic trigger 2');
-            expect(found).toBeNull();
-        });
     });
 
     it('badge does not fire for guest mode sessions', async () => {
@@ -240,9 +183,9 @@ describe('SkillBadge integration in InterviewSession', () => {
             mockHandleUserMessage({ role: 'user', content: 'A long string to bypass length check 1234567890' }, 1);
         });
 
-        // Because isGuest, classifyTurnSignal shouldn't be called, so badge won't show
+        // classifyTurnSignal is no longer called from handleUserMessage
+        // Badge detection moved to SilentObserver which is gated out for assessment/guest
         await waitFor(() => {
-            expect(turnClassifier.classifyTurnSignal).not.toHaveBeenCalled();
             expect(screen.queryByText('Should not fire')).toBeNull();
         });
     });

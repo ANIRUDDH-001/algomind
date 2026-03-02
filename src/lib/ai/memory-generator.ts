@@ -11,6 +11,7 @@
 import { UnifiedAIClient } from './client';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { getServiceClient } from '@/lib/supabase/service';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ interface RpcSessionRow {
 /** Shape of a learner_profiles row (only the columns we need) */
 interface LearnerProfileRow {
     kai_memory: string | null;
+    kai_memory_structured: KaiMemoryStructured | null;
 }
 
 // ─── Private Helpers ──────────────────────────────────────────────────────────
@@ -137,6 +139,68 @@ export async function generateKaiMemory(params: {
     }
 }
 
+export async function generateStructuredKaiMemory(params: {
+    userId: string;
+    recentSessions: SessionData[];
+    existingMemory: KaiMemoryStructured | null;
+}): Promise<KaiMemoryStructured | null> {
+    const { recentSessions, existingMemory } = params;
+
+    if (recentSessions.length === 0) return existingMemory;
+
+    try {
+        const sessionLines = recentSessions
+            .slice(0, 5)
+            .map(
+                (s) =>
+                    `${s.problemTitle} (${s.problemDifficulty}): overall ${s.overallScore.toFixed(1)}/10, ` +
+                    `weak: ${getWeakSkills(s.skills)}, strong: ${getStrongSkills(s.skills)}`
+            )
+            .join('\n');
+
+        const promptContent =
+            `Update the coaching memory snapshot for a technical interview student.\n` +
+            `Output ONLY valid JSON matching this schema:\n` +
+            `{\n` +
+            `  "topStrength": { "skill": "<cognitive_skill_id>", "evidence": "<specific pattern> (max 15 words)" },\n` +
+            `  "mainWeakness": { "skill": "<cognitive_skill_id>", "evidence": "<specific failure mode> (max 15 words)" },\n` +
+            `  "communicationStyle": "analytical" | "conversational" | "terse" | "verbose" | "structured",\n` +
+            `  "focusForNextSession": "<one specific thing to probe> (max 15 words)"\n` +
+            `}\n\n` +
+            `Previous memory: ${existingMemory ? JSON.stringify(existingMemory) : 'None'}\n\n` +
+            `Recent sessions:\n${sessionLines}\n\n` +
+            `Make the evidence specific. No filler.`;
+
+        const client = new UnifiedAIClient();
+        const result = await client.generateCompletion(
+            [{ role: 'user', content: promptContent }],
+            {
+                preferredProvider: 'groq',
+                maxTokens: 300,
+                temperature: 0.1,
+            }
+        );
+
+        if (result.success && result.response) {
+            const clean = result.response.replace(/```json|```/gi, '').trim();
+            return JSON.parse(clean) as KaiMemoryStructured;
+        }
+
+        console.warn('[memory-generator] AI generation failed:', result.error);
+        return existingMemory;
+    } catch (err) {
+        console.error('[memory-generator] Unexpected error in generateStructuredKaiMemory:', err);
+        return existingMemory;
+    }
+}
+
+export function structuredToText(structured: KaiMemoryStructured): string {
+    return `This student's top strength is ${structured.topStrength.skill} (${structured.topStrength.evidence}). ` +
+        `Their main weakness is ${structured.mainWeakness.skill} (${structured.mainWeakness.evidence}). ` +
+        `They communicate in a ${structured.communicationStyle} style. ` +
+        `Next session focus: ${structured.focusForNextSession}.`;
+}
+
 /**
  * Fetches the user's last 5 sessions via the RPC, generates a new memory
  * snapshot, then upserts it into `learner_profiles`.
@@ -181,7 +245,7 @@ export async function updateKaiMemory(userId: string): Promise<void> {
         // b. Fetch existing memory
         const { data: profileData, error: profileError } = await supabase
             .from('learner_profiles')
-            .select('kai_memory')
+            .select('kai_memory, kai_memory_structured')
             .eq('user_id', userId)
             .maybeSingle();
 
@@ -189,25 +253,38 @@ export async function updateKaiMemory(userId: string): Promise<void> {
             console.error('[memory-generator] Error fetching learner_profiles:', profileError.message);
         }
 
-        const existingMemory = (profileData as LearnerProfileRow | null)?.kai_memory ?? null;
+        const profile = profileData as LearnerProfileRow | null;
+        const existingStructured = profile?.kai_memory_structured ?? null;
 
         // c. Generate memory with AI
-        const newMemory = await generateKaiMemory({ userId, recentSessions, existingMemory });
+        const newStructuredMemory = await generateStructuredKaiMemory({
+            userId,
+            recentSessions,
+            existingMemory: existingStructured
+        });
 
-        if (!newMemory) return;
+        if (!newStructuredMemory) return;
 
-        // d/e. Upsert into learner_profiles
+        // d. Generate text fallback
+        const newTextMemory = structuredToText(newStructuredMemory);
+
+        // e. Upsert into learner_profiles
         const { error: upsertError } = await supabase
             .from('learner_profiles')
             .upsert(
-                { user_id: userId, kai_memory: newMemory, updated_at: new Date().toISOString() },
+                {
+                    user_id: userId,
+                    kai_memory: newTextMemory,
+                    kai_memory_structured: newStructuredMemory,
+                    updated_at: new Date().toISOString()
+                },
                 { onConflict: 'user_id' }
             );
 
         if (upsertError) {
             console.error('[memory-generator] DB upsert error:', upsertError.message);
         } else {
-            console.log(`🧠 [memory-generator] Updated Kai memory for user ${userId.slice(0, 8)}...`);
+            console.log(`🧠 [memory-generator] Updated structured Kai memory for user ${userId.slice(0, 8)}...`);
         }
     } catch (err) {
         console.error('[memory-generator] Unexpected error in updateKaiMemory:', err);

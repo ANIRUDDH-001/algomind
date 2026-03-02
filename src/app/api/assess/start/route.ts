@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
+import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
 
 validateEnv();
 
@@ -221,6 +222,28 @@ export async function POST(req: NextRequest) {
             problems = questionStates.map(qs => problemsData.find(p => p.id === qs.problem_id)).filter(Boolean);
         }
 
+        // Pre-fetch phase-aware RAG for employer sessions (all 6 phases upfront)
+        let employerRagContext = '';
+        try {
+            const firstProblem = problems[0];
+            if (firstProblem) {
+                const phases: InterviewPhase[] = ['intro', 'approach', 'coding', 'testing', 'complexity', 'wrap-up'];
+                const phaseContexts = await Promise.all(
+                    phases.map(phase => getPhaseContext(
+                        submissionId,
+                        phase,
+                        firstProblem.title,
+                        firstProblem.tags ?? []
+                    ))
+                );
+                employerRagContext = phaseContexts
+                    .filter(c => c !== 'No relevant context found.')
+                    .join('\n\n===\n\n');
+            }
+        } catch (err) {
+            console.warn('[Assess Start] RAG pre-fetch failed:', err);
+        }
+
         // 5. Create local session JWT
         const alg = 'HS256';
 
@@ -244,7 +267,8 @@ export async function POST(req: NextRequest) {
             questionStates,
             questions: problems,
             timeLimitMins: campaignData.time_limit_mins,
-            showScoreToCandidate: !!campaignData.show_score_to_candidate
+            showScoreToCandidate: !!campaignData.show_score_to_candidate,
+            ragContext: employerRagContext,
         });
 
     } catch (error: unknown) {

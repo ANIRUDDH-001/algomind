@@ -4,6 +4,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
+import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
+import type { InterviewState } from '@/lib/interview/state-machine';
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,10 +17,13 @@ export async function POST(req: NextRequest) {
                 title?: string;
                 content?: string;
                 ragContext?: string;
+                tags?: string[];
             };
             guestMode?: boolean;
             companyPersona?: string;
             kaiMemory?: string;
+            interviewState?: InterviewState;
+            sessionId?: string;
         }
 
         let body: ChatRequestBody = { messages: [] };
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext, guestMode, companyPersona, kaiMemory } = body;
+        const { messages, systemPrompt, problemContext, guestMode, companyPersona, kaiMemory, interviewState, sessionId: clientSessionId } = body;
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
@@ -72,10 +77,43 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
         }
 
+        // ── Phase-aware RAG ───────────────────────────────────────────────
+        const STATE_TO_PHASE: Record<string, InterviewPhase> = {
+            'idle': 'intro',
+            'problem-intro': 'intro',
+            'user-thinking': 'approach',
+            'ai-clarifying': 'approach',
+            'user-solving': 'coding',
+            'ai-feedback': 'coding',
+            'solution-review': 'wrap-up',
+            'assessment': 'wrap-up',
+            'completed': 'wrap-up',
+        };
+
         let ragContext = '';
-        if (problemContext?.ragContext && problemContext.ragContext.length > 0) {
+        if (!guestMode && interviewState && problemContext?.title) {
+            // Server-side phase-aware RAG
+            const phase = STATE_TO_PHASE[interviewState] ?? 'approach';
+            try {
+                const phaseRag = await getPhaseContext(
+                    clientSessionId || 'default',
+                    phase,
+                    problemContext.title,
+                    problemContext.tags ?? []
+                );
+                if (phaseRag && phaseRag !== 'No relevant context found.') {
+                    ragContext = phaseRag;
+                    console.log(`📚 [RAG] Phase-aware context (${phase}): ${ragContext.length} chars`);
+                }
+            } catch (err) {
+                console.warn('⚠️ [RAG] Phase-aware retrieval failed, falling back to static:', err);
+            }
+        }
+
+        // Fallback to static pre-embedded context
+        if (!ragContext && problemContext?.ragContext && problemContext.ragContext.length > 0) {
             ragContext = problemContext.ragContext;
-            console.log(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - saving API calls`);
+            console.log(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - fallback`);
         }
 
         const client = getAIClient();

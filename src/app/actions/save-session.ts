@@ -2,10 +2,11 @@
 
 import { createServerSupabase as createClient } from '@/lib/supabase/server';
 import { AssessmentResult } from '@/lib/assessment/analyzer';
-import { ConversationTurn } from '@/lib/assessment/prompts';
+import { updateKaiMemory, type SessionData } from '@/lib/ai/memory-generator';
+import { createAndSaveSession1Baseline } from '@/lib/ai/narrative-generator';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { updateKaiMemory } from '@/lib/ai/memory-generator';
-import { addToQueue } from '@/lib/spaced-repetition/queue';
+import { type ConversationTurn } from '@/lib/assessment/prompts';
+import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
 
 export async function saveInterviewSession(
     userId: string,
@@ -51,7 +52,7 @@ export async function saveInterviewSession(
 
             if (userTurns < minTurns) {
                 console.warn(`⚠️ [ACTION] Insufficient turns for assessment (${userTurns} < ${minTurns}). Skipping AI analysis.`);
-                void logSystemEvent({ type: 'assessment_insufficient', metadata: { userTurns, minTurns, problemId, userId } });
+                // void logSystemEvent({ type: 'assessment_insufficient', metadata: { userTurns, minTurns, problemId, userId } });
 
                 // Construct zero-score result
                 finalResult = {
@@ -188,10 +189,6 @@ export async function saveInterviewSession(
         }
 
         // Memory & Spaced Rep
-        try {
-            await updateKaiMemory(userId);
-        } catch (err) { console.error('[save-session] Memory update failed:', err); }
-
         const { data: probDiff } = await supabase
             .from('problems')
             .select('difficulty')
@@ -208,6 +205,59 @@ export async function saveInterviewSession(
             });
         } catch (err) { console.error('[save-session] addToQueue failed:', err); }
 
+        // Per-skill FSRS updates
+        try {
+            const skills: Record<string, any> = finalResult?.skills || {};
+            const dimensionScores: Record<string, number> = {
+                'problem-decomposition': (skills['problem-decomposition'] as any)?.score ?? 5,
+                'pattern-recognition': (skills['pattern-recognition'] as any)?.score ?? 5,
+                'algorithmic-thinking': (skills['algorithmic-thinking'] as any)?.score ?? 5,
+                'complexity-analysis': (skills['complexity-analysis'] as any)?.score ?? 5,
+                'communication-clarity': (skills['communication-clarity'] as any)?.score ?? 5,
+                'edge-case-awareness': (skills['edge-case-awareness'] as any)?.score ?? 5,
+                'optimization-mindset': (skills['optimization-mindset'] as any)?.score ?? 5,
+                'debugging-approach': (skills['debugging-approach'] as any)?.score ?? 5,
+            };
+            await updateSkillRepetition({
+                userId,
+                sessionId: sessionData.id,
+                dimensionScores,
+            });
+        } catch (err) { console.error('[save-session] updateSkillRepetition failed:', err); }
+
+        // 6. Update Kai Memory separately (fire & forget to avoid blocking UI)
+        try {
+            updateKaiMemory(userId).catch(err => {
+                console.error('❌ Error updating Kai memory:', err);
+            });
+
+            // 7. Session 1 Baseline Check
+            const { count, error: countError } = await supabase
+                .from('interview_sessions')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
+
+            if (!countError && count === 1 && finalResult) {
+                const skillsForBaseline: Record<string, number> = {};
+                for (const [key, value] of Object.entries(finalResult.skills)) {
+                    skillsForBaseline[key] = (value as any).score ?? 5;
+                }
+
+                const sessionDataForBaseline: SessionData = {
+                    sessionId: sessionData.id,
+                    problemTitle,
+                    problemDifficulty: probDiff?.difficulty || 'medium',
+                    overallScore: Math.round(((finalResult.rawScore ?? 0) / 100) * 10), // Converting 0-100 to 0-10
+                    skills: skillsForBaseline,
+                    completedAt: new Date().toISOString()
+                };
+                createAndSaveSession1Baseline(userId, sessionDataForBaseline).catch(err => {
+                    console.error('❌ Error saving Session 1 baseline:', err);
+                });
+            }
+        } catch (memErr) {
+            console.error('❌ Unhandled error in memory/baseline generation:', memErr);
+        }
         try {
             const { invalidateDashboardCache } = await import('@/lib/cache/dashboardCache');
             await invalidateDashboardCache(userId);

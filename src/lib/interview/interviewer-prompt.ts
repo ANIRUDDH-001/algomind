@@ -12,6 +12,7 @@
  */
 
 import { Problem } from '@/types/problem';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -26,6 +27,7 @@ export interface InterviewConfig {
     timeRemaining?: number;
     ragContext?: string;
     kaiMemory?: string;
+    kaiMemoryStructured?: KaiMemoryStructured;
 }
 
 export interface CognitiveDimension {
@@ -249,7 +251,14 @@ When the interview ends (either completion OR termination), provide structured f
 BEGIN INTERVIEW NOW. Your first message should be a warm, professional introduction of the problem.
 `;
 
-    if (kaiMemory) {
+    if (config.kaiMemoryStructured) {
+        prompt += `\n\n## YOUR MEMORY OF THIS STUDENT\n` +
+            `* Top strength: ${config.kaiMemoryStructured.topStrength.skill} (${config.kaiMemoryStructured.topStrength.evidence})\n` +
+            `* Main weakness: ${config.kaiMemoryStructured.mainWeakness.skill} (${config.kaiMemoryStructured.mainWeakness.evidence})\n` +
+            `* Communication style: ${config.kaiMemoryStructured.communicationStyle}\n` +
+            `* Focus for this session: ${config.kaiMemoryStructured.focusForNextSession}\n\n` +
+            `Use this context naturally to adapt your coaching style. Do NOT announce that you remember them. Simply demonstrate it through your questions.`;
+    } else if (kaiMemory) {
         prompt += '\n\n## YOUR MEMORY OF THIS STUDENT\n' + kaiMemory +
             '\n\nUse this naturally. Do NOT announce that you remember them. Simply demonstrate it through your questions and observations.';
     }

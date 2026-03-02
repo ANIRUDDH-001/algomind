@@ -7,6 +7,7 @@ import { useTTS } from '@/hooks/useTTS';
 import { useSTT } from '@/hooks/useSTT';
 import { useVAD } from '@/hooks/useVAD';
 import type { InterviewConfig } from '@/lib/interview/interview-config';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
 
@@ -237,10 +238,12 @@ export function useInterview(options: {
                         title: currentProblemRef.current?.title ?? '',
                         content: currentProblemRef.current?.content ?? '',
                         ragContext: optionsRef.current.config.ragContext,
+                        tags: (currentProblemRef.current as any)?.tags ?? [],
                     },
                     sessionToken: optionsRef.current.sessionToken,
                     guestMode: optionsRef.current.isGuest ?? false,
                     kaiMemory: optionsRef.current.config.kaiMemory,
+                    interviewState: stateMachine.current.getState(),
                 })
             });
 
@@ -306,6 +309,7 @@ export function useInterview(options: {
             difficultyMode: optionsRef.current.config.difficultyMode,
             ragContext: optionsRef.current.config.ragContext,
             kaiMemory: optionsRef.current.config.kaiMemory,
+            kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured,
         };
 
         try {
@@ -378,10 +382,11 @@ export function useInterview(options: {
         problemContent: string,
         ragContext?: string,
         companyPersona?: string,
-        kaiMemory?: string,
-        problemId?: string,
+        kaiMemory: string = '',
+        problemId: string = '',
         difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint',
-        difficulty?: 'easy' | 'medium' | 'hard'
+        difficulty?: 'easy' | 'medium' | 'hard',
+        kaiMemoryStructured?: KaiMemoryStructured | null
     ) => {
         // Reset state machine if restarting after completion
         if (stateMachine.current.getState() === 'completed') {

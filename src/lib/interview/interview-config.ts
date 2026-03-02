@@ -13,6 +13,7 @@
 
 export type InterviewMode = 'guest' | 'practice' | 'employer';
 export type DifficultyMode = 'warm-up' | 'practice' | 'crunch' | 'sprint';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 
 export interface InterviewConfig {
     mode: InterviewMode;
@@ -22,6 +23,7 @@ export interface InterviewConfig {
     isUnlimited: boolean;  // Hides all caps UI, uses elapsed-only timer
     ragContext: string;   // Pre-fetched DSA knowledge (once at start)
     kaiMemory: string;   // Pre-fetched learner profile narrative
+    kaiMemoryStructured?: KaiMemoryStructured; // Pre-fetched structured profile
     sprint: SprintState | null;
 }
 

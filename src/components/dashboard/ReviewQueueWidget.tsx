@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getDueReviews, getUpcomingReviews } from '@/lib/spaced-repetition/queue';
 import { SpacedRepetitionRecord } from '@/lib/spaced-repetition/sm2';
+import { getDueSkills, DueSkill } from '@/lib/spaced-repetition/skill-scheduler';
 import { CheckCircle2, ChevronRight, Clock, Trash2, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
     const [dueReviews, setDueReviews] = useState<SpacedRepetitionRecord[]>([]);
     const [upcomingReviews, setUpcomingReviews] = useState<SpacedRepetitionRecord[]>([]);
     const [reviewedThisWeek, setReviewedThisWeek] = useState(0);
+    const [dueSkillsList, setDueSkillsList] = useState<DueSkill[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -31,7 +33,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                 const supabase = getSupabase();
                 const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-                const [due, upcoming, { count }] = await Promise.all([
+                const [due, upcoming, { count }, skills] = await Promise.all([
                     getDueReviews(userId),
                     getUpcomingReviews(userId, 7),
                     supabase
@@ -40,13 +42,15 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                             .select('*', { count: 'exact', head: true })
                             .eq('user_id', userId)
                             .gte('last_reviewed_at', sevenDaysAgo)
-                        : { count: 0 }
+                        : { count: 0 },
+                    getDueSkills(userId),
                 ]);
 
                 if (mounted) {
                     setDueReviews(due || []);
                     setUpcomingReviews(upcoming || []);
                     setReviewedThisWeek(count || 0);
+                    setDueSkillsList(skills || []);
                     onDueCountChange?.((due || []).length);
                 }
             } catch (err) {
@@ -172,6 +176,35 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                         renderDueList()
                     )}
                 </div>
+
+                {/* Skills Due Section */}
+                {dueSkillsList.length > 0 && (
+                    <div className="mb-4">
+                        <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">Skills Due for Review</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {dueSkillsList.map((skill) => (
+                                <button
+                                    key={skill.skillId}
+                                    onClick={() => router.push(`/interview?tags=${skill.suggestedTags.slice(0, 2).join(',')}&mode=review`)}
+                                    className={cn(
+                                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                                        "border hover:scale-105",
+                                        skill.daysOverdue > 3
+                                            ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
+                                            : skill.daysOverdue > 0
+                                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+                                                : "bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
+                                    )}
+                                >
+                                    {skill.skillName}
+                                    <span className="text-[10px] opacity-70">
+                                        {skill.daysOverdue > 0 ? `${skill.daysOverdue}d overdue` : 'due today'}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-auto space-y-2 pt-4 border-t border-amber-800/20">
                     <div className="flex justify-between items-center text-xs">
