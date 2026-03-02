@@ -15,6 +15,7 @@
 
 import { supabaseHybridSearch } from './supabaseVectorStore';
 import type { SearchResult } from './types';
+import { type SupabaseClient } from '@supabase/supabase-js';
 
 export type InterviewPhase =
     | 'intro' | 'approach' | 'coding'
@@ -49,6 +50,7 @@ interface PhaseContext {
 const phaseContextCache = new Map<string, PhaseContext>();
 
 export async function getPhaseContext(
+    supabase: SupabaseClient,
     sessionId: string,
     phase: InterviewPhase,
     problemTitle: string,
@@ -64,7 +66,7 @@ export async function getPhaseContext(
     const limit = PHASE_CHUNK_COUNTS[phase];
 
     const start = Date.now();
-    const chunks = await supabaseHybridSearch(query, limit);
+    const chunks = await supabaseHybridSearch(supabase, query, limit);
     const retrievalMs = Date.now() - start;
 
     const contextString = chunks.length === 0

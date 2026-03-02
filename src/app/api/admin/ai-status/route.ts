@@ -1,28 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAIClient } from "@/lib/ai/client";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 
 export async function GET() {
     try {
         // 1. Admin Security Check
-        const supabase = await createServerSupabase();
-
-        // Get user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // Check admin role via admin_users table (Source of Truth)
-        const { data: adminRecord } = await supabase
-            .from('admin_users')
-            .select('id')
-            .eq('email', user.email!)
-            .single();
-
-        if (!adminRecord) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
         // 2. Fetch Status
         const client = getAIClient();

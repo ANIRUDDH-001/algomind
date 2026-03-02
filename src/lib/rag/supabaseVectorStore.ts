@@ -1,9 +1,8 @@
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getAIClient } from '@/lib/ai/client';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { SearchResult, KnowledgeChunk } from './types';
 
-export async function supabaseHybridSearch(query: string, limit = 3): Promise<SearchResult[]> {
-    const supabase = await createServerSupabase();
+export async function supabaseHybridSearch(supabase: SupabaseClient, query: string, limit = 3): Promise<SearchResult[]> {
     const client = getAIClient();
 
     // Get embedding for query

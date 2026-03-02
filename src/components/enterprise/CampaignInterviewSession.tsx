@@ -409,7 +409,10 @@ function ActiveQuestionView({
             loadTranscript(prevTranscript as any);
         } else {
             // New question, send start ping
-            startInterview(problem.title, problem.description, undefined, undefined, undefined);
+            startInterview({
+                problemTitle: problem.title,
+                problemContent: problem.description
+            });
         }
     }, []); // Run ONCE on mount
 

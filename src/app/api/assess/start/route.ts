@@ -9,7 +9,7 @@ validateEnv();
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { campaignToken, candidateName, candidateEmail, entryCodeVerified } = body;
+        const { campaignToken, candidateName, candidateEmail, entryCode } = body;
 
         if (!campaignToken || !candidateName) {
             return NextResponse.json({ error: 'campaignToken and candidateName are required' }, { status: 400 });
@@ -36,6 +36,23 @@ export async function POST(req: NextRequest) {
                 { error: 'Assessment link not found or no longer available.' },
                 { status: 404 }
             );
+        }
+
+        // Re-verify entry code server-side. Client cannot bypass this by sending a boolean flag.
+        if (entryCode) {
+            const sanitizedCode = String(entryCode).trim().toUpperCase();
+            const { data: verifyData, error: verifyError } = await supabase
+                .rpc('verify_campaign_entry_code', {
+                    p_public_token: campaignToken,
+                    p_entry_code: sanitizedCode,
+                });
+            const verifyResult = Array.isArray(verifyData) ? verifyData[0] : verifyData;
+            if (verifyError || !verifyResult?.valid) {
+                return NextResponse.json(
+                    { error: 'Invalid entry code. Please go back and re-enter your code.' },
+                    { status: 403 }
+                );
+            }
         }
 
         // Get authenticated user for the submission
@@ -177,7 +194,7 @@ export async function POST(req: NextRequest) {
                     status: 'in_progress',
                     assigned_problem_id: selectedProblemId, // Keep for backward compat
                     question_states: questionStates,
-                    entry_code_verified: !!entryCodeVerified
+                    entry_code_verified: !!entryCode
                 })
                 .select('id, created_at')
                 .single();
@@ -230,6 +247,7 @@ export async function POST(req: NextRequest) {
                 const phases: InterviewPhase[] = ['intro', 'approach', 'coding', 'testing', 'complexity', 'wrap-up'];
                 const phaseContexts = await Promise.all(
                     phases.map(phase => getPhaseContext(
+                        supabase,
                         submissionId,
                         phase,
                         firstProblem.title,

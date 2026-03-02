@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
             const phase = STATE_TO_PHASE[interviewState] ?? 'approach';
             try {
                 const phaseRag = await getPhaseContext(
+                    supabase,
                     clientSessionId || 'default',
                     phase,
                     problemContext.title,

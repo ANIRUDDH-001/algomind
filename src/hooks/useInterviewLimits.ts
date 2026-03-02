@@ -24,12 +24,21 @@ export interface InterviewLimits {
 }
 
 export function useInterviewLimits(options?: {
-    maxDurationMins?: number;
+    maxDurationMins?: number;   // old path: minutes
+    maxDurationMs?: number;     // InterviewConfig path: milliseconds
+    maxTurnsPerProblem?: number; // InterviewConfig field name
+    maxTurns?: number;           // old field name
     startTimeOffsetSeconds?: number;
-    maxTurns?: number;            // ADD: override the turn ceiling
+    isUnlimited?: boolean;       // InterviewConfig field
 }): InterviewLimits {
-    const maxDurationMs = (options?.maxDurationMins || 20) * 60 * 1000;
-    const effectiveMaxTurns = options?.maxTurns ?? MAX_TURNS;  // ADD this line
+    const maxDurationMs =
+        options?.maxDurationMs ??
+        ((options?.maxDurationMins ?? 20) * 60 * 1000);
+    const effectiveMaxTurns =
+        options?.maxTurnsPerProblem ??
+        options?.maxTurns ??
+        MAX_TURNS;
+    const isUnlimited = options?.isUnlimited ?? false;
     const initialElapsed = options?.startTimeOffsetSeconds || 0;
 
     const [elapsedTime, setElapsedTime] = useState(initialElapsed); // in seconds
@@ -86,10 +95,10 @@ export function useInterviewLimits(options?: {
 
     // Derived values
     const timeRemaining = Math.max(0, Math.floor(maxDurationMs / 1000) - elapsedTime);
-    const turnsRemaining = Math.max(0, effectiveMaxTurns - turnsUsed);
-    const isTimeUp = elapsedTime >= maxDurationMs / 1000;
-    const isTurnsUp = turnsUsed >= effectiveMaxTurns;
-    const shouldShowTurnWarning = turnsRemaining <= WARNING_TURNS_REMAINING && !isTurnsUp;
+    const turnsRemaining = isUnlimited ? 9999 : Math.max(0, effectiveMaxTurns - turnsUsed);
+    const isTimeUp = !isUnlimited && (elapsedTime >= maxDurationMs / 1000);
+    const isTurnsUp = !isUnlimited && (turnsUsed >= effectiveMaxTurns);
+    const shouldShowTurnWarning = !isUnlimited && turnsRemaining <= WARNING_TURNS_REMAINING && !isTurnsUp;
 
     // Format time as MM:SS
     const formatTime = (seconds: number): string => {

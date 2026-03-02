@@ -62,6 +62,8 @@ describe('PHASE_CHUNK_COUNTS', () => {
     });
 });
 
+const mockSupabase = {} as any;
+
 describe('getPhaseContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -71,20 +73,20 @@ describe('getPhaseContext', () => {
 
     it('approach phase query includes "algorithm pattern"', async () => {
         mockHybridSearch.mockResolvedValueOnce([makeFakeChunk('Sliding Window', 'patterns', 'Content here')]);
-        await getPhaseContext('test-session', 'approach', 'Two Sum', ['arrays']);
-        expect(mockHybridSearch.mock.calls[0][0]).toContain('algorithm pattern');
+        await getPhaseContext(mockSupabase, 'test-session', 'approach', 'Two Sum', ['arrays']);
+        expect(mockHybridSearch.mock.calls[0][1]).toContain('algorithm pattern');
     });
 
     it('complexity phase query includes "time complexity space complexity"', async () => {
         mockHybridSearch.mockResolvedValueOnce([makeFakeChunk('Big O', 'complexity', 'Analysis content')]);
-        await getPhaseContext('test-session', 'complexity', 'Two Sum', []);
-        expect(mockHybridSearch.mock.calls[0][0]).toContain('time complexity space complexity');
+        await getPhaseContext(mockSupabase, 'test-session', 'complexity', 'Two Sum', []);
+        expect(mockHybridSearch.mock.calls[0][1]).toContain('time complexity space complexity');
     });
 
     it('caches result for same sessionId + phase combination', async () => {
         mockHybridSearch.mockResolvedValueOnce([makeFakeChunk('Result', 'topic', 'Content')]);
-        const result1 = await getPhaseContext('session-a', 'approach', 'Two Sum', ['arrays']);
-        const result2 = await getPhaseContext('session-a', 'approach', 'Two Sum', ['arrays']);
+        const result1 = await getPhaseContext(mockSupabase, 'session-a', 'approach', 'Two Sum', ['arrays']);
+        const result2 = await getPhaseContext(mockSupabase, 'session-a', 'approach', 'Two Sum', ['arrays']);
 
         expect(result1).toBe(result2);
         expect(mockHybridSearch).toHaveBeenCalledTimes(1); // Only called once, second is cached
@@ -95,8 +97,8 @@ describe('getPhaseContext', () => {
             .mockResolvedValueOnce([makeFakeChunk('Intro Chunk', 'intro', 'Intro content')])
             .mockResolvedValueOnce([makeFakeChunk('Approach Chunk', 'patterns', 'Approach content')]);
 
-        const introResult = await getPhaseContext('session-a', 'intro', 'Two Sum', ['arrays']);
-        const approachResult = await getPhaseContext('session-a', 'approach', 'Two Sum', ['arrays']);
+        const introResult = await getPhaseContext(mockSupabase, 'session-a', 'intro', 'Two Sum', ['arrays']);
+        const approachResult = await getPhaseContext(mockSupabase, 'session-a', 'approach', 'Two Sum', ['arrays']);
 
         expect(introResult).not.toBe(approachResult);
         expect(introResult).toContain('Intro Chunk');
@@ -105,14 +107,14 @@ describe('getPhaseContext', () => {
 
     it('falls back gracefully when supabaseHybridSearch throws', async () => {
         mockHybridSearch.mockRejectedValueOnce(new Error('Search failed'));
-        await expect(getPhaseContext('test-session', 'coding', 'Two Sum', [])).rejects.toThrow('Search failed');
+        await expect(getPhaseContext(mockSupabase, 'test-session', 'coding', 'Two Sum', [])).rejects.toThrow('Search failed');
     });
 
     it('clearPhaseCache removes all keys for a session', async () => {
         mockHybridSearch.mockResolvedValue([makeFakeChunk('Result', 'topic', 'Content')]);
 
-        await getPhaseContext('session-a', 'intro', 'Two Sum', []);
-        await getPhaseContext('session-a', 'approach', 'Two Sum', []);
+        await getPhaseContext(mockSupabase, 'session-a', 'intro', 'Two Sum', []);
+        await getPhaseContext(mockSupabase, 'session-a', 'approach', 'Two Sum', []);
 
         const cache = _getPhaseContextCache();
         expect(cache.has('session-a:intro')).toBe(true);
@@ -126,7 +128,7 @@ describe('getPhaseContext', () => {
 
     it('returns "No relevant context found." when search returns empty', async () => {
         mockHybridSearch.mockResolvedValueOnce([]);
-        const result = await getPhaseContext('test-session', 'intro', 'Two Sum', []);
+        const result = await getPhaseContext(mockSupabase, 'test-session', 'intro', 'Two Sum', []);
         expect(result).toBe('No relevant context found.');
     });
 
@@ -135,11 +137,11 @@ describe('getPhaseContext', () => {
         const phases: InterviewPhase[] = ['intro', 'approach', 'coding', 'testing', 'complexity', 'wrap-up'];
         for (const phase of phases) {
             clearPhaseCache('count-test');
-            await getPhaseContext('count-test', phase, 'Test', []);
+            await getPhaseContext(mockSupabase, 'count-test', phase, 'Test', []);
         }
         // Verify each call used the correct limit
         phases.forEach((phase, i) => {
-            expect(mockHybridSearch.mock.calls[i][1]).toBe(PHASE_CHUNK_COUNTS[phase]);
+            expect(mockHybridSearch.mock.calls[i][2]).toBe(PHASE_CHUNK_COUNTS[phase]);
         });
     });
 });

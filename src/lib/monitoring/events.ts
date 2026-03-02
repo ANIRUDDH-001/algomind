@@ -16,9 +16,12 @@ export type SystemEventType =
     | 'cron_triggered'
     | 'cron_running'
     | 'batch_job_complete'
-    | 'admin_action'
     | 'assessment_insufficient'
-    | 'voice_session_start';
+    | 'voice_session_start'
+    | 'tts_fallback'
+    | 'stt_fallback'
+    | 'vad_fallback'
+    | 'admin_action';
 
 export interface SystemEventPayload {
     type: SystemEventType;

@@ -28,15 +28,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!serviceKey) {
-            console.error('[Security] SUPABASE_SERVICE_ROLE_KEY is not set — refusing to sign JWT');
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!jwtSecret) {
+            console.error('[Security] No JWT secret available — SUPABASE_JWT_SECRET and SUPABASE_SERVICE_ROLE_KEY are both unset');
             return NextResponse.json(
                 { error: 'Server misconfiguration. Contact administrator.' },
                 { status: 500 }
             );
         }
-        const secret = new TextEncoder().encode(serviceKey);
+        const secret = new TextEncoder().encode(jwtSecret);
 
         const supabase = await createServerSupabase();
         const supabaseAdmin = getServiceClient();
