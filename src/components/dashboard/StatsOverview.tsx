@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown, Target, Clock, Code2, Sparkles } from 'lucide
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { CognitiveSkill } from '@/types/assessment';
 import { getSupabase } from '@/lib/supabase/client';
+import { HireReadinessTrend } from './HireReadinessTrend';
 
 interface StatsOverviewProps {
     progress: UserProgress | null;
@@ -20,6 +21,7 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
     const AVG_SCORE = progress.averageScore;
 
     const [streakData, setStreakData] = useState<{ current: number; longest: number } | null>(null);
+    const [hireTrend, setHireTrend] = useState<any[]>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -39,6 +41,23 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
             }
         }
         fetchStreak();
+
+        async function fetchHireTrend() {
+            if (!progress?.userId) return;
+            const supabase = getSupabase();
+            if (!supabase) return;
+
+            const { data } = await supabase
+                .from('learner_profiles')
+                .select('hire_readiness_trend')
+                .eq('user_id', progress.userId)
+                .maybeSingle();
+
+            if (mounted && data?.hire_readiness_trend) {
+                setHireTrend(data.hire_readiness_trend as any[]);
+            }
+        }
+        fetchHireTrend();
         return () => { mounted = false; };
     }, [progress?.userId]);
 
@@ -124,6 +143,9 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Hire Readiness Trend */}
+            <HireReadinessTrend trend={hireTrend} />
         </div>
     );
 }
