@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'campaignToken and candidateName are required' }, { status: 400 });
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to sign JWT');
-            return NextResponse.json({ error: 'Server misconfiguration.' }, { status: 500 });
+            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to sign assessment JWT. This is a deployment configuration error.');
+            return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
         const secret = new TextEncoder().encode(jwtSecret);
 

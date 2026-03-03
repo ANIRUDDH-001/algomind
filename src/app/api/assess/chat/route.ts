@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify JWT');
+            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT. This is a deployment configuration error.');
             return NextResponse.json(
                 { error: 'Server misconfiguration. Contact administrator.' },
                 { status: 500 }

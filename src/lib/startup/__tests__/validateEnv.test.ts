@@ -131,6 +131,7 @@ describe('validateEnv', () => {
         NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
+        SUPABASE_JWT_SECRET: 'test-jwt-secret',
         UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
         UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
     };
@@ -198,7 +199,7 @@ describe('validateEnv', () => {
             'GROQ_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
             'AWS_S3_BUCKET', 'AWS_REGION', 'UPSTASH_REDIS_REST_URL',
             'UPSTASH_REDIS_REST_TOKEN', 'NEXT_PUBLIC_APP_URL',
-            'SUPABASE_JWT_SECRET', 'SUPABASE_DIRECT_URL',
+            'SUPABASE_DIRECT_URL',
             'CRON_SECRET', 'PISTON_URL', 'GITHUB_TOKEN', 'GITHUB_REPO',
         ];
         for (const key of highKeys) {
@@ -209,7 +210,7 @@ describe('validateEnv', () => {
         const warnCalls = consoleWarnSpy.mock.calls.filter(
             (call: unknown[]) => typeof call[0] === 'string' && (call[0] as string).includes('HIGH ENV VAR MISSING')
         );
-        // 14 keys explicitly deleted + AWS_REGION may or may not be set
-        expect(warnCalls.length).toBeGreaterThanOrEqual(14);
+        // 13 keys explicitly deleted + AWS_REGION may or may not be set
+        expect(warnCalls.length).toBeGreaterThanOrEqual(13);
     });
 });
