@@ -50,22 +50,30 @@ export function useTTS(opts: UseTTSOptions = {}) {
         return () => { window.speechSynthesis.onvoiceschanged = null; };
     }, []);
 
-    // 3. Rebuild engine when voice/rate/pitch changes
+    // 3. Create engine ONCE on mount — never destroy/recreate mid-session.
+    // Previously, this effect depended on [prefVoice, voiceRate, voicePitch],
+    // causing destroy()+recreate on EVERY voice config change. Each destroy()
+    // incremented invId (cancelling in-flight speak()) and fired spurious
+    // onSpeakingChange(false) → onSpeakEnd → mic-sync reset → transcript cleared.
     useEffect(() => {
-        engineRef.current?.destroy();
         const engine = new TTSEngine();
-        engine.setVoiceConfig(
-            prefVoice,
-            opts.voiceRate ?? 1.0,
-            opts.voicePitch ?? 1.0
-        );
         engine.onSpeakingChange = (v) => {
             setIsSpeaking(v);
             if (v) optsRef.current.onSpeakStart?.();
             else optsRef.current.onSpeakEnd?.();
         };
         engineRef.current = engine;
-        return () => engine.destroy();
+        return () => { engine.destroy(); engineRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // mount only
+
+    // 3b. Update voice config on existing engine (no destroy/recreate)
+    useEffect(() => {
+        engineRef.current?.setVoiceConfig(
+            prefVoice,
+            opts.voiceRate ?? 1.0,
+            opts.voicePitch ?? 1.0
+        );
     }, [prefVoice, opts.voiceRate, opts.voicePitch]);
 
     // 4. Override browser voice settings on utterance level via a wrapper speak

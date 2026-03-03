@@ -188,14 +188,17 @@ export function useInterview(options: {
     const resumeSpeaking = () => { };
 
     // ── Stable refs for values read inside timers / effects ──────────
+    // Synchronous updates during render — eliminates 1-render-cycle lag
+    // that caused duplicate mic starts (mic sync checked stale ref before
+    // the useEffect could propagate the new value).
     const isListeningRef = useRef(false);
-    useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
+    isListeningRef.current = isListening;
 
     const isSpeakingRef = useRef(false);
-    useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
+    isSpeakingRef.current = isSpeaking;
 
     const isProcessingRef = useRef(false);
-    useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+    isProcessingRef.current = isProcessing;
 
     // Time limit enforcement: tied strictly to global UI hook
     useEffect(() => {
@@ -364,8 +367,24 @@ export function useInterview(options: {
         }
     }, [stopListening, addMessage, resetTranscript, callChatApi, speak, roundCount, interviewStartTime]);
 
-    // Phase 2e: Auto-Submit removed — user sends manually via Send button.
-    // The hasPendingSend state + sendPendingTranscript() remain for manual send.
+    // Phase 2e: Auto-Submit on silence — submit accumulated transcript after 4s of no new speech.
+    // Works alongside the manual Send button.
+    useEffect(() => {
+        if (!autoSubmitEnabled) return;
+        if (!transcript.trim()) return;
+        if (state === 'idle' || state === 'completed') return;
+        if (isProcessing || isSpeaking) return;
+
+        const timer = setTimeout(() => {
+            const text = transcriptRef.current.trim();
+            if (text && currentProblemRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
+                console.log(`[useInterview] Auto-submit after 4s silence: "${text.substring(0, 60)}..."`);
+                submitUserResponse(text, currentProblemRef.current);
+            }
+        }, 4000);
+
+        return () => clearTimeout(timer);
+    }, [transcript, autoSubmitEnabled, state, isProcessing, isSpeaking, submitUserResponse]);
 
     // Core Logic
     const startInterview = useCallback(async (opts: {
@@ -385,6 +404,7 @@ export function useInterview(options: {
         }
         conversationHistoryRef.current = [];
         setMessages([]);
+        resetTranscript();
         currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
@@ -532,7 +552,9 @@ export function useInterview(options: {
                 // Re-check conditions inside the timeout
                 if (!isSpeakingRef.current && !isProcessingRef.current && !isListeningRef.current) {
                     console.log(`[Mic Sync] Starting mic. sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
-                    resetTranscript();
+                    // NOTE: Don't call resetTranscript() here — it clears valid accumulated
+                    // transcript on every mic restart. Transcript is correctly reset in
+                    // submitUserResponse() and startInterview() when appropriate.
                     startListening();
                     if (sttProvider === 'whisper') vad.startListening();
                 }
