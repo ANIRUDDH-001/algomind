@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!jwtSecret) {
-            console.error('[Security] No JWT secret available — SUPABASE_JWT_SECRET and SUPABASE_SERVICE_ROLE_KEY are both unset');
+            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT. This is a deployment configuration error.');
             return NextResponse.json(
                 { error: 'Server misconfiguration. Contact administrator.' },
                 { status: 500 }

@@ -5,7 +5,8 @@ export function validateEnv(): void {
     const criticalVars = [
         { key: "NEXT_PUBLIC_SUPABASE_URL", use: "Supabase project URL" },
         { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", use: "Supabase anon key" },
-        { key: "SUPABASE_SERVICE_ROLE_KEY", use: "Service role key (NEVER use fallback string for this)" },
+        { key: "SUPABASE_SERVICE_ROLE_KEY", use: "Service role key (NEVER use as JWT secret)" },
+        { key: "SUPABASE_JWT_SECRET", use: "JWT signing secret for candidate assessment sessions — must be separate from service role key" },
     ];
 
     for (const { key, use } of criticalVars) {
@@ -30,7 +31,6 @@ export function validateEnv(): void {
 
         // Auth
         { key: "NEXT_PUBLIC_APP_URL", issue: "OAuth callback URLs will be wrong — OAuth login will fail in production" },
-        { key: "SUPABASE_JWT_SECRET", issue: "Custom JWT verification flows will fail" },
         { key: "SUPABASE_DIRECT_URL", issue: "Supabase Realtime and direct DB connections may fail" },
 
         // Operational

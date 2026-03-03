@@ -17,15 +17,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!serviceKey) {
-            console.error('[Security] SUPABASE_SERVICE_ROLE_KEY is not set — refusing to sign JWT');
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+        if (!jwtSecret) {
+            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT');
             return NextResponse.json(
                 { saved: false },
-                { status: 200 }
+                { status: 500 }
             );
         }
-        const secret = new TextEncoder().encode(serviceKey);
+        const secret = new TextEncoder().encode(jwtSecret);
 
         // 1. Validate candidate JWT securely
         let payload;

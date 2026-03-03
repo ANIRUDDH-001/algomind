@@ -81,8 +81,8 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     beforeEach(async () => {
         vi.resetAllMocks();
 
-        process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
-        const secret = new TextEncoder().encode(process.env.SUPABASE_SERVICE_ROLE_KEY);
+        process.env.SUPABASE_JWT_SECRET = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
+        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
         validToken = await new jose.SignJWT({
             submissionId: 'sub-123',
             campaignId: 'campaign-123',
@@ -104,7 +104,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     });
 
     afterEach(() => {
-        process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+        delete (process.env as any).SUPABASE_JWT_SECRET;
     });
 
     const createRequest = (body: any) => new NextRequest('http://localhost:3000/api/assess/complete', {
