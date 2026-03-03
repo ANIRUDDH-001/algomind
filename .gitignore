@@ -43,3 +43,29 @@ next-env.d.ts
 # Data files
 src/data/vector-store/
 *.db
+
+# Build and Compilation Logs
+build.log
+build_output*.txt
+ts-errors.txt
+ts_errors.log
+tsc-errors.txt
+tsc_out.txt
+
+# Linter Outputs
+eslint-output.json
+lint-errors.json
+lint-results.json
+lint.json
+
+# Test Output & Debug Files
+test-output.txt
+test-results.json
+test_debug.json
+test_out.txt
+test_output.txt
+test_results*.log
+vitest-errors.txt
+vitest-results.json
+vitest_report.json
+prompt-output.txt
