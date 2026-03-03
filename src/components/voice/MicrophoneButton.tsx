@@ -10,14 +10,26 @@ interface MicrophoneButtonProps {
     disabled?: boolean;
     className?: string;
     error?: string | null;
+    /** Phase 5c: Real-time mic volume level (0.0 to 1.0) */
+    audioLevel?: number;
+    /** Phase 5e: Called when user taps the button while in error state */
+    onRetry?: () => void;
 }
 
-export function MicrophoneButton({ isListening, onClick, disabled, className, error }: MicrophoneButtonProps) {
+export function MicrophoneButton({
+    isListening,
+    onClick,
+    disabled,
+    className,
+    error,
+    audioLevel = 0,
+    onRetry,
+}: MicrophoneButtonProps) {
     return (
         <div className="flex flex-col items-center gap-3">
             {/* Outer ring — only visible when listening */}
             <div className="relative flex items-center justify-center">
-                {isListening && (
+                {isListening && !error && (
                     <>
                         {[0, 1, 2].map(i => (
                             <motion.div key={i}
@@ -31,8 +43,21 @@ export function MicrophoneButton({ isListening, onClick, disabled, className, er
                     </>
                 )}
 
+                {/* Phase 5c: Audio level ring — green when audio detected, amber when no sound */}
+                {isListening && !error && audioLevel > 0 && (
+                    <motion.div
+                        className="absolute rounded-full border-2 border-green-400/60"
+                        style={{ inset: -4 }}
+                        animate={{
+                            scale: 1 + audioLevel * 0.3,
+                            opacity: 0.3 + audioLevel * 0.7,
+                        }}
+                        transition={{ duration: 0.1 }}
+                    />
+                )}
+
                 <motion.button
-                    onClick={onClick}
+                    onClick={error && onRetry ? onRetry : onClick}
                     disabled={disabled}
                     data-testid="mic-button"
                     whileTap={{ scale: 0.92 }}
@@ -70,7 +95,11 @@ export function MicrophoneButton({ isListening, onClick, disabled, className, er
                             : "text-zinc-500"
                 )}
             >
-                {error ? "Mic error" : isListening ? "Listening..." : "Click to speak"}
+                {error
+                    ? (onRetry ? "Tap to retry" : "Mic error")
+                    : isListening
+                        ? "Listening..."
+                        : "Click to speak"}
             </motion.span>
         </div>
     );

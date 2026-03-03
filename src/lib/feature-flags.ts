@@ -55,7 +55,7 @@ export const FEATURE_FLAGS = {
     // Whisper STT — server-controlled, client reflects server flag
     ENABLE_WHISPER_STT: {
         storageKey: 'feature_ENABLE_WHISPER_STT',
-        defaultValue: false, // Disabled by default — enable after testing
+        defaultValue: true, // Phase 3a: Enabled by default — high quality STT for all users
         description: 'Use Groq Whisper for speech recognition (better accuracy, requires network)',
         requiresBrowserSupport: true,
     },
