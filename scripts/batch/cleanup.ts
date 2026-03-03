@@ -10,6 +10,15 @@ export async function runCleanup(): Promise<void> {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Expire stale in_progress submissions
+    const { data: expiredCount, error: expireError } = await supabase
+        .rpc('expire_stale_submissions');
+    if (expireError) {
+        console.warn('[Cleanup] Failed to expire stale submissions:', expireError.message);
+    } else {
+        console.log(`[Cleanup] Expired ${expiredCount ?? 0} stale submissions`);
+    }
+
     // Call Supabase RPC cleanup_old_events()
     // Log how many rows deleted
     const { data, error } = await supabase.rpc('cleanup_old_events');
