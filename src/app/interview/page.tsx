@@ -117,16 +117,20 @@ function InterviewContent() {
                 let ragContext = '';
                 if (fetchedProblem && !isGuest) {
                     try {
-                        const { supabaseHybridSearch } = await import('@/lib/rag/supabaseVectorStore');
                         const query = `${fetchedProblem.title} ${fetchedProblem.description}`.slice(0, 500);
-                        let chunks: any[] = [];
-                        if (supabase) {
-                            chunks = await supabaseHybridSearch(supabase, query, 3);
-                        }
-                        if (Array.isArray(chunks) && chunks.length > 0) {
-                            ragContext = chunks
-                                .map((r: any) => `### ${r.chunk?.title ?? ''}\n${r.chunk?.content ?? ''}`)
-                                .join('\n\n---\n\n');
+                        const res = await fetch('/api/rag/context', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ query })
+                        });
+
+                        if (res.ok) {
+                            const { chunks } = await res.json();
+                            if (Array.isArray(chunks) && chunks.length > 0) {
+                                ragContext = chunks
+                                    .map((r: any) => `### ${r.title ?? ''}\n${r.content ?? ''}`)
+                                    .join('\n\n---\n\n');
+                            }
                         }
                     } catch (e) {
                         console.warn('[RAG] Failed to fetch context — proceeding without it:', e);

@@ -114,6 +114,7 @@ export function useInterview(options: {
                 if (!tts.isSpeaking && !hasPendingRef.current) {
                     setIsMicEnabled(true);
                     stt.startListening();
+                    if (sttProvider === 'whisper') vad.startListening();
                 }
             }, 400);
         },
@@ -142,7 +143,7 @@ export function useInterview(options: {
     });
 
     const vad = useVAD({
-        enabled: optionsRef.current.config.mode !== 'guest' && optionsRef.current.config.difficultyMode !== undefined,
+        enabled: options.config.mode !== 'guest' && options.config.difficultyMode !== undefined,
         onSpeechEnd: (audio) => stt.transcribeAudio(audio),
     });
 
