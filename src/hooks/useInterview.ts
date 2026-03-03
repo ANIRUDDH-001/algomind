@@ -101,8 +101,14 @@ export function useInterview(options: {
 
     // ── STT & TTS ───────────────────────────────────────
     const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT');
+
+    // Track whether VAD failed and we need to cascade to browser STT
+    const [vadFailed, setVadFailed] = useState(false);
+
+    // sttProvider: start with 'whisper' if enabled, but cascade to 'browser' if VAD fails
     const sttProvider = (
         whisperEnabled &&
+        !vadFailed &&
         typeof window !== 'undefined' &&
         typeof window.MediaRecorder !== 'undefined'
     ) ? 'whisper' as const : 'browser' as const;
@@ -148,6 +154,11 @@ export function useInterview(options: {
     const vad = useVAD({
         enabled: sttProvider === 'whisper',
         onSpeechEnd: (audio) => stt.transcribeAudio(audio),
+        onFallback: () => {
+            // VAD failed (ONNX unavailable) — cascade to browser SpeechRecognition
+            console.warn('[useInterview] VAD failed, cascading to browser STT');
+            setVadFailed(true);
+        },
     });
 
     // Legacy aliases
@@ -505,11 +516,14 @@ export function useInterview(options: {
             !isSpeaking &&
             !isProcessing;
 
+        console.log(`[Mic Sync] micIntent=${micIntent}, isSpeaking=${isSpeaking}, isProcessing=${isProcessing}, shouldListen=${shouldListen}, isListening=${isListeningRef.current}, sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
+
         if (shouldListen && !isListeningRef.current) {
             // Small delay to avoid tight loops during state transitions
             const timer = setTimeout(() => {
                 // Re-check conditions inside the timeout
                 if (!isSpeakingRef.current && !isProcessingRef.current && !isListeningRef.current) {
+                    console.log(`[Mic Sync] Starting mic. sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
                     resetTranscript();
                     startListening();
                     if (sttProvider === 'whisper') vad.startListening();
