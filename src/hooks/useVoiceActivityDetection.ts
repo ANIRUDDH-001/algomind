@@ -33,9 +33,12 @@ export function useVoiceActivityDetection(opts: UseVoiceActivityDetectionOptions
         (async () => {
             try {
                 if (manager.state === VADState.IDLE) {
+                    console.log('[useVoiceActivityDetection] Initializing VADManager...');
                     await manager.init();
                 }
                 if (cancelled) return;
+
+                console.log('[useVoiceActivityDetection] Registering callbacks. State:', manager.state);
 
                 unsubs.push(manager.onSpeechStart(() => {
                     optsRef.current.onSpeechStart?.();
@@ -45,13 +48,19 @@ export function useVoiceActivityDetection(opts: UseVoiceActivityDetectionOptions
                     optsRef.current.onSpeechEnd?.(audio);
                 }));
 
-                if (opts.autoStart && manager.state === VADState.PAUSED) {
-                    await manager.start();
-                    if (!cancelled) setIsListening(true);
+                if (opts.autoStart && (manager.state === VADState.PAUSED || manager.state === VADState.LISTENING)) {
+                    if (manager.state !== VADState.LISTENING) {
+                        await manager.start();
+                    }
+                    if (!cancelled) {
+                        setIsListening(true);
+                        console.log('[useVoiceActivityDetection] VAD listening ✓');
+                    }
                 }
             } catch (err) {
                 if (cancelled) return;
                 const e = err instanceof Error ? err : new Error('VAD init failed');
+                console.error('[useVoiceActivityDetection] Init failed:', e.message);
                 setError(e);
                 optsRef.current.onError?.(e);
             }
