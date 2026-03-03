@@ -10,7 +10,7 @@ export interface QuestionState {
   problem_id: string;
   order: number;
   time_limit_mins: number;
-  status: 'not_started' | 'in_progress' | 'completed' | 'time_expired';
+  status: 'not_started' | 'in_progress' | 'completed' | 'expired';
   started_at: string | null;       // ISO string
   completed_at: string | null;     // ISO string
   elapsed_secs: number;            // seconds used so far
@@ -42,7 +42,7 @@ export interface CampaignSubmission {
   session_id: string | null;
   candidate_name: string;
   candidate_email: string;
-  status: 'invited' | 'in_progress' | 'completed' | 'dropped_out' | 'time_expired';
+  status: 'invited' | 'in_progress' | 'completed' | 'dropped_out' | 'expired';
   overall_score: number | null;
   created_at: string;
   updated_at: string;

@@ -49,7 +49,7 @@ export async function addToQueue(params: {
                 ease_factor: 2.5, // keep stable for SM2 fallback representation
                 repetitions: result.intervalDays > 0 ? (existing.repetitions || 0) + 1 : 0,
                 next_review: result.fsrs_due,
-                last_reviewed: new Date().toISOString(),
+                last_reviewed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 use_fsrs: true,
                 last_quality: result.lastQuality,
@@ -79,7 +79,7 @@ export async function addToQueue(params: {
                 ease_factor: 2.5,
                 repetitions: result.intervalDays > 0 ? 1 : 0,
                 next_review: result.fsrs_due,
-                last_reviewed: new Date().toISOString(),
+                last_reviewed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 use_fsrs: true,
                 last_quality: result.lastQuality,
