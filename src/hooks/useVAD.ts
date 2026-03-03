@@ -10,6 +10,10 @@
  *   2. Push-to-talk fallback — no VAD, user controls mic manually
  *
  * Phase 3b: push-to-talk no longer fakes isListening = true.
+ *
+ * FIX: onSpeechEnd callback is registered once in a setup effect (not in startListening),
+ *      preventing duplicate subscriptions. VAD failure triggers onFallback callback
+ *      so useInterview can cascade to browser SpeechRecognition.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -21,67 +25,112 @@ export interface UseVADOptions {
     enabled: boolean;
     onSpeechEnd?: (audio: Float32Array) => void;
     onError?: (err: Error) => void;
+    /** Called when VAD degrades to push-to-talk — parent should cascade to browser STT */
+    onFallback?: () => void;
 }
 
 export function useVAD(opts: UseVADOptions) {
     const [mode, setMode] = useState<VADMode>('push-to-talk');
     const [isListening, setIsListening] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const [initAttempted, setInitAttempted] = useState(false);
 
-    const managerRef = useRef<{ stop: () => Promise<void>; destroy?: () => Promise<void>; init: () => Promise<void>; start: () => Promise<void>; state: string; onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void) } | null>(null);
-    const unsubsRef = useRef<(() => void)[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const managerRef = useRef<any>(null);
+    const unsubRef = useRef<(() => void) | null>(null);
     const optsRef = useRef(opts);
     useEffect(() => { optsRef.current = opts; }, [opts]);
 
-    // Detect ONNX support
+    // Detect ONNX support on mount
+    const onnxSupported = useRef(false);
     useEffect(() => {
         if (!opts.enabled) return;
         const supported =
             typeof SharedArrayBuffer !== 'undefined' &&
             typeof window !== 'undefined' &&
             !!window.AudioWorklet;
-        setMode(supported ? 'onnx' : 'push-to-talk');
-        if (!supported) setIsReady(true);
+        onnxSupported.current = supported;
+        if (supported) {
+            setMode('onnx');
+        } else {
+            console.warn('[useVAD] ONNX not supported (no SharedArrayBuffer or AudioWorklet). Using push-to-talk.');
+            setMode('push-to-talk');
+            setIsReady(true);
+        }
     }, [opts.enabled]);
 
-    const startListening = useCallback(async () => {
-        if (!opts.enabled) return;
+    // Register onSpeechEnd callback ONCE when manager is available, not in startListening.
+    // This prevents duplicate subscriptions when startListening is called multiple times.
+    const registerCallback = useCallback((manager: { onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void) }) => {
+        // Unsubscribe previous if any
+        if (unsubRef.current) {
+            unsubRef.current();
+            unsubRef.current = null;
+        }
+        const unsub = manager.onSpeechEnd?.((audio: Float32Array) => {
+            console.log(`[useVAD] onSpeechEnd fired, audio length: ${audio.length}`);
+            optsRef.current.onSpeechEnd?.(audio);
+        });
+        if (unsub) unsubRef.current = unsub;
+    }, []);
 
-        // Phase 3b: push-to-talk has no real mic capture — don't claim we're listening
-        if (mode === 'push-to-talk') {
+    const startListening = useCallback(async () => {
+        if (!opts.enabled) {
+            console.log('[useVAD] Not enabled, skipping startListening');
+            return;
+        }
+
+        // If ONNX not supported or already failed, don't retry
+        if (!onnxSupported.current || (initAttempted && mode === 'push-to-talk')) {
+            console.log(`[useVAD] Skipping startListening: onnxSupported=${onnxSupported.current}, mode=${mode}`);
             setIsListening(false);
             setIsReady(true);
+            // Notify parent to fall back to browser STT
+            optsRef.current.onFallback?.();
             return;
         }
 
         // ONNX mode: use vad-manager singleton
         try {
+            console.log('[useVAD] Starting ONNX VAD...');
             const { getVADManager } = await import('@/lib/voice/vad-manager');
             const manager = getVADManager();
             managerRef.current = manager;
 
-            // Register speech end callback
-            const unsub = manager.onSpeechEnd?.((audio: Float32Array) => {
-                optsRef.current.onSpeechEnd?.(audio);
-            });
-            if (unsub) unsubsRef.current.push(unsub);
+            // Register callback once (idempotent — cleans up previous)
+            registerCallback(manager);
 
             if (manager.state === VADState.IDLE) {
+                console.log('[useVAD] VADManager in IDLE state, initializing...');
+                setInitAttempted(true);
                 await manager.init();
+                console.log('[useVAD] VADManager initialized, state:', manager.state);
             }
-            await manager.start();
-            setIsListening(true);
-            setIsReady(true);
+
+            if (manager.state === VADState.PAUSED || manager.state === VADState.LISTENING) {
+                if (manager.state !== VADState.LISTENING) {
+                    await manager.start();
+                }
+                setIsListening(true);
+                setIsReady(true);
+                console.log('[useVAD] ONNX VAD listening ✓');
+            } else {
+                throw new Error(`Unexpected VAD state after init: ${manager.state}`);
+            }
         } catch (err) {
             const e = err instanceof Error ? err : new Error('VAD init failed');
+            console.error('[useVAD] ONNX VAD failed:', e.message);
             opts.onError?.(e);
-            // Silently downgrade to push-to-talk
+            // Downgrade to push-to-talk
             setMode('push-to-talk');
-            // Phase 3b: Honest — don't fake isListening
             setIsListening(false);
             setIsReady(true);
+            setInitAttempted(true);
+            // Notify parent to fall back to browser STT
+            optsRef.current.onFallback?.();
         }
-    }, [opts, mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [opts.enabled, mode, initAttempted, registerCallback]);
 
     const stopListening = useCallback(async () => {
         setIsListening(false);
@@ -91,9 +140,11 @@ export function useVAD(opts: UseVADOptions) {
     }, []);
 
     useEffect(() => () => {
-        // Cleanup subscriptions
-        unsubsRef.current.forEach(fn => fn());
-        unsubsRef.current = [];
+        // Cleanup subscription
+        if (unsubRef.current) {
+            unsubRef.current();
+            unsubRef.current = null;
+        }
         if (managerRef.current) {
             try { managerRef.current.destroy?.(); } catch { /* ignore */ }
         }
