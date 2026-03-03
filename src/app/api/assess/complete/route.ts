@@ -7,6 +7,11 @@ import { validateEnv } from '@/lib/startup/validateEnv';
 
 validateEnv();
 
+// Vercel Hobby plan hard limit: 60 seconds.
+// CognitiveAnalyzer + Gemini typically takes 15–45 seconds.
+// If this times out: upgrade to Vercel Pro (300s limit) or implement async analysis.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -104,6 +109,10 @@ export async function POST(req: NextRequest) {
 
         const analyzer = new CognitiveAnalyzer();
 
+        const startTotalTime = Date.now();
+        const ANALYSIS_TIMEOUT_MS = 50_000; // 50 seconds max for Vercel Hobby limit
+        let analysisTimedOut = false;
+
         for (const qs of questionStates) {
             if (!qs.problem_id) continue;
 
@@ -129,16 +138,36 @@ export async function POST(req: NextRequest) {
 
             // Generate a temporary UUID for the analyzer output format
             const tempSessionId = crypto.randomUUID();
-            let result;
+            let result: any;
+
+            const timeSpent = Date.now() - startTotalTime;
+            const remainingMs = ANALYSIS_TIMEOUT_MS - timeSpent;
+
+            if (remainingMs <= 0) {
+                analysisTimedOut = true;
+                break;
+            }
+
             try {
-                result = await analyzer.analyze(tempSessionId, problem, normalizedTranscript);
+                result = await Promise.race([
+                    analyzer.analyze(tempSessionId, problem, normalizedTranscript),
+                    new Promise<any>((_, reject) =>
+                        setTimeout(() => reject(new Error('Analysis timeout')), remainingMs)
+                    )
+                ]);
             } catch (analyzeError) {
-                console.error(`[Assess Complete] analyzer failed for problem ${qs.problem_id}:`, analyzeError);
+                const isTimeout = analyzeError instanceof Error && analyzeError.message === 'Analysis timeout';
+                console.error(`[Assess Complete] analyzer failed for problem ${qs.problem_id}:`, isTimeout ? 'TIMEOUT' : analyzeError);
+                if (isTimeout) {
+                    analysisTimedOut = true;
+                    break;
+                }
                 continue; // Skip this one, keep analyzing others
             }
 
             // Calculate overall score for this question
-            const qsScore = Object.values(result.skills).reduce((acc: any, s: any) => acc + s.score, 0) / Object.keys(result.skills).length;
+            const skillsRecord = (result as any).skills as Record<string, { score: number }>;
+            const qsScore = Object.values(skillsRecord).reduce((acc, s) => acc + s.score, 0) / Object.keys(skillsRecord).length;
 
             // Weight can be elapsed_secs, if 0 fallback to 1 
             const weight = Math.max(qs.elapsed_secs || 1, 1);
@@ -146,7 +175,7 @@ export async function POST(req: NextRequest) {
             totalScoreSum += qsScore * weight;
             totalWeightSum += weight;
 
-            const skills = result.skills as Record<string, { score: number }>;
+            const skills = (result as any).skills as Record<string, { score: number }>;
             aggProblemDecomp += (skills.problem_decomposition?.score || 0) * weight;
             aggPatternRecog += (skills.pattern_recognition?.score || 0) * weight;
             aggAlgThinking += (skills.algorithmic_thinking?.score || 0) * weight;
@@ -156,10 +185,30 @@ export async function POST(req: NextRequest) {
             aggOptimization += (skills.optimization_mindset?.score || 0) * weight;
             aggDebugging += (skills.debugging_approach?.score || 0) * weight;
 
-            allFeedbacks.push(`**Problem: ${problem.title}**\n${result.overallFeedback}`);
-            if (result.nextSteps?.length) {
-                allNextSteps = allNextSteps.concat(result.nextSteps);
+            allFeedbacks.push(`**Problem: ${problem.title}**\n${(result as any).overallFeedback}`);
+            if ((result as any).nextSteps?.length) {
+                allNextSteps = allNextSteps.concat((result as any).nextSteps);
             }
+        }
+
+        if (analysisTimedOut) {
+            console.warn('[Assess Complete] Analysis timed out. Saving as pending_retry.');
+            // Save submission as completed even without analysis
+            // The candidate still gets credit; analysis can be re-run from the owner panel
+            await supabaseAdmin
+                .from('candidate_submissions')
+                .update({
+                    status: 'completed',
+                    analysis_status: 'pending_retry',
+                    completed_at: new Date().toISOString(),
+                })
+                .eq('id', submissionId);
+
+            return NextResponse.json({
+                success: true,
+                analysisAvailable: false,
+                message: 'Assessment submitted successfully. Analysis is being processed.',
+            });
         }
 
         if (totalWeightSum === 0) {
@@ -221,9 +270,11 @@ export async function POST(req: NextRequest) {
             .from('candidate_submissions')
             .update({
                 status: 'completed',
+                analysis_status: 'completed',
                 session_id: sessionData.id,
                 overall_score: overallScore,
-                integrity_flags: integrityFlags || []
+                integrity_flags: integrityFlags || [],
+                completed_at: new Date().toISOString(),
             })
             .eq('id', submissionId);
 

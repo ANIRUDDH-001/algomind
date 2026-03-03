@@ -9,8 +9,14 @@ export async function GET(_req: NextRequest) {
             return NextResponse.json({ error: auth.error }, { status: auth.status });
         }
 
+        const url = new URL(_req.url);
+        const page = parseInt(url.searchParams.get('page') ?? '1', 10);
+        const limit = parseInt(url.searchParams.get('limit') ?? '50', 10);
+        const safeLimit = Math.min(Math.max(limit, 1), 100);
+        const offset = (page - 1) * safeLimit;
+
         const supabase = await createServerSupabase();
-        const { data, error } = await supabase
+        const { data, error, count } = await supabase
             .from('assessment_campaigns')
             .select(`
                 id,
@@ -26,9 +32,10 @@ export async function GET(_req: NextRequest) {
                 created_at,
                 show_score_to_candidate,
                 campaign_questions
-            `)
+            `, { count: 'exact' })
             .eq('created_by', auth.user.id)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .range(offset, offset + safeLimit - 1);
 
         if (error) {
             throw error;
@@ -56,7 +63,12 @@ export async function GET(_req: NextRequest) {
             completed_count: countsMap[c.id] || 0
         })) || [];
 
-        return NextResponse.json({ campaigns: campaignsWithCounts });
+        return NextResponse.json({
+            campaigns: campaignsWithCounts,
+            total: count ?? 0,
+            page,
+            limit: safeLimit,
+        });
     } catch (error: unknown) {
         console.error('[CAMPAIGNS_GET_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -45,6 +45,16 @@ export function validateEnv(): void {
             console.warn(`HIGH ENV VAR MISSING: ${key} - ${issue}`);
         }
     }
+
+    // Warn on known-dead env vars that should have been removed
+    const deadVars = [
+        'GROQ_TTS_MODEL',  // No Groq TTS implementation exists. Remove from Vercel.
+    ];
+    for (const v of deadVars) {
+        if (process.env[v as keyof NodeJS.ProcessEnv]) {
+            console.warn(`[validateEnv] WARNING: ${v} is set but not used by any code. Remove it from Vercel to avoid confusion.`);
+        }
+    }
 }
 
 export const env = {
