@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import AnalysisPage from '../analysis/page';
@@ -66,6 +66,10 @@ const mockAssessment = {
 };
 
 describe('AnalysisClient Component', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
     it('should render score and all 8 skills correctly', () => {
         render(
             <AnalysisClient
