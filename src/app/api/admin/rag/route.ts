@@ -179,7 +179,7 @@ async function triggerEmbedding(chunkId: string): Promise<void> {
 
     const { data: chunk } = await supabase
         .from('knowledge_chunks')
-        .select('title, content, subtopic, keywords')
+        .select('topic, subtopic, content, keywords')
         .eq('id', chunkId)
         .single();
 

@@ -30,7 +30,7 @@ export interface QuestionState {
     problem_id: string;
     order: number;
     time_limit_mins: number;
-    status: 'not_started' | 'in_progress' | 'completed' | 'time_expired';
+    status: 'not_started' | 'in_progress' | 'completed' | 'expired';
     started_at: string | null;
     completed_at: string | null;
     elapsed_secs: number;
@@ -98,7 +98,7 @@ export function CampaignInterviewSession({
     }, [questionStates, activeQuestionIdx, sessionToken, questions]);
 
     const handleSelectQuestion = (idx: number) => {
-        if (questionStates[idx].status === 'completed' || questionStates[idx].status === 'time_expired') {
+        if (questionStates[idx].status === 'completed' || questionStates[idx].status === 'expired') {
             return; // Can't select completed questions
         }
 
@@ -139,7 +139,7 @@ export function CampaignInterviewSession({
         const nextStates = [...questionStates];
         nextStates[idx] = {
             ...nextStates[idx],
-            status: 'time_expired',
+            status: 'expired',
             completed_at: new Date().toISOString(),
             elapsed_secs: elapsedSecs,
             transcript: finalTranscript,
@@ -207,7 +207,7 @@ export function CampaignInterviewSession({
                     <div className="space-y-4">
                         {questions.map((q, idx) => {
                             const state = questionStates[idx];
-                            const isDone = state.status === 'completed' || state.status === 'time_expired';
+                            const isDone = state.status === 'completed' || state.status === 'expired';
                             const isStarted = state.status === 'in_progress';
 
                             return (
@@ -250,8 +250,8 @@ export function CampaignInterviewSession({
                                                     {isDone && (
                                                         <>
                                                             <span>•</span>
-                                                            <span className={state.status === 'time_expired' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
-                                                                {state.status === 'time_expired' ? 'Time Expired' : 'Completed'}
+                                                            <span className={state.status === 'expired' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
+                                                                {state.status === 'expired' ? 'Time Expired' : 'Completed'}
                                                             </span>
                                                         </>
                                                     )}
@@ -290,7 +290,7 @@ export function CampaignInterviewSession({
                                                 <span className="text-slate-300 truncate pr-4">{q.title}</span>
                                                 <span className={cn(
                                                     "text-xs font-bold uppercase tracking-wider shrink-0",
-                                                    status === 'completed' || status === 'time_expired' ? "text-green-400" :
+                                                    status === 'completed' || status === 'expired' ? "text-green-400" :
                                                         status === 'in_progress' ? "text-blue-400" : "text-slate-500"
                                                 )}>
                                                     {status === 'not_started' ? 'Pending' :

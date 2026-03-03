@@ -5,7 +5,7 @@ import { QuestionState, CampaignData } from '@/types/campaign';
 
 export function getRemainingSeconds(state: QuestionState): number {
     const totalSecs = state.time_limit_mins * 60;
-    if (state.status === 'completed' || state.status === 'time_expired') return 0;
+    if (state.status === 'completed' || state.status === 'expired') return 0;
     if (!state.started_at) return totalSecs;
 
     const nowMs = Date.now();

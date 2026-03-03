@@ -58,7 +58,7 @@ export function CandidateHistoryTable({ submissions }: { submissions: Submission
             case 'completed': return <span className="px-2 py-1 rounded bg-green-500/10 text-green-400 font-bold border border-green-500/20 text-[10px] uppercase">Completed</span>;
             case 'in_progress': return <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 text-[10px] uppercase">In Progress</span>;
             case 'dropped_out': return <span className="px-2 py-1 rounded bg-red-500/10 text-red-400 font-bold border border-red-500/20 text-[10px] uppercase">Dropped Out</span>;
-            case 'time_expired': return <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400 font-bold border border-orange-500/20 text-[10px] uppercase">Time Expired</span>;
+            case 'expired': return <span className="px-2 py-1 rounded bg-orange-500/10 text-orange-400 font-bold border border-orange-500/20 text-[10px] uppercase">Time Expired</span>;
             default: return <span className="px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700 text-[10px] uppercase">{status}</span>;
         }
     };
@@ -118,7 +118,7 @@ export function CandidateHistoryTable({ submissions }: { submissions: Submission
                                                             Resume <Play className="w-3.5 h-3.5 ml-1.5" />
                                                         </Button>
                                                     )}
-                                                    {(sub.status === 'completed' || sub.status === 'time_expired') && campaign?.show_score_to_candidate && (
+                                                    {(sub.status === 'completed' || sub.status === 'expired') && campaign?.show_score_to_candidate && (
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
