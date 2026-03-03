@@ -100,7 +100,10 @@ export function useInterview(options: {
     const isMicEnabled = micIntent === 'user-on' || micIntent === 'auto-on';
 
     // ── STT & TTS ───────────────────────────────────────
-    const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT');
+    // Pass defaultValue=true so sttProvider='whisper' from the FIRST render.
+    // Without this, useGlobalFeatureFlag defaults to false, causing
+    // sttProvider='browser' → resolvedProvider='browser' → transcribeAudio silently skips.
+    const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT', true);
 
     // Track whether VAD failed and we need to cascade to browser STT
     const [vadFailed, setVadFailed] = useState(false);
@@ -116,12 +119,14 @@ export function useInterview(options: {
     const tts = useTTS({
         // Phase 0e: onSpeakStart just pauses intent, no direct stopListening
         onSpeakStart: () => {
+            console.log('[useInterview] TTS onSpeakStart → pausing mic');
             stt.stopListening();
             setHasPendingSend(false);
             setMicIntent('paused-for-ai');
         },
         // Phase 0e: onSpeakEnd — let the mic sync effect handle resumption reactively
         onSpeakEnd: () => {
+            console.log('[useInterview] TTS onSpeakEnd → resuming mic');
             // Transition from paused-for-ai → auto-on (mic sync effect will resume)
             setMicIntent(prev => prev === 'paused-for-ai' ? 'auto-on' : prev);
         },
@@ -153,7 +158,10 @@ export function useInterview(options: {
     // Phase 3c: VAD enabled based on sttProvider, not guest mode or difficultyMode
     const vad = useVAD({
         enabled: sttProvider === 'whisper',
-        onSpeechEnd: (audio) => stt.transcribeAudio(audio),
+        onSpeechEnd: (audio) => {
+            console.log(`[useInterview] VAD onSpeechEnd → transcribeAudio, audioLen=${audio.length}, sttProvider=${sttProvider}`);
+            stt.transcribeAudio(audio);
+        },
         onFallback: () => {
             // VAD failed (ONNX unavailable) — cascade to browser SpeechRecognition
             console.warn('[useInterview] VAD failed, cascading to browser STT');
@@ -327,6 +335,7 @@ export function useInterview(options: {
             // Gate mic before speak() so onSpeakStart race is closed.
             // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
             setMicIntent('paused-for-ai');
+            console.log(`[submitUserResponse] Speaking AI reply, textLen=${responseText.length}`);
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -423,6 +432,7 @@ export function useInterview(options: {
             // Gate mic before speak() so onSpeakStart race is closed.
             // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
             setMicIntent('paused-for-ai');
+            console.log(`[startInterview] Speaking intro, textLen=${responseText.length}`);
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
