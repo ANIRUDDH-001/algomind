@@ -19,7 +19,7 @@ describe('Assess Start API (/api/assess/start)', () => {
         vi.setSystemTime(mockDate);
 
         // Required environment variable for JWT
-        process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
+        process.env.SUPABASE_JWT_SECRET = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
 
         mockSupabase = {
             rpc: vi.fn().mockResolvedValue({
@@ -63,7 +63,7 @@ describe('Assess Start API (/api/assess/start)', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        delete (process.env as any).SUPABASE_SERVICE_ROLE_KEY;
+        delete (process.env as any).SUPABASE_JWT_SECRET;
     });
 
     const createRequest = (body: any) => new NextRequest('http://localhost:3000/api/assess/start', {
@@ -88,7 +88,7 @@ describe('Assess Start API (/api/assess/start)', () => {
         expect(data.submissionId).toBe('sub-123');
 
         // Verify the JWT was signed correctly
-        const secret = new TextEncoder().encode(process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
         const { payload } = await jose.jwtVerify(data.sessionToken, secret);
         expect(payload.submissionId).toBe('sub-123');
         expect(payload.campaignId).toBe('campaign-123');
