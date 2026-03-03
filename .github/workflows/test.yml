@@ -28,6 +28,10 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
     steps:
       - uses: actions/checkout@v4
       - run: npm ci

@@ -165,7 +165,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className={`h-7 px-2 text-xs font-bold ${user.account_type === 'candidate' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
+                                                        className={`h-7 px-2 text-xs font-bold active:scale-95 transition-all ${user.account_type === 'candidate' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
                                                         onClick={() => handleUpdateType(user.id, 'candidate', user.account_type)}
                                                         disabled={updatingId === user.id}
                                                     >
@@ -174,7 +174,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className={`h-7 px-2 text-xs font-bold ${user.account_type === 'employer' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
+                                                        className={`h-7 px-2 text-xs font-bold active:scale-95 transition-all ${user.account_type === 'employer' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
                                                         onClick={() => handleUpdateType(user.id, 'employer', user.account_type)}
                                                         disabled={updatingId === user.id}
                                                     >
@@ -183,7 +183,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className={`h-7 px-2 text-xs font-bold ${user.account_type === 'admin' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
+                                                        className={`h-7 px-2 text-xs font-bold active:scale-95 transition-all ${user.account_type === 'admin' ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
                                                         onClick={() => handleUpdateType(user.id, 'admin', user.account_type)}
                                                         disabled={updatingId === user.id}
                                                     >
@@ -197,9 +197,9 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className={`h-9 px-3 border ${user.is_suspended
-                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                                            : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                                                    className={`h-9 px-3 border active:scale-95 transition-all ${user.is_suspended
+                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                                        : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
                                                         }`}
                                                     onClick={() => handleSuspendToggle(user.id, user.is_suspended)}
                                                     disabled={updatingId === user.id}

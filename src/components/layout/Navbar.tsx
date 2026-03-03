@@ -249,7 +249,7 @@ export function Navbar() {
                                             {/* Admin button - only visible to admins or owners */}
                                             {(isAdmin || isOwner) && (
                                                 <DropdownMenuItem
-                                                    onClick={() => router.push('/admin/admins')}
+                                                    onClick={() => router.push('/admin')}
                                                     className="text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 cursor-pointer focus:bg-indigo-500/10 rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-between"
                                                 >
                                                     <div className="flex items-center">

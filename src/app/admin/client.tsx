@@ -185,7 +185,7 @@ export default function AdminsClient() {
                         <Card className="p-8 bg-[var(--surface-1)]/40 border-red-900/50 flex flex-col items-center justify-center text-center gap-4">
                             <AlertCircle className="w-8 h-8 text-red-500" />
                             <p className="text-red-400 font-medium">{error}</p>
-                            <Button onClick={fetchAdmins} variant="outline" className="border-slate-700">
+                            <Button onClick={fetchAdmins} variant="outline" className="border-slate-700 active:scale-95 transition-all">
                                 Retry
                             </Button>
                         </Card>
