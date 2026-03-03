@@ -233,7 +233,8 @@ export function InterviewSession({
         roundCount,
         interviewStartTime,
         isLimitReached,
-        limitReason
+        limitReason,
+        vadFailed,
     } = useInterview({
         config: interviewConfig,
         isTimeUp: limits.isTimeUp,
@@ -905,7 +906,7 @@ export function InterviewSession({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
-                    vadEnabled={vadEnabled && vadMode === 'vad' && hasStarted}
+                    vadEnabled={vadEnabled && vadMode === 'vad' && !vadFailed && hasStarted}
                     onInterrupt={() => {
                         voice.stopSpeaking();
                         handleInterruption();

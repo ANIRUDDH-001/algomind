@@ -41,19 +41,24 @@ export function useVAD(opts: UseVADOptions) {
     const optsRef = useRef(opts);
     useEffect(() => { optsRef.current = opts; }, [opts]);
 
-    // Detect ONNX support on mount
+    // Detect basic browser support on mount.
+    // NOTE: SharedArrayBuffer is NOT required — the vad-bundle.min.js UMD build
+    // handles its own polyfills and works without it (confirmed in production).
+    // Only AudioContext + getUserMedia + WebAssembly are truly required.
     const onnxSupported = useRef(false);
     useEffect(() => {
         if (!opts.enabled) return;
         const supported =
-            typeof SharedArrayBuffer !== 'undefined' &&
             typeof window !== 'undefined' &&
-            !!window.AudioWorklet;
+            !!(window.AudioContext || (window as any).webkitAudioContext) &&
+            !!navigator?.mediaDevices?.getUserMedia &&
+            typeof WebAssembly !== 'undefined';
         onnxSupported.current = supported;
         if (supported) {
             setMode('onnx');
+            console.log('[useVAD] Browser supports ONNX VAD (AudioContext + getUserMedia + WebAssembly)');
         } else {
-            console.warn('[useVAD] ONNX not supported (no SharedArrayBuffer or AudioWorklet). Using push-to-talk.');
+            console.warn('[useVAD] Browser lacks AudioContext/getUserMedia/WebAssembly. Using push-to-talk.');
             setMode('push-to-talk');
             setIsReady(true);
         }
