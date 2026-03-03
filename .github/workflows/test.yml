@@ -19,6 +19,8 @@ jobs:
     services:
       supabase:
         image: supabase/postgres:15.1.1.28
+        env:
+          POSTGRES_PASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
       - run: npm ci
@@ -32,6 +34,22 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
       SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
+      TEST_USER_EMAIL: test@example.com
+      TEST_USER_PASSWORD: password123
+      CRON_SECRET: dummy-cron-secret
+      PISTON_URL: http://dummy-piston
+      GITHUB_TOKEN: dummy-token
+      GITHUB_REPO: owner/repo
+      GROQ_API_KEY: dummy-groq
+      AWS_ACCESS_KEY_ID: dummy-aws-key
+      AWS_SECRET_ACCESS_KEY: dummy-aws-secret
+      AWS_S3_BUCKET: dummy-bucket
+      AWS_REGION: ap-south-1
+      UPSTASH_REDIS_REST_URL: https://dummy-redis
+      UPSTASH_REDIS_REST_TOKEN: dummy-redis-token
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SUPABASE_JWT_SECRET: dummy-jwt-secret
+      SUPABASE_DIRECT_URL: postgres://dummy
     steps:
       - uses: actions/checkout@v4
       - run: npm ci

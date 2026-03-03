@@ -1,0 +1,236 @@
+﻿[93m[4mUnused files[24m[39m (58)
+public/sw.js                               
+scripts/analyze-audit-report.ts            
+scripts/audit-db-quality.ts                
+scripts/audit-problems.ts                  
+scripts/audit-quality.ts                   
+scripts/benchmark-classifier.ts            
+scripts/check-admins.ts                    
+scripts/check-duplicates.ts                
+scripts/cleanup-inferior.ts                
+scripts/cleanup-problems.ts                
+scripts/enrich-vocabulary.ts               
+scripts/export-seeds.mjs                   
+scripts/final-polish-and-tag.ts            
+scripts/fix_any.mjs                        
+scripts/fix_unused.mjs                     
+scripts/generate-demo-data.ts              
+scripts/generate-problems.ts               
+scripts/ingest-knowledge.js                
+scripts/ingest-knowledge.ts                
+scripts/list-gemini-models.ts              
+scripts/push-embeddings-to-db.ts           
+scripts/seed-test-data.ts                  
+scripts/sync-knowledge.ts                  
+scripts/test-models.ts                     
+scripts/validate-ai-integration.ts         
+scripts/verify-vad-setup.ts                
+public/vad/ort-wasm-simd-threaded.mjs      
+public/vad/ort.min.js                      
+public/vad/vad-bundle.min.js               
+public/vad/vad.worklet.bundle.min.js       
+src/components/LoadingState.tsx            
+src/test-utils/voice-mocks.ts              
+src/components/assessment/ErrorState.tsx   
+src/components/auth/ProtectedRoute.tsx     
+src/components/auth/UserButton.tsx         
+src/components/interview/ManualControls.tsx
+src/components/interview/MobileWarning.tsx 
+src/components/ui/avatar.tsx               
+src/components/ui/label.tsx                
+src/components/ui/progress.tsx             
+src/components/ui/resizable.tsx            
+src/components/ui/separator.tsx            
+src/components/ui/skeleton.tsx             
+src/components/voice/SpeakerControls.tsx   
+src/lib/ai/index.ts                        
+src/lib/analytics/voice-analytics.ts       
+src/lib/assessment/improvement-examples.ts 
+src/lib/assessment/mock-data.ts            
+src/lib/assessment/trend-calculator.ts     
+src/lib/aws/index.ts                       
+src/lib/campaign/question-timer.ts         
+src/lib/errors/handler.ts                  
+src/lib/errors/user-friendly-errors.ts     
+src/lib/rag/index.ts                       
+src/lib/voice/text-chunker.ts              
+src/lib/voice/vocabulary-ai.ts             
+src/lib/voice/whisper-stt.ts               
+src/__tests__/fixtures/mock-interview.ts   
+[93m[4mUnused dependencies[24m[39m (13)
+@aws-sdk/client-s3             package.json:22:6
+@aws-sdk/client-transcribe     package.json:23:6
+@aws-sdk/s3-request-presigner  package.json:24:6
+@ducanh2912/next-pwa           package.json:25:6
+@google/generative-ai          package.json:26:6
+@radix-ui/react-label          package.json:28:6
+@radix-ui/react-separator      package.json:30:6
+@radix-ui/react-slot           package.json:32:6
+onnxruntime-web                package.json:49:6
+pg                             package.json:50:6
+react-resizable-panels         package.json:55:6
+react-swipeable                package.json:56:6
+zustand                        package.json:62:6
+[93m[4mUnused devDependencies[24m[39m (5)
+@types/node-fetch    package.json:73:6
+node-fetch           package.json:80:6
+tailwindcss-animate  package.json:82:6
+ts-node              package.json:83:6
+tw-animate-css       package.json:85:6
+[93m[4mUnlisted dependencies[24m[39m (3)
+postcss                    postcss.config.mjs               
+eslint-plugin-react-hooks  eslint.config.mjs:4:25           
+@radix-ui/react-switch     src/components/ui/switch.tsx:4:36
+[93m[4mUnlisted binaries[24m[39m (1)
+supabase  .github/workflows/test.yml
+[93m[4mUnused exports[24m[39m (83)
+updateStreaksOnly                                    function  scripts/batch/compute-learner-profiles.ts:51:23       
+generateKaiMemory                                    function  src/lib/ai/memory-generator.ts:87:23                  
+NARRATIVE_MILESTONES                                           src/lib/assessment/narrative-generator.ts:16:14       
+buttonVariants                                                 src/components/ui/button.tsx:64:18                    
+MOCK_FULL_ASSESSMENT                                           src/test-utils/assessment-fixtures.ts:19:14           
+MOCK_WEAK_ASSESSMENT                                           src/test-utils/assessment-fixtures.ts:88:14           
+MOCK_TRANSCRIPT_FULL                                           src/test-utils/assessment-fixtures.ts:116:14          
+makeMockSession                                      function  src/test-utils/assessment-fixtures.ts:134:17          
+TEST_IDS                                                       src/test-utils/playwright-helpers.ts:4:10             
+VOICE_INTERVIEW_PERMISSIONS                                    src/test-utils/playwright-helpers.ts:7:14             
+mockRateLimit                                        function  src/test-utils/playwright-helpers.ts:204:23           
+mockNetworkFailureWithRetry                          function  src/test-utils/playwright-helpers.ts:235:23           
+debugInterviewState                                  function  src/test-utils/playwright-helpers.ts:355:23           
+getAllProblems                                       function  src/lib/supabase/problems.ts:64:23                    
+recordUserQuestion                                   function  src/lib/rate-limit/user-rate-limiter.ts:203:23        
+resolveEmployerConfig                                function  src/lib/interview/interview-config.ts:92:17           
+shouldAdvanceSprint                                  function  src/lib/interview/interview-config.ts:113:17          
+advanceSprintProblem                                 function  src/lib/interview/interview-config.ts:121:17          
+TOPICS                                                         src/components/practice/ProblemFilters.tsx:14:14      
+getProviderConfig                                    function  src/config/providers.ts:38:23                         
+useFeatureFlagWithSupport                            function  src/hooks/useFeatureFlag.ts:37:17                     
+GUEST_TRIAL_LIMITS                                             src/hooks/useGuestTrial.ts:70:14                      
+INTERVIEW_LIMITS                                               src/hooks/useInterviewLimits.ts:128:14                
+chat                                aiClientModule   function  src/lib/ai/client.ts:815:23                           
+getABGroup                                           function  src/lib/feature-flags.ts:206:17                       
+isInTreatmentGroup                                   function  src/lib/feature-flags.ts:216:17                       
+resetFlag                                            function  src/lib/feature-flags.ts:223:17                       
+getAllFeatureFlags                                   function  src/lib/feature-flags.ts:237:17                       
+CardFooter                                                     src/components/ui/card.tsx:87:3                       
+CardAction                                                     src/components/ui/card.tsx:89:3                       
+CardDescription                                                src/components/ui/card.tsx:90:3                       
+getDeviceName                       deviceDetection  function  src/lib/utils/device-detection.ts:15:17               
+IntentClassifier                                     class     src/lib/ai/intent-classifier.ts:84:14                 
+isSentenceBoundary                                   function  src/lib/ai/response-chunker.ts:84:17                  
+countWords                                           function  src/lib/ai/response-chunker.ts:112:17                 
+COGNITIVE_DIMENSIONS                                           src/lib/interview/interviewer-prompt.ts:40:14         
+generateAssessmentExtractionPrompt                   function  src/lib/interview/interviewer-prompt.ts:414:17        
+env                                                            src/lib/startup/validateEnv.ts:50:14                  
+isValidEntryCodeFormat                               function  src/lib/campaign/entry-code.ts:18:17                  
+fetchLeetCodeProfile                                 function  src/lib/leetcode/client.ts:42:23                      
+saveLeetCodeProfile                                  function  src/lib/leetcode/client.ts:107:23                     
+upgradeToEmployer                                    function  src/lib/auth/account-type.ts:45:23                    
+HybridRetriever                                      class     src/lib/rag/retriever.ts:15:14                        
+getRetriever                                         function  src/lib/rag/retriever.ts:138:17                       
+resetPollyClient                                     function  src/lib/aws/polly.ts:88:17                            
+DIFFICULTY_TIERS                                               src/lib/recommendations/difficulty-calibrator.ts:10:14
+generateFinalFeedbackPrompt                          function  src/lib/interview/prompts.ts:132:17                   
+estimateSpokenContent                                function  src/lib/interview/interruption-context.ts:56:17       
+badgeVariants                                                  src/components/ui/badge.tsx:48:17                     
+DialogClose                                                    src/components/ui/dialog.tsx:149:3                    
+DialogOverlay                                                  src/components/ui/dialog.tsx:154:3                    
+DialogPortal                                                   src/components/ui/dialog.tsx:155:3                    
+DialogTrigger                                                  src/components/ui/dialog.tsx:157:3                    
+DrawerPortal                                                   src/components/ui/drawer.tsx:126:3                    
+DrawerOverlay                                                  src/components/ui/drawer.tsx:127:3                    
+DrawerTrigger                                                  src/components/ui/drawer.tsx:128:3                    
+DrawerDescription                                              src/components/ui/drawer.tsx:134:3                    
+DropdownMenuPortal                                             src/components/ui/dropdown-menu.tsx:243:3             
+DropdownMenuGroup                                              src/components/ui/dropdown-menu.tsx:246:3             
+DropdownMenuCheckboxItem                                       src/components/ui/dropdown-menu.tsx:249:3             
+DropdownMenuRadioGroup                                         src/components/ui/dropdown-menu.tsx:250:3             
+DropdownMenuRadioItem                                          src/components/ui/dropdown-menu.tsx:251:3             
+DropdownMenuShortcut                                           src/components/ui/dropdown-menu.tsx:253:3             
+DropdownMenuSub                                                src/components/ui/dropdown-menu.tsx:254:3             
+DropdownMenuSubTrigger                                         src/components/ui/dropdown-menu.tsx:255:3             
+DropdownMenuSubContent                                         src/components/ui/dropdown-menu.tsx:256:3             
+SelectGroup                                                    src/components/ui/select.tsx:148:5                    
+SelectLabel                                                    src/components/ui/select.tsx:152:5                    
+SelectSeparator                                                src/components/ui/select.tsx:154:5                    
+SelectScrollUpButton                                           src/components/ui/select.tsx:155:5                    
+SelectScrollDownButton                                         src/components/ui/select.tsx:156:5                    
+tabsListVariants                                               src/components/ui/tabs.tsx:91:52                      
+resetBedrockClient                                   function  src/lib/ai/bedrock-client.ts:84:17                    
+ModelTelemetry                                       class     src/lib/analytics/model-telemetry.ts:65:14            
+resetModelTelemetry                                  function  src/lib/analytics/model-telemetry.ts:168:17           
+SIMPLE_PATTERNS                                                src/lib/ai/patterns.ts:207:10                         
+MEDIUM_PATTERNS                                                src/lib/ai/patterns.ts:207:27                         
+COMPLEX_PATTERNS                                               src/lib/ai/patterns.ts:207:44                         
+SKILL_TO_DB_COLUMN                                             src/lib/supabase/type-mapping.ts:4:14                 
+DB_COLUMN_TO_SKILL                                             src/lib/supabase/type-mapping.ts:16:14                
+DSA_TOPICS                                                     src/lib/rag/types.ts:49:14                            
+DSA_PATTERNS                                                   src/lib/rag/types.ts:74:14                            
+extractKeywords                                                src/lib/rag/vectorStore.ts:289:10                     
+[93m[4mUnused exported types[24m[39m (65)
+SystemEventType                                type       src/lib/monitoring/events.ts:3:13                           
+SystemEventPayload                             interface  src/lib/monitoring/events.ts:26:18                          
+TabId                                          type       src/components/dashboard/DashboardNav.tsx:8:13              
+PaginatedProblemsResult                        interface  src/lib/supabase/problems.ts:118:18                         
+TTSProvider                                    type       src/config/providers.ts:16:13                               
+STTProvider                                    type       src/config/providers.ts:17:13                               
+StorageProvider                                type       src/config/providers.ts:18:13                               
+ProviderConfig                                 interface  src/config/providers.ts:20:18                               
+GuestSession                                   interface  src/hooks/useGuestSession.ts:9:18                           
+GuestTrial                                     interface  src/hooks/useGuestTrial.ts:9:18                             
+InterviewLimits                                interface  src/hooks/useInterviewLimits.ts:10:18                       
+CompletionResult               aiClientModule  interface  src/lib/ai/client.ts:31:18                                  
+InterviewEvent                                 type       src/lib/interview/state-machine.ts:12:13                    
+FeatureFlagValue                               interface  src/lib/feature-flags.ts:116:18                             
+ModelRegistryEntry                             interface  src/lib/ai/model-registry.ts:8:18                           
+ExecutionResult                                interface  src/components/interview/CodeEditor.tsx:8:18                
+TurnSignal                     turnClassifier  interface  src/lib/interview/turn-classifier.ts:14:18                  
+EmbeddingModelConfig                           interface  src/lib/ai/providers.ts:20:18                               
+CommonQuestion                                 interface  src/lib/ai/common-questions.ts:10:18                        
+ClassifierOptions                              interface  src/lib/ai/intent-classifier.ts:22:18                       
+CacheEntry                                     interface  src/lib/ai/response-cache.ts:23:18                          
+ResponseCacheOptions                           interface  src/lib/ai/response-cache.ts:59:18                          
+ResponseChunk                                  interface  src/lib/ai/response-chunker.ts:14:18                        
+ChunkerOptions                                 interface  src/lib/ai/response-chunker.ts:32:18                        
+ChunkerStats                                   interface  src/lib/ai/response-chunker.ts:43:18                        
+AssessmentPartial                              interface  src/lib/assessment/confidence-calculator.ts:3:18            
+KeyMoment                                      interface  src/lib/assessment/key-moments.ts:10:18                     
+ModeAssessmentConfig                           interface  src/lib/interview/mode-assessment-config.ts:3:18            
+CognitiveDimension                             interface  src/lib/interview/interviewer-prompt.ts:33:18               
+NudgeType                                      type       src/lib/interview/silent-observer.ts:21:13                  
+ObserverResult                                 interface  src/lib/interview/silent-observer.ts:25:18                  
+FSRSRating                                     type       src/lib/spaced-repetition/fsrs.ts:16:13                     
+FSRSCardData                                   interface  src/lib/spaced-repetition/fsrs.ts:33:18                     
+LeetCodeSubmission                             interface  src/lib/leetcode/client.ts:5:18                             
+LeetCodeProfile                                interface  src/lib/leetcode/client.ts:13:18                            
+AccountType                                    type       src/lib/auth/account-type.ts:3:13                           
+RetrieverOptions                               interface  src/lib/rag/retriever.ts:7:18                               
+PollyVoice                                     type       src/lib/aws/polly.ts:12:13                                  
+PollyError                                     type       src/lib/aws/polly.ts:13:13                                  
+SessionSummary                                 interface  src/lib/recommendations/difficulty-calibrator.ts:18:18      
+LeetCodeSignal                                 interface  src/lib/recommendations/difficulty-calibrator.ts:23:18      
+UseTTSOptions                                  interface  src/hooks/useTTS.ts:11:18                                   
+STTProvider                                    type       src/hooks/useSTT.ts:11:13                                   
+UseSTTOptions                                  interface  src/hooks/useSTT.ts:13:18                                   
+VADMode                                        type       src/hooks/useVAD.ts:9:13                                    
+UseVADOptions                                  interface  src/hooks/useVAD.ts:11:18                                   
+QuestionState                                  interface  src/types/campaign.ts:9:18                                  
+CampaignSubmission                             interface  src/types/campaign.ts:39:18                                 
+ProblemWithContext                             interface  src/types/problem.ts:21:18                                  
+Difficulty                                     type       src/types/problem.ts:25:13                                  
+ProblemFilter                                  interface  src/types/problem.ts:27:18                                  
+SkillTrend                                     interface  src/lib/assessment/progress-store.ts:16:18                  
+UserProgressOverview                           interface  src/lib/assessment/progress-store.ts:23:18                  
+CampaignInterviewSessionProps                  interface  src/components/enterprise/CampaignInterviewSession.tsx:41:18
+InputProps                                     interface  src/components/ui/input.tsx:4:18                            
+UserPreferences                                interface  src/lib/supabase/user-preferences.ts:5:18                   
+TextareaProps                                  interface  src/components/ui/textarea.tsx:4:18                         
+RoutingDecision                                interface  src/lib/analytics/model-telemetry.ts:12:18                  
+TelemetryStats                                 interface  src/lib/analytics/model-telemetry.ts:37:18                  
+Message                                        type       src/lib/ai/types.ts:11:15                                   
+CompletionOptions                              type       src/lib/ai/types.ts:11:24                                   
+CompletionResult                               type       src/lib/ai/types.ts:11:43                                   
+IngestionResult                                interface  src/lib/rag/types.ts:40:18                                  
+DSATopic                                       type       src/lib/rag/types.ts:71:13                                  
+DSAPattern                                     type       src/lib/rag/types.ts:97:13                                  
+[33m[4mConfiguration hints[24m (1)[39m
