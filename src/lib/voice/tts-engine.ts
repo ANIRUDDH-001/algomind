@@ -33,12 +33,15 @@ export class TTSEngine {
         if (!text.trim()) { console.log('[TTS] Empty text, skipping'); return 'browser'; }
         console.log(`[TTS] speak() called, text length=${text.length}, pollyEnabled=${pollyEnabled}`);
         const id = ++this.invId;
+        const wasSpeaking = this._speaking;
         this.cancel();
         // Chrome bug: speechSynthesis.cancel() followed by immediate speak()
         // causes the new utterance to be silently discarded. A small delay lets
-        // the cancel complete in Chrome's internal audio pipeline.
-        await new Promise(r => setTimeout(r, 100));
-        if (id !== this.invId) { console.log('[TTS] Cancelled by newer speak()'); return 'browser'; }
+        // the cancel complete — but ONLY when we actually cancelled something.
+        if (wasSpeaking) {
+            await new Promise(r => setTimeout(r, 100));
+            if (id !== this.invId) { console.log('[TTS] Cancelled by newer speak()'); return 'browser'; }
+        }
         this.setSpeaking(true);
         let used: TTSProvider = 'browser';
         try {
@@ -61,8 +64,13 @@ export class TTSEngine {
     stop() {
         this.invId++;
         this.cancel();
+        // Only fire onSpeakingChange if we WERE actually speaking.
+        // Previously, every destroy()/stop() fired onSpeakingChange(false) even
+        // when idle, producing spurious onSpeakEnd events that cascaded into
+        // mic-sync resets and transcript clearing.
+        const wasSpeaking = this._speaking;
         this._speaking = false;
-        this.onSpeakingChange?.(false);
+        if (wasSpeaking) this.onSpeakingChange?.(false);
     }
 
     destroy() { this.stop(); }
