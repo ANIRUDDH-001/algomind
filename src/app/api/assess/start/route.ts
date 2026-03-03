@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
-import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
+// RAG context is now fetched lazily per-phase in assess/chat, not pre-fetched here
 
 validateEnv();
 
@@ -275,22 +275,10 @@ export async function POST(req: NextRequest) {
         // Pre-fetch phase-aware RAG for employer sessions (all 6 phases upfront)
         let employerRagContext = '';
         try {
-            const firstProblem = problems[0];
-            if (firstProblem) {
-                const phases: InterviewPhase[] = ['intro', 'approach', 'coding', 'testing', 'complexity', 'wrap-up'];
-                const phaseContexts = await Promise.all(
-                    phases.map(phase => getPhaseContext(
-                        supabase,
-                        submissionId,
-                        phase,
-                        firstProblem.title,
-                        firstProblem.tags ?? []
-                    ))
-                );
-                employerRagContext = phaseContexts
-                    .filter(c => c !== 'No relevant context found.')
-                    .join('\n\n===\n\n');
-            }
+            // RAG context is fetched lazily per-phase in the assess/chat route.
+            // Do NOT pre-fetch all 6 phases here — it adds 500–2000ms to assessment start
+            // and wastes Gemini API calls for phases that may never be reached.
+            // employerRagContext remains '' — the chat route handles it.
         } catch (err) {
             console.warn('[Assess Start] RAG pre-fetch failed:', err);
         }
