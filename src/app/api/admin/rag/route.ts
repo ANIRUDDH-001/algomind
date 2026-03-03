@@ -185,7 +185,7 @@ async function triggerEmbedding(chunkId: string): Promise<void> {
 
     if (!chunk) return;
 
-    const textToEmbed = `${chunk.title}\n${chunk.content}\n${chunk.keywords?.join(' ')}`;
+    const textToEmbed = `${chunk.topic}${chunk.subtopic ? ': ' + chunk.subtopic : ''}\n${chunk.content}\n${chunk.keywords?.join(' ')}`;
 
     const { embeddings } = await client.embed(textToEmbed);
 

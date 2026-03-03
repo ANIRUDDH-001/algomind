@@ -9,7 +9,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "@/components/ui/toaster";
 import { TourProvider } from "@/components/tour/TourProvider";
 import { TourOverlay } from "@/components/tour/TourOverlay";
-import { validateDB } from "@/lib/startup/validateEnv";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,8 +72,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Run critical initial database checks on the server immediately
-  void validateDB();
 
   const hdrs = await headers();
   const hideNavbar = hdrs.get('x-hide-navbar') === 'true';

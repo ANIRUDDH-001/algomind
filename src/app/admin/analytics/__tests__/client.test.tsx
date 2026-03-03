@@ -58,8 +58,8 @@ beforeEach(() => {
                 ok: true,
                 json: () => Promise.resolve({
                     models: [
-                        { modelId: 'gemini-pro', rateLimitHits24h: 5, lastRateLimitHit: new Date().toISOString(), status: 'ok' },
-                        { modelId: 'gemini-flash', rateLimitHits24h: 2, lastRateLimitHit: new Date().toISOString(), status: 'degraded' },
+                        { modelId: 'gemini-pro', rateLimitHits24h: 5, lastRateLimitHit: '2026-02-24T08:00:00.000Z', status: 'ok' },
+                        { modelId: 'gemini-flash', rateLimitHits24h: 2, lastRateLimitHit: '2026-02-24T08:00:00.000Z', status: 'degraded' },
                     ],
                 }),
             });
