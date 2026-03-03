@@ -516,8 +516,6 @@ export function useInterview(options: {
             !isSpeaking &&
             !isProcessing;
 
-        console.log(`[Mic Sync] micIntent=${micIntent}, isSpeaking=${isSpeaking}, isProcessing=${isProcessing}, shouldListen=${shouldListen}, isListening=${isListeningRef.current}, sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
-
         if (shouldListen && !isListeningRef.current) {
             // Small delay to avoid tight loops during state transitions
             const timer = setTimeout(() => {
@@ -626,6 +624,7 @@ export function useInterview(options: {
         isMicEnabled,
         micIntent,
         vadMode: vad.mode,
+        vadFailed,
         ttsProvider: tts.provider,
         sttProvider,
         handleMicStop: () => {
