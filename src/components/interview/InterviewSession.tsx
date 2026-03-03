@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
-import { type AssessmentResult } from '@/lib/assessment/analyzer';
 import { type CognitiveSkill } from '@/types/assessment';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -333,6 +332,23 @@ export function InterviewSession({
         }
     }, [isSpeaking, isListening, stopListening, vadEnabled]);
 
+    // Phase 5b: Auto-detect mic failure → promote text input
+    useEffect(() => {
+        if (!voice.isListening || voice.transcript || voice.interimTranscript) return;
+
+        const timer = setTimeout(() => {
+            if (voice.isListening && !voice.transcript && !voice.interimTranscript) {
+                setShowTextInput(true);
+                toast('Mic may not be working — you can type your response instead', {
+                    icon: '⌨️',
+                    duration: 5000,
+                });
+            }
+        }, 10_000);
+
+        return () => clearTimeout(timer);
+    }, [voice.isListening, voice.transcript, voice.interimTranscript]);
+
     useEffect(() => {
         if (readOnly && initialTranscript && initialTranscript.length > 0 && !transcriptLoadedRef.current) {
             const msgs = initialTranscript.map(t => ({
@@ -350,7 +366,29 @@ export function InterviewSession({
         }
     }, [readOnly, initialTranscript, loadTranscript]);
 
-    const handleStart = () => {
+    const handleStart = async () => {
+        // Phase 5a: Pre-interview microphone permission check
+        try {
+            const perm = await navigator.permissions.query({
+                name: 'microphone' as PermissionName
+            });
+            if (perm.state === 'denied') {
+                setError(
+                    'Microphone access is blocked. ' +
+                    'Please enable it in your browser settings.'
+                );
+                setShowTextInput(true);
+                // Don't return — still allow starting with text input
+            }
+            if (perm.state === 'prompt') {
+                // Trigger permission request before starting interview
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop()); // Release immediately
+            }
+        } catch {
+            // permissions API not available — proceed, mic will prompt on use
+        }
+
         setHasStarted(true);
         startTimeRef.current = Date.now();
         limits.startTimer();
@@ -680,12 +718,17 @@ export function InterviewSession({
                                             <div className="flex items-center justify-center gap-4 relative">
                                                 <MicrophoneButton
                                                     isListening={voice.isListening}
+                                                    error={voice.error?.message}
                                                     onClick={() => {
                                                         if (voice.isListening) {
                                                             voice.stopListening();
                                                         } else if (!isProcessing && !voice.isSpeaking) {
                                                             voice.startListening();
                                                         }
+                                                    }}
+                                                    onRetry={() => {
+                                                        setVoiceErrorDismissed(false);
+                                                        voice.startListening();
                                                     }}
                                                     disabled={isProcessing || voice.isSpeaking}
                                                 />
