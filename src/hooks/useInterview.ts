@@ -93,8 +93,18 @@ export function useInterview(options: {
     const [micIntent, setMicIntent] = useState<MicIntent>('off');
     const [hasPendingSend, setHasPendingSend] = useState(false);
     const [voiceError, setVoiceError] = useState<Error | null>(null);
+    const [micStoppedManually, setMicStoppedManually] = useState(false);
+    const [sendCountdown, setSendCountdown] = useState<number | null>(null);
+    const [ttsError, setTtsError] = useState(false);
     const hasPendingRef = useRef(false);
     useEffect(() => { hasPendingRef.current = hasPendingSend; }, [hasPendingSend]);
+
+    // Smart pause: refs for interruption detection during AI speech
+    const smartPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const smartPauseActiveRef = useRef(false);
+    const currentAiTextRef = useRef('');
+    // Send countdown interval ref
+    const sendCountdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Derived: is mic "logically enabled" (for backward compat)
     const isMicEnabled = micIntent === 'user-on' || micIntent === 'auto-on';
@@ -117,18 +127,13 @@ export function useInterview(options: {
     ) ? 'whisper' as const : 'browser' as const;
 
     const tts = useTTS({
-        // Phase 0e: onSpeakStart just pauses intent, no direct stopListening
+        // onSpeakStart/onSpeakEnd are ONLY used for reactive state — NOT for mic gating.
+        // Mic gating is now done explicitly in startInterview/submitUserResponse via await.
         onSpeakStart: () => {
-            console.log('[useInterview] TTS onSpeakStart → pausing mic');
-            stt.stopListening();
-            setHasPendingSend(false);
-            setMicIntent('paused-for-ai');
+            console.log('[useInterview] TTS onSpeakStart');
         },
-        // Phase 0e: onSpeakEnd — let the mic sync effect handle resumption reactively
         onSpeakEnd: () => {
-            console.log('[useInterview] TTS onSpeakEnd → resuming mic');
-            // Transition from paused-for-ai → auto-on (mic sync effect will resume)
-            setMicIntent(prev => prev === 'paused-for-ai' ? 'auto-on' : prev);
+            console.log('[useInterview] TTS onSpeakEnd');
         },
         voiceName: optionsRef.current.voicePrefs?.name ?? null,
         voiceRate: optionsRef.current.voicePrefs?.rate ?? 1.0,
@@ -158,12 +163,40 @@ export function useInterview(options: {
     // Phase 3c: VAD enabled based on sttProvider, not guest mode or difficultyMode
     const vad = useVAD({
         enabled: sttProvider === 'whisper',
+        onSpeechStart: () => {
+            // Smart pause: if AI is speaking and VAD detects human voice → interrupt
+            if (isSpeakingRef.current) {
+                console.log('[useInterview] Smart pause: VAD detected speech during AI speaking');
+                tts.stop();
+                smartPauseActiveRef.current = true;
+                // 1.5s grace timer: if user goes silent, activate mic normally
+                if (smartPauseTimerRef.current) clearTimeout(smartPauseTimerRef.current);
+                smartPauseTimerRef.current = setTimeout(() => {
+                    if (smartPauseActiveRef.current) {
+                        console.log('[useInterview] Smart pause: grace period expired, activating mic');
+                        smartPauseActiveRef.current = false;
+                        setMicStoppedManually(false);
+                        setMicIntent('auto-on');
+                    }
+                }, 1500);
+            }
+        },
         onSpeechEnd: (audio) => {
             console.log(`[useInterview] VAD onSpeechEnd → transcribeAudio, audioLen=${audio.length}, sttProvider=${sttProvider}`);
+            // If smart pause was active, cancel grace timer — user actually spoke
+            if (smartPauseActiveRef.current) {
+                console.log('[useInterview] Smart pause: user spoke, fully interrupting AI');
+                smartPauseActiveRef.current = false;
+                if (smartPauseTimerRef.current) {
+                    clearTimeout(smartPauseTimerRef.current);
+                    smartPauseTimerRef.current = null;
+                }
+                setMicStoppedManually(false);
+                setMicIntent('auto-on');
+            }
             stt.transcribeAudio(audio);
         },
         onFallback: () => {
-            // VAD failed (ONNX unavailable) — cascade to browser SpeechRecognition
             console.warn('[useInterview] VAD failed, cascading to browser STT');
             setVadFailed(true);
         },
@@ -172,6 +205,7 @@ export function useInterview(options: {
     // Legacy aliases
     const isSpeaking = tts.isSpeaking;
     const speak = tts.speak;
+    const speakAndWait = tts.speakAndWait;
     const stopSpeaking = tts.stop;
     const isListening = stt.isListening;
     const startListening = stt.startListening;
@@ -285,8 +319,11 @@ export function useInterview(options: {
         if (stateMachine.current.getState() === 'completed') return;
         if (!userText.trim()) return;
 
-        // Don't disable intent, just stop listening momentarily for processing
+        // Stop mic and VAD for processing
         stopListening();
+        setMicIntent('paused-for-ai');
+        setMicStoppedManually(false);
+        setSendCountdown(null);
 
         const userMsg: Message = { id: generateMessageId(), role: 'user', content: userText, timestamp: new Date(), status: 'complete' };
         addMessage(userMsg);
@@ -335,11 +372,20 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
-            // Gate mic before speak() so onSpeakStart race is closed.
-            // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
-            setMicIntent('paused-for-ai');
-            console.log(`[submitUserResponse] Speaking AI reply, textLen=${responseText.length}`);
-            speak(responseText);
+            setIsProcessing(false);
+
+            // Serial TTS: await full speech completion, then activate mic
+            console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
+            currentAiTextRef.current = responseText;
+            const ttsOk = await speakAndWait(responseText, 3);
+            if (!ttsOk) {
+                setTtsError(true);
+                console.error('[submitUserResponse] TTS failed after 3 retries');
+            }
+
+            // TTS done (or interrupted by smart pause) → activate mic
+            setMicStoppedManually(false);
+            setMicIntent('auto-on');
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
@@ -362,29 +408,75 @@ export function useInterview(options: {
         } catch (e) {
             console.error('❌ [ERROR] Failed to process user response:', e);
             addMessage({ id: generateMessageId(), role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date(), status: 'complete' });
-        } finally {
             setIsProcessing(false);
+            // Even on error, activate mic so user can try again
+            setMicStoppedManually(false);
+            setMicIntent('auto-on');
         }
-    }, [stopListening, addMessage, resetTranscript, callChatApi, speak, roundCount, interviewStartTime]);
+    }, [stopListening, addMessage, resetTranscript, callChatApi, speakAndWait, roundCount, interviewStartTime]);
 
-    // Phase 2e: Auto-Submit on silence — submit accumulated transcript after 4s of no new speech.
-    // Works alongside the manual Send button.
+    // Phase 2e: Auto-Submit on silence — submit accumulated transcript after 5s of no new speech.
+    // Only active when mic is on (not manually stopped). Works alongside the manual Send button.
     useEffect(() => {
         if (!autoSubmitEnabled) return;
         if (!transcript.trim()) return;
         if (state === 'idle' || state === 'completed') return;
         if (isProcessing || isSpeaking) return;
+        // Only auto-submit on silence when mic is actively listening (not manually stopped)
+        if (micStoppedManually) return;
 
         const timer = setTimeout(() => {
             const text = transcriptRef.current.trim();
             if (text && currentProblemRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
-                console.log(`[useInterview] Auto-submit after 4s silence: "${text.substring(0, 60)}..."`);
+                console.log(`[useInterview] Auto-submit after 5s silence: "${text.substring(0, 60)}..."`);
                 submitUserResponse(text, currentProblemRef.current);
             }
-        }, 4000);
+        }, 5000);
 
         return () => clearTimeout(timer);
-    }, [transcript, autoSubmitEnabled, state, isProcessing, isSpeaking, submitUserResponse]);
+    }, [transcript, autoSubmitEnabled, state, isProcessing, isSpeaking, micStoppedManually, submitUserResponse]);
+
+    // Send countdown: when mic is manually stopped and transcript exists, start 5s countdown
+    useEffect(() => {
+        // Clear any existing countdown interval
+        if (sendCountdownIntervalRef.current) {
+            clearInterval(sendCountdownIntervalRef.current);
+            sendCountdownIntervalRef.current = null;
+        }
+
+        if (!micStoppedManually || !transcript.trim() || state === 'idle' || state === 'completed' || isProcessing || isSpeaking) {
+            setSendCountdown(null);
+            return;
+        }
+
+        // Start 5s countdown
+        setSendCountdown(5);
+        sendCountdownIntervalRef.current = setInterval(() => {
+            setSendCountdown(prev => {
+                if (prev === null || prev <= 1) {
+                    // Auto-send when countdown reaches 0
+                    if (sendCountdownIntervalRef.current) {
+                        clearInterval(sendCountdownIntervalRef.current);
+                        sendCountdownIntervalRef.current = null;
+                    }
+                    const text = transcriptRef.current.trim();
+                    if (text && currentProblemRef.current && !isProcessingRef.current) {
+                        console.log(`[useInterview] Send countdown expired, auto-submitting: "${text.substring(0, 60)}..."`);
+                        submitUserResponse(text, currentProblemRef.current);
+                    }
+                    return null;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (sendCountdownIntervalRef.current) {
+                clearInterval(sendCountdownIntervalRef.current);
+                sendCountdownIntervalRef.current = null;
+            }
+        };
+    }, [micStoppedManually, transcript, state, isProcessing, isSpeaking, submitUserResponse]);
 
     // Core Logic
     const startInterview = useCallback(async (opts: {
@@ -449,20 +541,31 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
-            // Gate mic before speak() so onSpeakStart race is closed.
-            // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
-            setMicIntent('paused-for-ai');
-            console.log(`[startInterview] Speaking intro, textLen=${responseText.length}`);
-            speak(responseText);
+            setIsProcessing(false);
+
+            // Serial TTS: await full speech completion, then activate mic
+            console.log(`[startInterview] Speaking intro (serial), textLen=${responseText.length}`);
+            currentAiTextRef.current = responseText;
+            const ttsOk = await speakAndWait(responseText, 3);
+            if (!ttsOk) {
+                setTtsError(true);
+                console.error('[startInterview] TTS failed after 3 retries');
+            }
+
+            // TTS done → activate mic and VAD
+            setMicStoppedManually(false);
+            setMicIntent('auto-on');
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
         } catch {
             addMessage({ id: generateMessageId(), role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date(), status: 'complete' });
-        } finally {
             setIsProcessing(false);
+            // Even on error, activate mic
+            setMicStoppedManually(false);
+            setMicIntent('auto-on');
         }
-    }, [callChatApi, addMessage, speak]);
+    }, [callChatApi, addMessage, speakAndWait]);
 
 
     // Phase 2d: Fix tab visibility recovery — pause on hide, resume on visible
@@ -576,16 +679,30 @@ export function useInterview(options: {
         resetTranscript();
         setIsProcessing(false);
         setMicIntent('off');
+        setMicStoppedManually(false);
+        setSendCountdown(null);
+        setTtsError(false);
         stopListening();
         setRoundCount(0);
         setInterviewStartTime(null);
         setIsLimitReached(false);
         setLimitReason(null);
+        // Clear smart pause timer
+        if (smartPauseTimerRef.current) { clearTimeout(smartPauseTimerRef.current); smartPauseTimerRef.current = null; }
+        smartPauseActiveRef.current = false;
+        if (sendCountdownIntervalRef.current) { clearInterval(sendCountdownIntervalRef.current); sendCountdownIntervalRef.current = null; }
     }, [resetTranscript, stopListening]);
 
     const toggleMic = useCallback(() => {
         setMicIntent(prev => {
-            if (prev === 'user-on' || prev === 'auto-on') return 'off';
+            if (prev === 'user-on' || prev === 'auto-on') {
+                // User is stopping the mic manually
+                setMicStoppedManually(true);
+                return 'off';
+            }
+            // User is resuming the mic — cancel any send countdown
+            setMicStoppedManually(false);
+            setSendCountdown(null);
             return 'user-on';
         });
     }, []);
@@ -631,8 +748,13 @@ export function useInterview(options: {
     const endInterview = useCallback(() => {
         if (roundCount < 1) return;
         setMicIntent('off');
+        setMicStoppedManually(false);
+        setSendCountdown(null);
         stopListening();
         stopSpeaking();
+        // Clear smart pause & countdown timers
+        if (smartPauseTimerRef.current) { clearTimeout(smartPauseTimerRef.current); smartPauseTimerRef.current = null; }
+        if (sendCountdownIntervalRef.current) { clearInterval(sendCountdownIntervalRef.current); sendCountdownIntervalRef.current = null; }
         stateMachine.current.transition('SUBMIT_SOLUTION');
         setState(stateMachine.current.getState());
     }, [roundCount, stopListening, stopSpeaking]);
@@ -655,12 +777,16 @@ export function useInterview(options: {
         hasPendingSend,
         isMicEnabled,
         micIntent,
+        micStoppedManually,
+        sendCountdown,
+        ttsError,
         vadMode: vad.mode,
         vadFailed,
         ttsProvider: tts.provider,
         sttProvider,
         handleMicStop: () => {
             stt.stopListening();
+            setMicStoppedManually(true);
             setHasPendingSend(transcript.trim().length > 0);
             setMicIntent('off');
         },
@@ -669,6 +795,8 @@ export function useInterview(options: {
             if (!text) return;
             resetTranscript();
             setHasPendingSend(false);
+            setMicStoppedManually(false);
+            setSendCountdown(null);
             submitUserResponse(text, currentProblemRef.current!);
         },
         loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {
@@ -681,7 +809,6 @@ export function useInterview(options: {
             setState('completed');
         },
         voice: {
-            // Phase 2b: Remove optimisticListening — just use isListening directly
             isListening,
             transcript,
             interimTranscript,
@@ -689,11 +816,14 @@ export function useInterview(options: {
                 // Don't start mic while AI is speaking — would cause feedback/echo into VAD
                 if (isSpeaking) return;
                 setMicIntent('user-on');
+                setMicStoppedManually(false);
+                setSendCountdown(null);
                 startListening();
                 if (sttProvider === 'whisper') vad.startListening();
             },
             stopListening: () => {
                 setMicIntent('off');
+                setMicStoppedManually(true);
                 stopListening();
                 if (sttProvider === 'whisper') vad.stopListening();
             },
