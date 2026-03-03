@@ -237,7 +237,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             in_progress: 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/25',
             dropped_out: 'bg-red-500/15 text-red-400 border border-red-500/25',
             invited: 'bg-zinc-800 text-zinc-500 border border-zinc-700',
-            time_expired: 'bg-orange-500/15 text-orange-400 border border-orange-500/25'
+            expired: 'bg-orange-500/15 text-orange-400 border border-orange-500/25'
         };
         const baseClass = statusStyle[status] || 'bg-zinc-800 text-zinc-500 border border-zinc-700';
 
@@ -518,8 +518,8 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                             <button onClick={() => setStatusFilter('dropped_out')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'dropped_out' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
                                 Dropped Out {submissionsSummary ? `(${submissionsSummary.dropped_out})` : ''}
                             </button>
-                            <button onClick={() => setStatusFilter('time_expired')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'time_expired' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
-                                Time Expired {submissionsSummary ? `(${submissionsSummary.time_expired})` : ''}
+                            <button onClick={() => setStatusFilter('expired')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'expired' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                                Time Expired {submissionsSummary ? `(${submissionsSummary.expired})` : ''}
                             </button>
                         </div>
 

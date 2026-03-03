@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
             in_progress: 0,
             dropped_out: 0,
             invited: 0,
-            time_expired: 0
+            expired: 0
         };
 
         const rankedSubmissions = (submissions || []).map((sub) => {
