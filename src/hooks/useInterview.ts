@@ -313,6 +313,9 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
+            // Gate mic before speak() so onSpeakStart race is closed.
+            // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
+            setMicIntent('paused-for-ai');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -366,8 +369,10 @@ export function useInterview(options: {
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
-        // Phase 2a: Use micIntent instead of isMicEnabled
-        setMicIntent('auto-on');
+        // Phase 2a: Start paused — onSpeakEnd will transition to 'auto-on' when intro TTS finishes.
+        // Never set 'auto-on' here: setIsProcessing(false) runs in finally while TTS is still
+        // starting, creating a gap where mic+VAD activates while AI is speaking.
+        setMicIntent('paused-for-ai');
 
         const config = {
             problem: { title: problemTitle, description: problemContent, difficulty: difficulty || 'medium', id: problemId || '' } as any,
@@ -404,6 +409,9 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
+            // Gate mic before speak() so onSpeakStart race is closed.
+            // onSpeakEnd will transition paused-for-ai → auto-on when TTS finishes.
+            setMicIntent('paused-for-ai');
             speak(responseText);
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
@@ -438,6 +446,36 @@ export function useInterview(options: {
             stopListening();
         };
     }, [stopSpeaking, stopListening, state]);
+
+    // ── Mic diagnostics: log permission + resolved provider on mount ──
+    useEffect(() => {
+        if (typeof navigator === 'undefined') return;
+        const info = {
+            sttProvider,
+            resolvedProvider: stt.resolvedProvider,
+            permissionState: stt.permissionState,
+            hasMediaDevices: !!navigator.mediaDevices,
+            hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+            hasSpeechRecognition: !!(
+                (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+            ),
+            hasMediaRecorder: typeof MediaRecorder !== 'undefined',
+            hasSharedArrayBuffer: typeof SharedArrayBuffer !== 'undefined',
+            hasAudioWorklet: !!(window as any).AudioWorklet,
+        };
+        console.info('[Mic Diagnostics]', info);
+
+        // Live permission query (more up-to-date than useSTT's cached state)
+        navigator.permissions?.query({ name: 'microphone' as PermissionName })
+            .then(status => {
+                console.info('[Mic Permission] current state:', status.state);
+                if (status.state === 'denied') {
+                    console.warn('[Mic Permission] DENIED — user must unblock mic in browser settings');
+                }
+            })
+            .catch(() => console.warn('[Mic Permission] permissions API not available'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // mount only
 
     // Test Hook: Expose trigger for Playwright
     useEffect(() => {
@@ -478,9 +516,11 @@ export function useInterview(options: {
                 }
             }, 350);
             return () => clearTimeout(timer);
-        } else if (!shouldListen && isListeningRef.current) {
-            stopListening();
-            if (sttProvider === 'whisper') vad.stopListening();
+        } else if (!shouldListen) {
+            // Always stop both STT and VAD when we shouldn't be listening.
+            // isListeningRef lags by one render cycle (async ref update), so check both unconditionally.
+            if (isListeningRef.current) stopListening();
+            if (sttProvider === 'whisper') vad.stopListening(); // idempotent — safe even if VAD is already stopped
         }
     }, [micIntent, isSpeaking, isProcessing, state, startListening, stopListening, resetTranscript, sttProvider, vad]);
 
@@ -601,6 +641,8 @@ export function useInterview(options: {
             transcript,
             interimTranscript,
             startListening: () => {
+                // Don't start mic while AI is speaking — would cause feedback/echo into VAD
+                if (isSpeaking) return;
                 setMicIntent('user-on');
                 startListening();
                 if (sttProvider === 'whisper') vad.startListening();
@@ -618,6 +660,8 @@ export function useInterview(options: {
             resumeSpeaking,
             stopSpeaking,
             error: voiceError,
+            permissionState: stt.permissionState,
+            sttResolvedProvider: stt.resolvedProvider,
             transcribeVADAudio,
             submitCurrentTranscript: () => {
                 if (transcript && currentProblemRef.current) {
