@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
         }
 
+        // Min 1KB — anything smaller is noise/artifact, not speech
+        if (audioFile.size < 1000) {
+            return NextResponse.json({ error: 'Audio too short' }, { status: 400 });
+        }
+
         // Max 10MB audio
         if (audioFile.size > 10 * 1024 * 1024) {
             return NextResponse.json({ error: 'Audio too large (max 10MB)' }, { status: 413 });
@@ -97,9 +102,11 @@ export async function POST(req: NextRequest) {
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
+                    const errorBody = await response.json().catch(() => ({ error: { message: response.statusText } }));
+                    const errMsg = errorBody.error?.message || 'Groq API error';
+                    console.error(`[Transcribe] Groq ${model} returned ${response.status}: ${errMsg}`);
                     if (response.status === 429) continue; // Rate limited, try next model
-                    throw new Error(error.error?.message || 'Groq API error');
+                    throw new Error(errMsg);
                 }
 
                 const data = await response.json();
@@ -121,9 +128,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'All transcription models failed' }, { status: 503 });
 
     } catch (error) {
-        console.error('[Transcribe API] Error:', error);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error('[Transcribe API] Error:', errMsg);
         return NextResponse.json(
-            { error: 'Transcription failed' },
+            { error: 'Transcription failed', detail: errMsg },
             { status: 500 }
         );
     }

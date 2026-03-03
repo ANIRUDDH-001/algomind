@@ -254,12 +254,24 @@ export function useSTT(opts: UseSTTOptions) {
     const transcribeAudio = useCallback(async (audio: Float32Array) => {
         // Phase 3d: Accept both whisper and recorder providers
         if (resolvedProvider !== 'whisper' && resolvedProvider !== 'recorder') return;
+
+        // Minimum audio length check: skip if < 0.25s at 16kHz (too short for useful speech)
+        const MIN_SAMPLES = 4000; // ~0.25s at 16kHz
+        if (!audio || audio.length < MIN_SAMPLES) {
+            console.warn(`[STT] Audio too short (${audio?.length ?? 0} samples), skipping transcription`);
+            return;
+        }
+
         try {
             const wav = float32ToWav(audio, 16000);
             const form = new FormData();
             form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'audio.wav');
             const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form });
-            if (!res.ok) return;
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({ error: res.statusText }));
+                console.error(`[STT] Transcription API returned ${res.status}:`, errBody);
+                return;
+            }
             const { text } = await res.json() as { text: string };
             if (!text?.trim()) return;
             setTranscript(p => p ? `${p} ${text}` : text);
@@ -295,24 +307,46 @@ export function useSTT(opts: UseSTTOptions) {
 
 // Minimal PCM → WAV encoder
 function float32ToWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
+    const numChannels = 1;
     const bitsPerSample = 16;
     const bytesPerSample = bitsPerSample / 8;
-    const blockAlign = bytesPerSample;
+    const blockAlign = numChannels * bytesPerSample;
     const byteRate = sampleRate * blockAlign;
     const dataSize = samples.length * bytesPerSample;
-    const buf = new ArrayBuffer(44 + dataSize);
-    const view = new DataView(buf);
-    const w = (off: number, v: number, n: number) => n === 4 ? view.setUint32(off, v, true) : n === 2 ? view.setUint16(off, v, true) : view.setUint8(off, v);
-    'RIFF'.split('').forEach((c, i) => w(i, c.charCodeAt(0), 1));
-    w(4, 36 + dataSize, 4); w(8, 0x45564157, 4); w(12, 0x20746d66, 4); w(16, 16, 4); w(20, 1, 2);
-    w(22, 1, 2); w(24, sampleRate, 4); w(28, byteRate, 4); w(32, blockAlign, 2); w(34, bitsPerSample, 2);
-    'data'.split('').forEach((c, i) => w(38 + i, c.charCodeAt(0), 1));
-    w(42, dataSize, 4);
-    let off = 44;
-    for (const s of samples) {
-        const clipped = Math.max(-1, Math.min(1, s));
-        view.setInt16(off, clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff, true);
-        off += 2;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    // RIFF header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);  // file size - 8
+    writeString(view, 8, 'WAVE');
+
+    // fmt sub-chunk
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);            // PCM format chunk size
+    view.setUint16(20, 1, true);             // PCM format = 1
+    view.setUint16(22, numChannels, true);   // mono
+    view.setUint32(24, sampleRate, true);    // sample rate
+    view.setUint32(28, byteRate, true);      // byte rate
+    view.setUint16(32, blockAlign, true);    // block align
+    view.setUint16(34, bitsPerSample, true); // bits per sample
+
+    // data sub-chunk (MUST start at offset 36, NOT 38)
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);      // data chunk size
+
+    // PCM samples
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        offset += 2;
     }
-    return buf;
+    return buffer;
+}
+
+function writeString(view: DataView, offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+    }
 }
