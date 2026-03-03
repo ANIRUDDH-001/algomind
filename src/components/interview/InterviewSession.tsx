@@ -235,6 +235,9 @@ export function InterviewSession({
         isLimitReached,
         limitReason,
         vadFailed,
+        micStoppedManually,
+        sendCountdown,
+        ttsError,
     } = useInterview({
         config: interviewConfig,
         isTimeUp: limits.isTimeUp,
@@ -721,9 +724,15 @@ export function InterviewSession({
                                                     isListening={voice.isListening}
                                                     error={voice.error?.message}
                                                     onClick={() => {
+                                                        if (voice.isSpeaking) {
+                                                            // Interrupt AI speech — mic will auto-activate after
+                                                            voice.stopSpeaking();
+                                                            handleInterruption();
+                                                            return;
+                                                        }
                                                         if (voice.isListening) {
                                                             voice.stopListening();
-                                                        } else if (!isProcessing && !voice.isSpeaking) {
+                                                        } else if (!isProcessing) {
                                                             voice.startListening();
                                                         }
                                                     }}
@@ -731,7 +740,7 @@ export function InterviewSession({
                                                         setVoiceErrorDismissed(false);
                                                         voice.startListening();
                                                     }}
-                                                    disabled={isProcessing || voice.isSpeaking}
+                                                    disabled={isProcessing}
                                                 />
                                                 <div className="absolute top-1/2 -translate-y-1/2 -right-16">
                                                     <MicPulse
@@ -778,12 +787,19 @@ export function InterviewSession({
                                                 <TranscriptViewer
                                                     transcript={voice.transcript}
                                                     interimTranscript={voice.interimTranscript}
-                                                    isEditable={false}
                                                 />
                                             </div>
                                         </div>
 
-                                        {/* Text input fallback — shown when user taps "Type instead" */}
+                                        {/* TTS error banner */}
+                                        {ttsError && (
+                                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5 text-red-400 text-[10px] font-bold flex items-center gap-1.5">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                Voice playback failed. AI response is shown in chat history.
+                                            </div>
+                                        )}
+
+                                        {/* Text input fallback — hidden by default, only shown on mic failure */}
                                         <div className="w-full">
                                             <button
                                                 onClick={() => setShowTextInput(!showTextInput)}
@@ -809,22 +825,24 @@ export function InterviewSession({
                                             )}
                                         </div>
 
-                                        {/* Send button: works with voice transcript OR typed text */}
-                                        <Button
-                                            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                                            onClick={() => {
-                                                const content = (showTextInput && textInput.trim()) ? textInput.trim() : voice.transcript;
-                                                if (content) {
-                                                    submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
-                                                    setTextInput('');
-                                                }
-                                            }}
-                                            disabled={(!voice.transcript && !textInput.trim()) || isProcessing}
-                                            title={(!voice.transcript && !textInput.trim()) ? 'Speak or type first' : 'Send your response'}
-                                        >
-                                            <Send className="w-3 h-3 mr-2" />
-                                            {(voice.transcript || textInput.trim()) ? 'Send Message' : 'Waiting for speech…'}
-                                        </Button>
+                                        {/* Send button: ONLY shown when mic is manually stopped (or typing) AND there is content */}
+                                        {(micStoppedManually || (showTextInput && textInput.trim())) && (voice.transcript || textInput.trim()) && (
+                                            <Button
+                                                className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                onClick={() => {
+                                                    const content = (showTextInput && textInput.trim()) ? textInput.trim() : voice.transcript;
+                                                    if (content) {
+                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
+                                                        setTextInput('');
+                                                    }
+                                                }}
+                                                disabled={isProcessing}
+                                                title="Send your response"
+                                            >
+                                                <Send className="w-3 h-3 mr-2" />
+                                                {sendCountdown !== null ? `Sending in ${sendCountdown}s…` : 'Send Message'}
+                                            </Button>
+                                        )}
 
                                         {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
                                         {isMobile && hasStarted && !readOnly && (
