@@ -55,6 +55,27 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Rate-limit assessment starts: max 5 per IP per 10 minutes
+        // Prevents slot exhaustion from refresh loops or automated bots
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            ?? req.headers.get('x-real-ip')
+            ?? 'unknown';
+
+        if (clientIp !== 'unknown') {
+            const { checkIpRateLimit } = await import('@/lib/rate-limit/ip-rate-limiter');
+            const rateCheck = await checkIpRateLimit(clientIp, {
+                maxRequests: 5,
+                windowSeconds: 600,
+                endpoint: 'assess_start',
+            });
+            if (!rateCheck.success) {
+                return NextResponse.json(
+                    { error: 'Too many assessment attempts. Please wait a few minutes before trying again.' },
+                    { status: 429 }
+                );
+            }
+        }
+
         // Get authenticated user for the submission
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -184,6 +205,17 @@ export async function POST(req: NextRequest) {
                 }];
             }
 
+            // expires_at = total assessment time + 2 hour buffer
+            // This must stay in sync with the JWT expiry calculated above (totalAssessmentMins + 30 min grace).
+            // We add an extra 90 min buffer here so the DB record outlives the JWT slightly.
+            const totalAssessmentMinsTemp = questionStates.length > 0
+                ? questionStates.reduce((sum, q) => sum + (q.time_limit_mins || 45), 0)
+                : (campaignData.time_limit_mins || 45);
+
+            const submissionExpiresAt = new Date(
+                Date.now() + (totalAssessmentMinsTemp + 120) * 60 * 1000
+            ).toISOString();
+
             const { data: newSubmission, error: submissionError } = await supabase
                 .from('candidate_submissions')
                 .insert({
@@ -194,7 +226,8 @@ export async function POST(req: NextRequest) {
                     status: 'in_progress',
                     assigned_problem_id: selectedProblemId, // Keep for backward compat
                     question_states: questionStates,
-                    entry_code_verified: !!entryCode
+                    entry_code_verified: !!entryCode,
+                    expires_at: submissionExpiresAt,
                 })
                 .select('id, created_at')
                 .single();
@@ -265,8 +298,14 @@ export async function POST(req: NextRequest) {
         // 5. Create local session JWT
         const alg = 'HS256';
 
-        // Expiry = total time limit + 30 min grace period
-        const expiryTimeMins = (campaignData.time_limit_mins || 45) + 30;
+        // Expiry = SUM of all question time limits + 30 min grace period.
+        // For multi-question campaigns, each question has its own time_limit_mins
+        // in questionStates. Never use campaignData.time_limit_mins alone — that
+        // is the per-question legacy field and ignores additional questions entirely.
+        const totalAssessmentMins = questionStates.length > 0
+            ? questionStates.reduce((sum, q) => sum + (q.time_limit_mins || 45), 0)
+            : (campaignData.time_limit_mins || 45);
+        const expiryTimeMins = totalAssessmentMins + 30;
         const exp = Math.floor(Date.now() / 1000) + (expiryTimeMins * 60);
 
         const sessionToken = await new jose.SignJWT({
@@ -284,7 +323,7 @@ export async function POST(req: NextRequest) {
             startedAt,
             questionStates,
             questions: problems,
-            timeLimitMins: campaignData.time_limit_mins,
+            timeLimitMins: totalAssessmentMins,
             showScoreToCandidate: !!campaignData.show_score_to_candidate,
             ragContext: employerRagContext,
         });

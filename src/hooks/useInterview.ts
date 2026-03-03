@@ -499,6 +499,8 @@ export function useInterview(options: {
     useEffect(() => {
         if ((state as string) === 'idle') {
             if (isListeningRef.current) stopListening();
+            // Stop VAD when idle
+            if (sttProvider === 'whisper') vad.stopListening();
             micResumeAttemptedRef.current = false;
             return;
         }
@@ -506,6 +508,8 @@ export function useInterview(options: {
         // If User Manually Disabled Mic -> Ensure Stopped
         if (!isMicEnabled) {
             if (isListeningRef.current) stopListening();
+            // Stop VAD when mic disabled
+            if (sttProvider === 'whisper') vad.stopListening();
             micResumeAttemptedRef.current = false;
             return;
         }
@@ -516,28 +520,24 @@ export function useInterview(options: {
 
         if (shouldStopForSpeaking || isProcessing) {
             if (isListeningRef.current) {
-                // ✅ Cancel any pending auto-submit to prevent race condition
                 if (pendingAutoSubmitRef.current) {
                     clearTimeout(pendingAutoSubmitRef.current);
                     pendingAutoSubmitRef.current = null;
                 }
-                // Use abort to immediately cut off stream and discard partial inputs
                 abortListening();
             }
-            // Reset the resume flag when AI starts speaking/processing
+            // Pause VAD while AI is speaking/processing
+            if (sttProvider === 'whisper') vad.stopListening();
             micResumeAttemptedRef.current = false;
-            return; // Don't proceed to start logic
+            return;
         }
 
-        // Already listening — nothing to do. DO NOT reset the guard here.
-        // The guard resets when AI starts speaking (the shouldStopForSpeaking branch).
         if (isListeningRef.current) {
             return;
         }
 
         // Mic is Enabled (Intent) AND AI is silent: Resume Mic
         if (!isListeningRef.current && !micPausedForSilenceRef.current) {
-            // Delay to ensure audio is fully cleared and prevent "Self-Hearing" loops
             const timer = setTimeout(() => {
                 const currentlyListening = isListeningRef.current;
                 const currentlySpeaking = isSpeakingRef.current;
@@ -548,11 +548,13 @@ export function useInterview(options: {
                 if (micStillEnabled && !stillShouldStop && !currentlyListening) {
                     resetTranscript();
                     startListening();
+                    // Start VAD alongside STT in whisper mode
+                    if (sttProvider === 'whisper') vad.startListening();
                 }
             }, 350);
             return () => clearTimeout(timer);
         }
-    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript]);
+    }, [isSpeaking, isProcessing, startListening, stopListening, abortListening, state, isMicEnabled, resetTranscript, sttProvider, vad]);
 
     // Reset micResumeAttemptedRef once we confirm mic is actually live
     useEffect(() => {
@@ -683,13 +685,16 @@ export function useInterview(options: {
             startListening: () => {
                 setIsMicEnabled(true);
                 setOptimisticListening(true);
-                // Directly invoke recognition.start() — don't rely solely on the mic sync effect
                 startListening();
+                // Start VAD mic capture in whisper mode
+                if (sttProvider === 'whisper') vad.startListening();
             },
             stopListening: () => {
                 setIsMicEnabled(false);
                 setOptimisticListening(false);
                 stopListening();
+                // Stop VAD mic capture in whisper mode
+                if (sttProvider === 'whisper') vad.stopListening();
             },
             toggleMic, // New toggle
             isMicEnabled, // Expose state

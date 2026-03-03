@@ -398,7 +398,7 @@ function ActiveQuestionView({
         loadTranscript,
         voice
     } = useInterview({
-        config: { mode: 'employer' } as any, // Disabled for simplicity in multi-question, or hook up settings
+        config: { mode: 'employer', difficultyMode: 'practice' } as any, // Disabled for simplicity in multi-question, or hook up settings
         apiEndpoint: '/api/assess/chat',
         sessionToken: sessionToken
     });
