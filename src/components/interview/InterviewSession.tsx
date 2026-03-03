@@ -337,18 +337,18 @@ export function InterviewSession({
     }, [isSpeaking, isListening, stopListening, vadEnabled]);
 
     // Phase 5b: Auto-detect mic failure → promote text input
+    // Only show after 45s of continuous listening with zero transcript (real failure)
     useEffect(() => {
         if (!voice.isListening || voice.transcript || voice.interimTranscript) return;
 
         const timer = setTimeout(() => {
             if (voice.isListening && !voice.transcript && !voice.interimTranscript) {
-                setShowTextInput(true);
-                toast('Mic may not be working — you can type your response instead', {
+                toast('Mic may not be working — tap the keyboard icon below to type instead', {
                     icon: '⌨️',
                     duration: 5000,
                 });
             }
-        }, 10_000);
+        }, 45_000);
 
         return () => clearTimeout(timer);
     }, [voice.isListening, voice.transcript, voice.interimTranscript]);
@@ -714,7 +714,25 @@ export function InterviewSession({
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-h-0" />
+                                    {/* Last AI message — compact preview so user sees what AI said */}
+                                    {messages.length > 0 && (
+                                        <div className="w-full max-w-md mx-auto flex-1 min-h-0 overflow-y-auto custom-scrollbar px-1">
+                                            {(() => {
+                                                const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant');
+                                                if (!lastAiMsg) return null;
+                                                return (
+                                                    <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-3 text-xs text-zinc-300 leading-relaxed">
+                                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                                            <div className="w-4 h-4 rounded-full bg-indigo-600/30 flex items-center justify-center text-[8px] font-bold text-indigo-400">K</div>
+                                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Kai</span>
+                                                        </div>
+                                                        <p className="whitespace-pre-wrap">{lastAiMsg.content}</p>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+                                    {messages.length === 0 && <div className="flex-1 min-h-0" />}
 
                                     {/* Microphone / Interactions */}
                                     {!readOnly && (
@@ -775,7 +793,7 @@ export function InterviewSession({
                                     )}
 
                                     {/* Transcript Area */}
-                                    <div className="w-full space-y-3 px-1 flex-none min-h-0 flex flex-col h-32 mb-4">
+                                    <div className="w-full space-y-2 px-1 flex-none flex flex-col min-h-45 h-[35vh] max-h-70 mb-4">
                                         <div className="flex justify-between items-center px-1">
                                             <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
                                             {(voice.transcript || voice.interimTranscript) && (
@@ -799,21 +817,18 @@ export function InterviewSession({
                                             </div>
                                         )}
 
-                                        {/* Text input fallback — hidden by default, only shown on mic failure */}
-                                        <div className="w-full">
-                                            <button
-                                                onClick={() => setShowTextInput(!showTextInput)}
-                                                className="flex items-center gap-1.5 text-[10px] text-zinc-500 hover:text-indigo-400 transition-colors font-bold uppercase tracking-wider mb-2"
-                                            >
-                                                <Keyboard className="w-3 h-3" />
-                                                {showTextInput ? 'Hide text input' : 'Mic not working? Type instead'}
-                                            </button>
-                                            {showTextInput && (
+                                        {/* Text input fallback — tiny toggle, only shown on user request */}
+                                        {showTextInput ? (
+                                            <div className="w-full">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Text Input</span>
+                                                    <button onClick={() => setShowTextInput(false)} className="text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors">✕ Close</button>
+                                                </div>
                                                 <textarea
                                                     value={textInput}
                                                     onChange={(e) => setTextInput(e.target.value)}
                                                     placeholder="Type your response here…"
-                                                    className="w-full h-24 bg-zinc-900/60 border border-zinc-700/50 rounded-xl p-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                                                    className="w-full h-20 bg-zinc-900/60 border border-zinc-700/50 rounded-xl p-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter' && !e.shiftKey && textInput.trim()) {
                                                             e.preventDefault();
@@ -822,8 +837,15 @@ export function InterviewSession({
                                                         }
                                                     }}
                                                 />
-                                            )}
-                                        </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setShowTextInput(true)}
+                                                className="self-start flex items-center gap-1 text-[9px] text-zinc-600 hover:text-zinc-400 transition-colors opacity-60 hover:opacity-100"
+                                            >
+                                                <Keyboard className="w-2.5 h-2.5" /> Type instead
+                                            </button>
+                                        )}
 
                                         {/* Send button: ONLY shown when mic is manually stopped (or typing) AND there is content */}
                                         {(micStoppedManually || (showTextInput && textInput.trim())) && (voice.transcript || textInput.trim()) && (

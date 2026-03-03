@@ -30,10 +30,10 @@ import { getVoiceConfig } from '@/config/voice-config';
 
 const DEFAULT_CONFIG: VADConfig = {
     positiveSpeechThreshold: 0.7,   // Medium-high: ignores most background noise, catches clear speech
-    negativeSpeechThreshold: 0.3,   // Once speech is detected, stays in speech mode until clearly stopped
-    redemptionMs: 900,              // Longer redemption to avoid cutting mid-sentence pauses
-    preSpeechPadMs: 250,
-    minSpeechMs: 500,               // Ignore short bursts (<500ms) likely from noise/coughs
+    negativeSpeechThreshold: 0.25,  // Stay in speech mode until clearly stopped (lower = more tolerant of pauses)
+    redemptionMs: 1500,             // Wait 1.5s after speech dips before ending — captures full sentences
+    preSpeechPadMs: 300,            // Include 300ms before speech start for cleaner Whisper context
+    minSpeechMs: 800,               // Ignore short bursts (<800ms) likely from noise/coughs
     model: 'legacy',
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',
