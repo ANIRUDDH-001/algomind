@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // ─── Read source file for static checks ───
-const SRC_PATH = path.resolve(__dirname, '../client.tsx');
+const SRC_PATH = path.resolve(__dirname, '../analytics-tab.tsx');
 const src = fs.readFileSync(SRC_PATH, 'utf-8');
 
 // ─── Vitest-environment jsdom only needed for render tests (tests 6–9) ───
@@ -110,9 +110,9 @@ vi.mock('lucide-react', () => ({
     Zap: () => <svg />,
 }));
 
-import AnalyticsAdminClient from '../client';
+import { AnalyticsTab } from '../analytics-tab';
 
-describe('AnalyticsAdminClient — Static Source Checks', () => {
+describe('AnalyticsTab — Static Source Checks', () => {
     it('1. Chart Bars use COLORS.chart values, not hardcoded hex like #8884d8', () => {
         // The primary stacked bars use COLORS.chart[n] from the typeColors map
         expect(src).toContain("COLORS.chart[0]");
@@ -180,7 +180,7 @@ describe('AnalyticsAdminClient — Static Source Checks', () => {
     });
 });
 
-describe('AnalyticsAdminClient — DOM Render Tests', () => {
+describe('AnalyticsTab — DOM Render Tests', () => {
     afterEach(() => {
         cleanup();
         vi.clearAllMocks();
@@ -189,7 +189,7 @@ describe('AnalyticsAdminClient — DOM Render Tests', () => {
     async function renderAndLoad() {
         let result: ReturnType<typeof render>;
         await act(async () => {
-            result = render(<AnalyticsAdminClient />);
+            result = render(<AnalyticsTab />);
         });
         // Wait for loading to complete
         await waitFor(() => {
@@ -266,6 +266,7 @@ describe('AnalyticsAdminClient — DOM Render Tests', () => {
     it('Snapshot: matches stable structure (catches color regressions)', async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         vi.setSystemTime(new Date('2026-02-24T08:00:00Z'));
+        vi.spyOn(Date.prototype, 'toLocaleTimeString').mockReturnValue('1:30:00 pm');
         try {
             const { container } = await renderAndLoad();
             await waitFor(() => {

@@ -1,7 +1,7 @@
 'use client';
 
 // Reuse the existing admin component for now, but embedded directly into the tab structure.
-import AdminsClient from '@/app/admin/admins/client';
+import AdminsClient from '@/app/admin/client';
 
 export function AdminsTab() {
     return (
