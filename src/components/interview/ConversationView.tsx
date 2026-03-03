@@ -7,6 +7,7 @@ import { InterruptionIndicator } from './InterruptionIndicator';
 import { InterruptionManager } from '@/lib/voice/interruption-manager';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { Badge } from '@/components/ui/badge';
+import { useVoiceActivityDetection } from '@/hooks/useVoiceActivityDetection';
 
 // ---------------------------------------------------------------------------
 // Debug helper (dev mode only)
@@ -90,70 +91,12 @@ export function ConversationView({
     }, [messages]);
 
     // ── VAD Hook Integration ─────────────────────────────────────
-    // Feature flags integration
-    // We combine the prop (from parent/settings) with the global feature flag
     const isVadFlagEnabled = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
-    const isVadSupported = true; // Browser support checked at AudioWorklet init
+    const isVadSupported = true;
 
-    // Effective VAD enabled state: Must be enabled globally AND supported AND enabled via prop (if applicable)
-    // Note: If propVadEnabled is generally true/false based on user preference in parent, we might want to respect it.
-    // For now, let's assume if the flag is disabled, VAD is dead.
     const isVadEnabled = isVadFlagEnabled && propVadEnabled;
 
-    // VAD Hook
-    /* const {
-        isListening: isVadListening,
-        error: vadError,
-    } = useVoiceActivityDetection({
-        enabled: isVadEnabled,
-        autoStart: isVadEnabled,
-        onSpeechStart: () => {
-            if (isVadEnabled && interruptionManagerRef.current) {
-                // IMPORTANT: The InterruptionManager determines if we should actually interrupt.
-                // It checks confidence, grace periods, etc.
-                const decision = interruptionManagerRef.current.handleUserSpeechStart();
-
-                if (decision === 'INTERRUPT_IMMEDIATELY') {
-                    debugLog('InterruptionManager decided to INTERRUPT');
-                    handleInterruption();
-                } else if (decision === 'ALLOW_INPUT') {
-                    debugLog('InterruptionManager decided to ALLOW_INPUT (User speaking, AI silent)');
-                    // Ensure STT is awake!
-                    if (onUserSpeaking) onUserSpeaking();
-                } else {
-                    debugLog('InterruptionManager decided to WAIT/IGNORE', decision);
-                }
-            }
-        },
-        onSpeechEnd: (audio) => {
-            if (isVadEnabled && interruptionManagerRef.current) {
-                interruptionManagerRef.current.handleUserSpeechEnd();
-            }
-            if (onSpeechEnd) {
-                onSpeechEnd(audio);
-            }
-        },
-        onError: (err: any) => {
-            debugLog('vad_error', { error: err.message });
-            if (onVadError) onVadError(err);
-        }
-    }); */
-
-    // const isVadSupported = true; // Use simple fallback
-    // const vadError = null;
-
-    // ── Analytics: Track VAD Init ──────────────────────────────
-    useEffect(() => {
-        if (isVadEnabled) {
-            debugLog('vad_init', {
-                browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-                supported: isVadSupported
-            });
-        }
-    }, [isVadEnabled, isVadSupported]);
-
-
-    // ── InterruptionManager setup ──────────────────────────
+    // ── InterruptionManager setup (moved before the VAD hook so handleInterruption is defined) ──
     const handleInterruption = useCallback(() => {
         if (!isVadEnabled) return;
 
@@ -173,6 +116,52 @@ export function ConversationView({
         // Reset interrupting state after a short delay
         setTimeout(() => setIsInterrupting(false), 2000);
     }, [isVadEnabled, onInterrupt]);
+
+    // Phase 4b: VAD Hook — UNCOMMENTED and wired to useVoiceActivityDetection
+    useVoiceActivityDetection({
+        enabled: isVadEnabled,
+        autoStart: isVadEnabled,
+        onSpeechStart: () => {
+            if (isVadEnabled && interruptionManagerRef.current) {
+                const decision = interruptionManagerRef.current.handleUserSpeechStart();
+
+                if (decision === 'INTERRUPT_IMMEDIATELY') {
+                    debugLog('InterruptionManager decided to INTERRUPT');
+                    handleInterruption();
+                } else if (decision === 'ALLOW_INPUT') {
+                    debugLog('InterruptionManager decided to ALLOW_INPUT (User speaking, AI silent)');
+                    if (onUserSpeaking) onUserSpeaking();
+                } else {
+                    debugLog('InterruptionManager decided to WAIT/IGNORE', decision);
+                }
+            }
+        },
+        onSpeechEnd: (audio) => {
+            if (isVadEnabled && interruptionManagerRef.current) {
+                interruptionManagerRef.current.handleUserSpeechEnd();
+            }
+            if (onSpeechEnd) {
+                onSpeechEnd(audio);
+            }
+        },
+        onError: (err) => {
+            debugLog('vad_error', { error: err.message });
+            if (onVadError) onVadError(err);
+        }
+    });
+
+    // ── Analytics: Track VAD Init ──────────────────────────────
+    useEffect(() => {
+        if (isVadEnabled) {
+            debugLog('vad_init', {
+                browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+                supported: isVadSupported
+            });
+        }
+    }, [isVadEnabled, isVadSupported]);
+
+
+
 
     useEffect(() => {
         if (!isVadEnabled) {
