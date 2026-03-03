@@ -23,6 +23,7 @@ export type VADMode = 'onnx' | 'push-to-talk';
 
 export interface UseVADOptions {
     enabled: boolean;
+    onSpeechStart?: () => void;
     onSpeechEnd?: (audio: Float32Array) => void;
     onError?: (err: Error) => void;
     /** Called when VAD degrades to push-to-talk — parent should cascade to browser STT */
@@ -66,19 +67,32 @@ export function useVAD(opts: UseVADOptions) {
         }
     }, [opts.enabled]);
 
-    // Register onSpeechEnd callback ONCE when manager is available, not in startListening.
+    // Register callbacks ONCE when manager is available, not in startListening.
     // This prevents duplicate subscriptions when startListening is called multiple times.
-    const registerCallback = useCallback((manager: { onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void) }) => {
+    const registerCallback = useCallback((manager: {
+        onSpeechStart?: (cb: () => void) => (() => void);
+        onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void);
+    }) => {
         // Unsubscribe previous if any
         if (unsubRef.current) {
             unsubRef.current();
             unsubRef.current = null;
         }
-        const unsub = manager.onSpeechEnd?.((audio: Float32Array) => {
+        const unsubs: (() => void)[] = [];
+
+        const unsubStart = manager.onSpeechStart?.(() => {
+            console.log('[useVAD] onSpeechStart fired');
+            optsRef.current.onSpeechStart?.();
+        });
+        if (unsubStart) unsubs.push(unsubStart);
+
+        const unsubEnd = manager.onSpeechEnd?.((audio: Float32Array) => {
             console.log(`[useVAD] onSpeechEnd fired, audio length: ${audio.length}`);
             optsRef.current.onSpeechEnd?.(audio);
         });
-        if (unsub) unsubRef.current = unsub;
+        if (unsubEnd) unsubs.push(unsubEnd);
+
+        unsubRef.current = () => unsubs.forEach(fn => fn());
     }, []);
 
     const startListening = useCallback(async () => {

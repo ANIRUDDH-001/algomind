@@ -76,7 +76,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
         );
     }, [prefVoice, opts.voiceRate, opts.voicePitch]);
 
-    // 4. Override browser voice settings on utterance level via a wrapper speak
+    // 4. speak — fire-and-forget (backward compat). speakAndWait — awaits completion.
     const speak = useCallback(async (text: string) => {
         const engine = engineRef.current;
         if (!engine) {
@@ -89,9 +89,35 @@ export function useTTS(opts: UseTTSOptions = {}) {
             return;
         }
         console.log(`[useTTS] speak() → engine.speak(), textLen=${cleaned.length}, polly=${pollyEnabled}`);
-        const used = await engine.speak(cleaned, pollyEnabled);
-        console.log(`[useTTS] engine.speak() resolved, provider=${used}`);
-        setProvider(used);
+        const result = await engine.speak(cleaned, pollyEnabled);
+        console.log(`[useTTS] engine.speak() resolved, provider=${result.provider}, success=${result.success}`);
+        setProvider(result.provider);
+    }, [pollyEnabled]);
+
+    /** Await TTS completion. Returns success (true if speech was audibly played). Retries up to `retries` times on failure. */
+    const speakAndWait = useCallback(async (text: string, retries = 3): Promise<boolean> => {
+        const engine = engineRef.current;
+        if (!engine) {
+            console.warn('[useTTS] speakAndWait() called but engine is null');
+            return false;
+        }
+        const cleaned = text.replace(/[*_#`~]/g, '').trim();
+        if (!cleaned) return false;
+
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            console.log(`[useTTS] speakAndWait attempt ${attempt}/${retries}, textLen=${cleaned.length}`);
+            const result = await engine.speak(cleaned, pollyEnabled);
+            setProvider(result.provider);
+            if (result.success) {
+                console.log(`[useTTS] speakAndWait succeeded on attempt ${attempt}`);
+                return true;
+            }
+            console.warn(`[useTTS] speakAndWait attempt ${attempt} failed`);
+            // Short delay before retry
+            if (attempt < retries) await new Promise(r => setTimeout(r, 300));
+        }
+        console.error(`[useTTS] speakAndWait failed after ${retries} retries`);
+        return false;
     }, [pollyEnabled]);
 
     const stop = useCallback(() => {
@@ -99,5 +125,5 @@ export function useTTS(opts: UseTTSOptions = {}) {
         setIsSpeaking(false);
     }, []);
 
-    return { speak, stop, isSpeaking, provider, prefVoice, setPrefVoice };
+    return { speak, speakAndWait, stop, isSpeaking, provider, prefVoice, setPrefVoice };
 }
