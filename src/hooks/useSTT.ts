@@ -55,7 +55,9 @@ export function useSTT(opts: UseSTTOptions) {
     const recorderRef = useRef<MediaRecorder | null>(null);
     const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const optsRef = useRef(opts);
-    useEffect(() => { optsRef.current = opts; }, [opts]);
+    // Synchronous update during render — eliminates timing gap between
+    // render and useEffect that could cause stale onTranscript callbacks.
+    optsRef.current = opts;
 
     // Phase 0a: listeningIntentRef — stays true until stopListening() is explicitly called
     const listeningIntentRef = useRef(false);
