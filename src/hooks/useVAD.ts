@@ -39,7 +39,9 @@ export function useVAD(opts: UseVADOptions) {
     const managerRef = useRef<any>(null);
     const unsubRef = useRef<(() => void) | null>(null);
     const optsRef = useRef(opts);
-    useEffect(() => { optsRef.current = opts; }, [opts]);
+    // Synchronous update during render — eliminates timing gap between
+    // render and useEffect that could cause stale callbacks in onSpeechEnd.
+    optsRef.current = opts;
 
     // Detect basic browser support on mount.
     // NOTE: SharedArrayBuffer is NOT required — the vad-bundle.min.js UMD build

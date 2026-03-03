@@ -71,12 +71,18 @@ export function useTTS(opts: UseTTSOptions = {}) {
     // 4. Override browser voice settings on utterance level via a wrapper speak
     const speak = useCallback(async (text: string) => {
         const engine = engineRef.current;
-        if (!engine) return;
+        if (!engine) {
+            console.warn('[useTTS] speak() called but engine is null — TTS not ready');
+            return;
+        }
         const cleaned = text.replace(/[*_#`~]/g, '').trim();
-        if (!cleaned) return;
-        // Inject voiceName/rate/pitch into browser speech via patching SpeechSynthesisUtterance
-        // (engine.tryBrowser picks these up if we set them on the SpeechSynthesisUtterance internally)
+        if (!cleaned) {
+            console.warn('[useTTS] speak() called with empty text after cleaning');
+            return;
+        }
+        console.log(`[useTTS] speak() → engine.speak(), textLen=${cleaned.length}, polly=${pollyEnabled}`);
         const used = await engine.speak(cleaned, pollyEnabled);
+        console.log(`[useTTS] engine.speak() resolved, provider=${used}`);
         setProvider(used);
     }, [pollyEnabled]);
 
