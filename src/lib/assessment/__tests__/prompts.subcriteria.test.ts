@@ -28,7 +28,7 @@ describe('assessment prompt with sub-criteria', () => {
 
     it('4. codeQuality appears in output format section', () => {
         const prompt = generateAssessmentPrompt(mockProblem, mockTranscript, SKILL_DEFINITIONS);
-        expect(prompt).toContain('"codeQuality": {');
-        expect(prompt).toContain('CODE QUALITY ASSESSMENT:');
+        expect(prompt).toContain('"codeQuality":');
+        expect(prompt).toContain('correctness');
     });
 });

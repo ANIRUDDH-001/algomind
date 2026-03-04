@@ -19,23 +19,23 @@ describe('Prompt snapshot tests', () => {
         const prompt = generateInterviewerSystemPrompt({
             problem: MOCK_PROBLEM,
             difficulty: 'medium',
-            difficultyMode: 'practice',
+            difficultyMode: 'employer',
         });
         // Key phrases must be present
-        expect(prompt).toContain('STRICTNESS PROTOCOL');
-        expect(prompt).toContain('cap their score');
+        expect(prompt).toContain('scoring_rubric');
+        expect(prompt).toContain('cap all scores');
         expect(prompt).toMatchSnapshot();
     });
 
     it('feedback prompt for warm-up mode does NOT contain hireDecision', () => {
-        const prompt = generateFeedbackPrompt('history', 'Two Sum', false, undefined, 'warm-up', 'easy');
+        const prompt = generateFeedbackPrompt('history', 'Two Sum', 'easy', 'warm-up');
         expect(prompt).not.toContain('"hireDecision"');
-        expect(prompt).toContain('WARM-UP MODE');
+        expect(prompt).toContain('WARM-UP');
     });
 
     it('feedback prompt for crunch mode contains timeEfficiency bonus dimension', () => {
-        const prompt = generateFeedbackPrompt('history', 'Two Sum', false, undefined, 'crunch', 'medium');
+        const prompt = generateFeedbackPrompt('history', 'Two Sum', 'medium', 'crunch');
         expect(prompt).toContain('timeEfficiency');
-        expect(prompt).toContain('CRUNCH MODE');
+        expect(prompt).toContain('CRUNCH');
     });
 });

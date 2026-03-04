@@ -126,9 +126,9 @@ export function Navbar() {
                                     { href: '/', label: 'Home', authOnly: false },
                                     { href: '/practice', label: 'Practice', authOnly: false },
                                     ...(user ? [
-                                        { href: dashboardHref, label: 'Dashboard', authOnly: true },
+                                        { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         ...(accountType === 'employer'
-                                            ? []
+                                            ? [{ href: '/employer/dashboard', label: 'Employer', authOnly: true }]
                                             : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
                                     ] : []),
                                 ].map((link) => {
@@ -307,7 +307,8 @@ export function Navbar() {
                                 ? (accountType === 'employer'
                                     ? [
                                         { href: '/', label: 'Home', icon: Home },
-                                        { href: '/employer/dashboard', label: 'Campaigns', icon: Briefcase },
+                                        { href: '/dashboard', label: 'Progress', icon: BarChart },
+                                        { href: '/employer/dashboard', label: 'Employer', icon: Briefcase },
                                         { href: '/settings', label: 'Settings', icon: Settings }
                                     ]
                                     : [
