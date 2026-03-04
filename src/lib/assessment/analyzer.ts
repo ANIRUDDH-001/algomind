@@ -252,8 +252,7 @@ export class CognitiveAnalyzer {
         const result = await client.generateCompletion(
             [{ role: 'user', content: prompt }],
             {
-                preferredProvider: 'gemini', // Deep analysis
-                category: 'intelligence',
+                category: 'analysis',
                 systemPrompt: "You are a professional assessment engine. Return only valid JSON.",
                 maxTokens: 4096,
                 estimatedTokens: 2000
