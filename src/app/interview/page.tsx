@@ -12,6 +12,7 @@ import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-
 import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
 import { resolveGuestConfig, resolvePracticeConfig, type InterviewConfig } from '@/lib/interview/interview-config';
 import { getKaiMemory } from '@/app/actions/learn';
+import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 import { getSupabase } from '@/lib/supabase/client';
 
 function InterviewContent() {
@@ -145,12 +146,11 @@ function InterviewContent() {
                     try { kaiMemory = await getKaiMemory(userId); } catch { /* non-fatal */ }
                 }
 
-                // ── Co-owner check ────────────────────────────────────────────────────────────
+                // ── Co-owner check (server action — bypasses RLS) ─────────────────────────
                 let isCoOwner = false;
-                if (userId && !isGuest && profile?.account_type === 'candidate' && supabase) {
+                if (userId && !isGuest && profile?.account_type === 'candidate') {
                     // Only check for candidates — owners/admins already have unlimited access
-                    const { data: co } = await supabase.from('co_owners').select('id').eq('user_id', userId).maybeSingle();
-                    isCoOwner = !!co;
+                    isCoOwner = await checkCoOwnerStatus(userId);
                 }
 
                 // ── Sprint: fetch problem 2 if needed ────────────────────────────────────────

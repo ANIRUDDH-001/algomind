@@ -79,7 +79,16 @@ export async function synthesizeWithPolly(
         return result.buffer as ArrayBuffer;
     } catch (err) {
         if (err instanceof Error && err.message.startsWith('AWS_POLLY')) throw err;
-        console.error('[Polly] Synthesis error:', err);
+        console.error('[Polly] Synthesis error:', {
+            error: err instanceof Error ? err.message : String(err),
+            errorType: err instanceof Error ? err.constructor.name : typeof err,
+            voice,
+            engine,
+            textLength: text.length,
+            region: process.env.AWS_REGION || 'ap-south-1',
+            hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+            hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        });
         throw new Error('AWS_POLLY_FAILED' satisfies PollyError);
     }
 }
