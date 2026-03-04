@@ -57,7 +57,7 @@ function DashboardContent() {
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
         if (!session?.sessionId) return; // Guard: don't navigate with a null session
-        router.push(`/interview?problemId=${session.problemId}&sessionId=${session.sessionId}&mode=review`);
+        router.push(`/interview/history/${session.sessionId}`);
     }, [router]);
 
     // State for asynchronous recommendations (memoized to avoid render cycle issues)
