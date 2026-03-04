@@ -30,8 +30,8 @@ export interface ProviderConfig {
 /**
  * Resolve the active provider configuration by reading feature flags.
  *
- * Priority:
- *  - TTS:     groq → aws-polly → browser
+ * Priority (AWS is primary when its flag is ON):
+ *  - TTS:     aws-polly (if flag ON) → groq → browser
  *  - STT:     groq-whisper → browser  (aws-transcribe is batch-only, NOT real-time)
  *  - Storage: aws-s3 → supabase
  */
@@ -42,12 +42,14 @@ export async function getProviderConfig(): Promise<ProviderConfig> {
         whisperStt,
         awsTranscribeStt,
         awsS3Storage,
+        awsBedrock,
     ] = await Promise.all([
         getGlobalFeatureFlag('ENABLE_GROQ_TTS' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_AWS_POLLY_TTS' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_WHISPER_STT' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_AWS_TRANSCRIBE_STT' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_AWS_S3_STORAGE' as FeatureFlagKey),
+        getGlobalFeatureFlag('ENABLE_AWS_BEDROCK' as FeatureFlagKey),
     ]);
 
     return resolveConfig({
@@ -56,6 +58,7 @@ export async function getProviderConfig(): Promise<ProviderConfig> {
         ENABLE_WHISPER_STT: whisperStt,
         ENABLE_AWS_TRANSCRIBE_STT: awsTranscribeStt,
         ENABLE_AWS_S3_STORAGE: awsS3Storage,
+        ENABLE_AWS_BEDROCK: awsBedrock,
     });
 }
 
@@ -73,12 +76,12 @@ export function getProviderConfigSync(flags: Record<string, boolean>): ProviderC
 // ─── Shared resolution logic ───────────────────────────────────────────────
 
 function resolveConfig(flags: Record<string, boolean>): ProviderConfig {
-    // TTS priority: groq → aws-polly → browser
+    // TTS priority: aws-polly (if ON) → groq → browser
     let tts: TTSProvider = 'browser';
-    if (flags.ENABLE_GROQ_TTS) {
-        tts = 'groq';
-    } else if (flags.ENABLE_AWS_POLLY_TTS) {
+    if (flags.ENABLE_AWS_POLLY_TTS) {
         tts = 'aws-polly';
+    } else if (flags.ENABLE_GROQ_TTS) {
+        tts = 'groq';
     }
 
     // STT (real-time): groq-whisper → browser
@@ -98,7 +101,8 @@ function resolveConfig(flags: Record<string, boolean>): ProviderConfig {
     const awsEnabled = !!(
         flags.ENABLE_AWS_POLLY_TTS ||
         flags.ENABLE_AWS_TRANSCRIBE_STT ||
-        flags.ENABLE_AWS_S3_STORAGE
+        flags.ENABLE_AWS_S3_STORAGE ||
+        flags.ENABLE_AWS_BEDROCK
     );
 
     return { tts, stt, storage, awsEnabled };

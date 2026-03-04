@@ -101,6 +101,10 @@ export async function isCrossTierFallbackEnabled(): Promise<boolean> {
 /**
  * Emergency fallback when both Redis and DB are unavailable.
  * Derives from the static CHAT_MODELS array in providers.ts.
+ * NOTE: Bedrock models are DB-driven (model_routing table) and NOT in
+ * the static CHAT_MODELS array, so they won't appear here.
+ * When ENABLE_AWS_BEDROCK is ON, the client handles Bedrock priority
+ * separately in generateCompletion() before reaching this path.
  */
 function getEmergencyFallback(useCase: 'chat' | 'analysis'): RoutedModel[] {
     if (useCase === 'analysis') {
