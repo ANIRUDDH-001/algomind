@@ -10,6 +10,11 @@ vi.mock('@/lib/supabase/client', () => ({
     isSupabaseConfigured: vi.fn(() => true),
 }));
 
+// Mock AuthProvider's useAuth hook
+vi.mock('@/components/auth/AuthProvider', () => ({
+    useAuth: vi.fn(() => ({ user: null, loading: false })),
+}));
+
 import { useAdmin } from '../useAdmin';
 
 describe('useAdmin — smoke', () => {
