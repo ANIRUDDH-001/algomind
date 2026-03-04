@@ -102,17 +102,15 @@ export default async function middleware(request: NextRequest) {
 
         const isOwner = profile?.account_type === 'owner';
 
-        // Check co_owners by user_id ONLY. Email-based lookup is used only
-        // during invite acceptance, not for ongoing session permission checks.
-        // Reason: co_owners.email has a UNIQUE constraint but Supabase auth email
-        // is not enforced unique across all edge cases. OR-email creates a privilege
-        // escalation vector.
+        // Check co_owners by user_id OR email for maximum reliability.
+        // user_id may not be backfilled yet for pre-existing co-owners.
         let isCoOwner = false;
         if (!isOwner) {
+            const emailClause = user.email ? `,email.eq.${user.email}` : '';
             const { data: coOwner } = await supabase
                 .from('co_owners')
                 .select('id')
-                .eq('user_id', user.id)
+                .or(`user_id.eq.${user.id}${emailClause}`)
                 .limit(1)
                 .maybeSingle();
             isCoOwner = !!coOwner;
