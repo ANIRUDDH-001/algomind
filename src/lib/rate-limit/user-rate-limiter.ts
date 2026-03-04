@@ -1,6 +1,7 @@
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 
 const DAILY_LIMIT = 30; // ~3 full practice interviews per day
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
@@ -36,16 +37,11 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
 
     try {
         // Check if user is owner or co-owner — they get unlimited access
-        // co_owners lookup by user_id ONLY (email OR clause removed for security — DB-003)
+        // co_owners check via server action to bypass RLS (A6 fix)
         const { data: profile } = await supabase.from('profiles').select('account_type, rate_limit_override').eq('id', userId).single();
-        const { data: coOwner } = await supabase
-            .from('co_owners')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1)
-            .maybeSingle();
+        const isCoOwner = await checkCoOwnerStatus(userId);
 
-        if (profile?.account_type === 'owner' || coOwner) {
+        if (profile?.account_type === 'owner' || isCoOwner) {
             return { allowed: true, remaining: 999, isAdmin: true };
         }
 
