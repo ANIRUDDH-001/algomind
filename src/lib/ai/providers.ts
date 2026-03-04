@@ -32,7 +32,10 @@ const GROQ_GPT_OSS_MODEL_ID = process.env.GROQ_GPT_OSS_MODEL_ID || "openai/gpt-o
 const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "openai/gpt-oss-20b";
 const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-2.0-flash";
 
-// Chat Models Registry - ordered by preference
+// EMERGENCY FALLBACK: Static model list used only when model_routing DB table
+// and Redis cache are both unavailable. Production routing uses model_routing table
+// managed from the owner dashboard "AI Routing" tab.
+// @deprecated — prefer DB-driven routing via getModelsForUseCase() in model-routing.ts
 export const CHAT_MODELS: ModelConfig[] = [
     // --- GROQ MODELS ---
     {
