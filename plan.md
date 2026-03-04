@@ -1035,7 +1035,7 @@ USING (public.check_is_admin()) WITH CHECK (public.check_is_admin());
 
 ---
 
-### F1: Session Cache Module
+### F1: Session Cache Module ✅ DONE (PR-14)
 
 Create `src/lib/auth/session-cache.ts`:
 - Module-level cache: `{ userId, validatedAt, expiresAt }`
@@ -1044,7 +1044,7 @@ Create `src/lib/auth/session-cache.ts`:
 
 ---
 
-### F2: AuthProvider Refactor
+### F2: AuthProvider Refactor ✅ DONE (PR-14)
 
 **Fix BUG-12**: Remove upfront `getSession()` call. Use only `onAuthStateChange`:
 - `INITIAL_SESSION` fires immediately → eliminates double-setState
@@ -1055,7 +1055,7 @@ Create `src/lib/auth/session-cache.ts`:
 
 ---
 
-### F3: Gut `useSessionPersistence`
+### F3: Gut `useSessionPersistence` ✅ DONE (PR-14)
 
 Replace with no-op (empty function body). Removes:
 - Second `onAuthStateChange` subscription (BUG-08 — double-fire)
@@ -1067,7 +1067,7 @@ Move localStorage cleanup to AuthProvider's `signOut` callback.
 
 ---
 
-### F4: Middleware Smart Validation
+### F4: Middleware Smart Validation ✅ DONE (PR-14)
 
 **Fix BUG-07**: Skip `getUser()` network call when JWT is healthy:
 1. Extract access token from Supabase auth cookie
@@ -1081,7 +1081,7 @@ Move localStorage cleanup to AuthProvider's `signOut` callback.
 
 ---
 
-### F5: `useAdmin` — Use AuthProvider Context
+### F5: `useAdmin` — Use AuthProvider Context ✅ DONE (PR-14)
 
 **Fix BUG-09**: Remove independent `getUser()` call. Use `useAuth()` hook for user object. Add 5-minute module-level cache for `check_is_admin()` RPC result.
 
@@ -1089,7 +1089,7 @@ Move localStorage cleanup to AuthProvider's `signOut` callback.
 
 ---
 
-### F6: `useGlobalFeatureFlag` — Visibility Gate
+### F6: `useGlobalFeatureFlag` — Visibility Gate ✅ DONE (PR-14)
 
 **Fix BUG-10**: Stop 30-second polling when tab is hidden:
 - `document.visibilityState === 'hidden'` → `clearInterval()`

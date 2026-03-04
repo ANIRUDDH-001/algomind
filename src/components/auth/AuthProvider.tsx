@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { markSessionValid, markRefreshed, clearCache } from '@/lib/auth/session-cache';
 
 interface AuthContextType {
     user: User | null;
@@ -68,38 +69,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            try {
-                const { data } = await supabase.auth.getSession();
-                if (mounted) {
-                    setSession(data.session);
-                    setUser(data.session?.user ?? null);
-                    if (data.session) {
-                        setLoading(false);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to get session:', error);
-                if (mounted) {
-                    setLoading(false);
-                }
-            }
+            // F2: Single subscription handles all events including INITIAL_SESSION.
+            // No separate getSession() call needed — INITIAL_SESSION fires immediately.
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(
+                (event: AuthChangeEvent, newSession: Session | null) => {
+                    if (!mounted) return;
 
-            // Listen for auth changes if still mounted
-            if (mounted) {
-                const { data: { subscription } } = supabase.auth.onAuthStateChange(
-                    (event: AuthChangeEvent, newSession: Session | null) => {
-                        if (mounted) {
-                            setSession(newSession);
-                            setUser(newSession?.user ?? null);
-                            setLoading(false);
+                    setSession(newSession);
+                    setUser(newSession?.user ?? null);
+                    setLoading(false);
+
+                    // F1: Update session cache based on event type
+                    if (newSession?.user && newSession.access_token) {
+                        const exp = newSession.expires_at
+                            ? newSession.expires_at * 1000
+                            : Date.now() + 3600_000; // fallback 1h
+
+                        if (event === 'TOKEN_REFRESHED') {
+                            markRefreshed(newSession.user.id, exp);
+                        } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                            markSessionValid(newSession.user.id, exp);
                         }
                     }
-                );
-                subscriptionCleanup = () => subscription.unsubscribe();
 
-                // Extra safeguard to set loading false if session check finishes.
-                setLoading(false);
-            }
+                    if (event === 'SIGNED_OUT') {
+                        clearCache();
+                        // F3: Clean up localStorage on sign-out (moved from session-manager)
+                        try {
+                            if (typeof localStorage !== 'undefined') {
+                                const keysToRemove = Object.keys(localStorage)
+                                    .filter(k => k.startsWith('algomind-') || k.startsWith('sb-'));
+                                keysToRemove.forEach(k => localStorage.removeItem(k));
+                            }
+                        } catch { /* ignore storage errors */ }
+                    }
+                }
+            );
+            subscriptionCleanup = () => subscription.unsubscribe();
         };
 
         initAuth();
@@ -187,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const supabase = getSupabase();
         if (!supabase) return;
 
+        clearCache(); // F1: Clear session cache immediately
         await supabase.auth.signOut();
         setUser(null);
         setSession(null);

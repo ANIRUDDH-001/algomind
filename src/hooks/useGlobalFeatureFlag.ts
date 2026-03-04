@@ -81,9 +81,47 @@ export function useGlobalFeatureFlag(
     useEffect(() => {
         refresh();
 
-        // Periodic refresh
-        const interval = setInterval(refresh, CACHE_TTL_MS);
-        return () => clearInterval(interval);
+        // F6: Visibility-aware polling — pause when tab is hidden.
+        let interval: ReturnType<typeof setInterval> | null = null;
+
+        const startPolling = () => {
+            if (interval) clearInterval(interval);
+            interval = setInterval(refresh, CACHE_TTL_MS);
+        };
+
+        const stopPolling = () => {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Tab became visible — immediate refresh + restart polling
+                refresh();
+                startPolling();
+            } else {
+                // Tab hidden — stop polling to save /api/flags calls
+                stopPolling();
+            }
+        };
+
+        // Start polling only if tab is currently visible
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            startPolling();
+        }
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        return () => {
+            stopPolling();
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
+        };
     }, [refresh]);
 
     return value;
