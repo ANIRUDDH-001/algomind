@@ -392,7 +392,7 @@ export function resolveGuestConfig(): InterviewConfig {
 
 ---
 
-### B1: Scoring Failure (All 0/10 or 5/10)
+### B1: Scoring Failure (All 0/10 or 5/10) ✅ DONE (PR-9, commit 7454c6c)
 
 **Problem**: Two different failure modes visible in screenshots:
 

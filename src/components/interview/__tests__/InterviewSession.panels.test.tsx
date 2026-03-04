@@ -181,8 +181,8 @@ vi.mock('@/components/voice/MicrophoneButton', () => ({
 vi.mock('@/components/voice/MicPulse', () => ({
     MicPulse: () => <div data-testid="mock-mic-pulse" />,
 }));
-vi.mock('@/components/voice/TranscriptViewer', () => ({
-    TranscriptViewer: () => <div data-testid="mock-transcript-viewer" />,
+vi.mock('@/components/voice/ZoomTranscript', () => ({
+    ZoomTranscript: () => <div data-testid="mock-transcript-viewer" />,
 }));
 vi.mock('@/components/assessment/AssessmentLoader', () => ({
     AssessmentLoader: () => <div data-testid="mock-assessment-loader" />,
