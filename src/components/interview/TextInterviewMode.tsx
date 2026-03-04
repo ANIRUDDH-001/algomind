@@ -54,6 +54,7 @@ export function TextInterviewMode({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={isAISpeaking}
+                    isProcessing={false}
                 />
             </div>
 

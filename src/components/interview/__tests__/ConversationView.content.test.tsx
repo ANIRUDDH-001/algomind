@@ -11,31 +11,7 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 Element.prototype.scrollIntoView = vi.fn();
 
 // ─── Mock heavy deps used by ConversationView ───
-
-vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
-    useGlobalFeatureFlag: () => false,
-}));
-
-vi.mock('@/hooks/useVoiceActivityDetection', () => ({
-    useVoiceActivityDetection: () => ({ isListening: false, error: null }),
-}));
-
-vi.mock('@/lib/analytics/voice-analytics', () => ({
-    voiceAnalytics: { track: vi.fn() },
-}));
-
-vi.mock('@/lib/voice/interruption-manager', () => ({
-    InterruptionManager: class {
-        handleUserSpeechStart() { return 'WAIT'; }
-        handleUserSpeechEnd() { }
-        handleAIResponseStart() { }
-        handleAIResponseComplete() { }
-        cancelAISpeech() { }
-        reset() { }
-        removeAllListeners() { }
-        on() { return () => { }; }
-    },
-}));
+// (ConversationView no longer imports VAD or InterruptionManager after A4 cleanup)
 
 // ─── Import component under test ───
 import { ConversationView } from '../ConversationView';
@@ -58,7 +34,7 @@ function makeMsg(role: 'user' | 'assistant', content: unknown) {
 describe('ConversationView content shape variants (BUG-V7-06)', () => {
     const baseProps = {
         isAISpeaking: false,
-        vadEnabled: false,
+        isProcessing: false,
     };
 
     it('renders plain string content verbatim', () => {
