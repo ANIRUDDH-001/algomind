@@ -499,7 +499,7 @@ if (savedSession?.id) {
 
 ---
 
-### B4: FSRS / Spaced Repetition Integration on Analysis Page
+### B4: FSRS / Spaced Repetition Integration on Analysis Page ✅ DONE (PR-13)
 
 **Current**: SM2/FSRS data is a tiny static card in Panel 3 ("Next review: Mar 4, Target: 2/10 · Rep #0").
 
@@ -515,7 +515,7 @@ if (savedSession?.id) {
 
 ---
 
-### B5: History Tab → Static Transcript Page ✅ DONE (PR-12, commit 0332472)
+### B5: History Tab → Static Transcript Page
 
 **Problem**: History tab redirects to `/interview?...&mode=review` which starts a full interactive interview engine with mic, timer, etc.
 
@@ -576,7 +576,7 @@ router.push(`/interview/history/${session.sessionId}`);
 
 ---
 
-### B6: Replay Route Fix + Fallback ✅ DONE (PR-12, commit 0332472)
+### B6: Replay Route Fix + Fallback
 
 **Problem**: `/replay/87139de5-...` returns 404 because `session_replays` row only exists if user explicitly clicked "Share".
 
