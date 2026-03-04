@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown } from 'lucide-react';
 import Link from 'next/link';
-import { DemoBanner } from '@/components/demo/DemoBanner';
+
 import { isDemoMode } from '@/lib/demo/manager';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -96,7 +96,7 @@ export function Navbar() {
     return (
         <>
             <header className="fixed top-0 left-0 right-0 z-[100] flex flex-col" style={{ '--navbar-h': isDemo ? '104px' : '64px' } as React.CSSProperties}>
-                <DemoBanner />
+
                 <nav
                     className="backdrop-blur-xl h-16 shadow-2xl"
                     style={{

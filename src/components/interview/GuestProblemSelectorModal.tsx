@@ -50,12 +50,12 @@ export function GuestProblemSelectorModal({ isOpen, onSelect }: GuestProblemSele
                     <div className="flex items-center justify-center gap-5 text-xs text-zinc-500">
                         <span className="flex items-center gap-1.5">
                             <MessageSquare className="w-3 h-3" />
-                            5 rounds with Kai
+                            10 rounds with Kai
                         </span>
                         <span className="w-px h-3 bg-zinc-700" />
                         <span className="flex items-center gap-1.5">
                             <Clock className="w-3 h-3" />
-                            5 minute session
+                            10 minute session
                         </span>
                     </div>
                 </div>
