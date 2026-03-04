@@ -66,7 +66,6 @@ export function useInterview(options: {
     const [messages, setMessages] = useState<Message[]>([]);
     const [state, setState] = useState<InterviewState>('idle');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [autoSubmitEnabled, setAutoSubmitEnabled] = useState(true);
     const [transcript, setTranscript] = useState('');
     const [interimTranscript, setInterimTranscript] = useState('');
     const lastTranscriptTimeRef = useRef<number>(0);
@@ -91,13 +90,10 @@ export function useInterview(options: {
 
     // ── Phase 2a: micIntent state machine ──────────────────────────
     const [micIntent, setMicIntent] = useState<MicIntent>('off');
-    const [hasPendingSend, setHasPendingSend] = useState(false);
     const [voiceError, setVoiceError] = useState<Error | null>(null);
     const [micStoppedManually, setMicStoppedManually] = useState(false);
     const [sendCountdown, setSendCountdown] = useState<number | null>(null);
     const [ttsError, setTtsError] = useState(false);
-    const hasPendingRef = useRef(false);
-    useEffect(() => { hasPendingRef.current = hasPendingSend; }, [hasPendingSend]);
 
     // Smart pause: refs for interruption detection during AI speech
     const smartPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -152,11 +148,8 @@ export function useInterview(options: {
             }
             lastTranscriptTimeRef.current = Date.now();
         },
-        // Phase 0d: onSilenceTimeout no longer kills mic — just prompts send
-        onSilenceTimeout: () => {
-            // Don't stop listening or disable mic — just prompt user to send
-            setHasPendingSend(transcriptRef.current.length > 0);
-        },
+        // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
+        onSilenceTimeout: () => {},
         onError: (err) => setVoiceError(new Error(err)),
     });
 
@@ -222,9 +215,6 @@ export function useInterview(options: {
         setInterimTranscript('');
         lastTranscriptTimeRef.current = 0;
     }, [stt.resetTranscript]);
-    const transcribeVADAudio = stt.transcribeAudio;
-    const pauseSpeaking = () => { };
-    const resumeSpeaking = () => { };
 
     // ── Stable refs for values read inside timers / effects ──────────
     // Synchronous updates during render — eliminates 1-render-cycle lag
@@ -456,7 +446,6 @@ export function useInterview(options: {
     // Phase 2e: Auto-Submit on silence — submit accumulated transcript after 5s of no new speech.
     // Only active when mic is on (not manually stopped). Works alongside the manual Send button.
     useEffect(() => {
-        if (!autoSubmitEnabled) return;
         if (!transcript.trim()) return;
         if (state === 'idle' || state === 'completed') return;
         if (isProcessing || isSpeaking) return;
@@ -472,7 +461,7 @@ export function useInterview(options: {
         }, 5000);
 
         return () => clearTimeout(timer);
-    }, [transcript, autoSubmitEnabled, state, isProcessing, isSpeaking, micStoppedManually, submitUserResponse]);
+    }, [transcript, state, isProcessing, isSpeaking, micStoppedManually, submitUserResponse]);
 
     // Send countdown: when mic is manually stopped and transcript exists, start 5s countdown
     useEffect(() => {
@@ -819,34 +808,15 @@ export function useInterview(options: {
         interviewStartTime,
         isLimitReached,
         limitReason,
-        autoSubmitEnabled,
-        setAutoSubmitEnabled,
-        hasPendingSend,
         isMicEnabled,
         micIntent,
         micStoppedManually,
         sendCountdown,
         ttsError,
-        vadMode: vad.mode,
         vadFailed,
-        isPushToTalk: vadFailed || sttProvider === 'browser', // A4 Part 2 fix: expose push-to-talk indicator
+        isPushToTalk: vadFailed || sttProvider === 'browser',
         ttsProvider: tts.provider,
         sttProvider,
-        handleMicStop: () => {
-            stt.stopListening();
-            setMicStoppedManually(true);
-            setHasPendingSend(transcript.trim().length > 0);
-            setMicIntent('off');
-        },
-        sendPendingTranscript: () => {
-            const text = transcript.trim();
-            if (!text) return;
-            resetTranscript();
-            setHasPendingSend(false);
-            setMicStoppedManually(false);
-            setSendCountdown(null);
-            submitUserResponse(text, currentProblemRef.current!);
-        },
         loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {
             const withIds = msgs.map(m => ({
                 ...m,
@@ -866,31 +836,21 @@ export function useInterview(options: {
                 setMicIntent('user-on');
                 setMicStoppedManually(false);
                 setSendCountdown(null);
-                startListening();
-                if (sttProvider === 'whisper') vad.startListening();
+                // Mic sync effect will handle actual hardware start
             },
             stopListening: () => {
                 setMicIntent('off');
                 setMicStoppedManually(true);
-                stopListening();
-                if (sttProvider === 'whisper') vad.stopListening();
+                // Mic sync effect will handle actual hardware stop
             },
             toggleMic,
             isMicEnabled,
             isSpeaking,
             speak,
-            pauseSpeaking,
-            resumeSpeaking,
             stopSpeaking,
             error: voiceError,
             permissionState: stt.permissionState,
             sttResolvedProvider: stt.resolvedProvider,
-            transcribeVADAudio,
-            submitCurrentTranscript: () => {
-                if (transcript && currentProblemRef.current) {
-                    submitUserResponse(transcript, currentProblemRef.current);
-                }
-            }
         }
     };
 }

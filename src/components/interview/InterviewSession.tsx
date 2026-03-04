@@ -24,7 +24,7 @@ import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, Keyboard } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -88,7 +88,6 @@ export function InterviewSession({
     const searchParams = useSearchParams();
 
     // VAD & Observer feature flags (server-side)
-    const vadEnabled = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
     const observerEnabled = useGlobalFeatureFlag('ENABLE_SILENT_OBSERVER', true);
 
     // --- 1. Basic State ---
@@ -104,7 +103,6 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
-    const [vadMode, setVadMode] = useState<'vad' | 'simple'>('vad');
 
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
@@ -150,9 +148,7 @@ export function InterviewSession({
     const [activeProblem, setActiveProblem] = useState(problem);
     const [guestDurationSecs, setGuestDurationSecs] = useState(0);
 
-    // Text input fallback — for when mic fails silently (Brave, some mobile browsers)
-    const [showTextInput, setShowTextInput] = useState(false);
-    const [textInput, setTextInput] = useState('');
+
 
     const handleGuestProblemSelect = useCallback((selected: typeof GUEST_PROBLEMS[number]) => {
         setActiveProblem(selected);
@@ -234,7 +230,6 @@ export function InterviewSession({
         interviewStartTime,
         isLimitReached,
         limitReason,
-        vadFailed,
         micStoppedManually,
         sendCountdown,
         ttsError,
@@ -331,10 +326,10 @@ export function InterviewSession({
 
     const { isSpeaking, isListening, stopListening } = voice;
     useEffect(() => {
-        if (isSpeaking && isListening && !vadEnabled) {
+        if (isSpeaking && isListening) {
             stopListening();
         }
-    }, [isSpeaking, isListening, stopListening, vadEnabled]);
+    }, [isSpeaking, isListening, stopListening]);
 
     // Phase 5b: Auto-detect mic failure → promote text input
     // Only show after 45s of continuous listening with zero transcript (real failure)
@@ -379,10 +374,9 @@ export function InterviewSession({
             if (perm.state === 'denied') {
                 setError(
                     'Microphone access is blocked. ' +
-                    'Please enable it in your browser settings.'
+                    'Please enable it in your browser settings to use voice features.'
                 );
-                setShowTextInput(true);
-                // Don't return — still allow starting with text input
+                return; // Can't proceed without mic in voice-only mode
             }
             if (perm.state === 'prompt') {
                 // Trigger permission request before starting interview
@@ -817,45 +811,14 @@ export function InterviewSession({
                                             </div>
                                         )}
 
-                                        {/* Text input fallback — tiny toggle, only shown on user request */}
-                                        {showTextInput ? (
-                                            <div className="w-full">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Text Input</span>
-                                                    <button onClick={() => setShowTextInput(false)} className="text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors">✕ Close</button>
-                                                </div>
-                                                <textarea
-                                                    value={textInput}
-                                                    onChange={(e) => setTextInput(e.target.value)}
-                                                    placeholder="Type your response here…"
-                                                    className="w-full h-20 bg-zinc-900/60 border border-zinc-700/50 rounded-xl p-3 text-sm text-white placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && !e.shiftKey && textInput.trim()) {
-                                                            e.preventDefault();
-                                                            submitUserResponse(textInput.trim(), { title: activeProblem.title, content: activeProblem.description });
-                                                            setTextInput('');
-                                                        }
-                                                    }}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => setShowTextInput(true)}
-                                                className="self-start flex items-center gap-1 text-[9px] text-zinc-600 hover:text-zinc-400 transition-colors opacity-60 hover:opacity-100"
-                                            >
-                                                <Keyboard className="w-2.5 h-2.5" /> Type instead
-                                            </button>
-                                        )}
-
-                                        {/* Send button: ONLY shown when mic is manually stopped (or typing) AND there is content */}
-                                        {(micStoppedManually || (showTextInput && textInput.trim())) && (voice.transcript || textInput.trim()) && (
+                                        {/* Send button: shown when mic is manually stopped AND there is content */}
+                                        {micStoppedManually && voice.transcript && (
                                             <Button
                                                 className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 onClick={() => {
-                                                    const content = (showTextInput && textInput.trim()) ? textInput.trim() : voice.transcript;
+                                                    const content = voice.transcript;
                                                     if (content) {
                                                         submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
-                                                        setTextInput('');
                                                     }
                                                 }}
                                                 disabled={isProcessing}
@@ -946,33 +909,7 @@ export function InterviewSession({
                 <ConversationView
                     messages={messages}
                     isAISpeaking={voice.isSpeaking}
-                    vadEnabled={vadEnabled && vadMode === 'vad' && !vadFailed && hasStarted}
-                    onInterrupt={() => {
-                        voice.stopSpeaking();
-                        handleInterruption();
-                    }}
-                    onContinuePreviousResponse={() => {
-                        submitUserResponse('Please continue your previous response.', { title: activeProblem.title, content: activeProblem.description, ragContext: interviewConfig.ragContext });
-                    }}
-                    onVadError={(err) => {
-                        console.log('VAD init failed, falling back to simple mic mode:', err.message);
-                        setVadMode('simple');
-                        // Show a small non-intrusive toast instead of a red error banner
-                        toast('Using standard mic mode', {
-                            icon: '🎤',
-                            duration: 3000,
-                            style: { background: '#27272a', color: '#a1a1aa' }
-                        });
-                    }}
-                    onSpeechEnd={(audio) => {
-                        if (voice.transcribeVADAudio) {
-                            console.log('🎤 VAD triggered Whisper transcription');
-                            voice.transcribeVADAudio(audio);
-                        } else {
-                            console.log('🎤 VAD triggered Browser STT submission');
-                            voice.submitCurrentTranscript?.();
-                        }
-                    }}
+                    isProcessing={isProcessing}
                 />
             </div>
         </div>

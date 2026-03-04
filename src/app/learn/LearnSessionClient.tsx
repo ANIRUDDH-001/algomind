@@ -146,19 +146,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                         <ConversationView
                             messages={messages}
                             isAISpeaking={voice.isSpeaking}
-                            vadEnabled={true}
-                            onInterrupt={() => {
-                                voice.stopSpeaking();
-                                handleInterruption();
-                            }}
-                            onContinuePreviousResponse={() => {
-                                submitUserResponse('Please continue.', { title: problem.title, content: problem.description || '' });
-                            }}
-                            onUserSpeaking={() => {
-                                if (!voice.isListening && !isProcessing && !voice.isSpeaking) {
-                                    voice.startListening();
-                                }
-                            }}
+                            isProcessing={isProcessing}
                         />
                     </div>
 
