@@ -81,8 +81,8 @@ vi.mock('@/components/voice/MicrophoneButton', () => ({
 vi.mock('@/components/voice/MicPulse', () => ({
     MicPulse: () => <div>Pulse</div>
 }));
-vi.mock('@/components/voice/TranscriptViewer', () => ({
-    TranscriptViewer: () => <div>Transcript</div>
+vi.mock('@/components/voice/ZoomTranscript', () => ({
+    ZoomTranscript: () => <div>Transcript</div>
 }));
 
 const mockProblem = {

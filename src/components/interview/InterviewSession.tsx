@@ -20,7 +20,7 @@ import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
-import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
+import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -234,6 +234,7 @@ export function InterviewSession({
         micStoppedManually,
         sendCountdown,
         ttsError,
+        isPushToTalk,
     } = useInterview({
         config: interviewConfig,
         isTimeUp: limits.isTimeUp,
@@ -823,9 +824,15 @@ export function InterviewSession({
                                         </div>
                                         <div className="flex-1 bg-zinc-900/40 rounded-xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col relative" data-testid="transcript-area">
                                             <div className="absolute inset-0 p-1">
-                                                <TranscriptViewer
+                                                <ZoomTranscript
+                                                    lastAiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content}
+                                                    isSpeaking={voice.isSpeaking}
+                                                    isProcessing={isProcessing}
                                                     transcript={voice.transcript}
                                                     interimTranscript={voice.interimTranscript}
+                                                    isListening={voice.isListening}
+                                                    micStoppedManually={micStoppedManually}
+                                                    isPushToTalk={isPushToTalk}
                                                 />
                                             </div>
                                         </div>
