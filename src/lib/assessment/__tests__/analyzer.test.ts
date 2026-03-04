@@ -169,8 +169,8 @@ describe('CognitiveAnalyzer', () => {
         expect(mockGenerateCompletion).toHaveBeenCalledTimes(3);
 
         // Assert fallback payload shape
-        expect(result.overallFeedback).toBe('Automated analysis failed. Manual review required.');
-        expect(result.skills['problem-decomposition'].confidence).toBe(0);
+        expect(result.overallFeedback).toBe('Our AI analysis is being retried. Scores may update shortly.');
+        expect(result.skills['problem-decomposition'].confidence).toBe(0.2);
     });
 
     it('7. Very long transcript (100+ messages) -> completes without timeout (mock AI)', async () => {

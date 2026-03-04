@@ -33,6 +33,13 @@ vi.mock('@/lib/monitoring/events', () => ({
     logSystemEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock model-routing to skip DB-driven routing in tests (fallback to legacy)
+vi.mock('../model-routing', () => ({
+    getModelsForUseCase: vi.fn().mockResolvedValue([]),
+    isCrossTierFallbackEnabled: vi.fn().mockResolvedValue(false),
+    resolveToModelConfig: vi.fn(),
+}));
+
 // ── Shared mock objects ───────────────────────────────────────────────────────
 
 const mockRateLimiter = {
