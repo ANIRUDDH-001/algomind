@@ -21,6 +21,7 @@ import { KnowledgeTab } from './tabs/knowledge-tab';
 import { VoiceDebugTab } from './tabs/voice-debug-tab';
 import { AnalyticsTab } from './tabs/analytics-tab';
 import { AIStatusTab } from './tabs/ai-status-tab';
+import { ModelRoutingTab } from './tabs/model-routing-tab';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export interface OwnerDashboardProps {
@@ -36,6 +37,7 @@ const TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'flags', label: 'Feature Flags', icon: Flag },
     { id: 'models', label: 'Models', icon: Activity },
+    { id: 'ai-routing', label: 'AI Routing', icon: Activity },
     { id: 'cache', label: 'Cache & Redis', icon: Database },
     { id: 'rag', label: 'RAG Knowledge', icon: BookOpen },
     { id: 'voice-debug', label: 'Voice Debug', icon: Mic },
@@ -112,6 +114,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                         {activeTab === 'admins' && <AdminsTab />}
                         {activeTab === 'employers' && <EmployersTab />}
                         {activeTab === 'models' && <ModelsTab />}
+                        {activeTab === 'ai-routing' && <ModelRoutingTab />}
                         {activeTab === 'cache' && <CacheTab />}
                         {activeTab === 'rag' && <KnowledgeTab />}
                         {activeTab === 'voice-debug' && <VoiceDebugTab />}
