@@ -1,6 +1,7 @@
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { OwnerDashboardClient } from './client';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 
 export default async function OwnerPage() {
     const supabase = await createServerSupabase();
@@ -16,17 +17,9 @@ export default async function OwnerPage() {
         .eq('id', user.id)
         .single();
 
-    if (profile?.account_type !== 'owner') {
-        // Check co_owners table
-        const { data: coOwner } = await supabase
-            .from('co_owners')
-            .select('id')
-            .eq('email', user.email || '')
-            .maybeSingle();
-
-        if (!coOwner) {
-            redirect('/dashboard');
-        }
+    const isOwner = await isOwnerOrCoOwner(user.id);
+    if (!isOwner) {
+        redirect('/dashboard');
     }
 
     // Use service role client for admin reads (bypasses RLS)
