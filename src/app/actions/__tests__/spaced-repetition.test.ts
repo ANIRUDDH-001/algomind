@@ -152,6 +152,13 @@ describe('Spaced Repetition Server Actions', () => {
                 repetitions: 2,
                 ease_factor: 2.6,
                 use_fsrs: false,
+                fsrs_scheduled_days: null,
+                fsrs_due: null,
+                fsrs_difficulty: null,
+                fsrs_stability: null,
+                fsrs_state: null,
+                fsrs_reps: null,
+                fsrs_lapses: null,
             };
 
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(mockDbData));
@@ -163,6 +170,11 @@ describe('Spaced Repetition Server Actions', () => {
                 nextReview: '2026-03-03',
                 repetitions: 2,
                 easeFactor: 2.6,
+                fsrsDifficulty: null,
+                fsrsStability: null,
+                fsrsState: null,
+                fsrsReps: null,
+                fsrsLapses: null,
             });
         });
 

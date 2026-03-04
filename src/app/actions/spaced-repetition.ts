@@ -94,13 +94,18 @@ export async function getSpacedRepForProblem(
     nextReview: string;
     repetitions: number;
     easeFactor: number;
+    fsrsDifficulty: number | null;
+    fsrsStability: number | null;
+    fsrsState: number | null;
+    fsrsReps: number | null;
+    fsrsLapses: number | null;
 } | null> {
     try {
         const supabase = getServiceClient();
 
         const { data, error } = await supabase
             .from('spaced_repetition')
-            .select('interval, next_review, repetitions, ease_factor, use_fsrs, fsrs_scheduled_days, fsrs_due')
+            .select('interval, next_review, repetitions, ease_factor, use_fsrs, fsrs_scheduled_days, fsrs_due, fsrs_difficulty, fsrs_stability, fsrs_state, fsrs_reps, fsrs_lapses')
             .eq('user_id', userId)
             .eq('problem_id', problemId)
             .maybeSingle();
@@ -112,9 +117,37 @@ export async function getSpacedRepForProblem(
             nextReview: data.use_fsrs ? data.fsrs_due : data.next_review,
             repetitions: data.repetitions,
             easeFactor: data.ease_factor,
+            fsrsDifficulty: data.fsrs_difficulty ?? null,
+            fsrsStability: data.fsrs_stability ?? null,
+            fsrsState: data.fsrs_state ?? null,
+            fsrsReps: data.fsrs_reps ?? null,
+            fsrsLapses: data.fsrs_lapses ?? null,
         };
     } catch (error) {
         console.error('[getSpacedRepForProblem] Error:', error);
+        return null;
+    }
+}
+
+// ─── 4. Add problem to review queue (auth-aware, for client components) ────
+
+export async function addProblemToReviewQueue(params: {
+    problemId: string;
+    problemTitle: string;
+    problemDifficulty: 'easy' | 'medium' | 'hard';
+    overallScore: number;
+}): Promise<{ nextReview: string; intervalDays: number; repetitions: number } | null> {
+    try {
+        const supabase = await createServerSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        return await upsertSpacedRepetition({
+            userId: user.id,
+            ...params,
+        });
+    } catch (error) {
+        console.error('[addProblemToReviewQueue] Error:', error);
         return null;
     }
 }
