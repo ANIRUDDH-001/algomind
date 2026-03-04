@@ -48,8 +48,10 @@ import { classifyTurnSignal } from '@/lib/interview/turn-classifier';
 import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
+import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/interview-config';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
+import { getProblemById } from '@/lib/supabase/problems';
 import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 interface InterviewSessionProps {
@@ -110,6 +112,13 @@ export function InterviewSession({
     const [showProblemPanel, setShowProblemPanel] = useState(true);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
+    // --- 2. Supporting Hooks ---
+    const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
+    const limits = useInterviewLimits(interviewConfig);
+    const guestSession = useGuestSession(isGuest);
+    const { incrementTurn } = limits;
+    const { recordUserTurn, recordAITurn, isTrialComplete, showLoginPrompt } = guestSession;
+
     // Mobile Swipe Navigation State
     const [activeTab, setActiveTab] = useState<MobileTab>('interview');
     const { handlers: swipeHandlers, currentIndex } = useSwipeNavigation({
@@ -144,6 +153,63 @@ export function InterviewSession({
     }, [activeTab, showCodeEditor]);
 
     const [sprintTransitionMsg, setSprintTransitionMsg] = useState<string | null>(null);
+    const [sprintProblem2, setSprintProblem2] = useState<Problem | null>(null);
+    const [sprintCurrentIndex, setSprintCurrentIndex] = useState<0 | 1>(0);
+
+    // Sprint: fetch problem 2 upfront so it's ready when problem 1 ends
+    useEffect(() => {
+        const p2Id = interviewConfig.sprint?.problemIds?.[1];
+        if (!p2Id || sprintProblem2) return;
+        getProblemById(p2Id).then(p => { if (p) setSprintProblem2(p); }).catch(() => { });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [interviewConfig.sprint?.problemIds]);
+
+    // Sprint: advance to problem 2 when turns on problem 1 are exhausted
+    useEffect(() => {
+        if (
+            !hasStarted ||
+            readOnly ||
+            interviewConfig.difficultyMode !== 'sprint' ||
+            sprintCurrentIndex !== 0 ||
+            !limits.isTurnsUp ||
+            !sprintProblem2
+        ) return;
+
+        // This fires instead of the normal limit modal for sprint problem 1
+        setShowLimitModal(false);
+        setSprintCurrentIndex(1);
+        setSprintTransitionMsg('Problem 1 complete — starting Problem 2...');
+
+        const advancedConfig = advanceSprintProblem(interviewConfig, (sprintProblem2 as any).ragContext ?? '');
+
+        // Brief announcement pause then launch problem 2
+        const t = setTimeout(async () => {
+            setSprintTransitionMsg(null);
+            (limits as any).resetTurns?.();
+            limits.startTimer?.();
+            startInterview({
+                problemTitle: sprintProblem2.title,
+                problemContent: sprintProblem2.description ?? (sprintProblem2 as any).content,
+                difficulty: sprintProblem2.difficulty,
+                difficultyMode: 'sprint',
+                ragContext: advancedConfig.ragContext,
+                kaiMemory: interviewConfig.kaiMemory,
+                kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
+                language: (activeProblem as any).language,
+                optimalApproach: (sprintProblem2 as any).solution ?? undefined,
+                sprintProblemIndex: 1,
+                secondProblem: {
+                    title: sprintProblem2.title,
+                    content: (sprintProblem2 as any).content ?? sprintProblem2.description,
+                    description: sprintProblem2.description,
+                    difficulty: sprintProblem2.difficulty,
+                },
+            });
+        }, 2500);
+
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasStarted, readOnly, limits.isTurnsUp, sprintCurrentIndex, sprintProblem2]);
 
     // Guest mode: problem selector + result overlay
     const [showGuestSelector, setShowGuestSelector] = useState<boolean>(isGuest);
@@ -194,15 +260,7 @@ export function InterviewSession({
     const observerRef = useRef(new SilentObserver());
     const [nudge, setNudge] = useState<string | null>(null);
 
-    // --- 2. Supporting Hooks ---
-    const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
-    const limits = useInterviewLimits(interviewConfig);
-    const guestSession = useGuestSession(isGuest);
-
     // --- 3. Interview Logic & Callbacks ---
-    const { incrementTurn } = limits;
-    const { recordUserTurn, recordAITurn, isTrialComplete, showLoginPrompt } = guestSession;
-
     const handleUserMessage = useCallback((_msg: Message, messageCount: number) => {
         if (isGuest && hasStarted && !isAssessment) {
             recordUserTurn();
@@ -535,11 +593,19 @@ export function InterviewSession({
 
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
-            setShowLimitModal(true);
-            // A5: Block mic immediately
-            voice.stopListening();
+            // Sprint problem 1 turn exhaustion is handled by the sprint advancement effect above
+            const isSprintProblem1Transition =
+                interviewConfig.difficultyMode === 'sprint' &&
+                sprintCurrentIndex === 0 &&
+                limits.isTurnsUp &&
+                sprintProblem2 !== null;
+
+            if (!isSprintProblem1Transition) {
+                setShowLimitModal(true);
+                voice.stopListening();
+            }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
 
     // A5: 10-second grace timer — auto-finish when countdown expires
@@ -570,7 +636,7 @@ export function InterviewSession({
             endInterview();
             handleFinish();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [limitCountdown, showLimitModal]);
 
     // A5: Derived flag — all interactive inputs are locked after limit

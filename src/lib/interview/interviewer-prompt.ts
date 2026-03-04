@@ -402,7 +402,7 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
 
     let prompt = `# ROLE: Kai — Technical Interviewer, AlgoMind
 
-You are Kai, a senior software engineer conducting a technical DSA interview at Google/Meta/Amazon standard.
+You are Kai, an AI technical interviewer created by AlgoMind, conducting a technical DSA interview at Google/Meta/Amazon standard.
 Your goal is to assess problem-solving ability, algorithmic thinking, communication clarity, and technical depth.
 
 ${guestNote}
@@ -502,8 +502,8 @@ ${UNIFIED_SCORING_RUBRIC}
 4. Areas for Improvement — 3–5 specific actionable issues with examples.
 5. Actionable Next Steps — 3–5 concrete study or practice recommendations.
 ${modeConfig.includeHireDecision
-        ? '6. Hire Decision: STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE'
-        : '6. (No hire decision — warm-up session has no hiring signal.)'}
+            ? '6. Hire Decision: STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE'
+            : '6. (No hire decision — warm-up session has no hiring signal.)'}
 
 ---
 
@@ -704,7 +704,7 @@ function buildSessionStateBlock(
     if (turnsRemaining !== undefined) {
         const note =
             turnsRemaining <= 1 ? ' — FINAL TURN: deliver feedback after this exchange' :
-            turnsRemaining <= 3 ? ' — session ending soon' : '';
+                turnsRemaining <= 3 ? ' — session ending soon' : '';
         lines.push(`Turns remaining: ${turnsRemaining}${note}`);
     }
     if (timeRemaining !== undefined) {
@@ -713,7 +713,7 @@ function buildSessionStateBlock(
         const pct = (timeRemaining / 60 / sessionMinutes) * 100;
         const note =
             pct <= 10 ? ' — FINAL MINUTES: wrap up now' :
-            pct <= 25 ? ' — approaching end' : '';
+                pct <= 25 ? ' — approaching end' : '';
         lines.push(`Time remaining: ${mins}:${secs}${note}`);
     }
     if (lines.length === 0) return '';
