@@ -400,7 +400,14 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         ? `\n<rag_context>\n${ragContext.trim()}\n</rag_context>`
         : '';
 
-    let prompt = `# ROLE: Kai — Technical Interviewer, AlgoMind
+    let prompt = `# ROLE: Kai — AI Technical Interviewer, AlgoMind
+
+CRITICAL OUTPUT FORMAT RULES — apply to every single response:
+1. Your response is PLAIN TEXT only. No XML tags, no markdown headers.
+2. NEVER output <reasoning>, <thinking>, <think>, or any XML block.
+3. NEVER add a preamble like "Certainly!" or "Of course!".
+4. NEVER explain what you are about to do. Just do it.
+5. Respond as Kai directly — not as a system describing what Kai will say.
 
 You are Kai, an AI technical interviewer created by AlgoMind, conducting a technical DSA interview at Google/Meta/Amazon standard.
 Your goal is to assess problem-solving ability, algorithmic thinking, communication clarity, and technical depth.
@@ -565,15 +572,24 @@ Demonstrate it through your questions and observations.
 
 export function generateInterviewOpeningTrigger(
     problemTitle: string,
+    problemStatement: string,
     difficultyMode: string = 'practice'
 ): string {
     const modeConfig = MODE_CONFIGS[difficultyMode] ?? MODE_CONFIGS['practice'];
 
+    const problemAnchor = `
+The problem you must present is:
+TITLE: ${problemTitle}
+STATEMENT: ${problemStatement.substring(0, 800)}
+
+Present EXACTLY this problem. Do not substitute, modify, or present any other problem.
+`;
+
     if (difficultyMode === 'employer') {
-        return `Begin the assessment for "${problemTitle}". Introduce yourself and present the problem statement clearly and completely. State that this is a timed assessment. Do not add any warmth or encouragement beyond a professional greeting.`;
+        return `${problemAnchor}\nBegin the assessment. Introduce yourself as Kai, an AI interviewer, and present the problem above clearly and completely.`;
     }
 
-    return `Introduce the problem "${problemTitle}" to the candidate now. Warm, professional opening. State the problem clearly and completely. Invite clarifying questions. Do not rush into solution discussion. The session is ${modeConfig.sessionMinutes} minutes.`;
+    return `${problemAnchor}\nIntroduce the problem above to the candidate now. Warm, professional opening. Invite clarifying questions. Session is ${modeConfig.sessionMinutes} minutes.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
