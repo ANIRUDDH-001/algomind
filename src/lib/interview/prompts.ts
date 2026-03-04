@@ -1,141 +1,222 @@
+/**
+ * prompts.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AlgoMind — Interview Turn Prompt Orchestrator
+ *
+ * AUDIT FIXES IN THIS FILE
+ * ─────────────────────────
+ * B-02  DIFFICULTY_MODE_CONTEXT removed entirely. Mode behaviour lives only in
+ *       interviewer-prompt.ts MODE_CONFIGS. The old overlay created contradictory
+ *       hint thresholds (warm-up received 15s AND 30s AND 2-min simultaneously).
+ * B-03  conversationHistory / methodHistory = '' removed.
+ *       History lives in messages[] — never duplicated here.
+ * B-04  generateFinalFeedbackPrompt dead wrapper removed.
+ * B-06  difficultyMode and difficulty passed through correctly — no silent defaults.
+ * FG-04 solution-review → testing, assessment → complexity so both phase
+ *       branches are now reachable (were dead code before).
+ * SR-04 MAX_USER_INPUT re-exported for useInterview.ts.
+ *
+ * GUEST MODE
+ * ──────────
+ * GUEST_INTRO_TEXT and GUEST_INTRO_BANNER are re-exported here.
+ * The system prompt includes a note that the branded intro has already been
+ * delivered — Kai must not repeat it.
+ * isGuest is always locked to practice mode.
+ */
+
 import { InterviewState } from './state-machine';
 import {
     generateInterviewerSystemPrompt,
-    generateTurnPrompt as generateAdvancedTurnPrompt,
-    generateFeedbackPrompt,
-    InterviewConfig
+    generateTurnPrompt as buildPhaseTurnPrompt,
+    generateInterviewOpeningTrigger,
+    MAX_USER_INPUT,
+    GUEST_INTRO_TEXT,
+    GUEST_INTRO_BANNER,
+    InterviewConfig,
 } from './interviewer-prompt';
 import { Problem } from '@/types/problem';
+import type { KaiMemoryStructured } from '@/types/kai-memory';
 
-interface PromptContext {
+// Re-export so callers only need one import
+export {
+    MAX_USER_INPUT,
+    GUEST_INTRO_TEXT,
+    GUEST_INTRO_BANNER,
+    generateInterviewOpeningTrigger,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PromptContext {
     state: InterviewState;
     problemTitle: string;
     problemContent: string;
-    transcript: string; // The specific recent user input
-    conversationHistory?: string; // DEPRECATED: kept for backward compat, not used in prompt
-    ragContext: string; // Retrieved chunks
+    /** Current user message — this turn only. */
+    transcript: string;
     /** Optional context from an interrupted AI response. */
     interruptionContext?: string;
+    /** Turns remaining — passed to urgency note. */
+    turnsRemaining?: number;
+    /** Seconds remaining — passed to urgency note. */
+    timeRemaining?: number;
 }
 
-/**
- * Difficulty mode persona overlays.
- * These are appended to the system prompt to adjust interviewer behavior.
- */
-const DIFFICULTY_MODE_CONTEXT: Record<string, string> = {
-    'warm-up': `\n\n[DIFFICULTY MODE: WARM-UP]
-You are a WARM and ENCOURAGING interviewer. Allow pauses up to 30 seconds before offering help.
-Give hints after 2 minutes of silence. Celebrate small wins enthusiastically.
-Use phrases like "Great start!", "You're on the right track!" frequently.
-Focus on building confidence. This is a learning session.`,
+export interface SystemPromptOptions {
+    problem: Problem;
+    ragContext?: string;
+    kaiMemory?: string;
+    kaiMemoryStructured?: KaiMemoryStructured | null;
+    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint' | 'employer';
+    difficulty?: 'easy' | 'medium' | 'hard';
+    candidateLevel?: 'beginner' | 'intermediate' | 'advanced';
+    language?: string;
+    optimalApproach?: string;
+    turnsRemaining?: number;
+    timeRemaining?: number;
+    isGuest?: boolean;
+    sprintProblemIndex?: 0 | 1;
+    secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
+}
 
-    'practice': '', // No change — current default behavior
-
-    'crunch': `\n\n[DIFFICULTY MODE: CRUNCH]
-You are a TIME-CONSCIOUS interviewer. Mention the clock at 15 and 20 minutes.
-Only give ONE hint maximum. Be direct and businesslike.
-Push the candidate to think faster. Say things like "Let's move on" if they stall.
-Do not over-explain. Keep responses brief.`,
-
-    'sprint': `\n\n[DIFFICULTY MODE: SPRINT]
-This is a SPRINT session with 2 problems. Announce when time for problem 1 (22 mins) is up
-and transition to problem 2. No extended explanations.
-Be efficient and fast-paced. Say "Time's up for problem 1, let's move to problem 2."
-Minimal encouragement — focus on throughput.`,
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Generate the main system prompt for the AI interviewer.
- * Uses the comprehensive interviewer prompt with problem context.
- * Optionally appends difficulty mode persona overlay.
+ * Generates the system prompt for the AI interviewer.
+ *
+ * INJECTION SAFETY:
+ * ragContext and kaiMemory are injected with XML delimiters inside
+ * generateInterviewerSystemPrompt(). route.ts must NOT re-inject them.
+ *
+ * GUEST MODE:
+ * When isGuest = true, mode is locked to practice and the system prompt
+ * contains a note that the branded intro has already been delivered.
+ * useInterview.ts is responsible for injecting GUEST_INTRO_TEXT as a
+ * hardcoded message before the first AI call — see INTEGRATION_GUIDE.md Step 1c.
  */
-export function generateSystemPrompt(problem?: Problem, ragContext?: string, mode?: string): string {
-    // If no problem provided, return basic prompt (backward compatibility)
-    if (!problem) {
-        return `You are "Kai", an expert technical interviewer at a top tech company. 
-Your goal is to conduct a mock regular coding interview. 
-You are friendly, encouraging, but rigorous.
-Speak naturally and concisely (max 2-3 sentences usually) so the candidate can respond.
-Do NOT give away the solution immediately. Guide the user with hints if they are stuck.
-If the user mentions specific patterns (like Sliding Window or DFS), validate them.
-`;
-    }
+export function generateSystemPrompt(options: SystemPromptOptions): string {
+    const {
+        problem,
+        ragContext,
+        kaiMemory,
+        kaiMemoryStructured,
+        difficulty,
+        candidateLevel,
+        language,
+        optimalApproach,
+        turnsRemaining,
+        timeRemaining,
+        isGuest,
+        sprintProblemIndex,
+        secondProblem,
+    } = options;
 
-    // Use comprehensive interviewer prompt
+    // Guest users are always locked to practice
+    const difficultyMode: InterviewConfig['difficultyMode'] = isGuest
+        ? 'practice'
+        : (options.difficultyMode ?? 'practice');
+
     const config: InterviewConfig = {
         problem,
-        difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
-        ragContext: ragContext || '',
+        difficulty: difficulty ?? (problem.difficulty as 'easy' | 'medium' | 'hard') ?? 'medium',
+        difficultyMode,
+        ragContext: ragContext ?? '',
+        kaiMemory: kaiMemory ?? '',
+        kaiMemoryStructured: kaiMemoryStructured ?? undefined,
+        candidateLevel,
+        language,
+        optimalApproach: optimalApproach ?? problem.solution ?? undefined,
+        turnsRemaining,
+        timeRemaining,
+        isGuest,
+        sprintProblemIndex,
+        secondProblem,
     };
 
-    let prompt = generateInterviewerSystemPrompt(config);
-
-    // Append difficulty mode context if provided
-    if (mode && DIFFICULTY_MODE_CONTEXT[mode]) {
-        prompt += DIFFICULTY_MODE_CONTEXT[mode];
-    }
-
-    return prompt;
+    return generateInterviewerSystemPrompt(config);
 }
 
 /**
- * Generate turn-specific prompts based on interview phase.
- * Maps internal state machine states to prompt phases.
+ * Legacy shim for call sites that pass only (problem, ragContext, mode).
+ * Prefer generateSystemPrompt() with full options for all new code.
+ */
+export function generateSystemPromptLegacy(
+    problem?: Problem,
+    ragContext?: string,
+    mode?: string
+): string {
+    if (!problem) {
+        return `You are "Kai", a technical interviewer at AlgoMind.
+Conduct a mock DSA coding interview. Be friendly, encouraging, and rigorous.
+Speak concisely — 2–3 sentences per response.
+Do NOT give away the solution. Guide with hints if the candidate is stuck.`;
+    }
+    return generateSystemPrompt({
+        problem,
+        ragContext,
+        difficultyMode: (['warm-up', 'practice', 'crunch', 'sprint', 'employer'].includes(mode ?? '')
+            ? mode
+            : 'practice') as SystemPromptOptions['difficultyMode'],
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TURN PROMPT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Generates the per-turn instruction injected as a user-turn message alongside messages[].
+ *
+ * NOT included here:
+ * - Conversation history → lives in messages[]
+ * - RAG context → lives in system prompt
+ * - kaiMemory → lives in system prompt
+ *
+ * STATE → PHASE MAPPING:
+ * solution-review → 'testing'   (FG-04 fix: was 'wrap-up', branch was unreachable)
+ * assessment      → 'complexity' (FG-04 fix: was 'wrap-up', branch was unreachable)
  */
 export function generateTurnPrompt(context: PromptContext): string {
-    const { state, problemTitle, problemContent, ragContext, conversationHistory, transcript, interruptionContext } = context;
+    const {
+        state,
+        problemTitle,
+        transcript,
+        interruptionContext,
+        turnsRemaining,
+        timeRemaining,
+    } = context;
 
-    const baseContext = `
-Problem: ${problemTitle}
-${problemContent}
+    const anchor = `[Problem: "${problemTitle}"]`;
 
-Relevant Knowledge:
-${ragContext}
-`;
-    // NOTE: Conversation history is NOT included here.
-    // It is passed via the messages[] array in the API request body.
-    // Including it here would duplicate the context and inflate token usage.
-
-    // Map state machine states to prompt phases
-    const stateToPhase: Record<InterviewState, string> = {
-        'idle': 'intro',
-        'problem-intro': 'intro',
-        'user-thinking': 'approach',
-        'ai-clarifying': 'approach',
-        'user-solving': 'coding',
-        'ai-feedback': 'coding',
-        'user-coding': 'coding',
-        'solution-review': 'wrap-up',
-        'assessment': 'wrap-up',
-        'completed': 'wrap-up',
+    const stateToPhase: Record<
+        InterviewState,
+        'intro' | 'approach' | 'coding' | 'testing' | 'complexity' | 'wrap-up'
+    > = {
+        'idle':             'intro',
+        'problem-intro':    'intro',
+        'user-thinking':    'approach',
+        'ai-clarifying':    'approach',
+        'user-solving':     'coding',
+        'ai-feedback':      'coding',
+        'user-coding':      'coding',
+        'solution-review':  'testing',    // FG-04 fix
+        'assessment':       'complexity', // FG-04 fix
+        'completed':        'wrap-up',
     };
 
-    const phase = stateToPhase[state] || 'approach';
+    const phase = stateToPhase[state] ?? 'approach';
 
-    // Use advanced turn prompt for detailed guidance
-    const advancedPrompt = generateAdvancedTurnPrompt(
-        phase as 'intro' | 'approach' | 'coding' | 'testing' | 'complexity' | 'wrap-up',
+    const phaseInstruction = buildPhaseTurnPrompt(
+        phase,
         transcript,
-        conversationHistory || ''
+        turnsRemaining,
+        timeRemaining,
     );
 
-    // Append interruption context if present
-    const interruptionBlock = interruptionContext
-        ? `\n\n${interruptionContext}`
-        : '';
+    const interruptionBlock = interruptionContext ? `\n\n${interruptionContext}` : '';
 
-    return `${baseContext}\n${advancedPrompt}${interruptionBlock}`;
+    return `${anchor}\n\n${phaseInstruction}${interruptionBlock}`;
 }
-
-/**
- * Generate the final feedback prompt for assessment.
- */
-export function generateFinalFeedbackPrompt(
-    conversationHistory: string,
-    problemTitle: string,
-    terminated: boolean = false,
-    terminationReason?: string
-): string {
-    return generateFeedbackPrompt(conversationHistory, problemTitle, terminated, terminationReason);
-}
-

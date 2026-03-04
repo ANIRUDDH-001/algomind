@@ -38,7 +38,7 @@ vi.mock('@/hooks/useInterview', () => ({
 
 vi.mock('@/hooks/useGuestSession', () => ({
     useGuestSession: vi.fn(),
-    GUEST_SESSION_LIMITS: { MAX_USER_TURNS: 10 }
+    GUEST_SESSION_LIMITS: { MAX_USER_TURNS: 5 }
 }));
 
 vi.mock('@/hooks/useAssessment', () => ({

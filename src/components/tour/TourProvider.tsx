@@ -50,7 +50,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     const [stepIndex, setStepIndex] = useState(0);
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
-    const [audioEnabled, setAudioEnabled] = useState(false); // opt-in
+    const [audioEnabled, setAudioEnabled] = useState(true); // default ON for tour
     const { user, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();

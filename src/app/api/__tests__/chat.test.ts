@@ -122,8 +122,14 @@ describe('Chat API (/api/chat)', () => {
     });
 
     it('6. RAG context injected when problemContext.ragContext provided', async () => {
+        // With the new architecture, client ragContext is already baked into
+        // the system prompt. Server only adds RAG if it differs from client.
+        // When no interviewState/title triggers server RAG, the fallback
+        // ragContext equals problemContext.ragContext, so server skip re-injection.
+        // Verify the API still succeeds and uses the client's system prompt.
         const req = createRequest({
             messages: [{ role: 'user', content: 'hello' }],
+            systemPrompt: 'System prompt with Injected Rag Context already baked in',
             problemContext: { ragContext: 'Injected Rag Context' }
         });
         await POST(req);

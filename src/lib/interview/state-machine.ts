@@ -18,6 +18,7 @@ export type InterviewEvent =
     | 'REQUEST_HINT'
     | 'SUBMIT_SOLUTION'
     | 'FINISH_INTERVIEW'
+    | 'TERMINATE_INTERVIEW'
     | 'USER_STARTED_CODING'
     | 'USER_SHARED_CODE'
     | 'USER_STOPPED_CODING';
@@ -44,17 +45,20 @@ export class InterviewStateMachine {
             case 'user-thinking':
                 if (event === 'USER_FINISHED_SPEAKING') this.state = 'ai-clarifying';
                 if (event === 'MOVE_TO_SOLVING') this.state = 'user-solving';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'ai-clarifying':
                 if (event === 'AI_FINISHED_SPEAKING') this.state = 'user-thinking'; // Loop back for more discussion
                 if (event === 'MOVE_TO_SOLVING') this.state = 'user-solving';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'user-solving':
                 if (event === 'USER_FINISHED_SPEAKING') this.state = 'ai-feedback';
                 if (event === 'SUBMIT_SOLUTION') this.state = 'solution-review';
                 if (event === 'USER_STARTED_CODING') this.state = 'user-coding';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'ai-feedback':
@@ -63,16 +67,19 @@ export class InterviewStateMachine {
                 if (event === 'SUBMIT_SOLUTION') this.state = 'solution-review';    // User submits final solution
                 if (event === 'FINISH_INTERVIEW') this.state = 'assessment';         // Force end (end button)
                 if (event === 'USER_STARTED_CODING') this.state = 'user-coding';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'user-coding':
                 if (event === 'USER_SHARED_CODE') this.state = 'ai-feedback';
                 if (event === 'USER_STOPPED_CODING') this.state = 'user-solving';
                 if (event === 'FINISH_INTERVIEW') this.state = 'assessment';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'solution-review':
                 if (event === 'FINISH_INTERVIEW') this.state = 'assessment';
+                if (event === 'TERMINATE_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'assessment':

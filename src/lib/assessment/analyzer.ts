@@ -4,6 +4,7 @@ import { SKILL_DEFINITIONS } from './skill-registry';
 import { ConversationTurn, generateAssessmentPrompt } from './prompts';
 import { calculateConfidence } from './confidence-calculator';
 import { validateAndCorrectScores, applyValidation } from './score-validator';
+import { MODE_ASSESSMENT_CONFIGS } from '../interview/mode-assessment-config';
 
 export interface CodeQualityScore {
     score: number | null;
@@ -68,6 +69,20 @@ function computeOverallScore(skills: Record<string, SkillScore>): number {
     });
 
     return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : 5;
+}
+
+/**
+ * Computes overall score including mode-specific bonus dimensions.
+ * Bonus dimensions (timeEfficiency for crunch, contextSwitching for sprint)
+ * contribute 10% weight. Standard dimensions scaled to 90%.
+ */
+export function computeOverallScoreWithBonus(
+    skills: Record<string, SkillScore>,
+    bonusDimensionScore?: number | null
+): number {
+    const base = computeOverallScore(skills);
+    if (!bonusDimensionScore || bonusDimensionScore <= 0) return base;
+    return Math.round((base * 0.9 + bonusDimensionScore * 0.1) * 10) / 10;
 }
 
 interface ParsedAssessmentResponse {
@@ -142,7 +157,14 @@ export class CognitiveAnalyzer {
                     };
                 });
 
-                const rawOverall = computeOverallScore(finalizedSkills);
+                const rawOverall = (() => {
+                    const modeConf = MODE_ASSESSMENT_CONFIGS[problem.difficultyMode ?? 'practice'];
+                    const bonusKey = modeConf?.bonusDimension?.jsonKey;
+                    const bonusScore = bonusKey
+                        ? (parsedData as any)?.bonusDimensions?.[bonusKey]?.score ?? null
+                        : null;
+                    return computeOverallScoreWithBonus(finalizedSkills, bonusScore);
+                })();
 
                 const DIFFICULTY_MULTIPLIER: Record<string, number> = {
                     easy: 1.00,

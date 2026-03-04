@@ -20,12 +20,17 @@ export function useProgress() {
     } = useQuery({
         queryKey: ['user-progress', user?.id],
         queryFn: async () => {
-            // 1. Demo Mode
+            // 1. Authenticated user — always fetch real data (never demo)
+            if (user?.id && isSupabaseConfigured()) {
+                const supabaseStore = getProgressStore();
+                return await supabaseStore.getUserProgress(user.id);
+            }
+
+            // 2. Demo Mode (guest/tour only — no authenticated user)
             if (isDemoMode()) {
                 const demoData = getDemoProgress();
                 if (!demoData) return null;
 
-                // Return in UserProgress format
                 return {
                     userId: 'demo-user',
                     totalSessions: demoData.totalSessions,
@@ -37,13 +42,8 @@ export function useProgress() {
                 } as UserProgress;
             }
 
-            // 2. Real Data
-            if (!isSupabaseConfigured() || !user?.id) {
-                return null;
-            }
-
-            const supabaseStore = getProgressStore();
-            return await supabaseStore.getUserProgress(user.id);
+            // 3. No user, no demo — nothing to show
+            return null;
         },
         enabled: !!user?.id || isDemoMode(),
         staleTime: 1000 * 60 * 5, // 5 minutes cache
