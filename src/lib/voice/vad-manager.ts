@@ -367,4 +367,37 @@ export async function resetVADManager(): Promise<void> {
     }
 }
 
+/**
+ * Destroy the current VAD singleton and recreate it with fresh config
+ * (reads latest values from VoiceConfig / localStorage).
+ *
+ * Returns the new VADManager instance in PAUSED state (ready to start).
+ * Callers that had `onSpeechStart` / `onSpeechEnd` subscriptions will
+ * need to re-subscribe after calling this.
+ */
+export async function reconfigureVAD(): Promise<VADManager> {
+    const voiceCfg = getVoiceConfig();
+
+    // Tear down existing instance
+    await resetVADManager();
+
+    // Build a new singleton with the latest localStorage-backed params
+    const mgr = getVADManager();
+    await mgr.init({
+        positiveSpeechThreshold: voiceCfg.vadPositiveSpeechThreshold,
+        negativeSpeechThreshold: voiceCfg.vadNegativeSpeechThreshold,
+        redemptionMs: voiceCfg.vadRedemptionMs,
+        minSpeechMs: voiceCfg.vadMinSpeechMs,
+    });
+
+    console.log('[VADManager] Reconfigured with new params', {
+        positiveSpeechThreshold: voiceCfg.vadPositiveSpeechThreshold,
+        negativeSpeechThreshold: voiceCfg.vadNegativeSpeechThreshold,
+        redemptionMs: voiceCfg.vadRedemptionMs,
+        minSpeechMs: voiceCfg.vadMinSpeechMs,
+    });
+
+    return mgr;
+}
+
 export { VADManager };
