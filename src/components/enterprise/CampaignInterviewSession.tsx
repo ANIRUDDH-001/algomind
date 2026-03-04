@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { ConversationView } from '@/components/interview/ConversationView';
 import { CodeEditor } from '@/components/interview/CodeEditor';
-import { TranscriptViewer } from '@/components/voice/TranscriptViewer';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { isMobileDevice } from '@/lib/utils/device-detection';
