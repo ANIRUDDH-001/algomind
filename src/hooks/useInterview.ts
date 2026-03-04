@@ -1,13 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
-import { generateTurnPrompt } from '@/lib/interview/prompts';
-import { generateInterviewerSystemPrompt } from '@/lib/interview/interviewer-prompt';
+import {
+    generateSystemPrompt,
+    generateTurnPrompt,
+    generateInterviewOpeningTrigger,
+    GUEST_INTRO_TEXT,
+    MAX_USER_INPUT,
+    type SystemPromptOptions,
+} from '@/lib/interview/prompts';
 import { useTTS } from '@/hooks/useTTS';
 import { useSTT } from '@/hooks/useSTT';
 import { useVAD } from '@/hooks/useVAD';
 import type { InterviewConfig } from '@/lib/interview/interview-config';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
+import type { Problem } from '@/types/problem';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
 
@@ -43,12 +50,18 @@ interface ProblemContext {
     kaiMemory?: string;
     problemId?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
-    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
+    difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint' | 'employer';
+    language?: string;
+    optimalApproach?: string;
+    sprintProblemIndex?: 0 | 1;
+    secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
 }
 
 export function useInterview(options: {
     config: InterviewConfig;
-    isTimeUp?: boolean;          // ← ADD THIS: from useInterviewLimits
+    isTimeUp?: boolean;
+    turnsRemaining?: number;
+    timeRemaining?: number;
     voicePrefs?: { name: string | null; rate: number; pitch: number };
     isReviewMode?: boolean;
     apiEndpoint?: string;
@@ -59,7 +72,7 @@ export function useInterview(options: {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.config, options.isTimeUp, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
+        [options.config, options.isTimeUp, options.turnsRemaining, options.timeRemaining, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
     );
 
     // State
@@ -293,7 +306,6 @@ export function useInterview(options: {
                     },
                     sessionToken: optionsRef.current.sessionToken,
                     guestMode: optionsRef.current.isGuest ?? false,
-                    kaiMemory: optionsRef.current.config.kaiMemory,
                     interviewState: stateMachine.current.getState(),
                 })
             });
@@ -316,16 +328,17 @@ export function useInterview(options: {
     const submitUserResponse = useCallback(async (userText: string, problemContext: ProblemContext) => {
         if (stateMachine.current.getState() === 'completed') return;
         if (!userText.trim()) return;
+        const safeUserText = userText.slice(0, MAX_USER_INPUT);
 
         // A1 fix: Deduplication — skip if identical message within 3 seconds
         const now = Date.now();
         if (lastUserMsgRef.current &&
-            lastUserMsgRef.current.text === userText.trim() &&
+            lastUserMsgRef.current.text === safeUserText.trim() &&
             now - lastUserMsgRef.current.time < 3000) {
             console.log('[useInterview] Duplicate message blocked (within 3s window)');
             return;
         }
-        lastUserMsgRef.current = { text: userText.trim(), time: now };
+        lastUserMsgRef.current = { text: safeUserText.trim(), time: now };
 
         // A1 fix: Reset ttsError at start of each submission
         setTtsError(false);
@@ -343,7 +356,7 @@ export function useInterview(options: {
         setMicStoppedManually(false);
         setSendCountdown(null);
 
-        const userMsg: Message = { id: generateMessageId(), role: 'user', content: userText, timestamp: new Date(), status: 'complete' };
+        const userMsg: Message = { id: generateMessageId(), role: 'user', content: safeUserText, timestamp: new Date(), status: 'complete' };
         addMessage(userMsg);
 
         if (optionsRef.current.onUserMessage) {
@@ -354,8 +367,6 @@ export function useInterview(options: {
         setIsProcessing(true);
         stateMachine.current.transition('USER_FINISHED_SPEAKING');
         setState(stateMachine.current.getState());
-
-        const methodHistory = '';
 
         const lastInterrupted = conversationHistoryRef.current
             .slice()
@@ -370,23 +381,57 @@ export function useInterview(options: {
             state: stateMachine.current.getState(),
             problemTitle: problemContext.title,
             problemContent: problemContext.content,
-            transcript: userText,
-            conversationHistory: methodHistory,
-            ragContext: '',
+            transcript: safeUserText,
             interruptionContext: interruptionCtx,
+            turnsRemaining: optionsRef.current.turnsRemaining,
+            timeRemaining: optionsRef.current.timeRemaining,
         });
 
-        const config: any = {
-            problem: { title: problemContext.title, description: problemContext.content, difficulty: problemContext.difficulty || 'medium', id: problemContext.problemId || '' } as any,
-            difficulty: problemContext.difficulty || 'medium',
-            difficultyMode: optionsRef.current.config.difficultyMode,
-            ragContext: optionsRef.current.config.ragContext,
-            kaiMemory: optionsRef.current.config.kaiMemory,
-            kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured,
-        };
+        // Rebuild system prompt every turn so turnsRemaining / timeRemaining are current
+        const currentSysPrompt = generateSystemPrompt({
+            problem: {
+                id: currentProblemRef.current?.problemId ?? '',
+                title: currentProblemRef.current?.title ?? '',
+                content: currentProblemRef.current?.content ?? '',
+                description: currentProblemRef.current?.content ?? '',
+                difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+            } as Problem,
+            difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+            difficultyMode: currentProblemRef.current?.difficultyMode as SystemPromptOptions['difficultyMode'],
+            ragContext: currentProblemRef.current?.ragContext ?? '',
+            kaiMemory: currentProblemRef.current?.kaiMemory ?? '',
+            kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured ?? undefined,
+            language: currentProblemRef.current?.language,
+            optimalApproach: currentProblemRef.current?.optimalApproach,
+            turnsRemaining: optionsRef.current.turnsRemaining,
+            timeRemaining: optionsRef.current.timeRemaining,
+            isGuest: optionsRef.current.isGuest ?? false,
+            sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
+            secondProblem: currentProblemRef.current?.secondProblem,
+        });
 
         try {
-            const responseText = await callChatApi(prompt, generateInterviewerSystemPrompt(config), problemContext);
+            const responseText = await callChatApi(prompt, currentSysPrompt, problemContext);
+
+            // Step 1i: TERMINATE_INTERVIEW token detection
+            if (typeof responseText === 'string' && responseText.includes('TERMINATE_INTERVIEW')) {
+                const cleanResponse = responseText.replace('TERMINATE_INTERVIEW', '').trim();
+                const aiMsg: Message = {
+                    id: generateMessageId(),
+                    role: 'assistant',
+                    content: cleanResponse,
+                    timestamp: new Date(),
+                    status: 'complete',
+                };
+                addMessage(aiMsg);
+                setIsProcessing(false);
+                setMicIntent('off');
+                stopListening();
+                stateMachine.current.transition('TERMINATE_INTERVIEW' as any);
+                setState(stateMachine.current.getState());
+                return;
+            }
+
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
@@ -513,9 +558,13 @@ export function useInterview(options: {
         ragContext?: string;
         kaiMemory?: string;
         problemId?: string;
-        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
+        difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint' | 'employer';
         difficulty?: 'easy' | 'medium' | 'hard';
         kaiMemoryStructured?: KaiMemoryStructured | null;
+        language?: string;
+        optimalApproach?: string;
+        sprintProblemIndex?: 0 | 1;
+        secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
     }) => {
         const { problemTitle, problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty, kaiMemoryStructured } = opts;
 
@@ -525,7 +574,19 @@ export function useInterview(options: {
         conversationHistoryRef.current = [];
         setMessages([]);
         resetTranscript();
-        currentProblemRef.current = { title: problemTitle, content: problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty };
+        currentProblemRef.current = {
+            title: problemTitle,
+            content: problemContent,
+            ragContext,
+            kaiMemory,
+            problemId,
+            difficultyMode: optionsRef.current.isGuest ? 'practice' : (difficultyMode ?? 'practice'),
+            difficulty,
+            language: opts.language,
+            optimalApproach: opts.optimalApproach,
+            sprintProblemIndex: opts.sprintProblemIndex ?? 0,
+            secondProblem: opts.secondProblem,
+        };
         stateMachine.current.transition('START');
         setState(stateMachine.current.getState());
 
@@ -534,24 +595,34 @@ export function useInterview(options: {
         // starting, creating a gap where mic+VAD activates while AI is speaking.
         setMicIntent('paused-for-ai');
 
-        const config = {
-            problem: { title: problemTitle, description: problemContent, difficulty: difficulty || 'medium', id: problemId || '' } as any,
-            difficulty: difficulty || 'medium',
-            difficultyMode: difficultyMode ?? 'practice',
-            ragContext: ragContext || '',
-            kaiMemory: kaiMemory || '',
-            kaiMemoryStructured: kaiMemoryStructured ?? undefined
-        };
-
-        const sysPrompt = generateInterviewerSystemPrompt(config);
-        const introPrompt = generateTurnPrompt({
-            state: 'problem-intro',
-            problemTitle,
-            problemContent,
-            transcript: '',
-            conversationHistory: '',
-            ragContext: ragContext || ''
+        const sysPrompt = generateSystemPrompt({
+            problem: {
+                id: problemId ?? '',
+                title: problemTitle,
+                content: problemContent,
+                description: problemContent,
+                difficulty: (difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+            } as Problem,
+            difficulty: (difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+            difficultyMode: optionsRef.current.isGuest
+                ? 'practice'
+                : (difficultyMode ?? 'practice') as SystemPromptOptions['difficultyMode'],
+            ragContext: ragContext ?? '',
+            kaiMemory: kaiMemory ?? '',
+            kaiMemoryStructured: kaiMemoryStructured ?? undefined,
+            language: opts.language,
+            optimalApproach: opts.optimalApproach,
+            turnsRemaining: optionsRef.current.turnsRemaining,
+            timeRemaining: optionsRef.current.timeRemaining,
+            isGuest: optionsRef.current.isGuest ?? false,
+            sprintProblemIndex: opts.sprintProblemIndex ?? 0,
+            secondProblem: opts.secondProblem,
         });
+
+        const introTrigger = generateInterviewOpeningTrigger(
+            problemTitle,
+            optionsRef.current.isGuest ? 'practice' : (difficultyMode ?? 'practice')
+        );
 
         setRoundCount(0);
         setInterviewStartTime(Date.now());
@@ -560,11 +631,30 @@ export function useInterview(options: {
 
         setIsProcessing(true);
         try {
+            // ── Guest intro — system-injected, Kai never generates this ──────────────
+            if (optionsRef.current.isGuest) {
+                const guestIntroMsg: Message = {
+                    id: generateMessageId(),
+                    role: 'assistant',
+                    content: GUEST_INTRO_TEXT,
+                    timestamp: new Date(),
+                    status: 'complete',
+                };
+                addMessage(guestIntroMsg);
+                const guestTtsOk = await speakAndWait(GUEST_INTRO_TEXT, 3);
+                if (!guestTtsOk) {
+                    console.warn('[startInterview] Guest intro TTS failed — message shown in chat.');
+                }
+                // Brief pause between intro and Kai's first problem presentation
+                await new Promise(resolve => setTimeout(resolve, 600));
+            }
+            // ── End guest intro ──────────────────────────────────────────────────────
+
             let responseText = '';
             if (optionsRef.current.isReviewMode) {
                 responseText = `Let's review ${problemTitle} which you've seen before. Without looking at your previous solution, explain your approach to this problem.`;
             } else {
-                responseText = await callChatApi(introPrompt, sysPrompt, currentProblemRef.current!);
+                responseText = await callChatApi(introTrigger, sysPrompt, currentProblemRef.current!);
             }
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
@@ -652,11 +742,16 @@ export function useInterview(options: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // mount only
 
-    // Test Hook: Expose trigger for Playwright
+    // Test Hook: Expose trigger for Playwright (secured)
     useEffect(() => {
-        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        const testHooksEnabled =
+            process.env.NODE_ENV !== 'production' &&
+            process.env.NEXT_PUBLIC_ENABLE_TEST_HOOKS === 'true';
+
+        if (typeof window !== 'undefined' && testHooksEnabled) {
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
-                submitUserResponse(message, currentProblemRef.current || { title: 'Test', content: 'Test' });
+                const safeMsg = message.slice(0, MAX_USER_INPUT);
+                submitUserResponse(safeMsg, currentProblemRef.current || { title: 'Test', content: 'Test' });
             };
             return () => {
                 delete (window as any).__TRIGGER_AI_CALL__;

@@ -1,120 +1,234 @@
+/**
+ * assessment/prompts.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * AlgoMind — Post-Interview Cognitive Assessment Prompt Generator
+ *
+ * Used by CognitiveAnalyzer in assessment/analyzer.ts.
+ * This is the authoritative assessment prompt.
+ *
+ * AUDIT FIXES IN THIS FILE
+ * ─────────────────────────
+ * SA-01  overallScore removed from AI output. Computed by computeOverallScore()
+ *        in analyzer.ts. AI-reported overall always diverged from weighted calc.
+ *
+ * SA-02  Short-session score cap now inside the prompt so AI evidence matches
+ *        capped scores from the start. Previously validator capped mechanically
+ *        while AI evidence still justified 7+, creating a score/evidence mismatch.
+ *
+ * SA-03  Bonus dimensions (timeEfficiency/contextSwitching) now in a dedicated
+ *        bonusDimensions block with explicit instruction they contribute 10% to
+ *        the overall score via computeOverallScoreWithBonus() in analyzer.ts.
+ *
+ * AC-03  All skill dimension keys must be dash-case ("problem-decomposition")
+ *        to match SKILL_DEFINITIONS. CamelCase keys cause silent validator drops.
+ *
+ * EMPLOYER MODE
+ * ─────────────
+ * Maximum strictness. No encouragement in feedback tone.
+ * Assessment structure identical — only thresholds and tone differ.
+ */
+
 import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
 import { MODE_ASSESSMENT_CONFIGS } from '../interview/mode-assessment-config';
 import type { DifficultyMode } from '../interview/interview-config';
 
 export interface ConversationTurn {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
 }
 
-export function generateAssessmentPrompt(
-  problem: { title: string; description: string; difficulty: string; difficultyMode?: DifficultyMode | 'employer' },
-  transcript: ConversationTurn[],
-  skillDefinitions: Record<CognitiveSkill, SkillDefinition>
-): string {
-  const mode = problem.difficultyMode ?? 'practice';
-  const modeConfig = MODE_ASSESSMENT_CONFIGS[mode];
-  const formattedTranscript = transcript
-    .map(turn => `${turn.role.toUpperCase()}: ${turn.content}`)
-    .join('\n');
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN ASSESSMENT PROMPT
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const skillsJsonShape = Object.entries(skillDefinitions).map(([id, def]) => `    "${id}": {
-      "score": <weighted average of sub-criteria, 1-10>,
+export function generateAssessmentPrompt(
+    problem: {
+        title: string;
+        description: string;
+        difficulty: string;
+        difficultyMode?: DifficultyMode | 'employer';
+    },
+    transcript: ConversationTurn[],
+    skillDefinitions: Record<CognitiveSkill, SkillDefinition>
+): string {
+    const mode = problem.difficultyMode ?? 'practice';
+    const modeConfig = MODE_ASSESSMENT_CONFIGS[mode];
+
+    const formattedTranscript = transcript
+        .map(t => `${t.role.toUpperCase()}: ${t.content}`)
+        .join('\n');
+
+    const userTurnCount = transcript.filter(t => t.role === 'user').length;
+    const shortSessionNote = buildShortSessionNote(userTurnCount);
+
+    // SA-01: overallScore NOT in this output shape
+    // AC-03: all keys are dash-case
+    const skillsShape = Object.entries(skillDefinitions)
+        .map(([id, def]) => `    "${id}": {
+      "score": <weighted average of sub-criteria below, 1–10>,
       "subCriteria": {
-${def.subCriteria.map(sc => `        "${sc.id}": <1-10>`).join(',\n')}
+${def.subCriteria.map(sc => `        "${sc.id}": <1–10>`).join(',\n')}
       },
-      "evidence": ["Exact quote from transcript", "..."],
-      "strengths": ["..."],
-      "improvements": ["..."]
+      "evidence": ["Exact quote or specific described moment from transcript"],
+      "strengths": ["1–2 observed strengths for this dimension"],
+      "improvements": ["1–2 actionable improvements for this dimension"]
     }`).join(',\n');
 
-  return `# GENERATE FINAL INTERVIEW FEEDBACK
+    // SA-03: dedicated bonus block
+    const bonusDimBlock = modeConfig.bonusDimension
+        ? `
+  "bonusDimensions": {
+    "${modeConfig.bonusDimension.jsonKey}": {
+      "score": <1–10>,
+      "evidence": ["specific observation from this session"],
+      "description": "${modeConfig.bonusDimension.description}"
+    }
+  },`
+        : '';
+
+    return `# GENERATE FINAL INTERVIEW ASSESSMENT
 
 ${modeConfig.contextBlock}
 
 **Problem:** "${problem.title}"
 **Difficulty:** ${problem.difficulty.toUpperCase()}
 **Mode:** ${mode}
+**Candidate turns in transcript:** ${userTurnCount}
 
-You are an expert technical interviewer and cognitive scientist evaluating a candidate's DSA problem-solving session.
+${shortSessionNote}
 
-PROBLEM STATEMENT:
-Title: ${problem.title}
-Problem: ${problem.description}
-Difficulty Level: ${problem.difficulty}
+You are an expert technical interviewer and cognitive scientist evaluating a DSA problem-solving session.
 
-CONVERSATION TRANSCRIPT:
+---
+
+## PROBLEM STATEMENT
+
+${problem.title}
+${problem.description}
+
+---
+
+## CONVERSATION TRANSCRIPT
+
 ${formattedTranscript}
 
+---
+
 ## STRICTNESS ENFORCEMENT
+
 ${modeConfig.strictnessNote}
 
-| Score | Gate (standard) |
-|-------|-----------------|
-| 1–3   | No understanding shown |
-| 4–5   | Vague only — no explanation |
-| 6–7   | Correct but prompted |
+| Score | Gate |
+|-------|------|
+| 1–3   | No understanding shown, or refused to engage |
+| 4–5   | Vague only — stated approach without explanation |
+| 6–7   | Correct but only after direct questioning |
 | 8–9   | Correct and unprompted |
-| 10    | Exceptional, proactive |
+| 10    | Exceptional — proactively exceeded all expectations |
+
+Hard rules — no exceptions:
+- "Use a hashmap" / "O(n) I think" with no explanation → score MAX 4.
+- Correct only after direct question → score MAX 6.
+- "Good effort" alone → never justifies 7+.
+- Short session cap — see note above.
+
+---
 
 ## DIFFICULTY CALIBRATION
-Problem difficulty is ${problem.difficulty.toUpperCase()}.
-- EASY: A 6/10 performance means average — expected most candidates to reach here.
-- MEDIUM: A 6/10 means the candidate met the bar. A 7+ means above average.
-- HARD: A 6/10 means the candidate understood the approach. A 7+ is genuinely strong.
-Calibrate your scores accordingly. Do not grade Easy problems on Hard-problem scale.
 
-YOUR TASK:
-Analyze this interview session and score the candidate across 8 cognitive skills.
-For each skill, provide an objective score based on the rubric, supporting evidence from the transcript, and actionable feedback.
+${problem.difficulty.toUpperCase()} difficulty:
+- EASY:   Score 6 = average. Most candidates reach here.
+- MEDIUM: Score 6 = met the bar. Score 7+ = above average.
+- HARD:   Score 6 = understood the approach. Score 7+ = genuinely strong.
 
-COGNITIVE SKILLS TO EVALUATE:
+---
+
+## COGNITIVE SKILLS TO EVALUATE
+
+CRITICAL FORMAT REQUIREMENT:
+All dimension keys must be dash-case exactly as shown below.
+"problem-decomposition" is correct. "problemDecomposition" will be rejected by the validation pipeline.
+
 ${Object.entries(skillDefinitions).map(([_id, def]) => `
-- ${def.name}: ${def.description}
-  Sub-criteria weights: ${def.subCriteria.map(sc => `${sc.label} (${sc.id}) = ${sc.weight}`).join(', ')}
-  Rubric:
-  1-2 (Level 1): ${def.rubric.level1}
-  3-4 (Level 2): ${def.rubric.level2}
-  5-6 (Level 3): ${def.rubric.level3}
-  7-8 (Level 4): ${def.rubric.level4}
-  9-10 (Level 5): ${def.rubric.level5}
+### ${def.name}
+Key (use exactly): "${def.id}"
+${def.description}
+
+Sub-criteria — score each independently first, then compute weighted average:
+${def.subCriteria.map(sc => `- "${sc.id}" (weight ${sc.weight}): ${sc.label} — ${sc.description}`).join('\n')}
+
+Rubric:
+1–2: ${def.rubric.level1}
+3–4: ${def.rubric.level2}
+5–6: ${def.rubric.level3}
+7–8: ${def.rubric.level4}
+9–10: ${def.rubric.level5}
 `).join('\n')}
 
-OUTPUT FORMAT (JSON ONLY):
+---
+
+## OUTPUT — RETURN ONLY VALID JSON, NO PROSE, NO CODE FENCES
+
 {
   "skills": {
-${skillsJsonShape}
-  },
-  ${modeConfig.bonusDimension ? `"${modeConfig.bonusDimension.jsonKey}": { "score": <1-10>, "evidence": ["..."] },` : ''}
-  ${modeConfig.includeHireDecision ? '"hireDecision": "STRONG_HIRE|HIRE|BORDERLINE|NO_HIRE|STRONG_NO_HIRE",' : ''}
-  "codeQuality": {
-    "score": <1-10 or null if no code submitted>,
-    "correctness": "<Does the code handle the examples? What fails?>",
-    "clarity": "<Variable naming, code structure, readability>",
-    "consistency": "<Does code match verbal approach described?>",
-    "issues": ["specific issue 1", "specific issue 2"]
-  },
-  "overallFeedback": "High-level summary of performance",
-  "nextSteps": ["Actionable recommendation 1", "..."],
-  "knowledgeGaps": ["Specific concept missed (e.g. 'Loop invariants')", "..."]
+${skillsShape}
+  },${bonusDimBlock}
+  ${modeConfig.includeHireDecision
+        ? '"hireDecision": "STRONG_HIRE|HIRE|BORDERLINE|NO_HIRE|STRONG_NO_HIRE",'
+        : '// hireDecision omitted — this mode has no hiring signal'}
+  "codeQuality": null,
+  "overallFeedback": "2–3 sentence summary citing specific moments from this session",
+  "nextSteps": ["Concrete recommendation naming a specific technique or concept", "..."],
+  "knowledgeGaps": ["Specific concept missed — e.g. Loop invariants in sliding window", "..."]
 }
 
-IMPORTANT:
-- Score each sub-criterion independently first. Then calculate the dimension score as the weighted average of its sub-criteria.
-- Do not round-trip — the sub-criteria scores are authoritative.
-- Return ONLY the JSON object.
-- Quote EXACT phrases from the transcript as evidence.
-- Be constructively critical. Don't give 10/10 unless the performance is truly exemplary.
-- Consider problem difficulty. A "Hard" problem solved with minor gaps is better than an "Easy" problem solved perfectly but slowly.
-- **knowledgeGaps**: List 1-3 specific technical concepts the candidate lacked or struggled with. If none, leave empty.
+For codeQuality: if [FINAL CODE SUBMITTED] block present in transcript, replace null with:
+{
+  "score": <1–10>,
+  "correctness": "Does code handle the examples? What specific case fails?",
+  "clarity": "Variable naming, code structure, readability",
+  "consistency": "Does code match the verbal approach described?",
+  "issues": ["specific issue 1", "specific issue 2"]
+}
+If no code submitted: codeQuality must be null — not 0, not empty object.
 
-CODE QUALITY ASSESSMENT:
-If the transcript includes a [FINAL CODE SUBMITTED] block:
-- Evaluate whether the code is logically correct for the given problem
-- Note naming quality (are variables meaningful?)
-- Note whether the code structure matches what the candidate described verbally
-- If the transcript has no code block, set codeQuality to null
+---
+
+## SCORING INSTRUCTIONS
+
+1. Score each sub-criterion independently first.
+2. Compute dimension score as weighted average of its sub-criteria. Do not override with intuition.
+3. Sub-criteria scores are authoritative — they feed into computeOverallScore() in the backend.
+4. Do NOT include an "overallScore" field. It is computed programmatically.
+5. Evidence must be concrete: exact phrase or described specific moment. "Seemed to understand X" is not acceptable.
+6. knowledgeGaps: 1–3 specific concepts. Empty array if none.
+7. Do not give 10/10 unless genuinely exceptional by senior engineer standards.
+8. bonusDimensions scores contribute 10% to the overall score via computeOverallScoreWithBonus() — score them accurately.
+
+---
 
 ${modeConfig.feedbackTone}
 `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHORT SESSION NOTE — SA-02 fix
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildShortSessionNote(userTurnCount: number): string {
+    if (userTurnCount <= 3) {
+        return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
+MANDATORY: Cap ALL dimension scores at 5 regardless of what the transcript shows.
+There is insufficient evidence to justify any score above 5.
+State this in overallFeedback: "This was a brief session — scores capped at 5 due to limited evidence."
+Do not write evidence that implies performance higher than a score of 5 would justify.`;
+    }
+    if (userTurnCount <= 5) {
+        return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
+MANDATORY: Cap ALL dimension scores at 6 regardless of what the transcript shows.
+There is insufficient evidence to justify any score above 6.
+State this in overallFeedback: "This was a brief session — scores capped at 6 due to limited evidence."
+Do not write evidence that implies performance higher than a score of 6 would justify.`;
+    }
+    return '';
 }

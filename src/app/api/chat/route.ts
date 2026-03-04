@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
             };
             guestMode?: boolean;
             companyPersona?: string;
-            kaiMemory?: string;
             interviewState?: InterviewState;
             sessionId?: string;
         }
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext, guestMode, companyPersona, kaiMemory, interviewState, sessionId: clientSessionId } = body;
+        const { messages, systemPrompt, problemContext, guestMode, companyPersona, interviewState, sessionId: clientSessionId } = body;
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
@@ -123,19 +122,13 @@ export async function POST(req: NextRequest) {
         let enhancedSystemPrompt = systemPrompt || '';
 
         if (companyPersona) {
-            enhancedSystemPrompt += '\n\n## COMPANY INTERVIEW STYLE\n' + companyPersona;
+            enhancedSystemPrompt += `\n\n<company_persona>\n${companyPersona}\n</company_persona>`;
             console.log(`🏢 [AI] Applying Company Persona`);
         }
 
-        if (kaiMemory) {
-            enhancedSystemPrompt += '\n\n## YOUR MEMORY OF THIS STUDENT\n' + kaiMemory +
-                '\n\nUse this naturally. Do NOT announce that you remember them. Simply demonstrate it through your questions and observations.';
-            console.log('🧠 [AI] Injecting Kai memory');
-        }
-
-        if (ragContext) {
-            enhancedSystemPrompt += `\n\n### RELEVANT DSA KNOWLEDGE (use this to give accurate, educational feedback):\n${ragContext}`;
-            console.log(`📚 [AI] Injecting RAG context (${ragContext.length} chars)`);
+        // Only inject server RAG if it differs from what the client already sent
+        if (ragContext && ragContext !== problemContext?.ragContext) {
+            enhancedSystemPrompt += `\n\n<server_rag_context>\n${ragContext}\n</server_rag_context>`;
         }
 
         // Use the full model registry with proper fallback (same as assess/chat route)

@@ -50,6 +50,7 @@ import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 import type { InterviewConfig } from '@/lib/interview/interview-config';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
+import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -241,6 +242,8 @@ export function InterviewSession({
     } = useInterview({
         config: interviewConfig,
         isTimeUp: limits.isTimeUp,
+        turnsRemaining: limits.turnsRemaining,
+        timeRemaining: limits.timeRemaining,
         voicePrefs,
         isReviewMode,
         apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
@@ -412,9 +415,11 @@ export function InterviewSession({
             ragContext: interviewConfig.ragContext,
             kaiMemory: interviewConfig.kaiMemory,
             problemId: activeProblem.id,
-            difficultyMode: interviewConfig.difficultyMode,
+            difficultyMode: isGuest ? 'practice' : interviewConfig.difficultyMode,
             difficulty: activeProblem.difficulty,
-            kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined
+            kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
+            language: (activeProblem as any).language,
+            optimalApproach: (activeProblem as any).solution ?? undefined,
         });
     };
 

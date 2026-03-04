@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { IntroAnimation } from '@/components/onboarding/IntroAnimation';
 import { shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
-import { enableDemoMode } from '@/lib/demo/manager';
+
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -211,8 +211,6 @@ export default function HomePage() {
                 if (user) {
                   router.push('/dashboard');
                 } else {
-                  enableDemoMode();
-                  window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
                   router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
                 }
               }}
@@ -535,8 +533,6 @@ export default function HomePage() {
                       if (user) {
                         router.push('/dashboard');
                       } else {
-                        enableDemoMode();
-                        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
                         router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
                       }
                     }}
