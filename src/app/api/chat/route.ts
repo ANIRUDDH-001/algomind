@@ -7,6 +7,17 @@ import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
 import type { InterviewState } from '@/lib/interview/state-machine';
 
+function sanitizeAIResponse(text: string): string {
+    return text
+        // Strip any XML-style thinking/reasoning blocks the model outputs
+        .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+        .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/<internal>[\s\S]*?<\/internal>/gi, '')
+        // Clean up any leftover leading/trailing whitespace from removed blocks
+        .trim();
+}
+
 export async function POST(req: NextRequest) {
     try {
 
@@ -156,7 +167,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({
-            response: result.response,
+            response: sanitizeAIResponse(result.response ?? ''),
             modelUsed: result.modelUsed,
             provider: result.provider,
         });
