@@ -82,8 +82,7 @@ export async function validateAndCorrectScores(
             ],
             {
                 maxTokens: 400,
-                preferredProvider: 'gemini',
-                category: 'intelligence',
+                category: 'analysis',
                 systemPrompt: 'You are a strict scoring calibrator. Return only valid JSON.',
             }
         );

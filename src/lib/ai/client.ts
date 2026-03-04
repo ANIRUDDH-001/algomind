@@ -1,5 +1,6 @@
 // Unified AI Client with Multi-Provider Support
 // Automatically falls back between Gemini and Groq based on rate limits
+// DB-driven model routing with cross-tier fallback
 // DIRECT API CALLS implementation (No SDKs)
 
 import { CHAT_MODELS, ModelConfig, Provider } from './providers';
@@ -8,6 +9,7 @@ import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
 import { getActiveModels } from './model-registry';
+import { getModelsForUseCase, isCrossTierFallbackEnabled, resolveToModelConfig } from './model-routing';
 import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
 
@@ -64,51 +66,103 @@ export class UnifiedAIClient {
         messages: Message[],
         options: CompletionOptions = {}
     ): Promise<CompletionResult> {
-        const { preferredProvider = 'groq' } = options;
         const attemptedModels: string[] = [];
 
-        // FALLBACK RULES:
-        // 1. Groq fails -> Try other Groq models ONLY (never Gemini)
-        // 2. Gemini fails -> Can try Groq models
+        // Determine use case from options
+        const useCase: 'chat' | 'analysis' =
+            (options.category === 'intelligence' || options.category === 'analysis')
+                ? 'analysis' : 'chat';
 
-        let primaryProvider = preferredProvider;
-        if (primaryProvider === 'local') primaryProvider = 'groq'; // 'local' not supported for chat yet, default to groq
+        // Get ordered models from DB (model_routing table, cached 60s)
+        const routedModels = await getModelsForUseCase(useCase);
 
-        // Strategy:
-        // If preferred is Groq: Try Groq models. If all fail, STOP.
-        // If preferred is Gemini: Try Gemini models. If all fail, Try Groq models.
+        if (routedModels.length > 0) {
+            // DB-driven routing: iterate by priority, check rate limits
+            const allActiveModels = await getActiveModels();
+            for (const routed of routedModels) {
+                const modelConfig = resolveToModelConfig(routed);
 
-        // 1. Try Primary Provider
-        const models = await getActiveModels();
-        const primaryResult = await this.tryProvider(
-            primaryProvider,
-            messages,
-            options,
-            attemptedModels,
-            models
-        );
+                // Check rate limiter
+                const rateLimit = await this.rateLimiter.canUseModel(
+                    modelConfig.id, allActiveModels, options.estimatedTokens
+                );
+                if (!rateLimit.allowed) continue;
 
-        if (primaryResult.success) {
-            return primaryResult;
-        }
+                const maxTokens = routed.maxTokensOverride ?? options.maxTokens;
+                const result = await this.callModel(modelConfig, messages, { ...options, maxTokens });
+                attemptedModels.push(modelConfig.id);
 
-        // 2. Cross-Provider Fallback (Only allowed if Gemini was primary)
-        if (primaryProvider === 'gemini') {
-            console.warn(`[UnifiedAIClient] Gemini failed, falling back to Groq...`);
-            const fallbackResult = await this.tryProvider(
-                'groq',
-                messages,
-                options,
-                attemptedModels,
-                models
+                if (result.success) {
+                    const tokensUsed = (result.response?.length || 0) / 4;
+                    this.rateLimiter.recordRequest(modelConfig.id, tokensUsed);
+                    return {
+                        success: true,
+                        modelUsed: modelConfig.id,
+                        provider: modelConfig.provider,
+                        response: result.response,
+                        attemptedModels,
+                    };
+                } else {
+                    this.rateLimiter.recordError(modelConfig.id, result.error);
+                    console.warn(`[UnifiedAIClient] Model ${modelConfig.id} failed: ${result.error}`);
+                }
+            }
+
+            // Cross-tier fallback: try the other use-case's models
+            if (await isCrossTierFallbackEnabled()) {
+                const fallbackUseCase = useCase === 'chat' ? 'analysis' : 'chat';
+                const fallbackModels = await getModelsForUseCase(fallbackUseCase);
+                console.warn(`[UnifiedAIClient] All ${useCase} models failed, trying ${fallbackUseCase} models...`);
+
+                for (const routed of fallbackModels) {
+                    if (attemptedModels.includes(routed.modelId)) continue; // Skip already tried
+                    const modelConfig = resolveToModelConfig(routed);
+
+                    const rateLimit = await this.rateLimiter.canUseModel(
+                        modelConfig.id, allActiveModels, options.estimatedTokens
+                    );
+                    if (!rateLimit.allowed) continue;
+
+                    const maxTokens = routed.maxTokensOverride ?? options.maxTokens;
+                    const result = await this.callModel(modelConfig, messages, { ...options, maxTokens });
+                    attemptedModels.push(modelConfig.id);
+
+                    if (result.success) {
+                        const tokensUsed = (result.response?.length || 0) / 4;
+                        this.rateLimiter.recordRequest(modelConfig.id, tokensUsed);
+                        return {
+                            success: true,
+                            modelUsed: modelConfig.id,
+                            provider: modelConfig.provider,
+                            response: result.response,
+                            attemptedModels,
+                        };
+                    } else {
+                        this.rateLimiter.recordError(modelConfig.id, result.error);
+                    }
+                }
+            }
+        } else {
+            // Legacy fallback: no DB routing available, use provider-based routing
+            const { preferredProvider = 'groq' } = options;
+            let primaryProvider = preferredProvider;
+            if (primaryProvider === 'local') primaryProvider = 'groq';
+
+            const models = await getActiveModels();
+            const primaryResult = await this.tryProvider(
+                primaryProvider, messages, options, attemptedModels, models
             );
+            if (primaryResult.success) return primaryResult;
 
-            if (fallbackResult.success) {
-                return fallbackResult;
+            if (primaryProvider === 'gemini') {
+                const fallbackResult = await this.tryProvider(
+                    'groq', messages, options, attemptedModels, models
+                );
+                if (fallbackResult.success) return fallbackResult;
             }
         }
 
-        // 3. Bedrock as final fallback (when both Groq and Gemini fail)
+        // Final fallback: Bedrock (when all other models fail)
         if (process.env.AWS_ACCESS_KEY_ID) {
             try {
                 console.warn('[UnifiedAIClient] All primary providers failed, attempting Bedrock...');
