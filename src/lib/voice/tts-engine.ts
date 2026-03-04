@@ -118,16 +118,58 @@ export class TTSEngine {
     }
 
     private tryBrowser(text: string, id: number): Promise<boolean> {
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
             if (typeof window === 'undefined' || !window.speechSynthesis || id !== this.invId) {
                 console.warn('[TTS] Browser TTS unavailable or cancelled');
                 resolve(false);
                 return;
             }
 
-            // Safety timeout: prevent stuck promise if utterance never fires onend/onerror
+            // A1 fix: Chunk long text by sentences to avoid 30s browser timeout.
+            // Each chunk stays under the limit. Short text (<200 chars) is spoken as-is.
+            const chunks = text.length > 200 ? this.splitBySentence(text) : [text];
+
+            let anySuccess = false;
+            for (const chunk of chunks) {
+                if (id !== this.invId) { resolve(anySuccess); return; }
+                const ok = await this.speakSingleChunk(chunk, id);
+                if (ok) anySuccess = true;
+                else if (!anySuccess) { resolve(false); return; } // First chunk failed
+            }
+            resolve(anySuccess);
+        });
+    }
+
+    /**
+     * A1: Split text into sentence-sized chunks for browser TTS.
+     * Each chunk targets < 300 characters to stay well under the 30s timeout.
+     */
+    private splitBySentence(text: string): string[] {
+        // Split on sentence-ending punctuation followed by space or end
+        const sentences = text.match(/[^.!?]+[.!?]+[\s]?|[^.!?]+$/g) || [text];
+        const chunks: string[] = [];
+        let current = '';
+
+        for (const sentence of sentences) {
+            if ((current + sentence).length > 300 && current.length > 0) {
+                chunks.push(current.trim());
+                current = sentence;
+            } else {
+                current += sentence;
+            }
+        }
+        if (current.trim()) chunks.push(current.trim());
+        return chunks.length > 0 ? chunks : [text];
+    }
+
+    /** Speak a single chunk via browser SpeechSynthesis. */
+    private speakSingleChunk(text: string, id: number): Promise<boolean> {
+        return new Promise((resolve) => {
+            if (id !== this.invId) { resolve(false); return; }
+
+            // Safety timeout per chunk
             const safetyTimeout = setTimeout(() => {
-                console.warn('[TTS] Browser TTS safety timeout (30s) — forcing resolve');
+                console.warn('[TTS] Browser TTS safety timeout (30s) per chunk — forcing resolve');
                 resolve(false);
             }, 30_000);
 
@@ -136,7 +178,6 @@ export class TTSEngine {
             utt.rate = this._rate;
             utt.pitch = this._pitch;
             if (this._voice) utt.voice = this._voice;
-            console.log(`[TTS] Browser utterance: voice=${this._voice?.name ?? 'default'}, rate=${this._rate}, pitch=${this._pitch}, textLen=${text.length}`);
 
             let started = false;
             utt.onstart = () => { started = true; console.log('[TTS] Browser utterance started playing'); };

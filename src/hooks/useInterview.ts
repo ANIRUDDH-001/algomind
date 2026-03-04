@@ -182,6 +182,11 @@ export function useInterview(options: {
             }
         },
         onSpeechEnd: (audio) => {
+            // A1 fix: Echo guard — reject VAD events while AI is speaking
+            if (isSpeakingRef.current) {
+                console.log('[useInterview] VAD onSpeechEnd rejected — TTS echo guard (isSpeaking=true)');
+                return;
+            }
             console.log(`[useInterview] VAD onSpeechEnd → transcribeAudio, audioLen=${audio.length}, sttProvider=${sttProvider}`);
             // If smart pause was active, cancel grace timer — user actually spoke
             if (smartPauseActiveRef.current) {
@@ -315,9 +320,32 @@ export function useInterview(options: {
         conversationHistoryRef.current.push(msg);
     }, []);
 
+    // A1 fix: message deduplication — track last user message for 3s window
+    const lastUserMsgRef = useRef<{ text: string; time: number } | null>(null);
+
     const submitUserResponse = useCallback(async (userText: string, problemContext: ProblemContext) => {
         if (stateMachine.current.getState() === 'completed') return;
         if (!userText.trim()) return;
+
+        // A1 fix: Deduplication — skip if identical message within 3 seconds
+        const now = Date.now();
+        if (lastUserMsgRef.current &&
+            lastUserMsgRef.current.text === userText.trim() &&
+            now - lastUserMsgRef.current.time < 3000) {
+            console.log('[useInterview] Duplicate message blocked (within 3s window)');
+            return;
+        }
+        lastUserMsgRef.current = { text: userText.trim(), time: now };
+
+        // A1 fix: Reset ttsError at start of each submission
+        setTtsError(false);
+
+        // A1 fix: Cancel any active smart pause timer
+        if (smartPauseTimerRef.current) {
+            clearTimeout(smartPauseTimerRef.current);
+            smartPauseTimerRef.current = null;
+        }
+        smartPauseActiveRef.current = false;
 
         // Stop mic and VAD for processing
         stopListening();
@@ -372,7 +400,8 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
-            setIsProcessing(false);
+            // A1 fix: setIsProcessing(false) MOVED to after speakAndWait
+            // Previously fired here before TTS, allowing auto-submit during playback
 
             // Serial TTS: await full speech completion, then activate mic
             console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
@@ -382,6 +411,15 @@ export function useInterview(options: {
                 setTtsError(true);
                 console.error('[submitUserResponse] TTS failed after 3 retries');
             }
+
+            // A1 fix: Cancel smartPauseTimer after TTS completes
+            if (smartPauseTimerRef.current) {
+                clearTimeout(smartPauseTimerRef.current);
+                smartPauseTimerRef.current = null;
+            }
+
+            // A1 fix: NOW set isProcessing false — after TTS is done
+            setIsProcessing(false);
 
             // TTS done (or interrupted by smart pause) → activate mic
             setMicStoppedManually(false);
@@ -460,7 +498,8 @@ export function useInterview(options: {
                         sendCountdownIntervalRef.current = null;
                     }
                     const text = transcriptRef.current.trim();
-                    if (text && currentProblemRef.current && !isProcessingRef.current) {
+                    // A1 fix: Also guard on isSpeakingRef to prevent send during TTS
+                    if (text && currentProblemRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
                         console.log(`[useInterview] Send countdown expired, auto-submitting: "${text.substring(0, 60)}..."`);
                         submitUserResponse(text, currentProblemRef.current);
                     }
@@ -541,7 +580,7 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
-            setIsProcessing(false);
+            // A1 fix: setIsProcessing(false) MOVED to after speakAndWait
 
             // Serial TTS: await full speech completion, then activate mic
             console.log(`[startInterview] Speaking intro (serial), textLen=${responseText.length}`);
@@ -551,6 +590,9 @@ export function useInterview(options: {
                 setTtsError(true);
                 console.error('[startInterview] TTS failed after 3 retries');
             }
+
+            // A1 fix: NOW set isProcessing false — after TTS is done
+            setIsProcessing(false);
 
             // TTS done → activate mic and VAD
             setMicStoppedManually(false);
@@ -752,12 +794,17 @@ export function useInterview(options: {
         setSendCountdown(null);
         stopListening();
         stopSpeaking();
+        // A2 fix: Kill the raw hardware MediaStream so Chrome mic indicator disappears
+        if (stt.mediaStreamRef?.current) {
+            stt.mediaStreamRef.current.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+            stt.mediaStreamRef.current = null;
+        }
         // Clear smart pause & countdown timers
         if (smartPauseTimerRef.current) { clearTimeout(smartPauseTimerRef.current); smartPauseTimerRef.current = null; }
         if (sendCountdownIntervalRef.current) { clearInterval(sendCountdownIntervalRef.current); sendCountdownIntervalRef.current = null; }
         stateMachine.current.transition('SUBMIT_SOLUTION');
         setState(stateMachine.current.getState());
-    }, [roundCount, stopListening, stopSpeaking]);
+    }, [roundCount, stopListening, stopSpeaking, stt.mediaStreamRef]);
 
     return {
         state,
@@ -782,6 +829,7 @@ export function useInterview(options: {
         ttsError,
         vadMode: vad.mode,
         vadFailed,
+        isPushToTalk: vadFailed || sttProvider === 'browser', // A4 Part 2 fix: expose push-to-talk indicator
         ttsProvider: tts.provider,
         sttProvider,
         handleMicStop: () => {
