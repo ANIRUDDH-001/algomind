@@ -37,7 +37,6 @@ vi.mock('lucide-react', () => ({
     ArrowRight: () => <svg data-testid="icon-arrow" />,
     Play: () => <svg data-testid="icon-play" />,
     CheckCircle2: () => <svg data-testid="icon-check" />,
-    AlertTriangle: () => <svg data-testid="icon-alert" />,
 }));
 
 // ─── Mock onboarding manager ───

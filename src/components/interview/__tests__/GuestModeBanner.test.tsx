@@ -4,15 +4,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { GuestModeBanner } from '../GuestModeBanner';
 
-// Mock GUEST_SESSION_LIMITS (MAX_USER_TURNS = 5)
+// Mock GUEST_SESSION_LIMITS (MAX_USER_TURNS = 10)
 vi.mock('@/hooks/useGuestSession', () => ({
-    GUEST_SESSION_LIMITS: { MAX_USER_TURNS: 5, MAX_AI_TURNS: 5 },
+    GUEST_SESSION_LIMITS: { MAX_USER_TURNS: 10, MAX_AI_TURNS: 10 },
 }));
 
 describe('GuestModeBanner', () => {
     const defaultProps = {
         turnsUsed: 0,
-        timeRemaining: 300,  // 5 minutes
+        timeRemaining: 600,  // 10 minutes
         onSignUp: vi.fn(),
     };
 
@@ -26,17 +26,17 @@ describe('GuestModeBanner', () => {
         expect(container.querySelector('[data-testid="guest-mode-banner"]')).not.toBeNull();
     });
 
-    it('shows 5 rounds left initially', () => {
+    it('shows 10 rounds left initially', () => {
         const { container } = render(<GuestModeBanner {...defaultProps} turnsUsed={0} />);
-        // The banner should contain "5" for rounds left
-        expect(container.textContent).toContain('5');
+        // The banner should contain "10" for rounds left
+        expect(container.textContent).toContain('10');
         expect(container.textContent).toContain('round');
     });
 
     it('shows correct rounds remaining when some turns used', () => {
         render(<GuestModeBanner {...defaultProps} turnsUsed={3} />);
-        // 5 - 3 = 2 rounds left
-        expect(screen.getByText(/2/)).toBeTruthy();
+        // 10 - 3 = 7 rounds left
+        expect(screen.getByText(/7/)).toBeTruthy();
     });
 
     it('displays time remaining correctly', () => {
