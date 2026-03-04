@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
+import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
 import type { CognitiveSkill } from '@/types/assessment';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -72,6 +73,11 @@ interface SM2Data {
     nextReview: string;
     repetitions: number;
     easeFactor: number;
+    fsrsDifficulty: number | null;
+    fsrsStability: number | null;
+    fsrsState: number | null;
+    fsrsReps: number | null;
+    fsrsLapses: number | null;
 }
 
 interface PreviousAttempt {
@@ -295,6 +301,38 @@ export function AnalysisClient({
     const improvementExamples = assessment?.improvementExamples || [];
     const [showImprovements, setShowImprovements] = useState(false);
     const isWarmUp = session.difficultyMode === 'warm-up';
+    const [queueStatus, setQueueStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
+    const [localSm2, setLocalSm2] = useState(sm2);
+
+    const handleAddToQueue = useCallback(async () => {
+        setQueueStatus('adding');
+        try {
+            const result = await addProblemToReviewQueue({
+                problemId: session.problemId,
+                problemTitle: session.problemTitle,
+                problemDifficulty: session.problemDifficulty,
+                overallScore: session.overallScore || assessment?.overallScore || 5,
+            });
+            if (result) {
+                setLocalSm2({
+                    intervalDays: result.intervalDays,
+                    nextReview: result.nextReview,
+                    repetitions: result.repetitions,
+                    easeFactor: 2.5,
+                    fsrsDifficulty: null,
+                    fsrsStability: null,
+                    fsrsState: null,
+                    fsrsReps: null,
+                    fsrsLapses: null,
+                });
+                setQueueStatus('added');
+            } else {
+                setQueueStatus('error');
+            }
+        } catch {
+            setQueueStatus('error');
+        }
+    }, [session, assessment]);
 
     // Extract first actionable sentence from feedback
     const oneThingFeedback = (() => {
@@ -598,18 +636,113 @@ export function AnalysisClient({
                         </div>
                     )}
 
-                    {/* SM2 Next Review */}
-                    {sm2 && (
-                        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--surface-2)' }}>
-                            <RotateCcw className="w-4 h-4 text-amber-500 shrink-0" />
-                            <div>
-                                <p className="text-xs font-bold text-zinc-300">
-                                    Next review: {new Date(sm2.nextReview).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </p>
-                                <p className="text-[10px] text-zinc-500">
-                                    Target: {Math.min((assessment?.overallScore || 0) + 2, 10).toFixed(0)}/10 · Rep #{sm2.repetitions}
-                                </p>
+                    {/* FSRS / Spaced Repetition Section */}
+                    {localSm2 ? (() => {
+                        const reviewDate = new Date(localSm2.nextReview);
+                        const now = new Date();
+                        const daysUntilReview = Math.max(0, Math.ceil((reviewDate.getTime() - now.getTime()) / 86400000));
+                        const isDue = daysUntilReview === 0;
+                        const difficultyVal = localSm2.fsrsDifficulty ?? localSm2.easeFactor;
+                        // FSRS difficulty is 1-10 scale; normalize to 0-100%
+                        const difficultyPct = localSm2.fsrsDifficulty != null
+                            ? Math.round(localSm2.fsrsDifficulty * 10)
+                            : Math.round(((5 - localSm2.easeFactor) / 3.7) * 100); // SM2 ease 1.3-5.0 → inverted
+                        const difficultyLabel = difficultyPct <= 30 ? 'Easy' : difficultyPct <= 60 ? 'Moderate' : 'Hard';
+                        const difficultyColor = difficultyPct <= 30 ? 'text-emerald-400' : difficultyPct <= 60 ? 'text-amber-400' : 'text-red-400';
+                        const difficultyBarColor = difficultyPct <= 30 ? 'bg-emerald-500' : difficultyPct <= 60 ? 'bg-amber-500' : 'bg-red-500';
+                        const stabilityDays = localSm2.fsrsStability != null ? Math.round(localSm2.fsrsStability) : localSm2.intervalDays;
+                        const reps = localSm2.fsrsReps ?? localSm2.repetitions;
+                        const lapses = localSm2.fsrsLapses ?? 0;
+
+                        return (
+                            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Calendar className="w-4 h-4 text-indigo-400" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Spaced Review</h3>
+                                </div>
+
+                                {/* Next Review Date */}
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className={`text-sm font-bold ${isDue ? 'text-amber-400' : 'text-zinc-200'}`}>
+                                            {isDue ? '📅 Review Due Today!' : `Next: ${reviewDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                                        </p>
+                                        <p className="text-[10px] text-zinc-500">
+                                            {isDue ? 'Time to practice again' : `In ${daysUntilReview} day${daysUntilReview !== 1 ? 's' : ''} · Interval: ${localSm2.intervalDays}d`}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-lg font-black text-zinc-200">#{reps}</p>
+                                        <p className="text-[10px] text-zinc-500">reps</p>
+                                    </div>
+                                </div>
+
+                                {/* Difficulty Rating Bar */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Difficulty</span>
+                                        <span className={`text-[10px] font-bold ${difficultyColor}`}>{difficultyLabel}</span>
+                                    </div>
+                                    <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: 'var(--surface-3, rgba(255,255,255,0.05))' }}>
+                                        <div className={`h-full rounded-full ${difficultyBarColor} transition-all duration-500`}
+                                            style={{ width: `${Math.min(difficultyPct, 100)}%` }} />
+                                    </div>
+                                </div>
+
+                                {/* Stability & Stats Row */}
+                                <div className="grid grid-cols-3 gap-2 pt-1">
+                                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--surface-3, rgba(255,255,255,0.03))' }}>
+                                        <p className="text-xs font-bold text-zinc-300">{stabilityDays}d</p>
+                                        <p className="text-[9px] text-zinc-600 uppercase font-bold">Stability</p>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--surface-3, rgba(255,255,255,0.03))' }}>
+                                        <p className="text-xs font-bold text-zinc-300">{localSm2.intervalDays}d</p>
+                                        <p className="text-[9px] text-zinc-600 uppercase font-bold">Interval</p>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg" style={{ background: 'var(--surface-3, rgba(255,255,255,0.03))' }}>
+                                        <p className="text-xs font-bold text-zinc-300">{lapses}</p>
+                                        <p className="text-[9px] text-zinc-600 uppercase font-bold">Lapses</p>
+                                    </div>
+                                </div>
+
+                                {/* Schedule Review CTA */}
+                                {isDue && (
+                                    <Link href={`/interview?problemId=${session.problemId}`} className="block pt-1">
+                                        <Button className="w-full text-xs btn-primary" size="sm">
+                                            <RotateCcw className="w-3 h-3 mr-1.5" /> Start Scheduled Review
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
+                        );
+                    })() : (
+                        /* No SM2 data — Add to Queue CTA */
+                        <div className="rounded-xl p-4" style={{ background: 'var(--surface-2)', border: '1px dashed var(--surface-edge)' }}>
+                            <div className="flex items-center gap-2 mb-2">
+                                <TrendingUp className="w-4 h-4 text-zinc-500" />
+                                <p className="text-xs font-bold text-zinc-400">Spaced Review</p>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 mb-3">
+                                This problem hasn&apos;t been added to your review queue yet. Track your progress with spaced repetition.
+                            </p>
+                            <Button
+                                className="w-full text-xs"
+                                size="sm"
+                                variant="outline"
+                                style={{ borderColor: 'var(--surface-edge)' }}
+                                onClick={handleAddToQueue}
+                                disabled={queueStatus === 'adding' || queueStatus === 'added'}
+                            >
+                                {queueStatus === 'adding' ? (
+                                    <span className="animate-pulse">Adding...</span>
+                                ) : queueStatus === 'added' ? (
+                                    <span className="text-emerald-400">✓ Added to Queue</span>
+                                ) : queueStatus === 'error' ? (
+                                    <><Plus className="w-3 h-3 mr-1.5" /> Retry Add to Queue</>
+                                ) : (
+                                    <><Plus className="w-3 h-3 mr-1.5" /> Add to Review Queue</>
+                                )}
+                            </Button>
                         </div>
                     )}
 
