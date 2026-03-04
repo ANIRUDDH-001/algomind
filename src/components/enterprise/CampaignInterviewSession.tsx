@@ -594,7 +594,7 @@ function ActiveQuestionView({
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col relative">
-                                <ConversationView messages={messages as any} isAISpeaking={voice.isSpeaking} />
+                                <ConversationView messages={messages as any} isAISpeaking={voice.isSpeaking} isProcessing={isProcessing} />
 
                                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
                                     <MicrophoneButton

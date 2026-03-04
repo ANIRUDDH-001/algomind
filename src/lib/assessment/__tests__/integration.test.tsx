@@ -209,7 +209,7 @@ describe('Assessment Lifecycle Integration', () => {
         // Render the mocked ConversationView with the transcript
         const { unmount } = render(
             <QueryClientProvider client={queryClient}>
-                <ConversationView messages={rawTranscript} isAISpeaking={false} />
+                <ConversationView messages={rawTranscript} isAISpeaking={false} isProcessing={false} />
             </QueryClientProvider>
         );
 
