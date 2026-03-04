@@ -235,6 +235,9 @@ export function InterviewSession({
         sendCountdown,
         ttsError,
         isPushToTalk,
+        enterCodingMode,
+        exitCodingMode,
+        shareCode,
     } = useInterview({
         config: interviewConfig,
         isTimeUp: limits.isTimeUp,
@@ -245,6 +248,17 @@ export function InterviewSession({
         onUserMessage: handleUserMessage,
         isGuest: isGuest,
     });
+
+    // A3: Signal coding state changes when code editor visibility changes
+    const prevShowCodeEditorRef = useRef(showCodeEditor);
+    useEffect(() => {
+        if (showCodeEditor && !prevShowCodeEditorRef.current && hasStarted) {
+            enterCodingMode();
+        } else if (!showCodeEditor && prevShowCodeEditorRef.current && hasStarted) {
+            exitCodingMode();
+        }
+        prevShowCodeEditorRef.current = showCodeEditor;
+    }, [showCodeEditor, hasStarted, enterCodingMode, exitCodingMode]);
 
     // Added an effect to sync AI turns
     useEffect(() => {
@@ -410,9 +424,10 @@ export function InterviewSession({
         if (!code.trim()) return;
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
         submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
+        shareCode(code); // A3: transition state machine back to ai-feedback
         setShowCodeEditor(false);
         setActiveTab('interview');
-    }, [codeLanguage, activeProblem, submitUserResponse]);
+    }, [codeLanguage, activeProblem, submitUserResponse, shareCode]);
 
     const isSavingRef = useRef(false);
 
