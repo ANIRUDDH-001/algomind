@@ -71,24 +71,28 @@ The Indian engineering education system produces technically competent graduates
 
 **Core Innovation: Intelligent Hybrid Routing**
 
-AlgoMind uses **14+ AI models** orchestrated through a custom `UnifiedAIClient` that routes queries based on complexity, cost, and latency requirements:
+AlgoMind uses **12+ AI models** orchestrated through a custom `UnifiedAIClient` with **DB-driven model routing** (Redis-cached, priority-ordered) that routes queries based on complexity, cost, and latency requirements:
 
 **Conversational Layer (Speed-Critical):**
-- **Primary**: Groq Llama 3.1 8B Instant (840 TPS, ultra-fast hints)
-- **Secondary**: Groq Llama 3.3 70B (deep reasoning), Qwen3 32B (code-focused)
-- **Fallbacks**: Llama 4 Scout/Maverick, GPT-OSS 20B/120B
+- **Primary**: Llama 4 Scout/Maverick (via Groq, balanced speed + reasoning)
+- **Secondary**: Llama 3.3 70B (deep reasoning), Llama 3.1 8B (ultra-fast hints)
+- **Structured Output**: Kimi K2 Instruct
+- **Fallbacks**: GPT-OSS 120B/20B, GPT-OSS Safeguard 20B (safety)
 
 **Assessment Layer (Accuracy-Critical):**
-- **Primary**: Gemini 2.5 Pro, Gemini 3 Pro (1M+ token context)
-- **Secondary**: Gemini 2.0/2.5 Flash (cost-optimized)
-- **Embeddings**: Gemini Embedding 001 (RAG system)
+- **Primary**: Gemini 2.5 Pro, Gemini 3.0 Pro (1M+ token context)
+- **Secondary**: Gemini 2.5/2.0 Flash (cost-optimized)
+- **Embeddings**: Gemini Embedding 001 (768 dimensions)
+- **Emergency Fallback**: AWS Bedrock Claude 3.5 Sonnet v2
 
 ### **4.2 Key GenAI Techniques**
 
 #### **1. Hybrid Model Orchestration**
-- 60% of interactions → Llama 3.1 8B (cheapest, fastest)
-- 30% → Llama 3.3 70B/Qwen3 (balanced)
-- 10% → Gemini Pro (final assessment)
+- **DB-driven routing**: `model_routing` table with Redis-cached (60s) priority selection
+- Fast chat → Llama 4 Scout/Maverick, Llama 3.1 8B (cheapest, fastest)
+- Deep reasoning → Llama 3.3 70B, Kimi K2 (balanced)
+- Final assessment → Gemini 2.5/3.0 Pro
+- **4-tier fallback**: DB routing → cross-tier → legacy provider → AWS Bedrock
 - **Result**: 70% cost reduction vs. single-model approach
 
 #### **2. RAG (Retrieval Augmented Generation)**
@@ -102,29 +106,41 @@ AlgoMind uses **14+ AI models** orchestrated through a custom `UnifiedAIClient` 
 - Anti-answer-giving: "Ask guiding questions, don't give solutions directly"
 
 #### **4. Voice Activity Detection (VAD)**
-- Browser-native Speech-to-Text (Web Speech API)
-- Silence detection triggers AI response
+- **Silero VAD** (ONNX Runtime) running in-browser for privacy-first, zero-latency speech detection
+- **Multi-provider STT**: Groq Whisper API (primary) + Browser Web Speech API (fallback)
+- **Multi-provider TTS**: AWS Polly (primary) + Browser SpeechSynthesis (fallback)
+- **InterruptionManager**: Grace periods, debounce, confidence filtering, circular event stream
+- **Owner-tunable**: 10 parameters configurable via admin panel with live `reconfigureVAD()`
 - <1s voice-to-voice latency maintained
 
 #### **5. Multi-Dimensional Scoring**
-- 8 rubrics evaluated via Gemini Pro (not binary pass/fail)
-- Rubric-based prompting ensures consistency
-- Output: JSON with scores (0-10) + justifications
+- 8 rubrics evaluated via Gemini 2.5/3.0 Pro with `CognitiveAnalyzer` (not binary pass/fail)
+- `validateAndCorrectScores()` auto-corrects AI-generated scores outside valid ranges
+- `extractEvidence()` backs up scores with specific transcript evidence
+- Hire decision: STRONG_HIRE → STRONG_NO_HIRE scale
+- Output: JSON with scores (0-10) + justifications + evidence
 
-#### **6. Synthetic Data Generation**
+#### **6. FSRS-5 Spaced Repetition**
+- Evidence-based review scheduling via `ts-fsrs` library (85% retention target, 180-day max)
+- Maps 0-10 DSA scores → FSRS ratings (Again/Hard/Good/Easy)
+- Per-skill scheduling: cognitive dimensions mapped to problem categories
+- SM-2 backward compatibility maintained
+
+#### **7. Synthetic Data Generation**
 - Gemini creates problem variations
 - Diverse interview scenarios (different companies, difficulty levels)
-- Expands training set without manual curation
+- 480+ curated problems from Blind 75, NeetCode 150, Striver's A-Z, Grind 75
 
 ### **4.3 Technology Stack**
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Next.js 14 (React), Monaco Editor, shadcn/ui, Zustand |
-| **Backend** | Next.js Server Actions, Vercel Edge Functions |
-| **AI/ML** | Groq (14 models), Gemini (7 models), Vercel AI SDK |
-| **Database** | Supabase (PostgreSQL + pgvector), Redis (caching) |
-| **DevOps** | Vercel (hosting), GitHub Actions (CI/CD), PostHog (analytics) |
+| **Frontend** | Next.js 16.1.6 (React 19), Monaco Editor, Radix UI + shadcn/ui, Framer Motion 12, Recharts 3 |
+| **Backend** | Next.js Server Actions, Edge Middleware (JWT optimization), @tanstack/react-query |
+| **AI/ML** | Groq (Llama 4, Llama 3.3/3.1, Kimi K2, GPT-OSS), Gemini (2.5/3.0 Pro, 2.5/2.0 Flash), AWS Bedrock (Claude 3.5 Sonnet) |
+| **Voice** | Silero VAD (ONNX Runtime Web), Groq Whisper (STT), AWS Polly (TTS) |
+| **Database** | Supabase (PostgreSQL + RLS + Auth), Upstash Redis (caching), ts-fsrs (FSRS-5 spaced repetition) |
+| **DevOps** | Vercel (hosting + edge), Vitest (880 tests), Playwright (E2E), ESLint, PWA (@ducanh2912/next-pwa) |
 
 ---
 
@@ -257,7 +273,8 @@ Dose-response curve for interview practice
 ### **7.2 Technical Innovations**
 
 #### **1. Multi-Model Orchestration (First-of-its-kind)**
-- Industry-first: 14+ models intelligently routed
+- DB-driven routing: `model_routing` table with Redis-cached (60s) priority selection
+- 12+ models intelligently routed with 4-tier fallback chain
 - 70% cost savings vs. single-model architecture
 - Maintains <1s latency despite complexity
 
@@ -267,9 +284,11 @@ Dose-response curve for interview practice
 - 92% accuracy vs. 78% for generic STT
 
 #### **3. Contextual Interruption Engine**
+- `InterruptionManager` with grace periods, debounce, confidence filtering
 - AI interrupts naturally based on conversation flow
 - Mimics real interviewer behavior (not just Q&A)
-- Patent-pending conversational state machine
+- Owner-tunable: 10 parameters configurable via admin panel with live reconfiguration
+- Circular event stream for real-time diagnostics
 
 #### **4. 8-Dimensional Rubric (Beyond Code)**
 - Communication, Problem Decomposition, Algorithmic Thinking
@@ -279,7 +298,13 @@ Dose-response curve for interview practice
 #### **5. Hybrid RAG Architecture**
 - JSON vector store (MVP - zero DB latency)
 - pgvector (production - semantic search at scale)
+- Gemini Embedding 001 (768 dimensions) for vector embeddings
 - Seamless migration path designed from Day 1
+
+#### **6. FSRS-5 Spaced Repetition**
+- Evidence-based review scheduling (ts-fsrs, 85% retention target)
+- Per-skill scheduling maps cognitive dimensions to problem categories
+- SM-2 backward compatibility for existing users
 
 ### **7.3 Novel Contributions to GenAI Research**
 
@@ -293,11 +318,16 @@ Dose-response curve for interview practice
 
 ### **8.1 Vertical Scaling (Feature Expansion)**
 
-#### **Phase 1 (MVP - Current): DSA Interview Coach**
-- Voice-first conversation
-- 500+ curated problems (Blind 75, Striver A-Z)
-- 8-dimensional scoring
-- Real-time hints & feedback
+#### **Phase 1 (MVP - Current): DSA Interview Coach** ✅
+- Voice-first conversation with Silero VAD + Groq Whisper
+- 480+ curated problems (Blind 75, NeetCode 150, Striver A-Z, Grind 75)
+- 8-dimensional cognitive scoring with CognitiveAnalyzer
+- FSRS-5 spaced repetition with per-skill scheduling
+- DB-driven multi-model AI routing with 4-tier fallback
+- Owner panel with voice debug, 10 tunable parameters
+- Session cache + JWT optimization for auth performance
+- 880 passing tests, full TypeScript strict mode, ESLint clean
+- PWA support with auto-versioned service worker
 
 #### **Phase 2 (Q2 2025): Resume + JD Intelligence**
 - Upload resume + job description
@@ -668,9 +698,10 @@ xychart-beta
 ## **CONTACT INFORMATION**
 
 **Team Name**: AlgoMind  
-**Team Members**: Aniruddh Vijayvargia & Prachi Agarwalla
-**Email**: aniruddhvijayvargia@gmail.com 
-**Live Demo**: https://algomind-drab.vercel.app/
+**Team Members**: Aniruddh Vijayvargia & Prachi Agarwalla  
+**Email**: aniruddhvijayvargia@gmail.com  
+**GitHub**: [github.com/ANIRUDDH-001/algomind](https://github.com/ANIRUDDH-001/algomind)  
+**Live Demo**: [algomind-drab.vercel.app](https://algomind-drab.vercel.app/)
 
 ---
 
