@@ -196,7 +196,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-[clamp(0.875rem,2vw,1.25rem)] text-zinc-400 max-w-2xl mb-6 md:mb-10 font-medium px-2"
           >
-            Practice with an AI interviewer that thinks like a senior engineer at FAANG. Get real-time voice feedback, cognitive analysis, and ace your systems design and DSA rounds.
+            Practice with an AI interviewer trained on FAANG interview standards. Get real-time voice feedback, cognitive analysis, and ace your systems design and DSA rounds.
           </motion.p>
 
           <motion.div

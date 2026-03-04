@@ -33,8 +33,8 @@ import { MODE_ASSESSMENT_CONFIGS } from '../interview/mode-assessment-config';
 import type { DifficultyMode } from '../interview/interview-config';
 
 export interface ConversationTurn {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,29 +42,29 @@ export interface ConversationTurn {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function generateAssessmentPrompt(
-    problem: {
-        title: string;
-        description: string;
-        difficulty: string;
-        difficultyMode?: DifficultyMode | 'employer';
-    },
-    transcript: ConversationTurn[],
-    skillDefinitions: Record<CognitiveSkill, SkillDefinition>
+  problem: {
+    title: string;
+    description: string;
+    difficulty: string;
+    difficultyMode?: DifficultyMode | 'employer';
+  },
+  transcript: ConversationTurn[],
+  skillDefinitions: Record<CognitiveSkill, SkillDefinition>
 ): string {
-    const mode = problem.difficultyMode ?? 'practice';
-    const modeConfig = MODE_ASSESSMENT_CONFIGS[mode];
+  const mode = problem.difficultyMode ?? 'practice';
+  const modeConfig = MODE_ASSESSMENT_CONFIGS[mode];
 
-    const formattedTranscript = transcript
-        .map(t => `${t.role.toUpperCase()}: ${t.content}`)
-        .join('\n');
+  const formattedTranscript = transcript
+    .map(t => `${t.role.toUpperCase()}: ${t.content}`)
+    .join('\n');
 
-    const userTurnCount = transcript.filter(t => t.role === 'user').length;
-    const shortSessionNote = buildShortSessionNote(userTurnCount);
+  const userTurnCount = transcript.filter(t => t.role === 'user').length;
+  const shortSessionNote = buildShortSessionNote(userTurnCount);
 
-    // SA-01: overallScore NOT in this output shape
-    // AC-03: all keys are dash-case
-    const skillsShape = Object.entries(skillDefinitions)
-        .map(([id, def]) => `    "${id}": {
+  // SA-01: overallScore NOT in this output shape
+  // AC-03: all keys are dash-case
+  const skillsShape = Object.entries(skillDefinitions)
+    .map(([id, def]) => `    "${id}": {
       "score": <weighted average of sub-criteria below, 1–10>,
       "subCriteria": {
 ${def.subCriteria.map(sc => `        "${sc.id}": <1–10>`).join(',\n')}
@@ -74,9 +74,9 @@ ${def.subCriteria.map(sc => `        "${sc.id}": <1–10>`).join(',\n')}
       "improvements": ["1–2 actionable improvements for this dimension"]
     }`).join(',\n');
 
-    // SA-03: dedicated bonus block
-    const bonusDimBlock = modeConfig.bonusDimension
-        ? `
+  // SA-03: dedicated bonus block
+  const bonusDimBlock = modeConfig.bonusDimension
+    ? `
   "bonusDimensions": {
     "${modeConfig.bonusDimension.jsonKey}": {
       "score": <1–10>,
@@ -84,9 +84,9 @@ ${def.subCriteria.map(sc => `        "${sc.id}": <1–10>`).join(',\n')}
       "description": "${modeConfig.bonusDimension.description}"
     }
   },`
-        : '';
+    : '';
 
-    return `# GENERATE FINAL INTERVIEW ASSESSMENT
+  return `# GENERATE FINAL INTERVIEW ASSESSMENT
 
 ${modeConfig.contextBlock}
 
@@ -174,8 +174,8 @@ Rubric:
 ${skillsShape}
   },${bonusDimBlock}
   ${modeConfig.includeHireDecision
-        ? '"hireDecision": "STRONG_HIRE|HIRE|BORDERLINE|NO_HIRE|STRONG_NO_HIRE",'
-        : '// hireDecision omitted — this mode has no hiring signal'}
+      ? '"hireDecision": "STRONG_HIRE|HIRE|BORDERLINE|NO_HIRE|STRONG_NO_HIRE",'
+      : '// hireDecision omitted — this mode has no hiring signal'}
   "codeQuality": null,
   "overallFeedback": "2–3 sentence summary citing specific moments from this session",
   "nextSteps": ["Concrete recommendation naming a specific technique or concept", "..."],
@@ -202,7 +202,7 @@ If no code submitted: codeQuality must be null — not 0, not empty object.
 4. Do NOT include an "overallScore" field. It is computed programmatically.
 5. Evidence must be concrete: exact phrase or described specific moment. "Seemed to understand X" is not acceptable.
 6. knowledgeGaps: 1–3 specific concepts. Empty array if none.
-7. Do not give 10/10 unless genuinely exceptional by senior engineer standards.
+7. Do not give 10/10 unless genuinely exceptional by expert-level standards.
 8. bonusDimensions scores contribute 10% to the overall score via computeOverallScoreWithBonus() — score them accurately.
 
 ---
@@ -216,19 +216,19 @@ ${modeConfig.feedbackTone}
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildShortSessionNote(userTurnCount: number): string {
-    if (userTurnCount <= 3) {
-        return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
+  if (userTurnCount <= 3) {
+    return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
 MANDATORY: Cap ALL dimension scores at 5 regardless of what the transcript shows.
 There is insufficient evidence to justify any score above 5.
 State this in overallFeedback: "This was a brief session — scores capped at 5 due to limited evidence."
 Do not write evidence that implies performance higher than a score of 5 would justify.`;
-    }
-    if (userTurnCount <= 5) {
-        return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
+  }
+  if (userTurnCount <= 5) {
+    return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
 MANDATORY: Cap ALL dimension scores at 6 regardless of what the transcript shows.
 There is insufficient evidence to justify any score above 6.
 State this in overallFeedback: "This was a brief session — scores capped at 6 due to limited evidence."
 Do not write evidence that implies performance higher than a score of 6 would justify.`;
-    }
-    return '';
+  }
+  return '';
 }
