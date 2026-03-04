@@ -118,7 +118,7 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
                         Sign up free to save progress & unlock unlimited practice →
                     </button>
                 </div>
-            </div>
+            </div>  
         </div>
     );
 }

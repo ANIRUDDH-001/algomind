@@ -22,8 +22,8 @@ const FLAG_GROUPS = [
     {
         title: 'AWS Services — Requires Credits',
         icon: '☁️',
-        keys: ['ENABLE_AWS_POLLY_TTS', 'ENABLE_AWS_TRANSCRIBE_STT', 'ENABLE_AWS_S3_STORAGE'],
-        banner: '⚠️ AWS credits required — charges apply when enabled',
+        keys: ['ENABLE_AWS_BEDROCK', 'ENABLE_AWS_POLLY_TTS', 'ENABLE_AWS_TRANSCRIBE_STT', 'ENABLE_AWS_S3_STORAGE'],
+        banner: '⚠️ AWS credits required — charges apply when enabled. Bedrock models are read from DB model_routing table.',
     },
     {
         title: 'Features',
@@ -37,7 +37,7 @@ const FLAG_GROUPS = [
     },
 ];
 
-const AWS_FLAG_KEYS = ['ENABLE_AWS_POLLY_TTS', 'ENABLE_AWS_TRANSCRIBE_STT', 'ENABLE_AWS_S3_STORAGE'];
+const AWS_FLAG_KEYS = ['ENABLE_AWS_BEDROCK', 'ENABLE_AWS_POLLY_TTS', 'ENABLE_AWS_TRANSCRIBE_STT', 'ENABLE_AWS_S3_STORAGE'];
 
 export function FlagsTab({ initialFlags }: { initialFlags: any[] }) {
     // Convert array of flags from DB to map

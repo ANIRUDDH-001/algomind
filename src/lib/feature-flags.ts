@@ -62,11 +62,19 @@ export const FEATURE_FLAGS = {
 
     // ── Phase 0 Flags ──────────────────────────────────────────────────
 
-    // AWS Polly Neural TTS
+    // AWS Bedrock AI Models (primary AI provider when enabled)
+    ENABLE_AWS_BEDROCK: {
+        storageKey: 'feature_ENABLE_AWS_BEDROCK',
+        defaultValue: false,
+        description: 'AWS Bedrock AI — primary AI provider when ON. Models from model_routing DB table (Haiku for chat, gpt-oss-120b for analysis). Free providers become fallback.',
+        requiresBrowserSupport: false,
+    },
+
+    // AWS Polly Neural TTS (primary when enabled)
     ENABLE_AWS_POLLY_TTS: {
         storageKey: 'feature_ENABLE_AWS_POLLY_TTS',
         defaultValue: false,
-        description: 'AWS Polly Neural TTS (Kajal Indian English voice). Last-resort TTS fallback.',
+        description: 'AWS Polly Neural TTS (Kajal Indian English voice). Primary TTS when enabled; Groq/browser become fallback.',
         requiresBrowserSupport: false,
     },
 
@@ -74,15 +82,15 @@ export const FEATURE_FLAGS = {
     ENABLE_AWS_TRANSCRIBE_STT: {
         storageKey: 'feature_ENABLE_AWS_TRANSCRIBE_STT',
         defaultValue: false,
-        description: 'AWS Transcribe for post-interview batch transcription enrichment (NOT real-time).',
+        description: 'AWS Transcribe for post-interview batch transcription enrichment. Audio staged via S3 automatically.',
         requiresBrowserSupport: false,
     },
 
-    // AWS S3 Storage
+    // AWS S3 (Transcribe audio staging only — NOT transcript storage)
     ENABLE_AWS_S3_STORAGE: {
         storageKey: 'feature_ENABLE_AWS_S3_STORAGE',
         defaultValue: false,
-        description: 'Store session transcripts on AWS S3 instead of Supabase storage.',
+        description: 'AWS S3 for Transcribe audio staging only. Transcripts stay in Supabase JSONB.',
         requiresBrowserSupport: false,
     },
 

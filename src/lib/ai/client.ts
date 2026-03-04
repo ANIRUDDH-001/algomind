@@ -1,5 +1,6 @@
 // Unified AI Client with Multi-Provider Support
-// Automatically falls back between Gemini and Groq based on rate limits
+// When AWS Bedrock flag is ON, Bedrock models are PRIMARY (tried first).
+// When OFF, uses Gemini/Groq with automatic rate-limit-based fallback.
 // DB-driven model routing with cross-tier fallback
 // DIRECT API CALLS implementation (No SDKs)
 
@@ -73,6 +74,58 @@ export class UnifiedAIClient {
             (options.category === 'intelligence' || options.category === 'analysis')
                 ? 'analysis' : 'chat';
 
+        // ── PRIMARY: Bedrock (when ENABLE_AWS_BEDROCK is ON) ────────────
+        // When the flag is ON, Bedrock is the primary provider.
+        // Free providers (Groq/Gemini) become the fallback.
+        if (process.env.AWS_ACCESS_KEY_ID) {
+            try {
+                const { getGlobalFeatureFlag: getFlag } = await import('@/lib/feature-flags-server');
+                const bedrockEnabled = await getFlag('ENABLE_AWS_BEDROCK');
+                if (bedrockEnabled) {
+                    const { callBedrockModel } = await import('./bedrock-client');
+                    const { logAWSUsage, estimateBedrockCost } = await import('@/lib/aws/usage-logger');
+                    // Get Bedrock models from DB routing table
+                    const bedrockModels = (await getModelsForUseCase(useCase)).filter(m => m.provider === 'bedrock');
+                    const modelId = bedrockModels.length > 0
+                        ? bedrockModels[0].modelId
+                        : 'openai.gpt-oss-120b-1:0'; // default Bedrock model when not in DB
+
+                    try {
+                        const response = await callBedrockModel(
+                            modelId,
+                            messages,
+                            options.systemPrompt,
+                            options.maxTokens
+                        );
+                        // Log Bedrock usage for budget tracking
+                        const inputChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0) + (options.systemPrompt?.length || 0);
+                        logAWSUsage({
+                            service: 'bedrock',
+                            operation: 'InvokeModel',
+                            region: process.env.AWS_BEDROCK_REGION || 'us-east-1',
+                            bytesProcessed: inputChars + response.length,
+                            estimatedCostUsd: estimateBedrockCost(inputChars, response.length),
+                            metadata: { model: modelId, useCase, primary: true },
+                        }).catch(() => {});
+                        return {
+                            success: true,
+                            modelUsed: modelId,
+                            provider: 'bedrock' as Provider,
+                            response,
+                            attemptedModels: [...attemptedModels, `bedrock-${modelId}`],
+                        };
+                    } catch (bedrockErr) {
+                        console.warn(`[UnifiedAIClient] Bedrock primary (${modelId}) failed, falling back to free providers:`, bedrockErr instanceof Error ? bedrockErr.message : bedrockErr);
+                        attemptedModels.push(`bedrock-${modelId}`);
+                        // Fall through to free providers below
+                    }
+                }
+            } catch (flagErr) {
+                console.warn('[UnifiedAIClient] Could not check Bedrock flag:', flagErr instanceof Error ? flagErr.message : flagErr);
+            }
+        }
+
+        // ── FALLBACK: DB-routed free providers (Groq/Gemini) ────────────
         // Get ordered models from DB (model_routing table, cached 60s)
         const routedModels = await getModelsForUseCase(useCase);
 
@@ -163,29 +216,6 @@ export class UnifiedAIClient {
             }
         }
 
-        // Final fallback: Bedrock (when all other models fail)
-        if (process.env.AWS_ACCESS_KEY_ID) {
-            try {
-                console.warn('[UnifiedAIClient] All primary providers failed, attempting Bedrock...');
-                const { callBedrockClaude } = await import('./bedrock-client');
-                const response = await callBedrockClaude(
-                    messages,
-                    options.systemPrompt,
-                    options.maxTokens
-                );
-                return {
-                    success: true,
-                    modelUsed: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
-                    provider: 'bedrock' as Provider,
-                    response,
-                    attemptedModels: [...attemptedModels, 'bedrock-claude-3-5-sonnet'],
-                };
-            } catch (bedrockErr) {
-                console.error('[UnifiedAIClient] Bedrock also failed:', bedrockErr);
-                attemptedModels.push('bedrock-claude-3-5-sonnet');
-            }
-        }
-
         return {
             success: false,
             error: "All allowed models failed.",
@@ -257,8 +287,8 @@ export class UnifiedAIClient {
             } else if (model.provider === 'gemini') {
                 return await this.callGemini(model.id, messages, options);
             } else if (model.provider === 'bedrock') {
-                const { callBedrockClaude } = await import('./bedrock-client');
-                const response = await callBedrockClaude(messages, options.systemPrompt, options.maxTokens);
+                const { callBedrockModel } = await import('./bedrock-client');
+                const response = await callBedrockModel(model.id, messages, options.systemPrompt, options.maxTokens);
                 return { success: true, response };
             }
             return { success: false, error: "Unsupported provider" };
@@ -794,7 +824,29 @@ export class UnifiedAIClient {
     async embed(texts: string | string[]): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
         const textArray = Array.isArray(texts) ? texts : [texts];
 
-        // Primary: Gemini Embedding
+        // When AWS Bedrock is configured, try Titan embeddings FIRST (primary when flag ON)
+        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+            try {
+                const { getGlobalFeatureFlag: getFlag } = await import('@/lib/feature-flags-server');
+                const bedrockEnabled = await getFlag('ENABLE_AWS_BEDROCK');
+                if (bedrockEnabled) {
+                    const { generateBedrockEmbedding } = await import('./bedrock-client');
+                    const results = await Promise.all(textArray.map(t => generateBedrockEmbedding(t)));
+                    if (results.every((r: number[]) => r.length > 0)) {
+                        return {
+                            embeddings: results,
+                            modelUsed: 'amazon.titan-embed-text-v2:0',
+                            dimensions: results[0]?.length ?? 1024,
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ Bedrock Titan embedding failed, falling back to Gemini:', e instanceof Error ? e.message : e);
+                void logSystemEvent({ type: 'embedding_failed', provider: 'bedrock' });
+            }
+        }
+
+        // Fallback: Gemini Embedding
         const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (geminiKey) {
             try {
@@ -810,7 +862,7 @@ export class UnifiedAIClient {
             }
         }
 
-        // Secondary: AWS Bedrock Titan (if configured)
+        // Last resort: Bedrock Titan without flag check (credentials-only)
         if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
             try {
                 const { generateBedrockEmbedding } = await import('./bedrock-client');
@@ -823,7 +875,7 @@ export class UnifiedAIClient {
                     };
                 }
             } catch (e) {
-                console.warn('⚠️ Bedrock embedding failed:', e instanceof Error ? e.message : e);
+                console.warn('⚠️ Bedrock embedding (last-resort) also failed:', e instanceof Error ? e.message : e);
             }
         }
 

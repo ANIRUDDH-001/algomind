@@ -22,6 +22,7 @@ import { VoiceDebugTab } from './tabs/voice-debug-tab';
 import { AnalyticsTab } from './tabs/analytics-tab';
 import { AIStatusTab } from './tabs/ai-status-tab';
 import { ModelRoutingTab } from './tabs/model-routing-tab';
+import { AWSBudgetTab } from './tabs/aws-budget-tab';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export interface OwnerDashboardProps {
@@ -36,6 +37,7 @@ export interface OwnerDashboardProps {
 const TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'flags', label: 'Feature Flags', icon: Flag },
+    { id: 'aws-budget', label: 'AWS Budget', icon: Activity },
     { id: 'models', label: 'Models', icon: Activity },
     { id: 'ai-routing', label: 'AI Routing', icon: Activity },
     { id: 'cache', label: 'Cache & Redis', icon: Database },
@@ -109,6 +111,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                         {activeTab === 'overview' && <OverviewTab {...props} />}
                         {activeTab === 'users' && <UsersTab {...props} />}
                         {activeTab === 'flags' && <FlagsTab initialFlags={props.featureFlags} />}
+                        {activeTab === 'aws-budget' && <AWSBudgetTab />}
                         {activeTab === 'co-owners' && props.isPrimaryOwner && <CoOwnersTab coOwners={props.coOwners} />}
                         {activeTab === 'limits' && <RateLimitsTab />}
                         {activeTab === 'admins' && <AdminsTab />}
