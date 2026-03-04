@@ -197,27 +197,64 @@ export class CognitiveAnalyzer {
         // All retries exhausted, return fallback result instead of crashing
         console.error(`Assessment failed after ${this.maxRetries} attempts. Returning fallback.`);
 
-        // Task B: Detect user_fault vs system_fault for fallback score
+        // Detect user_fault vs system_fault for fallback scoring
         const userMessages = transcript.filter(t => t.role === 'user');
+        const userText = userMessages.map(m => m.content).join(' ').toLowerCase();
         const userWords = userMessages.reduce((count, msg) => count + (msg.content.match(/\S+/g) || []).length, 0);
         const isUserFault = userMessages.length === 0 || userWords < 20;
         const failureType = isUserFault ? 'user_fault' : 'system_fault';
-        const fallbackScore = isUserFault ? 0 : 5;
 
+        // B1: Per-skill keyword-based fallback scoring (not flat 0 or 5)
         const fallbackSkills: Record<string, SkillScore> = {};
-        Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
-            fallbackSkills[skillId] = {
-                score: fallbackScore,
-                subCriteria: {},
-                evidence: [isUserFault ? "Insufficient user interaction to assess skills." : "Session analysis failed."],
-                strengths: [],
-                improvements: [isUserFault ? "Provide more detailed code and explanations." : "Unable to analyze due to technical constraints."],
-                confidence: 0, // 0 confidence indicates automated failure
+        if (isUserFault) {
+            // Truly insufficient data — all 0
+            Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
+                fallbackSkills[skillId] = {
+                    score: 0,
+                    subCriteria: {},
+                    evidence: ["Insufficient user interaction to assess skills."],
+                    strengths: [],
+                    improvements: ["Provide more detailed code and explanations."],
+                    confidence: 0,
+                };
+            });
+        } else {
+            // system_fault: AI failed but user provided good content.
+            // Use keyword heuristics to give partial credit per skill.
+            const skillKeywords: Record<string, string[]> = {
+                'problem-decomposition': ['break', 'decompose', 'subproblem', 'step', 'divide', 'approach', 'plan', 'first', 'then'],
+                'pattern-recognition': ['pattern', 'similar', 'sliding window', 'two pointer', 'dp', 'dynamic programming', 'bfs', 'dfs', 'greedy', 'binary search'],
+                'algorithmic-thinking': ['algorithm', 'sort', 'search', 'traverse', 'iterate', 'recursion', 'recursive', 'hash', 'stack', 'queue', 'tree', 'graph', 'array'],
+                'complexity-analysis': ['time complexity', 'space complexity', 'o(n)', 'o(log', 'o(1)', 'o(n^2)', 'big o', 'complexity', 'efficient'],
+                'communication-clarity': ['because', 'reason', 'explain', 'idea', 'approach is', 'the way', 'basically', 'so the', 'let me'],
+                'edge-case-awareness': ['edge case', 'empty', 'null', 'zero', 'negative', 'overflow', 'boundary', 'corner case', 'what if'],
+                'optimization-mindset': ['optimize', 'improve', 'better', 'faster', 'reduce', 'efficient', 'optimal', 'trade-off', 'space-time'],
+                'debugging-approach': ['debug', 'trace', 'print', 'test', 'dry run', 'walk through', 'check', 'verify', 'output'],
             };
-        });
 
-        // Fallback scoring values
-        const rawOverallFallback = fallbackScore;
+            Object.keys(SKILL_DEFINITIONS).forEach((skillId) => {
+                const keywords = skillKeywords[skillId] || [];
+                const matchCount = keywords.filter(kw => userText.includes(kw)).length;
+                // Base score 3 for system_fault (AI failed, not user). Bonus for keyword matches (max +3).
+                const score = Math.min(3 + Math.floor(matchCount * 1.5), 6);
+                fallbackSkills[skillId] = {
+                    score,
+                    subCriteria: {},
+                    evidence: matchCount > 0
+                        ? [`Keyword-based fallback: detected ${matchCount} relevant terms. Scores may update when AI analysis retries.`]
+                        : ["AI analysis failed. Scores are estimated and may update shortly."],
+                    strengths: [],
+                    improvements: ["Scores are based on keyword analysis due to AI failure. A full AI re-analysis may provide more accurate results."],
+                    confidence: 0.2, // Low confidence indicates keyword-based fallback
+                };
+            });
+        }
+
+        // Compute fallback overall
+        const skillScores = Object.values(fallbackSkills).map(s => s.score);
+        const rawOverallFallback = skillScores.length > 0
+            ? Math.round((skillScores.reduce((a, b) => a + b, 0) / skillScores.length) * 10) / 10
+            : 0;
         const normDiffFallback = problem.difficulty.toLowerCase().trim();
         const multiplierFallback = { easy: 1.0, medium: 1.15, hard: 1.3 }[normDiffFallback] ?? 1.0;
         const adjustedOverallFallback = Math.min(
@@ -234,11 +271,11 @@ export class CognitiveAnalyzer {
             rawScore: rawOverallFallback,
             adjustedScore: adjustedOverallFallback,
             overallFeedback: isUserFault
-                ? "Not enough interaction to properly assess skills. Please write more code or detail your thoughts more."
-                : "Automated analysis failed. Manual review required.",
+                ? "Your session had too little discussion for accurate scoring. Try engaging more with KAI."
+                : "Our AI analysis is being retried. Scores may update shortly.",
             nextSteps: isUserFault
                 ? ["Engage more comprehensively in the next interview to receive an assessment."]
-                : ["Review the session manually due to assessment failure."],
+                : ["Scores are based on keyword analysis. Full AI re-analysis may provide more accurate results."],
             knowledgeGaps: [],
             analysisFailure: failureType
         };
