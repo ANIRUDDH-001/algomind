@@ -2,10 +2,12 @@
 
 ## Pre-Deployment Checklist
 
-- [ ] All environment variables set in Vercel/Netlify (including Supabase keys)
+- [ ] All environment variables set in Vercel dashboard
 - [ ] Build succeeds locally: `npm run build`
-- [ ] No TypeScript errors: `npx tsc --noEmit`
-- [ ] All API keys valid and working
+- [ ] No TypeScript errors: `npm run type-check`
+- [ ] All 880 tests pass: `npm run test`
+- [ ] ESLint clean: `npm run lint`
+- [ ] All API keys valid (Gemini, Groq, Supabase, optionally AWS + Upstash)
 - [ ] Demo mode loads sample data
 - [ ] Error boundaries catch errors
 
@@ -27,9 +29,21 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # ============================================
+# Caching (Recommended)
+# ============================================
+UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
+
+# ============================================
+# AWS (Optional — for Polly TTS & Bedrock fallback)
+# ============================================
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+
+# ============================================
 # Application Settings
 # ============================================
-# The URL where your app is hosted (e.g. https://algomind.vercel.app or http://localhost:3000)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -121,12 +135,14 @@ vercel --prod
 
 ### Key Features to Highlight
 
-1.  **Multi-Model Fallback** - Never fails, uses Gemini + Groq.
-2.  **RAG Pipeline** - DSA knowledge retrieval for accurate responses.
-3.  **Voice Mode** - Natural conversation, not typing.
-4.  **8 Cognitive Skills** - Scientific assessment framework.
-5.  **Progress Tracking** - Visual dashboard with trends.
-6.  **PDF Export** - Professional reports.
+1.  **DB-Driven Multi-Model Routing** — 12+ AI models with 4-tier fallback, never fails
+2.  **Voice-First AI** — Silero VAD + Groq Whisper + AWS Polly, <1s latency
+3.  **8-Dimensional Cognitive Scoring** — CognitiveAnalyzer with evidence extraction
+4.  **FSRS-5 Spaced Repetition** — Evidence-based review scheduling per problem and skill
+5.  **Owner Panel** — 10 tunable voice parameters with live VAD reconfiguration
+6.  **Session Cache + JWT Optimization** — Smart middleware reduces auth overhead by ~90%
+7.  **880 Tests** — Full Vitest suite with per-module coverage thresholds
+8.  **PDF Export** — Professional assessment reports with radar charts
 
 ## Troubleshooting
 
@@ -138,7 +154,8 @@ vercel --prod
 ### Build Failures
 ```bash
 # Clear cache and rebuild
-rm -rf .next node_modules
+Remove-Item -Recurse -Force .next, node_modules   # Windows
+# rm -rf .next node_modules                        # macOS/Linux
 npm install
 npm run build
 ```
