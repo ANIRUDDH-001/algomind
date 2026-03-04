@@ -515,7 +515,7 @@ if (savedSession?.id) {
 
 ---
 
-### B5: History Tab → Static Transcript Page
+### B5: History Tab → Static Transcript Page ✅ DONE (PR-12, commit 0332472)
 
 **Problem**: History tab redirects to `/interview?...&mode=review` which starts a full interactive interview engine with mic, timer, etc.
 
@@ -576,7 +576,7 @@ router.push(`/interview/history/${session.sessionId}`);
 
 ---
 
-### B6: Replay Route Fix + Fallback
+### B6: Replay Route Fix + Fallback ✅ DONE (PR-12, commit 0332472)
 
 **Problem**: `/replay/87139de5-...` returns 404 because `session_replays` row only exists if user explicitly clicked "Share".
 

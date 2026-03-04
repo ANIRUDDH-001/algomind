@@ -155,6 +155,7 @@ export class UnifiedAIClient {
             if (primaryResult.success) return primaryResult;
 
             if (primaryProvider === 'gemini') {
+                console.warn('[UnifiedAIClient] Gemini failed, falling back to Groq');
                 const fallbackResult = await this.tryProvider(
                     'groq', messages, options, attemptedModels, models
                 );
