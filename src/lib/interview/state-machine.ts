@@ -5,6 +5,7 @@ export type InterviewState =
     | 'ai-clarifying'      // AI asks questions
     | 'user-solving'       // User walks through solution
     | 'ai-feedback'        // AI provides hints/feedback
+    | 'user-coding'        // User is writing code in editor
     | 'solution-review'    // Final discussion
     | 'assessment'         // AI generates cognitive report
     | 'completed';
@@ -16,7 +17,10 @@ export type InterviewEvent =
     | 'MOVE_TO_SOLVING'
     | 'REQUEST_HINT'
     | 'SUBMIT_SOLUTION'
-    | 'FINISH_INTERVIEW';
+    | 'FINISH_INTERVIEW'
+    | 'USER_STARTED_CODING'
+    | 'USER_SHARED_CODE'
+    | 'USER_STOPPED_CODING';
 
 export class InterviewStateMachine {
     private state: InterviewState = 'idle';
@@ -50,6 +54,7 @@ export class InterviewStateMachine {
             case 'user-solving':
                 if (event === 'USER_FINISHED_SPEAKING') this.state = 'ai-feedback';
                 if (event === 'SUBMIT_SOLUTION') this.state = 'solution-review';
+                if (event === 'USER_STARTED_CODING') this.state = 'user-coding';
                 break;
 
             case 'ai-feedback':
@@ -57,6 +62,13 @@ export class InterviewStateMachine {
                 if (event === 'USER_FINISHED_SPEAKING') this.state = 'ai-feedback'; // User responds mid-feedback → re-evaluate
                 if (event === 'SUBMIT_SOLUTION') this.state = 'solution-review';    // User submits final solution
                 if (event === 'FINISH_INTERVIEW') this.state = 'assessment';         // Force end (end button)
+                if (event === 'USER_STARTED_CODING') this.state = 'user-coding';
+                break;
+
+            case 'user-coding':
+                if (event === 'USER_SHARED_CODE') this.state = 'ai-feedback';
+                if (event === 'USER_STOPPED_CODING') this.state = 'user-solving';
+                if (event === 'FINISH_INTERVIEW') this.state = 'assessment';
                 break;
 
             case 'solution-review':

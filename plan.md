@@ -240,7 +240,7 @@
 
 ---
 
-#### Part 3 — ZoomTranscript (execute THIRD, replaces TranscriptViewer)
+#### Part 3 — ZoomTranscript (execute THIRD, replaces TranscriptViewer) ✅ DONE (PR-10, commit e8560f8)
 
 Replace `TranscriptViewer.tsx` with new `ZoomTranscript.tsx` — a sliding-window conversation view:
 

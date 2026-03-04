@@ -776,6 +776,34 @@ export function useInterview(options: {
         });
     }, []);
 
+    // A3: Coding state management — pause mic & auto-submit when user switches to code tab
+    const enterCodingMode = useCallback(() => {
+        stateMachine.current.transition('USER_STARTED_CODING');
+        setState(stateMachine.current.getState());
+        // Pause mic so voice doesn't interfere while coding
+        setMicIntent('off');
+        stopListening();
+        // Clear any pending auto-submit
+        if (sendCountdownIntervalRef.current) { clearInterval(sendCountdownIntervalRef.current); sendCountdownIntervalRef.current = null; }
+        setSendCountdown(null);
+    }, [stopListening]);
+
+    const exitCodingMode = useCallback(() => {
+        stateMachine.current.transition('USER_STOPPED_CODING');
+        setState(stateMachine.current.getState());
+        // Resume mic
+        setMicIntent('user-on');
+        setMicStoppedManually(false);
+    }, []);
+
+    const shareCode = useCallback((code: string) => {
+        stateMachine.current.transition('USER_SHARED_CODE');
+        setState(stateMachine.current.getState());
+        // Resume mic after sharing
+        setMicIntent('user-on');
+        setMicStoppedManually(false);
+    }, []);
+
     const endInterview = useCallback(() => {
         if (roundCount < 1) return;
         setMicIntent('off');
@@ -815,6 +843,9 @@ export function useInterview(options: {
         ttsError,
         vadFailed,
         isPushToTalk: vadFailed || sttProvider === 'browser',
+        enterCodingMode,
+        exitCodingMode,
+        shareCode,
         ttsProvider: tts.provider,
         sttProvider,
         loadTranscript: (msgs: (Omit<Message, 'id'> & { id?: string })[]) => {
