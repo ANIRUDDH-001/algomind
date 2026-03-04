@@ -9,6 +9,7 @@ function allOff(): Record<string, boolean> {
         ENABLE_WHISPER_STT: false,
         ENABLE_AWS_TRANSCRIBE_STT: false,
         ENABLE_AWS_S3_STORAGE: false,
+        ENABLE_AWS_BEDROCK: false,
     };
 }
 
@@ -25,14 +26,14 @@ describe('getProviderConfigSync', () => {
         expect(config.tts).toBe('groq');
     });
 
-    it('returns browser TTS (not aws-polly) when groq is on even if polly flag also on', () => {
+    it('returns aws-polly TTS when both groq and polly flags are on (AWS is primary)', () => {
         const config = getProviderConfigSync({
             ...allOff(),
             ENABLE_GROQ_TTS: true,
             ENABLE_AWS_POLLY_TTS: true,
         });
-        // groq takes priority over aws-polly
-        expect(config.tts).toBe('groq');
+        // AWS Polly is primary when its flag is ON
+        expect(config.tts).toBe('aws-polly');
     });
 
     it('returns aws-polly when only AWS flag is on', () => {
@@ -78,5 +79,7 @@ describe('getProviderConfigSync', () => {
         expect(getProviderConfigSync({ ...allOff(), ENABLE_AWS_TRANSCRIBE_STT: true }).awsEnabled).toBe(true);
         // S3 only
         expect(getProviderConfigSync({ ...allOff(), ENABLE_AWS_S3_STORAGE: true }).awsEnabled).toBe(true);
+        // Bedrock only
+        expect(getProviderConfigSync({ ...allOff(), ENABLE_AWS_BEDROCK: true }).awsEnabled).toBe(true);
     });
 });

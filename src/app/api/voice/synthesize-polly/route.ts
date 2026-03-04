@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { synthesizeWithPolly } from '@/lib/aws/polly';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
+import { logAWSUsage, estimatePollyCost } from '@/lib/aws/usage-logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,8 @@ const MAX_TEXT_LENGTH = 2900;
 
 /**
  * POST /api/voice/synthesize-polly
- * TTS endpoint using AWS Polly (Kajal Neural voice, Indian English).
- * Falls back to Groq TTS when disabled or unavailable.
+ * Primary TTS endpoint when AWS Polly is enabled (Kajal Neural voice, Indian English).
+ * Client falls back to Groq/browser when Polly is disabled or unavailable.
  */
 export async function POST(request: NextRequest) {
     // Auth check
@@ -33,6 +34,17 @@ export async function POST(request: NextRequest) {
             : cleaned;
 
         const audioBuffer = await synthesizeWithPolly(truncated, voice || 'Kajal');
+
+        // Log usage for budget tracking (fire-and-forget)
+        logAWSUsage({
+            service: 'polly',
+            operation: 'SynthesizeSpeech',
+            region: process.env.AWS_REGION || 'ap-south-1',
+            bytesProcessed: audioBuffer.byteLength,
+            estimatedCostUsd: estimatePollyCost(truncated.length, (voice || 'Kajal') === 'Kajal'),
+            userId: user.id,
+            metadata: { voice: voice || 'Kajal', textLength: truncated.length },
+        }).catch(() => {}); // never block on logging
 
         return new NextResponse(audioBuffer, {
             status: 200,

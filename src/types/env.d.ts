@@ -27,11 +27,12 @@ declare namespace NodeJS {
         UPSTASH_REDIS_REST_TOKEN?: string;
         CACHE_BACKEND?: 'memory' | 'redis';
 
-        // AWS (flag-gated: ENABLE_AWS_POLLY_TTS / ENABLE_AWS_S3_STORAGE)
+        // AWS (flag-gated: ENABLE_AWS_POLLY_TTS / ENABLE_AWS_S3_STORAGE / ENABLE_AWS_TRANSCRIBE_STT)
         AWS_ACCESS_KEY_ID?: string;
         AWS_SECRET_ACCESS_KEY?: string;
         AWS_S3_BUCKET?: string;
-        AWS_REGION?: string;
+        AWS_REGION?: string;                    // Default: ap-south-1 (Polly, S3, Transcribe)
+        AWS_BEDROCK_REGION?: string;             // Default: us-east-1 (Claude model availability)
 
         // Feature Flags
         NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE?: string;
