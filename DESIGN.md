@@ -1,377 +1,312 @@
-# DESIGN.MD
+# DESIGN.md
 
 ## 1. System Overview
 
-**Design Philosophy:**  
-AlgoMind follows a **"Voice-First, Latency-Critical"** design philosophy. Since the core value proposition is simulating a *real* human interview, latency is the enemy. The architecture prioritizes edge computing and fast inference models (Groq) to keep voice-to-voice latency under 1 second, creating a seamless conversational loop.
+**Design Philosophy:**
+AlgoMind follows a **"Voice-First, Latency-Critical"** design philosophy. The core value proposition is simulating a real human interview — latency is the enemy. The architecture prioritizes edge computing, direct API calls (no SDK overhead), and intelligent model routing to keep voice-to-voice latency under 1 second.
 
-**Technology Choices:**  
-*   **Next.js 14:** For server-side rendering and unified backend/frontend logic via Server Actions.  
-*   **Groq:** Chosen for its lightning-fast inference speed (~300 tokens/sec), essential for real-time conversation.  
-*   **Gemini 2.5 Flash / 2.0 Flash:** Used for deep reasoning and code analysis where accuracy trumps speed.  
-*   **Supabase:** Provides an all-in-one backend (Auth, DB, Vector Store) to speed up development.
+**Technology Choices:**
+- **Next.js 16:** App Router with Server Actions for unified frontend/backend, Edge Middleware for auth
+- **Groq (Llama 4 / Llama 3.3 / Kimi K2):** Lightning-fast inference (~300+ TPS) for real-time conversation
+- **Gemini 2.5/3.0 Pro:** Deep reasoning and code analysis for 8-dimensional scoring
+- **Supabase:** PostgreSQL + Auth + RLS for data layer
+- **Upstash Redis:** Sub-millisecond caching for model routing and feature flags
+- **Silero VAD:** In-browser ONNX-based voice activity detection (zero server latency)
 
 ## 2. Architecture Design
 
-### System Architecture Layout
+### System Architecture
 
 ```mermaid
 graph TD
-    User["User (Browser/Mobile)"] -->|Voice Audio| STT["Speech-to-Text (Browser Native)"]
+    User["User (Browser/Mobile)"] -->|Voice Audio| VAD["Silero VAD (ONNX Runtime)"]
     User -->|Code Input| Editor[Monaco Editor]
-    
-    subgraph "Next.js Edge Layer"
-        STT -->|Text Transcript| ServerAction[Server Action: /api/chat]
+
+    VAD -->|Speech Detected| STT["STT (Groq Whisper / Browser)"]
+    STT -->|Text Transcript| ServerAction[Server Action]
+    Editor -->|Code Snapshot| ServerAction
+
+    subgraph "AI Orchestration"
+        ServerAction -->|Context Lookup| RAG["Hybrid RAG (JSON + pgvector)"]
+        RAG -->|Retrieved Docs| Router{UnifiedAIClient}
+
+        subgraph "DB-Driven Model Routing"
+            ModelTable[(model_routing table)]
+            Redis[(Upstash Redis 60s cache)]
+            ModelTable --> Redis
+            Redis --> Router
+        end
+
+        subgraph "Speed Layer (Groq)"
+            Llama4[Llama 4 Scout/Maverick]
+            Llama33[Llama 3.3 70B]
+            Llama31[Llama 3.1 8B]
+            KimiK2[Kimi K2]
+        end
+
+        subgraph "Intelligence Layer (Gemini)"
+            Gemini25Pro[Gemini 2.5 Pro]
+            Gemini3Pro[Gemini 3.0 Pro]
+            GeminiFlash[Gemini 2.5/2.0 Flash]
+        end
+
+        subgraph "Emergency Fallback"
+            Bedrock[AWS Bedrock Claude 3.5 Sonnet]
+        end
+
+        Router -->|Fast Chat| Llama4 & Llama33 & Llama31
+        Router -->|Structured Output| KimiK2
+        Router -->|Deep Analysis| Gemini25Pro & Gemini3Pro
+        Router -->|Cost-Optimized| GeminiFlash
+        Router -->|Last Resort| Bedrock
     end
-    
-    subgraph "AI Orchestration (Antigravity Router)"
-        ServerAction -->|Context Lookup| VectorDB[("Local JSON Vector Store / pgvector")]
-        VectorDB -->|Retrieved Docs| Router{UnifiedAIClient}
-        Router -->|Complex Logic| Gemini[Gemini 2.5 Flash]
-        Router -->|Fast Chat| Groq[Groq Llama 3]
-    end
-    
-    subgraph "Response Generation"
-        Gemini -->|Text Response| TTS[Text-to-Speech]
-        Groq -->|Text Response| TTS
-    end
-    
-    TTS -->|Audio Buffer| User
+
+    Llama4 & Llama33 -->|Streamed Response| TTS["TTS (Polly / Browser)"]
+    Gemini25Pro & Gemini3Pro -->|JSON Report| AnalysisPage[Analysis Page]
+    TTS -->|Audio| User
 ```
 
 ### Layer Descriptions
 
-*   **Frontend (User Interface Layer):**  
-    *   **Technology:** Next.js 14 (React), Tailwind CSS, Framer Motion.  
-    *   **Why:** React offers the best component ecosystem (Monaco Editor for code). shadcn/ui ensures accessibility and responsive design for mobile users in Tier 2/3 cities.  
+**Frontend (UI Layer):**
+- Next.js 16 with React 19, Tailwind CSS 4, Radix UI primitives
+- Monaco Editor for code editing, Recharts for data visualization
+- Framer Motion for animations, shadcn/ui component library
+- Mobile-first: swipe navigation, collapsible code editor
 
-*   **Application Layer:**  
-    *   **Technology:** Next.js Server Actions.  
-    *   **Why:** Simplifies the stack by keeping backend logic close to frontend components. Allows for easy type safety (TypeScript) across the boundary.
+**Application Layer:**
+- Next.js Server Actions for type-safe server calls
+- Edge Middleware for JWT validation and route protection
+- `@tanstack/react-query` for server state management
 
-*   **AI/ML Layer:**  
-    *   **Components:** `UnifiedAIClient` with `IntelligentRateLimiter` (Custom logic).
-    *   **Models:** Gemini 2.5 Flash (Google) for deep analysis; Llama 3 (via Groq) for instant chat.
-    *   **Why:** Hybrid approach balances cost, speed, and intelligence.
+**AI/ML Layer:**
+- `UnifiedAIClient` with DB-driven model routing
+- Direct `fetch` calls to Groq (OpenAI-compatible) and Gemini REST APIs
+- 4-tier fallback: DB routing → cross-tier → legacy provider → Bedrock
+- `IntelligentRateLimiter` with Redis-backed quota tracking
 
-*   **Data Layer:**  
-    *   **Technology:** Supabase (PostgreSQL).  
-    *   **Structure:** Relational tables for Users, Interviews; **Hybrid RAG:** Local `embeddings.json` (MVP speed) + pgvector schema (Production scale).
+**Data Layer:**
+- Supabase PostgreSQL with Row Level Security
+- Upstash Redis for caching (model routing 60s, feature flags)
+- Hybrid RAG: JSON vector store (MVP speed) + pgvector schema (production scale)
+- localStorage for voice config persistence
 
 ## 3. Technology Stack
 
-### Frontend:
-*   **Framework:** Next.js 14 (App Router)
-*   **UI Library:** shadcn/ui + Radix UI
-*   **Language Support:** TypeScript
-*   **State Management:** Zustand (for managing voice state)
+### Frontend
+- **Framework:** Next.js 16.1.6 (App Router, Server Actions)
+- **UI Library:** Radix UI 1.4.3 + shadcn/ui
+- **Language:** TypeScript 5.x (Strict Mode)
+- **Styling:** Tailwind CSS 4.x
+- **Animation:** Framer Motion 12.x
+- **Charts:** Recharts 3.7.0
+- **Code Editor:** Monaco Editor 4.7.0
+- **PDF:** @react-pdf/renderer 4.3.2
 
-### Backend:
-*   **Environment:** Node.js (Vercel Serverless Functions)
-*   **Framework:** Next.js API Routes / Server Actions
-*   **ORM:** Drizzle ORM (or direct SQL via Supabase client)
+### Backend
+- **Runtime:** Node.js (Vercel Serverless Functions)
+- **Framework:** Next.js Server Actions + API Routes
+- **Auth:** Supabase Auth (Google/GitHub/Email/Magic Link)
+- **Database:** Supabase PostgreSQL with RLS
+- **Cache:** Upstash Redis
 
-### AI/ML:
-*   **Models:**  
-    *   *Reasoning:* Google Gemini 2.5 Flash  
-    *   *Conversational:* Llama 3.3 70B (Groq)  
-    *   *Embeddings:* Gemini Embedding 001
-*   **Frameworks:** Vercel AI SDK (integrated)
+### AI/ML
+- **Chat Models:** Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B (via Groq)
+- **Analysis Models:** Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5/2.0 Flash (Google AI)
+- **Fallback:** Claude 3.5 Sonnet v2 (AWS Bedrock)
+- **Embeddings:** Gemini Embedding 001 (768 dimensions)
+- **Spaced Repetition:** ts-fsrs (FSRS-5 algorithm)
 
-### Database:
-*   **Type:** PostgreSQL (Supabase)
-*   **Vector Extension:** pgvector (Schema supported), Local JSON Vector Store (Active Implementation).
-*   **Caching:** Next.js Data Cache / Vercel KV
+### Voice
+- **VAD:** Silero ONNX (v5/legacy) via ONNX Runtime Web
+- **STT:** Groq Whisper API + Browser Web Speech API fallback
+- **TTS:** AWS Polly + Browser SpeechSynthesis fallback
 
-### DevOps:
-*   **Hosting:** Vercel (Optimized for Next.js)
-*   **CI/CD:** GitHub Actions -> Vercel Deployment
-*   **Monitoring:** Vercel Analytics / Speed Speed Insights
-
-### Third-Party Services:
-*   **Voice:** Web Speech API (STT), Edge TTS / ElevenLabs (TTS support planned)
-*   **Auth:** Supabase Auth (Google/GitHub adapters)
+### DevOps
+- **Hosting:** Vercel (Edge Functions, Serverless)
+- **Testing:** Vitest 4.x (880 tests), Playwright (E2E)
+- **Linting:** ESLint (flat config)
+- **PWA:** @ducanh2912/next-pwa with auto-versioned service worker
 
 ## 4. Component Design
 
-### 1. Unified AI Client (Antigravity Logic)
-*   **Purpose:** Decides which AI model to call based on rate limits and tier availability.
-*   **Inputs:** User query string, Conversation history.
-*   **Processing:**
-    *   `IntelligentRateLimiter` checks quota.
-    *   Falls back from Gemini -> Groq (or vice-versa) on failure.
-    *   Fetches relevant coding problem context via `SimpleVectorStore` (JSON).
-        *   **Note:** JSON-based store used for MVP speed (no DB queries). 
-        *   Schema supports pgvector migration for production scale.
-*   **Outputs:** Streamed text response.
+### 1. UnifiedAIClient (DB-Driven Routing)
+- **Purpose:** Single entry point for all AI calls with intelligent model selection
+- **Inputs:** User query, conversation history, use case (chat/analysis)
+- **Processing:**
+    - Reads `model_routing` table (Redis-cached 60s) for priority-ordered model list
+    - Iterates models by priority, handling rate limits (429) and errors
+    - Cross-tier fallback: chat models try analysis models and vice versa
+    - Emergency: AWS Bedrock when all Groq + Gemini providers fail
+- **Outputs:** Streamed text response or structured JSON
 
-### 2. Voice Manager Hook
-*   **Purpose:** Manages the browser's microphone stream and silence detection.
-*   **Inputs:** Microphone audio stream.
-*   **Processing:** Uses VAD (Voice Activity Detection) to determine when the user stops speaking.
-*   **Outputs:** Text transcript sent to server.
+### 2. VAD Manager (Singleton)
+- **Purpose:** Browser-based voice activity detection using Silero ONNX models
+- **Architecture:** Singleton pattern via `getVADManager()`, shared across React components
+- **State machine:** IDLE → INITIALIZING → PAUSED ⇄ LISTENING → DESTROYED | ERROR
+- **Loading:** Script-tag injection from `/public/vad/` (bypasses Turbopack compilation)
+- **Reconfiguration:** `reconfigureVAD()` destroys and recreates with fresh localStorage config
 
-### 3. Interview Session Store (Database)
-*   **Purpose:** Persists interview state.
-*   **Structure:** Stores chat logs, code snapshots, and final assessment scores.
+### 3. Interruption Manager
+- **Purpose:** Detects when user is interrupting AI speech
+- **Parameters:** Grace period, debounce cooldown, confidence threshold, min speech duration, consecutive frames
+- **Diagnostics:** Circular event stream buffer exposed to owner debug panel
+- **Hot-tuning:** Parameters readable from `voice-config` localStorage, changeable at runtime
 
-## 5. Data Flow Diagram (Voice Loop)
+### 4. CognitiveAnalyzer (8-Dimension Scoring)
+- **Purpose:** Scores interview performance across 8 cognitive dimensions
+- **Engine:** Gemini Pro generates JSON scores, `validateAndCorrectScores()` auto-corrects
+- **Output:** Scores (0-10 per dimension), hire decision (STRONG_HIRE → STRONG_NO_HIRE), evidence
+- **Supporting modules:** Evidence extractor, confidence calculator, trend calculator, narrative generator
 
-1.  **User Speaks:** "How do I optimize this loop?" (Hindi/English).  
-2.  **Browser STT:** Converts audio to text locally (Latency: ~0ms).  
-3.  **Server Action:** Receives text + current code snapshot.
-4.  **RAG Lookup:** System searches `embeddings.json` (SimpleVectorStore) for similar optimization techniques.
-5.  **Router:** Selects *Groq Llama 3* (via UnifiedAIClient) for a fast response.  
-6.  **Generation:** AI generates: "You can use a hash map to reduce complexity to O(n)."  
-7.  **TTS & UI:** Text is displayed and spoken back to the user simultaneously.
+### 5. FSRS-5 Spaced Repetition
+- **Purpose:** Schedule problem reviews based on performance
+- **Engine:** ts-fsrs library, 85% retention target, 180-day max interval
+- **Integration:** `addToQueue()` writes FSRS + SM-2 fields to `spaced_repetition` table
+- **Skill-level:** `getDueSkills()` maps cognitive dimensions to problem categories
 
-## 6. AI/ML Design
+### 6. AuthProvider + Session Cache
+- **Purpose:** Authentication state management with optimized session validation
+- **Pattern:** Single `onAuthStateChange` subscription (no duplicate `getSession()`)
+- **Cache:** Module-level 15-minute trust window, JWT expiry tracking
+- **Middleware:** Local JWT decode for >5min tokens, server fallback for near-expiry
 
-**Model Selection:**  
-*   **Primary (Chat):** Llama 3.3 70B on Groq.  
-    *   *Why:* Unbeatable speed (time-to-first-token < 200ms). Critical for voice.
-*   **Primary (Analysis):** Gemini 2.5 Flash.  
-    *   *Why:* Massive context window (1M+ tokens) allows it to read the entire conversation history and code state for the final report.
+## 5. Data Flow — Voice Interview Loop
 
-**Prompt Engineering:**  
-*   **System Prompts:** "You are an empathetic but rigorous technical interviewer. Do not give the answer immediately. Ask guiding questions."
-*   **Context:** Injected with the specific LeetCode problem description and test cases.
+1. **User Speaks:** Natural speech captured by browser microphone
+2. **VAD Detection:** Silero ONNX processes audio frames in real-time, fires `onSpeechStart`/`onSpeechEnd`
+3. **Interruption Check:** InterruptionManager evaluates grace period, confidence, duration
+4. **STT:** Audio sent to Groq Whisper API (or browser fallback), returns transcript
+5. **RAG Lookup:** Hybrid vector store retrieves relevant problem context/hints
+6. **Model Routing:** UnifiedAIClient selects model via DB-driven priority routing
+7. **AI Generation:** Selected model generates response with conversation + code context
+8. **TTS:** Response spoken back via Polly/browser and displayed simultaneously
+9. **Cycle:** ~800ms total latency (VAD + STT + AI + TTS)
 
-## 7. Database Schema
+## 6. Database Schema
 
-**Tables:**
+### Core Tables
 
-*   **users**
-    *   `id` (UUID, PK)
-    *   `email` (Text)
-    *   `full_name` (Text)
-    *   `preferences` (JSONB - language, difficulty)
+**profiles:**
+- `id` (UUID, FK → auth.users.id)
+- `email`, `full_name`, `avatar_url`
+- `account_type` (user/employer/admin)
+- `preferences` (JSONB)
 
-*   **interviews**
-    *   `id` (UUID, PK)
-    *   `user_id` (FK -> users.id)
-    *   `problem_slug` (Text)
-    *   `status` (Enum: 'in_progress', 'completed')
-    *   `transcript` (JSONB)
-    *   `score_breakdown` (JSONB - 8-dim scores)
-    *   `created_at` (Timestamp)
+**interview_sessions:**
+- `id` (UUID, PK)
+- `user_id` (FK → profiles.id)
+- `problem_id` (FK → problems.slug)
+- `status` (in_progress/completed)
+- `transcript` (JSONB), `code_snapshots` (JSONB)
+- `score_breakdown` (JSONB — 8-dim scores)
+- `assessment_result` (JSONB)
+- `duration_seconds`, `turns_count`
+- `interview_mode` (behavioral/technical/mixed)
+- Timestamps
 
-*   **problems** (Static Data)
-    *   `slug` (PK)
-    *   `title` (Text)
-    *   `description` (Text)
-    *   `difficulty` (Enum)
-    *   `starter_code` (JSONB)
+**problems:**
+- `slug` (PK), `title`, `description`
+- `difficulty` (easy/medium/hard)
+- `topics` (text[])
+- `starter_code` (JSONB), `test_cases` (JSONB)
+- `hints` (JSONB), `solution_approach` (text)
 
-## 8. API Design
+**spaced_repetition:**
+- `user_id` + `problem_id` (composite PK)
+- FSRS fields: `fsrs_difficulty`, `fsrs_stability`, `fsrs_state`, `fsrs_reps`, `fsrs_lapses`
+- SM-2 fields: `ease_factor`, `interval`, `repetitions` (backward compat)
+- `next_review_at`, `last_reviewed_at`
 
-### Endpoints:
-*   **POST /api/chat/route** (Core Interaction Loop)
-    *   *Input:* `messages` (Chat History), `problemContext` (Title, Content), `systemPrompt` (Instructions)
-    *   *Output:* Streamed text response from AI/Groq.
-    *   *Logic:* Performs RAG lookup -> Calls Antigravity Router -> Generates Response.
-*   **GET /api/tts** (Mock/Future)
-    *   *Input:* Text to speak.
-    *   *Output:* Audio buffer (MP3/WAV).
-*   **POST /api/generate-report** (Assessment)
-    *   *Input:* Completed interview transcript.
-    *   *Output:* JSON object with scores for 8 dimensions.
+**model_routing:**
+- `use_case` (chat/analysis), `model_id`, `provider`
+- `priority` (ASC), `is_active`
+- `max_tokens`, `temperature`
 
-### 8.5 Server Actions & API Routes
+**system_config / feature_flags / co_owners:**
+- System-level settings, per-user and global feature flags, co-owner access control
 
-**1. POST /api/chat** (Standard Route)
-- Core chat loop handling streaming responses.
+### RLS Policies
+- Users access only their own data
+- Owner access via `is_owner()` (calls `auth.uid()` internally, no arguments)
+- Admin check via `is_admin()` function
+- Co-owner verification against `co_owners` table
 
-**2. Server Action: `saveInterviewSession`**
-- **File:** `src/app/actions/save-session.ts`
-- **Purpose:** Persists interview transcript and results to Supabase `interview_sessions` table.
-- **Input:** `userId`, `problemId`, `transcript`, `result` (Assessment).
+## 7. API Design
 
-**3. POST /api/auth/signup** (Supabase Auth handled client-side/middleware)
+### Server Actions (`src/app/actions/`)
+- `saveInterviewSession` — persists interview transcript + assessment to Supabase
+- `getSpacedRepForProblem` — returns FSRS/SM-2 data for a specific problem
+- `addProblemToReviewQueue` — adds a problem to FSRS review queue
+- `startInterview` — initializes session state
 
-**4. Server Action: `startInterview` (Planned)**
-- Initializes session state.
+### API Routes (`src/app/api/`)
+- `POST /api/chat` — Core interview loop, streamed AI response
+- `POST /api/voice/transcribe` — Whisper STT endpoint
+- `POST /api/voice/synthesize-polly` — Polly TTS endpoint
+- `GET /api/user/owner-status` — Owner/co-owner check
+- `GET /api/user/submissions/[id]/report` — Assessment report data
 
-**Error Handling:**
-- **429:** Rate limit exceeded (Managed by Vercel KV).
-- **500:** AI provider failure (Router attempts fallback).
-- **401:** Unauthorized access to interview session.
+## 8. UI/UX Design
 
-## 9. UI/UX Design
+**Principles:**
+- **"Zen Mode":** During interviews, hide all distractions — only code editor + conversation
+- **Mobile-First:** Code editor collapsible on mobile, voice conversation as primary interaction
+- **Accessibility:** Radix UI primitives ensure keyboard navigation and screen reader support
 
-**Principles:**  
-*   **"Zen Mode":** During the interview, hide all distractions (navbars, footers). Only Code + Chat.  
-*   **Mobile-First:** Code editor collapses to a read-only view on mobile, focusing on the voice conversation functionality for reviewing concepts on the go.
+### Key Screens
 
-### Wireframe Details:
+**Interview Room (Desktop):**
+- Left panel: Monaco Editor (60% width) with language selector, run button, console output
+- Right panel: Conversation feed (40%) with voice waveform, hints button, speaker indicator
+- Top bar: Timer countdown, hints remaining, end button
 
-**Interview Room Screen (Desktop 1920x1080):**
-```
-┌────────────────────────────────────────────────────────────────┐
-│  🧠 AlgoMind     [⏱️ 12:34 / 30:00]    [Hints: 2/5]  [End 🚪]   │
-├──────────────────────────┬─────────────────────────────────────┤
-│                          │  💬 Conversation Feed               │
-│   MONACO EDITOR          │  ─────────────────────────────────  │
-│                          │                                     │
-│   1  def two_sum():      │  🤖 AI (0:02):                      │
-│   2    # Your code here  │  "Let's start! What's your          │
-│   3                      │   initial approach?"                │
-│   4                      │                                     │
-│   5                      │  🎤 YOU (0:15):                     │
-│                          │  "I'll use a brute force with       │
-│                          │   nested loops..."                  │
-│                          │  [🔊 Voice Waveform Animation]     │
-│  [Theme: Dark ▼]         │                                     │
-│  [Language: Python ▼]    │  🤖 AI (0:18):                      │
-│                          │  "Good! What's the complexity?"     │
-│  Console Output:         │                                     │
-│  > Test Case 1: ✅       │  ─────────────────────────────────  │
-│  > Test Case 2: ✅       │  [💡 Request Hint]  [❓ Ask AI]    │
-│                          │  [🎤 Hold to Speak - Space Bar]    │
-│  [▶️ Run Code]           │                                     │
-└──────────────────────────┴─────────────────────────────────────┘
-```
-*60% width*                         *40% width*
+**Analysis Page:**
+- Radar chart: 8-dimension scores visualization
+- FSRS section: Next review date, difficulty bar, stats grid, "Add to Queue" CTA
+- Key moments timeline, evidence-backed scores
+- PDF export button
 
-**Mobile View (390x844 - iPhone 14):**
-```
-┌──────────────────────────┐
-│ 🧠 AlgoMind    ⏱️ 12:34  │ ← Sticky Header
-├──────────────────────────┤
-│                          │
-│  💬 Conversation         │
-│  ───────────────         │
-│  🤖: "What's your        │
-│       approach?"         │
-│                          │
-│  🎤 YOU:                 │
-│  "I'll use a hash map"   │
-│  [Waveform ▁▂▃▄▅]       │
-│                          │
-│  🤖: "Great! Code it"    │
-│                          │
-│  ───────────────         │
-│  [🎤 Tap to Speak]      │ ← Floating Action Button
-├──────────────────────────┤
-│  📝 Code (Read-only)     │ ← Collapsible Drawer
-│  Swipe up to edit ⬆️      │
-└──────────────────────────┘
-```
+**Owner Dashboard:**
+- Tabbed interface: Voice Debug, Model Config, Feature Flags
+- Voice Debug: 10 sliders (6 interruption + 4 VAD engine), event stream monitor, stats bar
+- "Apply to Live VAD" button with real-time reconfiguration
 
-**Report Card Screen:**
-```
-┌────────────────────────────────────┐
-│  Your Interview Report             │
-│  Problem: Two Sum | Duration: 15m  │
-├────────────────────────────────────┤
-│                                    │
-│     [Radar Chart - 8 Dimensions]   │
-│           10                       │
-│          /  \                      │
-│       8 /____\ 9    Communication  │
-│        |      |     Efficiency     │
-│        |      |     Code Quality   │
-│       7\______/10   (etc.)         │
-│                                    │
-│  Overall Score: 82/100 🎯          │
-│                                    │
-│  💪 Strengths:                     │
-│  • Optimized from O(n²) to O(n)    │
-│  • Explained thought process       │
-│                                    │
-│  📈 Areas to Improve:              │
-│  • Reduce filler words (12 "umm"s) │
-│  • Practice edge case reasoning    │
-│                                    │
-│  [📥 Download PDF] [🔄 Try Again]  │
-└────────────────────────────────────┘
-```
+## 9. Security
 
-## 10. Localization Strategy
+- **RLS:** Supabase Row Level Security on all tables
+- **JWT Optimization:** Local decode in middleware (no verification), server fallback near expiry
+- **Rate Limiting:** Redis-backed per-model rate limiting
+- **Code Sandboxing:** User code runs in browser only (Monaco Editor), never on server
+- **Auth:** Supabase Auth with PKCE flow, session cache prevents excessive server calls
 
-*   **Translations:** UI labels storage in `en.json` / `hi.json` (i18n).  
-*   **Voice:** Browser STT automatically detects the spoken language (English/Hindi).  
-*   **Content:** Problem descriptions are currently English-only (standard for coding), but *hints* can be requested in Hindi in Phase 2.
+## 10. Scalability & Performance
 
-## 11. Security Design
+- **Serverless:** Vercel auto-scales lambda functions
+- **Edge Middleware:** JWT validation at edge, no cold-start penalty
+- **Redis Cache:** 60s model routing cache eliminates DB hits on every AI call
+- **Script-Tag Loading:** VAD assets loaded via `<script>` (avoids 120+ sec Turbopack compilation)
+- **Visibility-Aware:** Feature flag polling pauses when tab hidden, reducing background requests
+- **PWA:** Service worker caches static assets for offline support
 
-*   **RLS (Row Level Security):** Supabase policies ensure users can only read/write their own interview data.  
-*   **API Protection:** Rate limiting via Vercel KV to prevent abuse of AI endpoints.  
-*   **Sanitization:** All user code is treated as untrusted; executed in a sandboxed browser environment, not on the server.
+## 11. Cost Optimization
 
-## 12. Scalability & Performance
+| Component | Strategy |
+|-----------|----------|
+| **AI Inference** | DB-driven routing selects cheapest viable model first |
+| **Caching** | Redis 60s cache for model routing, reducing DB queries |
+| **Auth** | JWT local decode eliminates ~90% of `supabase.auth.getUser()` calls |
+| **Voice** | Browser-native VAD (zero server cost for speech detection) |
+| **Hosting** | Vercel serverless (pay per invocation, not idle time) |
 
-*   **Serverless:** No efficient servers to manage. Vercel scales lambda functions automatically.  
-*   **Database:** Supabase manages connection pooling (PgBouncer) for high concurrency.  
-*   **Global Edge:** Vercel Edge Network caches static assets close to users in India (Mumbai/Bangalore regions).
+## 12. Monitoring & Diagnostics
 
-## 12.5 Cost Optimization Strategy
+- **Owner Panel:** Real-time VAD event stream with confidence/duration metrics
+- **Console Logging:** Structured `[Module]` prefixed logs throughout voice pipeline
+- **Feature Flags:** System-level flags for gradual rollout and kill switches
+- **Error Boundaries:** React error boundaries prevent full-page crashes
 
-**Cost Breakdown (Per Interview):**
-*   **AI Inference:**
-    *   **Groq (Llama 3):** Free in beta (Primary Chat).
-    *   **Gemini 2.5 Flash:** ~$0.002 per interview (Analysis only).
-*   **Database:** Supabase Free Tier (500MB). Audio not stored, only transcripts (text).
-*   **Hosting:** Vercel Hobby (Free).
-*   **Total Cost:** **< ₹0.20 ($0.0025) per interview session.**
+## 13. Demo & Live Instance
 
-**Optimization Tactics:**
-*   Aggressive use of Groq for all "chatty" interactions (hints, intros).
-*   Lazy-loading the Monaco Editor to reduce initial JS bundle size.
-*   Caching static problem data on Edge.
-
-## 13. Deployment Architecture
-
-```mermaid
-graph LR
-    Dev[Developer] -->|Push| GitHub
-    GitHub -->|Action| Vercel
-    Vercel -->|Build| BuildLogs
-    Vercel -->|Deploy| EdgeNetwork
-    
-    subgraph "Environments"
-        Prod["Production (algomind.app)"]
-        Preview["PR Previews"]
-    end
-```
-
-### 13.5 Disaster Recovery & Backup
-*   **Database:** Automatic daily backups via Supabase (7-day retention).
-*   **Code:** Git version control (GitHub).
-*   **Rollback:** Instant rollback via Vercel dashboard.
-*   **High Availability:** Multi-region deployment via Vercel Edge.
-
-## 14. Monitoring & Logging
-
-*   **Logs:** Vercel Runtime Logs for API errors.  
-*   **Analytics:** PostHog for tracking user engagement (Time in interview, Drop-off rate).  
-*   **Errors:** Sentry for frontend crash reporting.
-
-## 15. Future Enhancements (Phase 2)
-
-*   **Peer Mock Interviews:** Connect two students to interview each other, guided by AI.  
-*   **Local Language Content:** Code explanations in Tamil/Telugu/Hindi.  
-*   **Resume Scanner:** Auto-suggest problems based on resume gaps.
-
-## 16. Demo Assets for Judges
-
-**GitHub Repo:** `github.com/yourusername/algomind`  
-**Live Demo:** `algomind.vercel.app`  
-**Demo Credentials:**  
-*   **Email:** `demo@algomind.app`  
-*   **Password:** `Demo@2024`
-
-**Sample Interview Walkthrough:**
-1.  **Login** and click **"Start Interview"**.
-2.  Select **"Two Sum"**.
-3.  **Speak:** "I think I will use a brute force approach first."
-4.  **AI Interrupts:** "That works, but what is the time complexity?"
-5.  **Code:** Type a basic loop in Python.
-6.  **Ask for Help:** "I am stuck on optimization."
-7.  **AI Hint:** "Consider using a hash map for O(1) lookups."
-8.  **Complete** and view the **Radar Chart Report**.
-
-**Known Limitations:**
-*   Voice WebRTC issues on some Safari versions (use Chrome).
-*   Mock data used for "Trend Analysis" in demo mode.
-*   Currently supports English audio input only (Hinglish in beta).
+- **GitHub:** [github.com/ANIRUDDH-001/algomind](https://github.com/ANIRUDDH-001/algomind)
+- **Live Demo:** [algomind-drab.vercel.app](https://algomind-drab.vercel.app/)
