@@ -19,9 +19,9 @@ describe('useGuestSession — smoke', () => {
         expect(typeof result.current.reset).toBe('function');
     });
 
-    it('GUEST_SESSION_LIMITS.MAX_USER_TURNS is 5 (hackathon guest mode)', () => {
-        // This test guards against the limits being accidentally reverted
-        expect(GUEST_SESSION_LIMITS.MAX_USER_TURNS).toBe(5);
-        expect(GUEST_SESSION_LIMITS.MAX_AI_TURNS).toBe(5);
+    it('GUEST_SESSION_LIMITS.MAX_USER_TURNS is 10 (guest mode)', () => {
+        // This test guards against the limits being accidentally changed
+        expect(GUEST_SESSION_LIMITS.MAX_USER_TURNS).toBe(10);
+        expect(GUEST_SESSION_LIMITS.MAX_AI_TURNS).toBe(10);
     });
 });
