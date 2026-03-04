@@ -60,8 +60,8 @@ export async function saveInterviewSession(
                     timestamp: new Date(),
                     problem: { title: problemTitle, description: '', difficulty: 'medium' },
                     skills: {} as any, // 0 overall score
-                    overallFeedback: 'Assessment skipped due to insufficient interaction. Please engage more in the conversation.',
-                    nextSteps: ['Engage in a longer conversation to receive a full assessment.'],
+                    overallFeedback: 'Your session had too little discussion for accurate scoring. Try engaging more with KAI.',
+                    nextSteps: ['Share your thought process, write code, and explain your reasoning to get a full assessment.'],
                     knowledgeGaps: [],
                     analysisFailure: 'user_fault'
                 } as unknown as AssessmentResult;
@@ -89,8 +89,8 @@ export async function saveInterviewSession(
                         timestamp: new Date(),
                         problem: { title: problemTitle, description: '', difficulty: 'medium' },
                         skills: {},
-                        overallFeedback: 'AI analysis failed during save.',
-                        nextSteps: [],
+                        overallFeedback: 'Our AI analysis encountered an issue. Scores may update shortly upon retry.',
+                        nextSteps: ['Your session has been saved. Scores will be updated once AI analysis completes.'],
                         knowledgeGaps: [],
                         analysisFailure: 'system_fault'
                     } as unknown as AssessmentResult;
