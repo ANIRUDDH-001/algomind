@@ -104,6 +104,7 @@ ${ragContext}
         'ai-clarifying': 'approach',
         'user-solving': 'coding',
         'ai-feedback': 'coding',
+        'user-coding': 'coding',
         'solution-review': 'wrap-up',
         'assessment': 'wrap-up',
         'completed': 'wrap-up',

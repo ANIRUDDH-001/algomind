@@ -16,7 +16,7 @@ import type { CognitiveSkill } from '@/types/assessment';
 
 export type InterviewState =
     | 'idle' | 'user-speaking' | 'ai-speaking'
-    | 'user-thinking' | 'user-solving' | 'ai-clarifying' | 'completed';
+    | 'user-thinking' | 'user-solving' | 'user-coding' | 'ai-clarifying' | 'completed';
 
 export type NudgeType =
     | 'coaching'    // procedural or quality gap
@@ -47,6 +47,8 @@ const COOLDOWNS_MS: Record<string, number> = {
     no_edge_cases: 150_000,
     // Positive — per dimension (handled by turn-classifier, not observer)
     global_positive: 30_000,  // min gap between any badge
+    // Code analysis during user-coding state
+    code_analysis: 30_000,
 };
 
 const OBSERVER_PROMPT = `You are a silent coaching observer for a technical interview.
@@ -169,5 +171,53 @@ export class SilentObserver {
     public reset(): void {
         this.cooldowns = {};
         this.sessionFiredKeys.clear();
+    }
+
+    /**
+     * A3: Analyze code snapshot during user-coding state.
+     * Returns brief inline hint (max 150 tokens) without interrupting the interview.
+     */
+    public async analyzeCode(params: {
+        code: string;
+        language: string;
+        problemTitle: string;
+    }): Promise<{ hint: string | null }> {
+        const { code, language, problemTitle } = params;
+
+        if (!code.trim() || code.trim().length < 20) {
+            return { hint: null };
+        }
+
+        // Cooldown: only one code hint per 30 seconds
+        if (this.isOnCooldown('code_analysis')) {
+            return { hint: null };
+        }
+
+        try {
+            const client = getAIClient();
+            const result = await client.generateCompletion(
+                [{
+                    role: 'user',
+                    content: `Problem: "${problemTitle}"\nLanguage: ${language}\n\nCandidate's code:\n\`\`\`${language}\n${code.substring(0, 1500)}\n\`\`\`\n\nGive ONE brief, actionable hint about a potential issue, edge case, or improvement. Max 1-2 sentences. If the code looks good, return "PASS".`,
+                }],
+                {
+                    maxTokens: 150,
+                    category: 'chat',
+                    systemPrompt: 'You are a silent code reviewer during a technical interview. Give brief, helpful hints. Return "PASS" if no issues found.',
+                }
+            );
+
+            if (!result.success || !result.response) return { hint: null };
+
+            const response = result.response.trim();
+            if (response === 'PASS' || response.toLowerCase().includes('looks good')) {
+                return { hint: null };
+            }
+
+            this.setCooldown('code_analysis');
+            return { hint: response };
+        } catch {
+            return { hint: null };
+        }
     }
 }
