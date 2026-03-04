@@ -151,7 +151,7 @@
 
 ---
 
-### A3: Code Writing + Interview Integration
+### A3: Code Writing + Interview Integration ✅ DONE (PR-11, commit ab2fe96)
 
 **Problem**: KAI asks for code but keeps talking while user writes. No pause, no code awareness.
 
