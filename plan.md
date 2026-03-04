@@ -311,7 +311,7 @@ Requires `reconfigureVAD()` function — destroys and recreates the VAD singleto
 
 ---
 
-### A5: Interview Hard End Enforcement
+### A5: Interview Hard End Enforcement ✅ DONE (PR-3)
 
 **Problem**: Interview keeps going after timer expires. Modal is dismissible.
 
@@ -350,7 +350,7 @@ Requires `reconfigureVAD()` function — destroys and recreates the VAD singleto
 
 ---
 
-### A6: Guest User Limits
+### A6: Guest User Limits ✅ DONE (PR-3)
 
 **Current**: 5 min / 5 turns. **New**: 10 min / 10 turns.
 
@@ -1244,7 +1244,7 @@ Phase F (Auth Performance) ← requires E done
 |------|----------|--------------|--------|
 | **PR-1** ✅ | A1 + A2 (AI looping + mic fix) | none | HIGH |
 | **PR-2** ✅ | A4 Parts 1-2 (voice deletions + bugfixes) | none | MEDIUM |
-| **PR-3** | A5 + A6 (hard end + guest limits) | none | LOW |
+| **PR-3** ✅ | A5 + A6 (hard end + guest limits) | none | LOW |
 | **PR-4** | B2 + B3 (min turns + auto-nav) | none | LOW |
 | **PR-5** | D1 + D2 + D3 (flags SQL + route fix) | none | LOW |
 | **PR-6** | C1 + C2 (model_routing table + owner UI) | none | MEDIUM |

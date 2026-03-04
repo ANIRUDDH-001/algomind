@@ -48,7 +48,7 @@ export async function saveInterviewSession(
         if (!finalResult && transcript.length > 0) {
             // Task C: Minimum turn enforcement
             const userTurns = transcript.filter((t) => t.role === 'user').length;
-            const minTurns = options?.isAdmin ? 1 : 3;
+            const minTurns = options?.isAdmin ? 1 : 2;  // B2: lowered from 3 to 2
 
             if (userTurns < minTurns) {
                 console.warn(`⚠️ [ACTION] Insufficient turns for assessment (${userTurns} < ${minTurns}). Skipping AI analysis.`);
