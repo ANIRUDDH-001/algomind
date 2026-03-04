@@ -57,7 +57,7 @@
 
 ---
 
-### A1: AI Message Looping / TTS Repeat Fix
+### A1: AI Message Looping / TTS Repeat Fix ✅ DONE (PR-1)
 
 **Problem**: AI says 10 lines, gets to line 5-6, then restarts from line 1 endlessly.
 
@@ -105,7 +105,7 @@
 
 ---
 
-### A2: Mic Stays On in Background
+### A2: Mic Stays On in Background ✅ DONE (PR-1)
 
 **Problem**: Chrome mic indicator (top-left) stays on after interview ends or while KAI speaks.
 
@@ -200,12 +200,12 @@
 
 ---
 
-### A4: Voice System Overhaul
+### A4: Voice System Overhaul ✅ Parts 1-2+4 DONE (PR-2)
 
 > Integrates the full VOICE_SYSTEM_PLAN.md (all 5 parts)
 > Execute parts sequentially: Part 1 → 2 → 3 → 4 → 5
 
-#### Part 1 — Deletions (no new code, execute FIRST)
+#### Part 1 — Deletions (no new code, execute FIRST) ✅ DONE
 
 | Deletion | File | Reason |
 |----------|------|--------|
@@ -227,7 +227,7 @@
 
 ---
 
-#### Part 2 — Bug Fixes (execute SECOND, after deletions)
+#### Part 2 — Bug Fixes (execute SECOND, after deletions) ✅ DONE
 
 | # | Fix | File | Change |
 |---|-----|------|--------|
@@ -277,7 +277,7 @@ Replace `TranscriptViewer.tsx` with new `ZoomTranscript.tsx` — a sliding-windo
 
 ---
 
-#### Part 4 — ConversationView Cleanup (execute FOURTH, after Part 1)
+#### Part 4 — ConversationView Cleanup (execute FOURTH, after Part 1) ✅ DONE
 
 After Part 1 deletions, ConversationView becomes a clean chat history renderer:
 
@@ -1242,8 +1242,8 @@ Phase F (Auth Performance) ← requires E done
 
 | PR # | Contents | Dependencies | Effort |
 |------|----------|--------------|--------|
-| **PR-1** | A1 + A2 (AI looping + mic fix) | none | HIGH |
-| **PR-2** | A4 Parts 1-2 (voice deletions + bugfixes) | none | MEDIUM |
+| **PR-1** ✅ | A1 + A2 (AI looping + mic fix) | none | HIGH |
+| **PR-2** ✅ | A4 Parts 1-2 (voice deletions + bugfixes) | none | MEDIUM |
 | **PR-3** | A5 + A6 (hard end + guest limits) | none | LOW |
 | **PR-4** | B2 + B3 (min turns + auto-nav) | none | LOW |
 | **PR-5** | D1 + D2 + D3 (flags SQL + route fix) | none | LOW |

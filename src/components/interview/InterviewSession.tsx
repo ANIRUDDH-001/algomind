@@ -99,6 +99,7 @@ export function InterviewSession({
     const [error, setError] = useState<string | null>(null);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
+    const [limitCountdown, setLimitCountdown] = useState<number | null>(null);
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
@@ -493,19 +494,8 @@ export function InterviewSession({
                                 console.error('Failed to save session:', saveError);
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
-                                toast.success(
-                                    <div>
-                                        Interview saved!
-                                        <a
-                                            href={`/interview/analysis?sessionId=${sessionId}`}
-                                            className="underline ml-2"
-                                            onClick={() => toast.dismiss()}
-                                        >
-                                            View Analysis →
-                                        </a>
-                                    </div>,
-                                    { duration: 8000 }
-                                );
+                                // A5: Auto-navigate to analysis page
+                                router.push(`/interview/analysis?sessionId=${sessionId}`);
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);
@@ -525,8 +515,45 @@ export function InterviewSession({
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
             setShowLimitModal(true);
+            // A5: Block mic immediately
+            voice.stopListening();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
+
+    // A5: 10-second grace timer — auto-finish when countdown expires
+    useEffect(() => {
+        if (!showLimitModal) {
+            setLimitCountdown(null);
+            return;
+        }
+        setLimitCountdown(10);
+        const interval = setInterval(() => {
+            setLimitCountdown(prev => {
+                if (prev === null || prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [showLimitModal]);
+
+    // A5: Auto-trigger finish when countdown hits 0
+    const limitAutoFinishRef = useRef(false);
+    useEffect(() => {
+        if (limitCountdown === 0 && showLimitModal && !limitAutoFinishRef.current) {
+            limitAutoFinishRef.current = true;
+            setShowLimitModal(false);
+            endInterview();
+            handleFinish();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [limitCountdown, showLimitModal]);
+
+    // A5: Derived flag — all interactive inputs are locked after limit
+    const isLimitLocked = showLimitModal || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));
 
     useEffect(() => {
         if (showBadge) {
@@ -729,7 +756,7 @@ export function InterviewSession({
                                     {messages.length === 0 && <div className="flex-1 min-h-0" />}
 
                                     {/* Microphone / Interactions */}
-                                    {!readOnly && (
+                                    {!readOnly && !isLimitLocked && (
                                         <div className="flex flex-col items-center justify-center pb-6 gap-3">
                                             <div className="flex items-center justify-center gap-4 relative">
                                                 <MicrophoneButton
@@ -954,11 +981,16 @@ export function InterviewSession({
                             </h3>
                             <p className="text-zinc-400 text-sm">
                                 {limits.isTimeUp
-                                    ? `Your ${isGuest ? '5' : '20'}-minute session has ended.`
-                                    : `You've reached the ${isGuest ? '5' : '20'}-turn limit.`
-                                } Let's analyze your performance!
+                                    ? `Your session time has ended.`
+                                    : `You've reached the turn limit.`
+                                } Let&apos;s analyze your performance!
                             </p>
-                            <Button onClick={() => { setShowLimitModal(false); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
+                            {limitCountdown !== null && limitCountdown > 0 && (
+                                <p className="text-amber-400 text-xs font-bold animate-pulse">
+                                    Auto-submitting in {limitCountdown}s...
+                                </p>
+                            )}
+                            <Button onClick={() => { setShowLimitModal(false); limitAutoFinishRef.current = true; endInterview(); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
                                 <Flag className="w-4 h-4 mr-2" /> View My Assessment
                             </Button>
                         </div>

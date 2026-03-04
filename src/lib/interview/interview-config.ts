@@ -45,13 +45,13 @@ const LIMITS: Record<DifficultyMode, { ms: number; turns: number }> = {
 };
 
 // ── Guest ─────────────────────────────────────────────────────────────────────
-// 5 turns OR 5 minutes — whichever fires first. Saves nothing to DB.
+// 10 turns OR 10 minutes — whichever fires first. Saves nothing to DB.
 export function resolveGuestConfig(): InterviewConfig {
     return {
         mode: 'guest',
         difficultyMode: 'practice',
-        maxDurationMs: 5 * 60_000,
-        maxTurnsPerProblem: 5,
+        maxDurationMs: 10 * 60_000,
+        maxTurnsPerProblem: 10,
         isUnlimited: false,
         ragContext: '',   // Guest problems have pre-embedded context in their object
         kaiMemory: '',

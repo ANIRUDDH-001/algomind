@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from 'react';
 
-const MAX_USER_TURNS = 5;  // Guest mode: 5 full rounds for a meaningful interview
-const MAX_AI_TURNS = 5;
+const MAX_USER_TURNS = 10;  // Guest mode: 10 full rounds for a meaningful interview
+const MAX_AI_TURNS = 10;
 const STORAGE_KEY = 'algomind_guest_session';
 
 export interface GuestSession {
