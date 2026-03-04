@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Clock, MessageSquare, Shield } from 'lucide-react';
 import { GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
+import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 const DISMISSED_KEY = 'algomind_guest_banner_dismissed';
 
@@ -39,7 +40,7 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
             data-testid="guest-mode-banner"
             className={`
                 mx-4 mt-3 rounded-2xl border p-3.5
-                flex items-start justify-between gap-3
+                flex flex-col gap-3
                 transition-all duration-300
                 ${isUrgent
                     ? 'border-amber-500/30 bg-amber-500/8'
@@ -47,6 +48,30 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
                 }
             `}
         >
+            {/* AlgoMind brand intro — always visible, not dismissable */}
+            <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                    <p className="text-xs font-bold text-white tracking-tight">
+                        {GUEST_INTRO_BANNER.line1}
+                    </p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                        {GUEST_INTRO_BANNER.line2}
+                    </p>
+                </div>
+                {/* Dismiss sits here so it's always accessible */}
+                <button
+                    data-testid="dismiss-guest-banner"
+                    onClick={handleDismiss}
+                    className="text-zinc-600 hover:text-zinc-400 transition-colors shrink-0"
+                    aria-label="Dismiss guest mode banner"
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            </div>
+
+            {/* Divider */}
+            <div className="w-full h-px bg-zinc-700/50" />
+
             <div className="flex items-start gap-3 min-w-0">
                 {/* Icon */}
                 <div className={`
@@ -94,16 +119,6 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
                     </button>
                 </div>
             </div>
-
-            {/* Dismiss */}
-            <button
-                data-testid="dismiss-guest-banner"
-                onClick={handleDismiss}
-                className="text-zinc-600 hover:text-zinc-400 transition-colors shrink-0 mt-0.5"
-                aria-label="Dismiss guest mode banner"
-            >
-                <X className="w-3.5 h-3.5" />
-            </button>
         </div>
     );
 }
