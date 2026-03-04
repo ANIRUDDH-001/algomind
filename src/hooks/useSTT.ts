@@ -53,6 +53,8 @@ export function useSTT(opts: UseSTTOptions) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recRef = useRef<any>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
+    // A2 fix: Track raw MediaStream for explicit hardware release
+    const mediaStreamRef = useRef<MediaStream | null>(null);
     const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const optsRef = useRef(opts);
     // Synchronous update during render — eliminates timing gap between
@@ -302,6 +304,11 @@ export function useSTT(opts: UseSTTOptions) {
         if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
         if (recRef.current) { try { recRef.current.stop(); } catch { /* ignore */ } }
         if (recorderRef.current) { try { recorderRef.current.stop(); } catch { /* ignore */ } }
+        // A2 fix: Stop all MediaStream tracks on unmount so Chrome mic indicator disappears
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(t => t.stop());
+            mediaStreamRef.current = null;
+        }
     }, [clearTimer]);
 
     return {
@@ -314,6 +321,7 @@ export function useSTT(opts: UseSTTOptions) {
         transcribeAudio,
         resolvedProvider,
         permissionState,
+        mediaStreamRef, // A2: exposed for explicit cleanup in endInterview
     };
 }
 
