@@ -10,9 +10,10 @@
 DROP POLICY IF EXISTS "Owner can manage co_owners" ON public.co_owners;
 
 -- Owner has full CRUD on co_owners
+-- NOTE: is_owner() takes no args — it calls auth.uid() internally
 CREATE POLICY "Owner full access to co_owners"
 ON public.co_owners FOR ALL TO authenticated
-USING (public.is_owner(auth.uid())) WITH CHECK (public.is_owner(auth.uid()));
+USING (public.is_owner()) WITH CHECK (public.is_owner());
 
 -- Co-owner can read their own record (needed for isOwnerOrCoOwner check)
 CREATE POLICY "Co-owner can read own record"
