@@ -57,9 +57,8 @@ export function useSTT(opts: UseSTTOptions) {
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const optsRef = useRef(opts);
-    // Synchronous update during render — eliminates timing gap between
-    // render and useEffect that could cause stale onTranscript callbacks.
-    optsRef.current = opts;
+    // Keep optsRef in sync — moved to useEffect to satisfy react-hooks/refs rule.
+    useEffect(() => { optsRef.current = opts; });
 
     // Phase 0a: listeningIntentRef — stays true until stopListening() is explicitly called
     const listeningIntentRef = useRef(false);
