@@ -10,6 +10,7 @@ import {
     type VoiceConfigValues,
 } from '@/config/voice-config';
 import type { InterruptionEventData } from '@/lib/voice/types';
+import { reconfigureVAD } from '@/lib/voice/vad-manager';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -93,6 +94,7 @@ function ConfigSlider({
 export function VoiceDebugTab() {
     const [config, setLocalConfig] = useState<VoiceConfigValues>(VOICE_CONFIG_DEFAULTS);
     const [eventStream, setEventStream] = useState<InterruptionEventData[]>([]);
+    const [vadReconfiguring, setVadReconfiguring] = useState(false);
     const streamRef = useRef<HTMLDivElement>(null);
 
     // Load config from localStorage on mount
@@ -150,6 +152,17 @@ export function VoiceDebugTab() {
         const w = window as unknown as { __algomind_im_debug?: { setConfig: (c: Partial<VoiceConfigValues>) => void } };
         if (w.__algomind_im_debug?.setConfig) {
             w.__algomind_im_debug.setConfig(defaults);
+        }
+    }, []);
+
+    const handleReconfigureVAD = useCallback(async () => {
+        setVadReconfiguring(true);
+        try {
+            await reconfigureVAD();
+        } catch (err) {
+            console.error('[VoiceDebugTab] reconfigureVAD failed:', err);
+        } finally {
+            setVadReconfiguring(false);
         }
     }, []);
 
@@ -216,6 +229,10 @@ export function VoiceDebugTab() {
                         </button>
                     </div>
 
+                    {/* Interruption parameters */}
+                    <div className="space-y-1">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Interruption Manager</h3>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <ConfigSlider label="Grace Period" configKey="graceMs" min={100} max={2000} step={50} unit="ms" config={config} onChange={handleConfigChange} />
                         <ConfigSlider label="Debounce Cooldown" configKey="debounceMs" min={200} max={3000} step={100} unit="ms" config={config} onChange={handleConfigChange} />
@@ -223,6 +240,29 @@ export function VoiceDebugTab() {
                         <ConfigSlider label="Min Confidence" configKey="minConfidence" min={0.3} max={1.0} step={0.05} unit="" config={config} onChange={handleConfigChange} />
                         <ConfigSlider label="Min Speech Duration" configKey="minSpeechDurationMs" min={50} max={1000} step={25} unit="ms" config={config} onChange={handleConfigChange} />
                         <ConfigSlider label="Consecutive Frames" configKey="consecutiveHighFrames" min={1} max={10} step={1} unit="" config={config} onChange={handleConfigChange} />
+                    </div>
+
+                    {/* VAD Engine parameters */}
+                    <div className="pt-4 border-t border-[var(--surface-edge)]/50 space-y-1">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">VAD Engine</h3>
+                            <button
+                                onClick={handleReconfigureVAD}
+                                disabled={vadReconfiguring}
+                                className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 hover:text-indigo-300 disabled:text-zinc-600 transition-colors"
+                            >
+                                {vadReconfiguring ? 'Reconfiguring…' : 'Apply to Live VAD'}
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-zinc-600">
+                            Changing these requires re-creating the VAD mic session. Click &quot;Apply to Live VAD&quot; to take effect.
+                        </p>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <ConfigSlider label="Speech Start Threshold" configKey="vadPositiveSpeechThreshold" min={0.1} max={1.0} step={0.05} unit="" config={config} onChange={handleConfigChange} />
+                        <ConfigSlider label="Speech Stop Threshold" configKey="vadNegativeSpeechThreshold" min={0.05} max={0.8} step={0.05} unit="" config={config} onChange={handleConfigChange} />
+                        <ConfigSlider label="Redemption Window" configKey="vadRedemptionMs" min={200} max={5000} step={100} unit="ms" config={config} onChange={handleConfigChange} />
+                        <ConfigSlider label="Min Speech Length" configKey="vadMinSpeechMs" min={100} max={3000} step={50} unit="ms" config={config} onChange={handleConfigChange} />
                     </div>
 
                     {/* Debug mode toggle */}

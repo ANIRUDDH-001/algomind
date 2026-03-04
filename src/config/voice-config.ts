@@ -42,6 +42,16 @@ export interface VoiceConfigValues {
 
     /** STT restart delay after Groq/Polly <audio> element (ms). Default: 200ms. */
     sttRestartDelayAudioElement: number;
+
+    // ── VAD Engine Parameters ───────────────────────────────────────
+    /** VAD confidence threshold to detect speech start (0–1). */
+    vadPositiveSpeechThreshold: number;
+    /** VAD confidence threshold to detect speech stop (0–1). */
+    vadNegativeSpeechThreshold: number;
+    /** Pause tolerance (ms) before closing a speech segment. */
+    vadRedemptionMs: number;
+    /** Minimum length (ms) to count as speech. */
+    vadMinSpeechMs: number;
 }
 
 const DEFAULTS: VoiceConfigValues = {
@@ -59,6 +69,11 @@ const DEFAULTS: VoiceConfigValues = {
     vadSilenceWindowMs: 800,
     sttRestartDelayBrowserTts: 1500,
     sttRestartDelayAudioElement: 200,
+
+    vadPositiveSpeechThreshold: 0.7,
+    vadNegativeSpeechThreshold: 0.25,
+    vadRedemptionMs: 1500,
+    vadMinSpeechMs: 800,
 };
 
 // ---------------------------------------------------------------------------
