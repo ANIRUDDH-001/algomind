@@ -41,26 +41,65 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
         .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString())
         .maybeSingle();
 
-    if (!replay || !replay.interview_sessions) {
-        return notFound();
+    // B6: Fallback — if no replay row, try interview_sessions directly
+    let isFallback = false;
+    let session: any = replay?.interview_sessions;
+    let annotations: Annotation[] = replay?.annotations || [];
+
+    if (!replay || !session) {
+        const { data: directSession } = await supabase
+            .from('interview_sessions')
+            .select('problem_title, problem_difficulty:problems(difficulty), duration, transcript, overall_score')
+            .eq('id', token)
+            .maybeSingle();
+
+        if (!directSession) {
+            // Try one more: maybe it's a UUID matching a session without join
+            const { data: plainSession } = await supabase
+                .from('interview_sessions')
+                .select('problem_title, duration, transcript, overall_score')
+                .eq('id', token)
+                .maybeSingle();
+
+            if (!plainSession) return notFound();
+            session = plainSession;
+        } else {
+            session = {
+                ...directSession,
+                problem_difficulty: (directSession as any).problem_difficulty?.difficulty || 'medium',
+            };
+        }
+        isFallback = true;
+        annotations = [];
     }
 
-    // Fire and forget view count increment
-    void supabase.rpc('increment_view_count', { p_token: token }).then(({ error }) => {
-        if (error) {
-            // Fallback if rpc doesn't exist yet
-            void supabase.from('session_replays').update({ view_count: replay.view_count + 1 }).eq('public_token', token);
-        }
-    });
+    // Fire and forget view count increment (only for actual replays)
+    if (replay) {
+        void supabase.rpc('increment_view_count', { p_token: token }).then(({ error }) => {
+            if (error) {
+                // Fallback if rpc doesn't exist yet
+                void supabase.from('session_replays').update({ view_count: (replay.view_count || 0) + 1 }).eq('public_token', token);
+            }
+        });
+    }
 
-    const session = replay.interview_sessions as any; // any to bypass strict typing for dynamic joined row
-    const annotations: Annotation[] = replay.annotations || [];
     const transcript: any[] = session.transcript || [];
     const durationSec = session.duration || (transcript.length * 30);
     const durationMin = Math.floor(durationSec / 60);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+            {/* B6: Fallback banner when viewing without annotations */}
+            {isFallback && (
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-center">
+                    <p className="text-amber-300 text-sm font-bold">
+                        Direct session link — no AI annotations.
+                    </p>
+                    <Link href={`/api/replay/generate?sessionId=${token}`} className="text-amber-400 text-xs underline hover:text-amber-300 mt-1 inline-block">
+                        Generate AI Annotations →
+                    </Link>
+                </div>
+            )}
             {/* HEADER */}
             <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-4 shrink-0">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
