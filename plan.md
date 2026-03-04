@@ -460,7 +460,7 @@ save-session.ts:
 
 ---
 
-### B2: Minimum Turn Threshold
+### B2: Minimum Turn Threshold ✅ DONE (PR-4)
 
 **Change**: `minTurns` from 3 to **2** for normal users.
 
@@ -476,7 +476,7 @@ const minTurns = isAdmin ? 1 : 2;  // was: isAdmin ? 1 : 3
 
 ---
 
-### B3: Auto-Navigate to Analysis (Two Views Fix)
+### B3: Auto-Navigate to Analysis (Two Views Fix) ✅ DONE (PR-3/PR-4)
 
 **Problem**: After interview ends, user must click a brief 8-second toast to reach the analysis page. If they miss the toast, they have no easy path.
 
@@ -625,7 +625,7 @@ router.push(`/interview/history/${session.sessionId}`);
 
 ---
 
-### C1: New `model_routing` DB Table
+### C1: New `model_routing` DB Table ✅ DONE
 
 **Purpose**: Maps models to use cases (`chat` / `analysis`) with owner-defined priorities. Fully managed from the owner dashboard.
 
@@ -687,7 +687,7 @@ ON CONFLICT (model_id, use_case) DO NOTHING;
 
 ---
 
-### C2: Owner Dashboard — Model Routing Tab
+### C2: Owner Dashboard — Model Routing Tab ✅ DONE
 
 **New tab**: "AI Routing" in the owner dashboard Tools section.
 
@@ -714,7 +714,7 @@ ON CONFLICT (model_id, use_case) DO NOTHING;
 
 ---
 
-### C3: DB-Driven Model Selection (Remove Hardcoded Models)
+### C3: DB-Driven Model Selection (Remove Hardcoded Models) ✅ DONE
 
 **Current**: `providers.ts` has static `CHAT_MODELS` array. `analyzer.ts` hardcodes `preferredProvider: 'gemini'`.
 
@@ -778,7 +778,7 @@ ON CONFLICT (model_id, use_case) DO NOTHING;
 
 ---
 
-### C4: Cross-Tier Fallback
+### C4: Cross-Tier Fallback ✅ DONE
 
 When all models in a use-case exhaust rate limits, fall back to the other use-case's models.
 
@@ -827,7 +827,7 @@ The `model_routing` table architecture fully supports Bedrock. When ready:
 
 ---
 
-### D1: Fix Owner PATCH Route
+### D1: Fix Owner PATCH Route ✅ DONE
 
 **Bug**: Owner toggles flag → `PATCH /api/owner/flags` fires → `isOwnerOrCoOwner()` creates anon client → co_owners RLS blocks → 403. Even if owner passes, route uses `.update()` (not `.upsert()`) and busts wrong Redis key (`algomind:global_flags` vs `global_flag:{key}`).
 
@@ -845,7 +845,7 @@ The `model_routing` table architecture fully supports Bedrock. When ready:
 
 ---
 
-### D2: Fix `check_is_admin` / `is_admin` search_path
+### D2: Fix `check_is_admin` / `is_admin` search_path ✅ DONE
 
 **Bug**: Both functions are `SECURITY DEFINER` without `SET search_path = 'public'` — Supabase security advisory violation (BUG-17).
 
@@ -876,7 +876,7 @@ $$;
 
 ---
 
-### D3: Seed Missing Flag Rows
+### D3: Seed Missing Flag Rows ✅ DONE
 
 ```sql
 INSERT INTO public.global_feature_flags (key, is_enabled, notes) VALUES
@@ -918,7 +918,7 @@ ON CONFLICT (key) DO NOTHING;
 
 ---
 
-### E1: Fix Co-owner RLS Policies
+### E1: Fix Co-owner RLS Policies ✅ DONE
 
 **Bug**: `co_owners` has one RLS policy `is_owner()`. Co-owner users can't read their own row → `isOwnerOrCoOwner()` returns false → 403 (BUG-04).
 
@@ -942,7 +942,7 @@ COMMIT;
 
 ---
 
-### E2: Backfill `co_owners.user_id`
+### E2: Backfill `co_owners.user_id` ✅ DONE
 
 ```sql
 UPDATE public.co_owners co SET user_id = au.id
@@ -951,7 +951,7 @@ FROM auth.users au WHERE co.email = au.email AND co.user_id IS NULL;
 
 ---
 
-### E3: Auto-link Triggers
+### E3: Auto-link Triggers ✅ DONE
 
 **Trigger 1**: On `co_owners` INSERT → link `user_id` from `auth.users` by email:
 ```sql
@@ -984,7 +984,7 @@ FOR EACH ROW EXECUTE FUNCTION public.link_profile_to_co_owner();
 
 ---
 
-### E4: Standardize `isOwnerOrCoOwner()` + Middleware
+### E4: Standardize `isOwnerOrCoOwner()` + Middleware ✅ DONE
 
 **4 divergent admin check paths → 1 consistent approach**:
 
@@ -1002,7 +1002,7 @@ FOR EACH ROW EXECUTE FUNCTION public.link_profile_to_co_owner();
 
 ---
 
-### E5: Fix `get_my_permissions()` + `global_feature_flags` RLS
+### E5: Fix `get_my_permissions()` + `global_feature_flags` RLS ✅ DONE
 
 **`get_my_permissions()`**: Check `(user_id = v_uid) OR (user_id IS NULL AND email = v_email)` for co-owner status.
 
@@ -1245,11 +1245,11 @@ Phase F (Auth Performance) ← requires E done
 | **PR-1** ✅ | A1 + A2 (AI looping + mic fix) | none | HIGH |
 | **PR-2** ✅ | A4 Parts 1-2 (voice deletions + bugfixes) | none | MEDIUM |
 | **PR-3** ✅ | A5 + A6 (hard end + guest limits) | none | LOW |
-| **PR-4** | B2 + B3 (min turns + auto-nav) | none | LOW |
-| **PR-5** | D1 + D2 + D3 (flags SQL + route fix) | none | LOW |
-| **PR-6** | C1 + C2 (model_routing table + owner UI) | none | MEDIUM |
-| **PR-7** | E1-E5 (permissions SQL + code) | PR-5 | MEDIUM |
-| **PR-8** | C3 + C4 (DB-driven model selection + fallback) | PR-6 | HIGH |
+| **PR-4** ✅ | B2 + B3 (min turns + auto-nav) | none | LOW |
+| **PR-5** ✅ | D1 + D2 + D3 (flags SQL + route fix) | none | LOW |
+| **PR-6** ✅ | C1 + C2 (model_routing table + owner UI) | none | MEDIUM |
+| **PR-7** ✅ | E1-E5 (permissions SQL + code) | PR-5 | MEDIUM |
+| **PR-8** ✅ | C3 + C4 (DB-driven model selection + fallback) | PR-6 | HIGH |
 | **PR-9** | B1 (scoring fix with model fallback) | PR-8 | MEDIUM |
 | **PR-10** | A4 Parts 3-4 (ZoomTranscript + ConversationView cleanup) | PR-2 | MEDIUM |
 | **PR-11** | A3 (code + interview integration) | PR-2, PR-10 | HIGH |

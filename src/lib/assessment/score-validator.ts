@@ -62,8 +62,13 @@ export async function validateAndCorrectScores(
     initialScores: Record<string, ParsedSkillScore>,
     conversationLength: number
 ): Promise<ValidationResult> {
-    // Short conversations can't have high scores — hard cap
-    const isShortSession = conversationLength < 6;
+    // B1: Graduated short-session cap instead of flat boolean
+    // 2-3 turns → cap 5, 4-5 turns → cap 6, 6+ → no cap
+    const shortSessionCap: number | null =
+        conversationLength <= 3 ? 5 :
+        conversationLength <= 5 ? 6 :
+        null;
+    const isShortSession = shortSessionCap !== null;
 
     const scoresSummary = Object.entries(initialScores)
         .map(([dim, s]) =>
@@ -106,13 +111,13 @@ export async function validateAndCorrectScores(
             debuggingApproach: 'debugging-approach',
         };
 
-        // Apply hard caps for short sessions
-        if (isShortSession) {
+        // Apply graduated hard caps for short sessions
+        if (shortSessionCap !== null) {
             Object.keys(parsed.correctedScores).forEach((dim) => {
                 const dashKey = camelToDash[dim] || dim;
                 const current = initialScores[dashKey]?.score || 0;
-                if (current > 6) {
-                    parsed.correctedScores[dim] = Math.min(parsed.correctedScores[dim] ?? current, 6);
+                if (current > shortSessionCap) {
+                    parsed.correctedScores[dim] = Math.min(parsed.correctedScores[dim] ?? current, shortSessionCap);
                     parsed.inflationDetected = true;
                 }
             });
