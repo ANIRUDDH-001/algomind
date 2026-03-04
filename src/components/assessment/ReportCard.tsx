@@ -1,3 +1,7 @@
+/**
+ * @deprecated Replaced by /interview/analysis page (A5). Kept for backward-compat.
+ * Users now auto-redirect to AnalysisClient after interview ends.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 'use client';
 

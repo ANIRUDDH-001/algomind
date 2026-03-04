@@ -57,7 +57,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Polly synthesis failed', fallback: 'browser' }, { status: 502 });
         }
 
-        console.error('[Polly API] Unexpected error:', err);
+        console.error('[Polly API] Unexpected error:', {
+            error: err instanceof Error ? err.message : String(err),
+            errorType: err instanceof Error ? err.constructor.name : typeof err,
+            voice: 'unknown',
+            region: process.env.AWS_REGION || 'ap-south-1',
+            hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+            hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        });
         return NextResponse.json({ error: 'Internal error', fallback: 'browser' }, { status: 500 });
     }
 }

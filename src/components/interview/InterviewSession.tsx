@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Assessment & Core
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
-import { ReportCard } from '@/components/assessment/ReportCard';
+// ReportCard deprecated — users now redirect to /interview/analysis (A5)
 import { SkillBadge } from '@/components/assessment/SkillBadge';
 
 // Tools & Helpers
@@ -601,7 +601,20 @@ export function InterviewSession({
                 />
             );
         }
-        return <ReportCard assessment={result!} onClose={resetAssessment} />;
+        // A5: Logged-in users get redirected to /interview/analysis after save (line ~519).
+        // This fallback shows briefly while the redirect is pending, or if save failed.
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                <p className="text-sm text-zinc-400">Loading your analysis...</p>
+                <button
+                    onClick={resetAssessment}
+                    className="text-xs text-zinc-500 hover:text-zinc-300 underline mt-2"
+                >
+                    Return to interview
+                </button>
+            </div>
+        );
     }
 
     // --- Sub-components (Visual Rendering) --- //
@@ -756,24 +769,7 @@ export function InterviewSession({
                                             </div>
                                         )}
                                     </div>
-                                    {/* Last AI message — compact preview so user sees what AI said */}
-                                    {messages.length > 0 && (
-                                        <div className="w-full max-w-md mx-auto flex-1 min-h-0 overflow-y-auto custom-scrollbar px-1">
-                                            {(() => {
-                                                const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant');
-                                                if (!lastAiMsg) return null;
-                                                return (
-                                                    <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-3 text-xs text-zinc-300 leading-relaxed">
-                                                        <div className="flex items-center gap-1.5 mb-1.5">
-                                                            <div className="w-4 h-4 rounded-full bg-indigo-600/30 flex items-center justify-center text-[8px] font-bold text-indigo-400">K</div>
-                                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Kai</span>
-                                                        </div>
-                                                        <p className="whitespace-pre-wrap">{lastAiMsg.content}</p>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    )}
+                                    {/* Spacer when no messages yet */}
                                     {messages.length === 0 && <div className="flex-1 min-h-0" />}
 
                                     {/* Microphone / Interactions */}
