@@ -295,7 +295,7 @@ All removed: VAD hooks, InterruptionManager code, feature flag reads, `debugLog`
 
 ---
 
-#### Part 5 — Owner Panel Voice Config (separate PR, after Parts 1-4 ship)
+#### Part 5 — Owner Panel Voice Config (separate PR, after Parts 1-4 ship) ✅ DONE (PR-15)
 
 Add sliders in voice-debug-tab on owner dashboard for tuning:
 | Parameter | Default | What it controls |
