@@ -175,26 +175,35 @@ Microphone ──► [VAD] ──► [STT] ──► [useInterview] ──► [C
 
 | Model ID | Tier | RPM | RPD | Context | Role |
 |----------|------|-----|-----|---------|------|
-| `llama-3.3-70b-versatile` | 1 | 25.5 | 850 | 128K | Primary chat |
-| `llama-3.1-8b-instant` | 2 | 25.5 | 12240 | 128K | Ultra-fast hints |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | 4 | 25.5 | 850 | 128K | Balanced |
-| `moonshotai/kimi-k2-instruct-0905` | 5 | 25.5 | 850 | 200K | Structured output |
-| `openai/gpt-oss-120b` | 5 | 25.5 | 850 | 200K | Heavy reasoning |
-| `openai/gpt-oss-20b` | 6 | 25.5 | 850 | 200K | Light reasoning |
-| `openai/gpt-oss-safeguard-20b` | 99 | 100 | 1000 | 8K | Safety filtering |
+| `llama-3.3-70b-versatile` | 1 | 26 | 850 | 128K | Primary chat |
+| `llama-3.1-8b-instant` | 2 | 26 | 12,240 | 128K | Ultra-fast hints |
+| `moonshotai/kimi-k2-instruct` | 2 | 60 | 1,000 | 131K | High-concurrency chat |
+| `qwen/qwen3-32b` | 3 | 60 | 1,000 | 131K | Multilingual reasoning |
+| `meta-llama/llama-4-scout-17b-16e-instruct` | 4 | 26 | 850 | 128K | Balanced MoE |
+| `meta-llama/llama-4-maverick-17b-128e-instruct` | 4 | 30 | 1,000 | 1M | Long-context MoE |
+| `moonshotai/kimi-k2-instruct-0905` | 5 | 26 | 850 | 200K | Structured output |
+| `openai/gpt-oss-120b` | 5 | 26 | 850 | 200K | Heavy reasoning |
+| `openai/gpt-oss-20b` | 6 | 26 | 850 | 200K | Light reasoning |
+| `openai/gpt-oss-safeguard-20b` | 99 | 100 | 1,000 | 8K | Safety filtering |
 
 #### Assessment Layer — Gemini (accuracy-critical)
 
 | Model ID | Tier | RPM | RPD | Context | Role |
 |----------|------|-----|-----|---------|------|
-| `gemini-2.5-pro` | 10 | 12.75 | 1275 | 1M | Primary 8-dim scoring |
+| `gemini-2.5-pro` | 10 | 13 | 1,275 | 1M | Primary 8-dim scoring |
 | `gemini-1.5-pro` | 10 | 2 | 50 | 2M | Fallback analysis |
-| `gemini-2.0-flash` | 11 | 10 | 1500 | 1M | Fast analysis |
-| `gemini-1.5-flash` | 11 | 15 | 1500 | 1M | Legacy fallback |
-| `gemini-2.5-flash` | 12 | 4.25 | 17 | 1M | Cost-optimised |
+| `gemini-2.0-flash` | 11 | 10 | 1,500 | 1M | Fast analysis |
+| `gemini-1.5-flash` | 11 | 15 | 1,500 | 1M | Legacy fallback |
+| `gemini-2.5-flash` | 12 | 4 | 17 | 1M | Cost-optimised |
+| `gemini-2.5-flash-lite` | 11 | 10 | 20 | 1M | Moderate-volume flash |
+| `gemma-3-27b-it` | 12 | 30 | 14,400 | 131K | Strong quality (instruction-tuned) |
+| `gemma-3-12b-it` | 13 | 30 | 14,400 | 131K | Balanced speed/quality |
+| `gemma-3-4b-it` | 14 | 30 | 14,400 | 131K | Low-latency fallback |
+| `gemma-3-1b-it` | 15 | 30 | 14,400 | 32K | Minimal inference |
 
 #### Emergency Fallback — AWS Bedrock
-- Default model: `openai.gpt-oss-120b-1:0`
+- **Chat models**: `us.anthropic.claude-haiku-4-5-20251001-v1:0` (P1), `openai.gpt-oss-20b-1:0` (P100)
+- **Analysis model**: `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (P1), `openai.gpt-oss-120b-1:0` (P30)
 - DB-overridable via `model_routing` table (`provider = 'bedrock'`)
 - Auto-detects model family from ID prefix: `anthropic.*` → Claude, `openai.*` → OpenAI format
 - Region: `us-east-1` (configurable via `AWS_BEDROCK_REGION`)
@@ -704,7 +713,7 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 |-------|-----------|
 | **Frontend** | Next.js 16.1.6, React 19.2.3, Monaco Editor 4.7.0, Radix UI 1.4.3, Framer Motion 12, Recharts 3.7.0 |
 | **Backend** | Next.js Server Actions + API Routes, Edge Middleware, @tanstack/react-query |
-| **AI/ML** | Groq (Llama 4/3.3/3.1, Kimi K2, GPT-OSS), Gemini (2.5 Pro, 2.5/2.0/1.5 Flash), AWS Bedrock |
+| **AI/ML** | Groq (Llama 4/3.3/3.1, Kimi K2, GPT-OSS, Qwen3), Gemini (2.5 Pro, 2.5/2.0/1.5 Flash, Gemma 3), AWS Bedrock (Claude Sonnet 4.5, Claude Haiku 4.5, GPT-OSS) |
 | **Voice** | Silero VAD (ONNX Runtime Web), Groq Whisper (STT), AWS Polly Neural Kajal (TTS) |
 | **Database** | Supabase PostgreSQL 17.6 + RLS + Auth (29 tables), Upstash Redis, pgvector |
 | **Spaced Rep** | ts-fsrs 5.2.3 (FSRS-5), SM-2 backward compat |
@@ -786,7 +795,7 @@ npm run lint
 | Human mock | /hour | 1,500x cheaper, unlimited |
 
 **Technical Innovations:**
-1. **Multi-Model Orchestration**: 12+ models, 5-tier fallback, DB-driven routing
+1. **Multi-Model Orchestration**: 31+ models, 5-tier fallback, DB-driven routing
 2. **Indian Accent Optimisation**: en-IN STT, Kajal Neural TTS, Hinglish mode
 3. **8-Dimensional Rubric**: Sub-criteria weights + AI evidence citation
 4. **80+ TTS Preprocessing Rules**: `O(n²)` → natural speech
