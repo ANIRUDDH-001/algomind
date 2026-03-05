@@ -42,6 +42,9 @@ export default function PracticePage() {
     // Difficulty mode state
     const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>('practice');
 
+    // Sprint P2 picker state
+    const [sprintP1, setSprintP1] = useState<Problem | null>(null);
+
     // Load problems when filters or page changes
     const loadProblems = useCallback(async () => {
         setLoading(true);
@@ -117,6 +120,12 @@ export default function PracticePage() {
     };
 
     const handleStartInterview = (problemId: string, problem?: Problem) => {
+        // Sprint mode: show P2 picker instead of navigating directly
+        if (difficultyMode === 'sprint' && problem) {
+            setSprintP1(problem);
+            return;
+        }
+
         // Optimistically mark as attempted in local state
         const newAttempted = new Set(attemptedProblems);
         newAttempted.add(problemId);
@@ -133,6 +142,16 @@ export default function PracticePage() {
         } else {
             router.push(`/interview?problemId=${problemId}&mode=${difficultyMode}`);
         }
+    };
+
+    const handleSprintP2Select = (p2: Problem) => {
+        if (!sprintP1) return;
+        const newAttempted = new Set(attemptedProblems);
+        newAttempted.add(sprintP1.id);
+        setAttemptedProblems(newAttempted);
+        sessionStorage.setItem('currentProblem', JSON.stringify(sprintP1));
+        setSprintP1(null);
+        router.push(`/interview?problemId=${sprintP1.id}&p2Id=${p2.id}&mode=sprint`);
     };
 
     const handleRandomProblem = async () => {
@@ -368,6 +387,44 @@ export default function PracticePage() {
                     </>
                 )}
             </div>
+
+            {/* Sprint P2 Picker Modal */}
+            {sprintP1 && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[80vh] flex flex-col">
+                        <h3 className="text-xl font-bold text-white mb-1">Pick Problem 2 for Sprint</h3>
+                        <p className="text-zinc-400 text-sm mb-4">
+                            Problem 1: <span className="text-indigo-400 font-semibold">{sprintP1.title}</span>
+                        </p>
+                        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+                            {problems.filter(p => p.id !== sprintP1.id).length === 0 ? (
+                                <p className="text-zinc-500 text-sm text-center py-8">No other problems available. Try a different filter.</p>
+                            ) : (
+                                problems.filter(p => p.id !== sprintP1.id).map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => handleSprintP2Select(p)}
+                                        className="w-full text-left p-3 rounded-xl border border-zinc-700/50 hover:border-indigo-500/50 hover:bg-zinc-800/50 transition-colors group"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-white font-medium text-sm group-hover:text-indigo-300 transition-colors">{p.title}</span>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${p.difficulty === 'easy' ? 'bg-emerald-500/20 text-emerald-400' : p.difficulty === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                {p.difficulty}
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setSprintP1(null)}
+                            className="mt-4 w-full text-sm text-zinc-400 hover:text-white transition-colors py-2"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
