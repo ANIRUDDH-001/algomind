@@ -102,8 +102,6 @@ export default function HomePage() {
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
     setShowOnboarding(false);
-    // Fire tour trigger — TourProvider listens and starts if not completed/skipped
-    window.dispatchEvent(new CustomEvent('tour-ready'));
   };
 
   if (showOnboarding) {

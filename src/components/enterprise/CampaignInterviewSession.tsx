@@ -546,8 +546,8 @@ function ActiveQuestionView({
                                     <h3 className="font-bold text-slate-400 uppercase tracking-wider text-xs">Examples</h3>
                                     {problem.examples.map((ex, i) => (
                                         <div key={i} className="bg-slate-950 p-3 rounded border border-slate-800 font-mono text-xs space-y-2">
-                                            <div><span className="text-slate-500">Input:</span> <span className="text-blue-300">{typeof ex.input === 'object' && ex.input !== null ? JSON.stringify(ex.input) : String(ex.input)}</span></div>
-                                            <div><span className="text-slate-500">Output:</span> <span className="text-emerald-400">{typeof ex.output === 'object' && ex.output !== null ? JSON.stringify(ex.output) : String(ex.output)}</span></div>
+                                            <div><span className="text-slate-500">Input:</span> <span className="text-blue-300">{ex.input}</span></div>
+                                            <div><span className="text-slate-500">Output:</span> <span className="text-emerald-400">{ex.output}</span></div>
                                             {ex.explanation && (
                                                 <div className="text-slate-400 mt-2 pt-2 border-t border-slate-800 font-sans">{ex.explanation}</div>
                                             )}
