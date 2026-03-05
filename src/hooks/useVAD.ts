@@ -81,13 +81,11 @@ export function useVAD(opts: UseVADOptions) {
         const unsubs: (() => void)[] = [];
 
         const unsubStart = manager.onSpeechStart?.(() => {
-            console.log('[useVAD] onSpeechStart fired');
             optsRef.current.onSpeechStart?.();
         });
         if (unsubStart) unsubs.push(unsubStart);
 
         const unsubEnd = manager.onSpeechEnd?.((audio: Float32Array) => {
-            console.log(`[useVAD] onSpeechEnd fired, audio length: ${audio.length}`);
             optsRef.current.onSpeechEnd?.(audio);
         });
         if (unsubEnd) unsubs.push(unsubEnd);

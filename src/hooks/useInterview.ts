@@ -139,10 +139,8 @@ export function useInterview(options: {
         // onSpeakStart/onSpeakEnd are ONLY used for reactive state — NOT for mic gating.
         // Mic gating is now done explicitly in startInterview/submitUserResponse via await.
         onSpeakStart: () => {
-            console.log('[useInterview] TTS onSpeakStart');
         },
         onSpeakEnd: () => {
-            console.log('[useInterview] TTS onSpeakEnd');
         },
         voiceName: optionsRef.current.voicePrefs?.name ?? null,
         voiceRate: optionsRef.current.voicePrefs?.rate ?? 1.0,
@@ -172,14 +170,12 @@ export function useInterview(options: {
         onSpeechStart: () => {
             // Smart pause: if AI is speaking and VAD detects human voice → interrupt
             if (isSpeakingRef.current) {
-                console.log('[useInterview] Smart pause: VAD detected speech during AI speaking');
                 tts.stop();
                 smartPauseActiveRef.current = true;
                 // 1.5s grace timer: if user goes silent, activate mic normally
                 if (smartPauseTimerRef.current) clearTimeout(smartPauseTimerRef.current);
                 smartPauseTimerRef.current = setTimeout(() => {
                     if (smartPauseActiveRef.current) {
-                        console.log('[useInterview] Smart pause: grace period expired, activating mic');
                         smartPauseActiveRef.current = false;
                         setMicStoppedManually(false);
                         setMicIntent('auto-on');
@@ -190,13 +186,10 @@ export function useInterview(options: {
         onSpeechEnd: (audio) => {
             // A1 fix: Echo guard — reject VAD events while AI is speaking
             if (isSpeakingRef.current) {
-                console.log('[useInterview] VAD onSpeechEnd rejected — TTS echo guard (isSpeaking=true)');
                 return;
             }
-            console.log(`[useInterview] VAD onSpeechEnd → transcribeAudio, audioLen=${audio.length}, sttProvider=${sttProvider}`);
             // If smart pause was active, cancel grace timer — user actually spoke
             if (smartPauseActiveRef.current) {
-                console.log('[useInterview] Smart pause: user spoke, fully interrupting AI');
                 smartPauseActiveRef.current = false;
                 if (smartPauseTimerRef.current) {
                     clearTimeout(smartPauseTimerRef.current);

@@ -255,7 +255,6 @@ export function useSTT(opts: UseSTTOptions) {
 
     /** Called by VAD onSpeechEnd — Whisper or recorder mode */
     const transcribeAudio = useCallback(async (audio: Float32Array) => {
-        console.log(`[STT] transcribeAudio called: resolvedProvider=${resolvedProvider}, audioLength=${audio?.length ?? 0}`);
 
         // Phase 3d: Accept both whisper and recorder providers
         if (resolvedProvider !== 'whisper' && resolvedProvider !== 'recorder') {
@@ -272,7 +271,6 @@ export function useSTT(opts: UseSTTOptions) {
 
         try {
             const wav = float32ToWav(audio, 16000);
-            console.log(`[STT] WAV encoded: ${wav.byteLength} bytes`);
             const form = new FormData();
             form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'audio.wav');
             const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form });
@@ -282,9 +280,7 @@ export function useSTT(opts: UseSTTOptions) {
                 return;
             }
             const { text } = await res.json() as { text: string };
-            console.log(`[STT] Transcription result: "${text}"`);
             if (!text?.trim()) {
-                console.log('[STT] Empty transcription — ambient noise or silence detected');
                 return;
             }
             setTranscript(p => p ? `${p} ${text}` : text);

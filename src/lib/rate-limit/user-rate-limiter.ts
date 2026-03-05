@@ -4,6 +4,9 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 
 const DAILY_LIMIT = 30; // ~3 full practice interviews per day
+
+// HACKATHON MODE: All rate limits disabled — unlimited attempts for all users
+const HACKATHON_UNLIMITED = true;
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
 
 export interface RateLimitResult {
@@ -23,6 +26,11 @@ interface LocalUsage {
  * Admins are exempt from limits
  */
 export async function checkUserRateLimit(userId: string | null): Promise<RateLimitResult> {
+    // HACKATHON MODE: unlimited for everyone
+    if (HACKATHON_UNLIMITED) {
+        return { allowed: true, remaining: 9999, isAdmin: false };
+    }
+
     // Guest users have no rate limit (they have trial limit instead)
     if (!userId || userId === 'guest-user') {
         return { allowed: true, remaining: 999, isAdmin: false };

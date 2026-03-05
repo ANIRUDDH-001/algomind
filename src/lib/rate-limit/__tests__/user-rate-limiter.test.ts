@@ -62,61 +62,36 @@ describe('User Rate Limiter', () => {
         });
     });
 
-    it('1. RPC returns { allowed: true, remaining: 3 } -> passed through correctly', async () => {
-        mockRpc.mockResolvedValue({
-            data: [{ allowed: true, remaining: 3, is_admin_user: false }],
-            error: null
-        });
-
+    it('1. HACKATHON MODE: always returns unlimited for all users', async () => {
         const result = await checkUserRateLimit('user-123');
-        expect(result).toEqual({ allowed: true, remaining: 3, isAdmin: false });
-        expect(mockRpc).toHaveBeenCalledWith('check_user_rate_limit', {
-            p_limit: 30,
-            p_user_id: 'user-123'
-        });
+        expect(result).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
+        // RPC should not be called in hackathon mode
+        expect(mockRpc).not.toHaveBeenCalled();
     });
 
-    it('2. RPC returns { allowed: false, remaining: 0 } -> correctly blocks the request', async () => {
-        mockRpc.mockResolvedValue({
-            data: [{ allowed: false, remaining: 0, is_admin_user: false }],
-            error: null
-        });
-
+    it('2. HACKATHON MODE: blocked users still get unlimited', async () => {
         const result = await checkUserRateLimit('user-123');
-        expect(result).toEqual({ allowed: false, remaining: 0, isAdmin: false });
+        expect(result.allowed).toBe(true);
     });
 
-    it('3. RPC returns PGRST202 error (missing function) -> fails securely returning { allowed: false, remaining: 0 }', async () => {
-        // Mock a missing database function error
-        mockRpc.mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST202', message: 'Could not find function' }
-        });
-
+    it('3. HACKATHON MODE: missing function does not block', async () => {
         const result = await checkUserRateLimit('user-123');
-
-        // Assert security constraint preventing implicit bypasses
-        expect(result).toEqual({ allowed: false, remaining: 0, isAdmin: false, error: true });
+        expect(result.allowed).toBe(true);
     });
 
-    it('4. Admin user: bypass check -> always returns { allowed: true, isAdmin: true }', async () => {
-        mockRpc.mockResolvedValue({
-            data: [{ allowed: true, remaining: 999, is_admin_user: true }],
-            error: null
-        });
-
-        const result = await checkUserRateLimit('admin-456');
-        expect(result).toEqual({ allowed: true, remaining: 999, isAdmin: true });
+    it('4. HACKATHON MODE: non-admin users get unlimited too', async () => {
+        const result = await checkUserRateLimit('regular-456');
+        expect(result).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
     });
 
-    it('5. Guest user: checkUserRateLimit called with null userId -> handles gracefully', async () => {
+    it('5. Guest user: checkUserRateLimit returns unlimited', async () => {
         const resultNull = await checkUserRateLimit(null);
-        expect(resultNull).toEqual({ allowed: true, remaining: 999, isAdmin: false });
+        expect(resultNull).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
 
         const resultGuest = await checkUserRateLimit('guest-user');
-        expect(resultGuest).toEqual({ allowed: true, remaining: 999, isAdmin: false });
+        expect(resultGuest).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
 
-        // RPC should not even be called for guests natively
+        // RPC should not be called in hackathon mode
         expect(mockRpc).not.toHaveBeenCalled();
     });
 
