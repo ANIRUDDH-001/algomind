@@ -153,45 +153,6 @@ src/
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/ANIRUDDH-001/algomind.git
-cd algomind
-
-# Install dependencies
-npm install
-
-# Setup environment
-cp .env.example .env.local
-# Fill in: GEMINI_API_KEY, GROQ_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
-
-### Database Setup
-
-After creating your Supabase project, apply the schema and seed data:
-
-```bash
-# Apply the schema (from schema details/supabase_schema.sql)
-# Then run the seed migrations in order:
-psql $DATABASE_URL -f supabase/migrations/20260305_cleanup_dead_tables.sql
-psql $DATABASE_URL -f supabase/migrations/20260305_seed_feature_flags.sql
-psql $DATABASE_URL -f supabase/migrations/20260305_seed_model_routing.sql
-```
-
-This seeds:
-- **15 feature flags** in `global_feature_flags` (VAD, Smart Routing, Polly, etc.)
-- **13 AI models** in `model_registry` (Groq + Gemini + embeddings)
-- **11 routing rules** in `model_routing` (6 chat + 5 analysis)
-- **1 system config** (`cross_tier_fallback_enabled`)
-
 ### Database Schema (29 Tables)
 
 All tables live in the `public` schema on Supabase PostgreSQL 17.6 with pgvector extension.
@@ -211,34 +172,6 @@ All tables live in the `public` schema on Supabase PostgreSQL 17.6 with pgvector
 
 > Full schema reference with columns, functions, and RLS policies: see [`Algomind.md` §6](Algomind.md) or [`schema details/supabase_schema.sql`](schema%20details/supabase_schema.sql)
 
-### Development
-
-```bash
-npm run dev          # Start dev server (http://localhost:3000)
-npm run build        # Production build
-npm run test         # Run all 880 tests
-npm run type-check   # TypeScript verification
-npm run lint         # ESLint check
-```
-
-### Environment Variables
-
-```bash
-# AI Providers (Required)
-GEMINI_API_KEY=your_gemini_api_key
-GROQ_API_KEY=your_groq_api_key
-
-# Supabase (Required)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Optional
-AWS_ACCESS_KEY_ID=           # For Polly TTS & Bedrock fallback
-AWS_SECRET_ACCESS_KEY=
-UPSTASH_REDIS_REST_URL=      # For caching
-UPSTASH_REDIS_REST_TOKEN=
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
 
 ---
 
