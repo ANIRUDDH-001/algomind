@@ -1,8 +1,6 @@
 # AlgoMind 🧠
 
-> **The AI-Powered Technical Interview Coach that listens, analyzes, and teaches.**
-
-![AlgoMind Dashboard](dashboard-screenshot.png)
+> **Voice-first AI technical interview coach — speaks, listens, scores, and teaches.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
 [![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
@@ -87,7 +85,7 @@ Proprietary scoring engine measuring:
 ### Backend & Database
 | Technology | Purpose |
 |-----------|---------|
-| [Supabase](https://supabase.com/) | PostgreSQL + Auth + RLS + Realtime |
+| [Supabase](https://supabase.com/) | PostgreSQL 17.6 + Auth + RLS + Realtime (29 tables) |
 | [Upstash Redis](https://upstash.com/) | Caching (model routing, feature flags, rate limits) |
 | [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) | FSRS-5 spaced repetition engine |
 | Hybrid RAG | JSON Vector Store (MVP) + pgvector (production scale) |
@@ -193,6 +191,25 @@ This seeds:
 - **13 AI models** in `model_registry` (Groq + Gemini + embeddings)
 - **11 routing rules** in `model_routing` (6 chat + 5 analysis)
 - **1 system config** (`cross_tier_fallback_enabled`)
+
+### Database Schema (29 Tables)
+
+All tables live in the `public` schema on Supabase PostgreSQL 17.6 with pgvector extension.
+
+| Category | Tables |
+|----------|--------|
+| **Core Interview** | `profiles`, `interview_sessions`, `assessments`, `problems` |
+| **Spaced Repetition** | `spaced_repetition` (per-problem FSRS-5 + SM-2), `skill_repetition` (per-skill FSRS) |
+| **AI Infrastructure** | `ai_models`, `model_routing`, `model_registry`, `model_performance_logs`, `system_config`, `global_feature_flags`, `system_events` |
+| **RAG & Knowledge** | `knowledge_chunks` (pgvector 768-dim embeddings), `knowledge_gaps` |
+| **User Experience** | `learner_profiles`, `user_preferences`, `leetcode_profiles`, `insight_snapshots`, `session_replays`, `user_daily_usage` |
+| **Employer / Enterprise** | `assessment_campaigns`, `candidate_submissions`, `company_profiles`, `code_attempts`, `employer_invites` |
+| **Access Control** | `admin_users`, `co_owners` |
+| **Analytics** | `score_benchmarks` |
+
+**Key extensions:** pgvector (768-dim embeddings), pgcrypto, uuid-ossp, pg_cron, pg_graphql
+
+> Full schema reference with columns, functions, and RLS policies: see [`Algomind.md` §6](Algomind.md) or [`schema details/supabase_schema.sql`](schema%20details/supabase_schema.sql)
 
 ### Development
 

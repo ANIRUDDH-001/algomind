@@ -1,5 +1,5 @@
 import { ProgressStore } from '../src/lib/assessment/progress-store';
-import { generateMockProgress } from '../src/lib/assessment/mock-data';
+import { generateMockProgress } from '../src/__tests__/fixtures/mock-data';
 
 /**
  * Note: This script is intended to be run in a browser console OR via a demo button in the UI
