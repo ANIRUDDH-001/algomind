@@ -251,10 +251,7 @@ npm run test:ai             # AI module tests only
 
 | Metric | Value |
 |--------|-------|
-| TypeScript strict-mode errors | **0** |
-| ESLint errors | **0** (427 warnings — all non-blocking) |
 | Test suite | **880 tests passing** across **116 test files** (105 suites) |
-| Test run time | **21.6s** |
 | Source files (TS/TSX/CSS/SQL/JS) | **481 files** |
 | Lines of code | **71,403** |
 | TypeScript (`.ts`) | 296 files — 44,268 lines |
