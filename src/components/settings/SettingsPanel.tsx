@@ -7,13 +7,9 @@ import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical, Mic } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-
-import { Switch } from '@/components/ui/switch';
-import { setFeatureFlag, getFeatureFlag } from '@/lib/feature-flags';
-import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 import { VoiceSettings } from './VoiceSettings';
 import { LeetCodeSettings } from './LeetCodeSettings';
@@ -25,14 +21,12 @@ export function SettingsPanel() {
     const [_isClearing, setIsClearing] = useState(false);
     const { user, signOut, isConfigured } = useAuth();
     const router = useRouter();
-    const [vadEnabled, setVadEnabled] = useState(false);
-    const globalVadAllowed = useGlobalFeatureFlag('ENABLE_VAD_INTERRUPTIONS', true);
+
 
     useEffect(() => {
         setMounted(true);
         setIntroEnabled(shouldShowOnboarding());
         setDemoMode(isDemoMode());
-        setVadEnabled(getFeatureFlag('ENABLE_VAD_INTERRUPTIONS'));
 
         const handleDemoChange = (e: CustomEvent<{ enabled: boolean }>) => {
             setDemoMode(e.detail.enabled);
@@ -61,16 +55,6 @@ export function SettingsPanel() {
         window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
         toast.success('Demo mode disabled');
         router.refresh();
-    };
-
-    const handleVadToggle = (checked: boolean) => {
-        if (!globalVadAllowed) {
-            toast.error("VAD interruptions are currently disabled system-wide.");
-            setVadEnabled(false);
-            return;
-        }
-        setVadEnabled(checked);
-        setFeatureFlag('ENABLE_VAD_INTERRUPTIONS', checked);
     };
 
     const handleStartDemoTour = () => {
@@ -176,27 +160,6 @@ export function SettingsPanel() {
 
             {/* Voice Settings */}
             <VoiceSettings />
-
-            {/* VAD Settings Section */}
-            <div className="space-y-2 mb-8">
-                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-600">
-                    Voice Options
-                </h2>
-                <div className="rounded-2xl overflow-hidden"
-                    style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-edge)] last:border-0">
-                        <div>
-                            <p className="text-sm font-semibold text-zinc-200">Voice Activity Detection</p>
-                            <p className="text-xs text-zinc-500 mt-0.5">Automatically detects when you stop speaking</p>
-                        </div>
-                        <Switch
-                            checked={vadEnabled && globalVadAllowed}
-                            disabled={!globalVadAllowed}
-                            onCheckedChange={handleVadToggle}
-                        />
-                    </div>
-                </div>
-            </div>
 
             {/* Storage Info */}
             <div className="space-y-2 mb-8">

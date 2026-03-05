@@ -9,7 +9,6 @@ import React, {
     useRef,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/components/auth/AuthProvider';
 import {
     TOUR_STEPS,
     TourStep,
@@ -51,7 +50,6 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const [isNavigating, setIsNavigating] = useState(false);
     const [audioEnabled, setAudioEnabled] = useState(true); // default ON for tour
-    const { user, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const navigatingRef = useRef(false);
@@ -237,45 +235,18 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen, nextStep, prevStep, skipTour]);
 
-    // ─── Auto-start trigger ──────────────────────────────────────────────────────
-    // Listens for both:
-    //   'tour-ready'  — dispatched by page.tsx after IntroAnimation completes
-    //   'start-tour'  — dispatched by Settings panel + the manual Tour button
-    //
-    // Also auto-starts for newly logged-in users who haven't seen the tour,
-    // once their auth has loaded and they're on the homepage.
+    // ─── Manual start trigger ─────────────────────────────────────────────────────
+    // Only responds to 'start-tour' — dispatched by Settings panel + the manual Tour button.
+    // Tour never auto-starts; only explicit button clicks trigger it.
 
     useEffect(() => {
-        const onTourReady = () => {
-            const done = localStorage.getItem('algomind_tour_completed');
-            const skipped = localStorage.getItem('algomind_tour_skipped');
-            if (!done && !skipped) startTour();
-        };
         const onStartTour = () => startTour();
 
-        window.addEventListener('tour-ready', onTourReady);
         window.addEventListener('start-tour', onStartTour);
         return () => {
-            window.removeEventListener('tour-ready', onTourReady);
             window.removeEventListener('start-tour', onStartTour);
         };
     }, [startTour]);
-
-    // Auto-start for logged-in new users (OAuth sign-up etc.)
-    // Fires once when user becomes available on the homepage.
-    const autoStartedRef = useRef(false);
-    useEffect(() => {
-        if (loading || !user || autoStartedRef.current) return;
-        if (pathname !== '/') return;
-        const done = localStorage.getItem('algomind_tour_completed');
-        const skipped = localStorage.getItem('algomind_tour_skipped');
-        if (!done && !skipped) {
-            autoStartedRef.current = true;
-            // Small delay so the page finishes rendering before tour starts
-            const t = setTimeout(() => startTour(), 1800);
-            return () => clearTimeout(t);
-        }
-    }, [loading, user, pathname, startTour]);
 
     return (
         <TourContext.Provider

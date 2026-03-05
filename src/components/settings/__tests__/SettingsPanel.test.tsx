@@ -172,34 +172,25 @@ describe('SettingsPanel', () => {
         vi.clearAllMocks();
     });
 
-    it('1. All main settings sections render (Profile, Voice Options, Data Storage, App Info, Danger Zone)', async () => {
+    it('1. All main settings sections render (Profile, Data Storage, App Info, Danger Zone)', async () => {
         await renderAndWait(<SettingsPanel />);
 
         await waitFor(() => {
             expect(screen.getByText(/Profile Outline/i)).toBeDefined();
-            expect(screen.getByText(/Voice Options/i)).toBeDefined();
             expect(screen.getByText(/Data Storage/i)).toBeDefined();
             expect(screen.getByText(/Application Info/i)).toBeDefined();
             expect(screen.getByText(/Danger Zone/i)).toBeDefined();
         });
     });
 
-    it('2. VAD Switch toggle calls setFeatureFlag with correct key and value', async () => {
+    it('2. VAD section is removed — Voice Activity Detection no longer in settings', async () => {
         await renderAndWait(<SettingsPanel />);
 
         await waitFor(() => {
-            expect(screen.getByText('Voice Activity Detection')).toBeDefined();
+            // VAD section was removed; these elements should not exist
+            expect(screen.queryByText('Voice Activity Detection')).toBeNull();
+            expect(screen.queryByText(/Voice Options/i)).toBeNull();
         });
-
-        const switches = screen.getAllByRole('switch');
-        // VAD switch is the one in Voice Options section
-        // Toggle it on — use click since jsdom checkbox onChange fires on click
-        fireEvent.click(switches[0]);
-        expect(mockSetFeatureFlag).toHaveBeenCalledWith('ENABLE_VAD_INTERRUPTIONS', true);
-
-        // Toggle it off
-        fireEvent.click(switches[0]);
-        expect(mockSetFeatureFlag).toHaveBeenCalledWith('ENABLE_VAD_INTERRUPTIONS', false);
     });
 
     it('3. Sign Out button calls signOut and redirects to /', async () => {
@@ -271,38 +262,29 @@ describe('SettingsPanel', () => {
         });
     });
 
-    it('7. VAD switch reflects initial getFeatureFlag value', async () => {
-        // When VAD is enabled initially
+    it('7. No VAD switch present in settings', async () => {
         mockGetFeatureFlag.mockReturnValue(true);
         await renderAndWait(<SettingsPanel />);
 
         await waitFor(() => {
-            const switches = screen.getAllByRole('switch');
-            // The VAD switch should be checked=true
-            expect((switches[0] as HTMLInputElement).checked).toBe(true);
+            // VAD section removed — no switch should be rendered
+            expect(screen.queryByRole('switch')).toBeNull();
         });
     });
 
-    it('8. Settings persist across re-render (VAD state retained)', async () => {
-        mockGetFeatureFlag.mockReturnValue(false);
+    it('8. Settings panel renders stably across re-render', async () => {
         const { rerender } = await renderAndWait(<SettingsPanel />);
 
         await waitFor(() => {
-            expect(screen.getAllByRole('switch').length).toBeGreaterThan(0);
+            expect(screen.getByText(/Profile Outline/i)).toBeDefined();
         });
 
-        // Toggle VAD on
-        const switches = screen.getAllByRole('switch');
-        await act(async () => { fireEvent.click(switches[0]); });
-
-        // Re-render with same props
+        // Re-render with same props — component should stay stable
         await act(async () => { rerender(<SettingsPanel />); });
 
-        // setFeatureFlag was called — state was updated
-        expect(mockSetFeatureFlag).toHaveBeenCalledWith('ENABLE_VAD_INTERRUPTIONS', true);
-        // The switch remains checked (React state retained)
-        const switchesAfter = screen.getAllByRole('switch');
-        expect((switchesAfter[0] as HTMLInputElement).checked).toBe(true);
+        await waitFor(() => {
+            expect(screen.getByText(/Profile Outline/i)).toBeDefined();
+        });
     });
 
     it('9. VoiceSettings sub-panel renders inside settings (not in own Card wrapper)', async () => {
