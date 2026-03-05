@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-03-05T18:07:03.703Z",
+  "baseUrl": "https://algomind-drab.vercel.app",
+  "iterations": 12,
+  "concurrency": 3,
+  "stages": {
+    "stt": {
+      "p50": 2013,
+      "p95": 4127,
+      "avg": 2423,
+      "min": 1404,
+      "max": 4127,
+      "total": 12,
+      "success": 12
+    },
+    "ai": {
+      "p50": 3853,
+      "p95": 6740,
+      "avg": 4498,
+      "min": 3629,
+      "max": 6740,
+      "total": 12,
+      "success": 12,
+      "modelDistribution": {
+        "meta-llama/llama-4-scout-17b-16e-instruct (groq)": 12
+      }
+    },
+    "e2e": {
+      "p50": 6673,
+      "p95": 6919,
+      "avg": 6415,
+      "breakdown": {
+        "stt_avg": 2157,
+        "ai_avg": 3764,
+        "tts_avg": 494
+      },
+      "total": 5,
+      "success": 5
+    }
+  },
+  "aws": {
+    "timestamp": "2026-03-05T18:12:12.821Z",
+    "iterations": 10,
+    "pollyRegion": "ap-south-1",
+    "bedrockRegion": "us-east-1",
+    "stt": {
+      "p50": 193,
+      "p95": 423,
+      "avg": 239,
+      "min": 182,
+      "max": 423,
+      "total": 10,
+      "success": 10
+    },
+    "tts": {
+      "p50": 450,
+      "p95": 669,
+      "avg": 452,
+      "min": 303,
+      "max": 669,
+      "total": 10,
+      "success": 10,
+      "avgChars": 141
+    },
+    "bedrockHaiku": null
+  },
+  "groqLlama70b": {
+    "p50": 406,
+    "p95": 708,
+    "avg": 451,
+    "min": 356,
+    "max": 708,
+    "total": 10,
+    "success": 10
+  },
+  "bedrockHaiku": null,
+  "aiTimestamp": "2026-03-05T18:22:15.924Z",
+  "bedrockSonnet": null,
+  "bedrockTimestamp": "2026-03-05T18:27:40.306Z"
+}
