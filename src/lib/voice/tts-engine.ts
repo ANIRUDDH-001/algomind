@@ -8,6 +8,7 @@ export type TTSProvider = 'polly' | 'browser';
 
 export class TTSEngine {
     private audioEl: HTMLAudioElement | null = null;
+    private audioResolve: ((v: boolean) => void) | null = null;
     private invId = 0;
     private _speaking = false;
     onSpeakingChange?: (v: boolean) => void;
@@ -84,6 +85,11 @@ export class TTSEngine {
             this.audioEl.onerror = null;
             this.audioEl = null;
         }
+        // Resolve any hanging playBuffer() promise so speakAndWait() unblocks
+        if (this.audioResolve) {
+            this.audioResolve(false);
+            this.audioResolve = null;
+        }
         if (typeof window !== 'undefined' && window.speechSynthesis) {
             window.speechSynthesis.cancel();
         }
@@ -106,14 +112,25 @@ export class TTSEngine {
 
     private playBuffer(buf: ArrayBuffer, id: number): Promise<boolean> {
         return new Promise((resolve) => {
+            this.audioResolve = resolve;
             const blob = new Blob([buf], { type: 'audio/mpeg' });
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
             audio.volume = 1.0;
             this.audioEl = audio;
-            audio.onended = () => { URL.revokeObjectURL(url); if (id === this.invId) this.audioEl = null; resolve(true); };
-            audio.onerror = () => { URL.revokeObjectURL(url); if (id === this.invId) this.audioEl = null; resolve(false); };
-            audio.play().catch(() => resolve(false));
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+                if (id === this.invId) this.audioEl = null;
+                this.audioResolve = null;
+                resolve(true);
+            };
+            audio.onerror = () => {
+                URL.revokeObjectURL(url);
+                if (id === this.invId) this.audioEl = null;
+                this.audioResolve = null;
+                resolve(false);
+            };
+            audio.play().catch(() => { this.audioResolve = null; resolve(false); });
         });
     }
 

@@ -838,6 +838,9 @@ export function useInterview(options: {
 
     // ── Handle interruption: capture partial content ─────────────
     const handleInterruption = useCallback((spokenContent?: string) => {
+        // Immediately re-enable mic — user explicitly stopped Kai
+        setMicStoppedManually(false);
+        setMicIntent('auto-on');
         setMessages(prev => {
             const lastAiIdx = prev.length - 1;
             if (lastAiIdx < 0 || prev[lastAiIdx].role !== 'assistant') return prev;
