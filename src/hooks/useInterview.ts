@@ -162,7 +162,7 @@ export function useInterview(options: {
             lastTranscriptTimeRef.current = Date.now();
         },
         // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
-        onSilenceTimeout: () => { },
+        onSilenceTimeout: () => {},
         onError: (err) => setVoiceError(new Error(err)),
     });
 
@@ -621,7 +621,6 @@ export function useInterview(options: {
 
         const introTrigger = generateInterviewOpeningTrigger(
             problemTitle,
-            problemContent,
             optionsRef.current.isGuest ? 'practice' : (difficultyMode ?? 'practice')
         );
 
@@ -740,7 +739,7 @@ export function useInterview(options: {
                 }
             })
             .catch(() => console.warn('[Mic Permission] permissions API not available'));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // mount only
 
     // Test Hook: Expose trigger for Playwright (secured)

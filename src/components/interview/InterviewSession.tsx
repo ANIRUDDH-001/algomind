@@ -721,11 +721,11 @@ export function InterviewSession({
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Input:</span>
-                                        <span className="text-indigo-300 break-all">{typeof example.input === 'object' && example.input !== null ? JSON.stringify(example.input) : String(example.input)}</span>
+                                        <span className="text-indigo-300 break-all">{example.input}</span>
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Output:</span>
-                                        <span className="text-emerald-400 break-all">{typeof example.output === 'object' && example.output !== null ? JSON.stringify(example.output) : String(example.output)}</span>
+                                        <span className="text-emerald-400 break-all">{example.output}</span>
                                     </div>
                                     {example.explanation && (
                                         <div className="pt-2 mt-2 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
