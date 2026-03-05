@@ -32,9 +32,9 @@ Proprietary scoring engine measuring:
 
 ### 🚀 Multi-Model AI Architecture
 - **DB-Driven Model Routing** — `model_routing` table with Redis-cached (60s TTL) priority-ordered model selection per use case
-- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock Claude 3.5 Sonnet
-- **Chat Models**: Llama 3.3 70B, Llama 3.1 8B, Llama 4 Scout/Maverick, Kimi K2, GPT-OSS 120B/20B (via Groq)
-- **Analysis Models**: Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5/2.0 Flash (via Google AI)
+- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock
+- **Chat Models (14 routes)**: Claude Haiku 4.5(Bedrock), Gemini 2.0 Flash, GPT-OSS 20B (Bedrock), Kimi K2, GPT-OSS 20B/120B, Llama 4 Scout, Llama 3.3 70B, Llama 3.1 8B
+- **Analysis Models (11 routes)**: Claude Sonnet 4.5(Bedrock), Gemini 2.5 Pro, GPT-OSS 120B (Bedrock), Gemini 2.5/2.0/1.5 Flash, Gemini 1.5 Pro, Llama 3.3 70B
 - **Embeddings**: Gemini Embedding 001 (768 dimensions)
 - **Safety**: GPT-OSS Safeguard 20B content filtering
 
@@ -93,9 +93,9 @@ Proprietary scoring engine measuring:
 ### AI & Intelligence
 | Provider | Models | Use Case |
 |----------|--------|----------|
-| **Groq** | Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B | Chat, hints, fast responses |
-| **Google AI** | Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash | Deep analysis, 8-dim scoring |
-| **AWS Bedrock** | Claude 3.5 Sonnet v2 | Last-resort fallback |
+| **Groq** | Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B, Qwen3 32B | Chat, hints, fast responses |
+| **Google AI** | Gemini 2.5 Pro, Gemini 2.5/2.0/1.5 Flash, Gemini 1.5 Pro, Gemma 3 (27B/12B/4B/1B) | Deep analysis, 8-dim scoring |
+| **AWS Bedrock** | Claude Sonnet 4.5, Claude Haiku 4.5, GPT-OSS 120B/20B | Primary analysis + chat fallback |
 | **Embeddings** | Gemini Embedding 001 (768d) | RAG vector search |
 
 ### Voice
@@ -231,7 +231,7 @@ npm run test:ai             # AI module tests only
 | Database functions | **97** |
 | Indexes | **96** |
 | Feature flags | **15** (server-controlled via `global_feature_flags`) |
-| AI model routing rules | **11** (6 chat + 5 analysis) |
+| AI model routing rules | **25** (14 chat + 11 analysis) |
 
 ### Build Performance
 
@@ -247,7 +247,7 @@ npm run test:ai             # AI module tests only
 
 | Metric | Value |
 |--------|-------|
-| AI models integrated | **13** across 3 providers (Groq, Gemini, Bedrock) |
+| AI models integrated | **31** across 3 providers (Groq, Gemini, Bedrock) |
 | DSA vocabulary (STT boost) | **6,230 terms** |
 | RAG knowledge base | **8 topic files** → 31 embedding chunks (1.8 MB) |
 | Embedding dimensions | **768** (Gemini Embedding 001) |
