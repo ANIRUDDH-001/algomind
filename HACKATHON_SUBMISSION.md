@@ -877,6 +877,104 @@ From `scripts/benchmark-classifier.ts` — 35 sample queries:
 |--------|-------------------|---------------|
 | Pass threshold p99 | < 5ms | < 1ms |
 
+### 10.9 Voice Pipeline Latency
+
+> All benchmarks run from ap-south-1 (India) against the live Vercel deployment
+> and direct API endpoints, March 5, 2026. Scripts: `scripts/benchmark-voice-pipeline.mjs`,
+> `scripts/benchmark-aws-direct.mjs`, `scripts/benchmark-ai-models.mjs`.
+> Raw results: `scripts/benchmark-results.json`.
+
+**Direct API latencies** (no Vercel proxy overhead, 10 iterations each):
+
+| Stage | Model / Service | p50 | p95 | avg | Success |
+|-------|----------------|-----|-----|-----|---------|
+| Speech-to-Text | Groq whisper-large-v3-turbo | 193 ms | 423 ms | 239 ms | 10/10 |
+| AI Response (chat) | Groq Llama 3.3 70B | 397 ms | 610 ms | 410 ms | 10/10 |
+| Text-to-Speech | AWS Polly Kajal Neural (ap-south-1) | 450 ms | 669 ms | 452 ms | 10/10 |
+| **E2E (additive)** | **STT + AI + TTS** | **1,040 ms** | **1,702 ms** | **1,101 ms** | — |
+
+**Vercel-proxied latencies** (12 iterations, 3 concurrent VUs — includes Vercel cold-start + serverless overhead):
+
+| Stage | Model / Service | p50 | p95 | avg | Success |
+|-------|----------------|-----|-----|-----|---------|
+| STT (via /api/voice/transcribe) | Groq Whisper turbo | 2,013 ms | 4,127 ms | 2,423 ms | 12/12 |
+| AI Chat (via /api/chat, guest mode) | Llama 4 Scout 17B (Groq) | 3,853 ms | 6,740 ms | 4,498 ms | 12/12 |
+| **E2E Round-Trip** (via Vercel) | **STT + AI + TTS** | **6,673 ms** | **6,919 ms** | **6,415 ms** | 5/5 |
+
+**E2E breakdown (Vercel, averages):** STT 2,157 ms + AI 3,764 ms + TTS 494 ms = 6,415 ms
+
+> **Note:** Vercel-proxied latencies are 5–10× higher than direct API due to:
+> cold-start overhead on serverless functions, auth/rate-limit middleware, RAG context
+> retrieval, and Supabase/Redis cache checks. In production, warm functions bring
+> these closer to the direct API numbers.
+>
+> Silero VAD runs entirely in the browser (ONNX Runtime, ~0 ms server cost). STT is
+> triggered only after VAD confirms end-of-utterance.
+>
+> Bedrock Claude Haiku 4.5 (cross-region) was not testable from the local benchmark
+> machine due to IAM IP restrictions — the model is accessible only from the Vercel
+> deployment environment.
+
+**AI provider distribution (12 requests via guest mode):**
+Llama 4 Scout 17B (Groq): 12/12 hits — guest mode routes through Groq-only path, Bedrock requires authenticated sessions.
+
+### 10.10 Cost Per 30-Minute Interview Session
+
+Region: ap-south-1 · Rate: ₹83.5/USD · Session: 20 turns, 15s speech/turn,
+185 chars/response, 1 analysis call at end. All pricing from published rate cards (March 2026).
+
+**PRODUCTION stack — Haiku 4.5 cross-region chat + Sonnet 4.5 cross-region analysis:**
+
+| Component | Pricing Basis | Per-Session | USD | INR | Share |
+|-----------|--------------|-------------|-----|-----|-------|
+| STT — Groq Whisper large-v3-turbo | Free tier | 20 × 15s = 300s | $0.000 | ₹0.00 | 0% |
+| AI Chat — Claude Haiku 4.5 (Bedrock CR) | $1.00/1M in + $5.00/1M out | 10K in + 4K out tokens | $0.030 | ₹2.51 | 22.3% |
+| AI Analysis — Claude Sonnet 4.5 (Bedrock CR) | $3.00/1M in + $15.00/1M out | 4K in + 2K out tokens | $0.042 | ₹3.51 | 31.2% |
+| TTS — Polly Kajal Neural | $16.00/1M chars | 20 × 185 = 3,700 chars | $0.059 | ₹4.93 | 43.9% |
+| Infra (Vercel + Redis) | Amortized at ~3K sessions/mo | — | $0.003 | ₹0.25 | 2.6% |
+| **Total** | | | **$0.134** | **₹11.19** | 100% |
+
+**BUDGET stack** (gpt-oss-20b chat $0.60/1M in + $0.30/1M out + gpt-oss-120b analysis $1.20/1M in + $0.60/1M out):
+
+| Component | USD | INR |
+|-----------|-----|-----|
+| AI Chat — gpt-oss-20b (Bedrock) | $0.007 | ₹0.60 |
+| AI Analysis — gpt-oss-120b (Bedrock) | $0.006 | ₹0.50 |
+| TTS — Polly + Infra | $0.062 | ₹5.18 |
+| **Total** | **$0.075** | **₹6.28** |
+
+**FREE-TIER stack** (Llama 3.3 70B chat via Groq free + Gemini 2.5 Pro analysis via Google free):
+
+| Component | USD | INR |
+|-----------|-----|-----|
+| AI Chat — Groq Llama 3.3 70B | $0.000 | ₹0.00 |
+| AI Analysis — Gemini 2.5 Pro | $0.000 | ₹0.00 |
+| TTS — Polly + Infra | $0.062 | ₹5.18 |
+| **Total** | **$0.062** | **₹5.18** |
+
+**ULTRA-CHEAP stack** (Llama 3.1 8B chat via Groq free + gpt-oss-120b analysis Bedrock):
+
+| Component | USD | INR |
+|-----------|-----|-----|
+| AI Chat — Groq Llama 3.1 8B | $0.000 | ₹0.00 |
+| AI Analysis — gpt-oss-120b | $0.006 | ₹0.50 |
+| TTS — Polly + Infra | $0.062 | ₹5.18 |
+| **Total** | **$0.068** | **₹5.68** |
+
+**Comparison:**
+
+| Option | Cost per session | vs Human interviewer |
+|--------|-----------------|----------------------|
+| Human mock interview (30 min) | ₹1,000 – ₹3,000 | baseline |
+| AlgoMind Production stack | ₹11.19 | 99.4% cheaper |
+| AlgoMind Budget stack | ₹6.28 | 99.7% cheaper |
+| AlgoMind Free-tier stack | ₹5.18 | 99.7% cheaper |
+| AlgoMind Ultra-cheap stack | ₹5.68 | 99.7% cheaper |
+
+> **Note:** ₹20/session worst-case (full AWS stack including EC2 t3.medium, Bedrock Sonnet
+> on every turn, Polly, S3) is still 98%+ cheaper than the cheapest available human
+> mock interviewer, with zero scheduling overhead and 24/7 availability.
+
 ---
 
 ## 11. Future Work
