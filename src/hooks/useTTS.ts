@@ -93,9 +93,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
             console.warn('[useTTS] speak() called with empty text after cleaning');
             return;
         }
-        console.log(`[useTTS] speak() → engine.speak(), textLen=${cleaned.length}, polly=${pollyEnabled}`);
         const result = await engine.speak(cleaned, pollyEnabled);
-        console.log(`[useTTS] engine.speak() resolved, provider=${result.provider}, success=${result.success}`);
         setProvider(result.provider);
     }, [pollyEnabled]);
 
@@ -110,11 +108,9 @@ export function useTTS(opts: UseTTSOptions = {}) {
         if (!cleaned) return false;
 
         for (let attempt = 1; attempt <= retries; attempt++) {
-            console.log(`[useTTS] speakAndWait attempt ${attempt}/${retries}, textLen=${cleaned.length}`);
             const result = await engine.speak(cleaned, pollyEnabled);
             setProvider(result.provider);
             if (result.success) {
-                console.log(`[useTTS] speakAndWait succeeded on attempt ${attempt}`);
                 return true;
             }
             console.warn(`[useTTS] speakAndWait attempt ${attempt} failed`);
