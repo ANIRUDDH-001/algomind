@@ -1,6 +1,8 @@
 # **ALGOMIND: THE ₹2 INTERVIEW REVOLUTION**
 ## *GenAI-Powered Career Launchpad for Bharat*
 
+![AlgoMind Dashboard](dashboard-screenshot.png)
+
 > **Last updated**: March 5, 2026 — Consolidated from SYSTEM_REFERENCE.md, DESIGN.md, DEPLOYMENT.md, BUG_ANALYSIS.md, and live codebase audit.
 
 ---
