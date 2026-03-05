@@ -695,13 +695,13 @@ export function InterviewSession({
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent" data-tour="problem-panel">
                 <CardHeader className="bg-black/20 rounded-2xl border py-3 shrink-0 mb-4" style={{ borderColor: 'var(--surface-edge)' }}>
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-sm font-bold text-white truncate">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-3">
+                            <CardTitle className="text-sm font-bold text-white whitespace-normal break-words flex-1">
                                 {activeProblem.title}
                             </CardTitle>
                             <Badge className={cn(
-                                "text-[10px] px-2 py-0 h-5 shrink-0 border",
+                                "text-[10px] px-2 py-0 h-5 shrink-0 border mt-0.5",
                                 activeProblem.difficulty === 'easy' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
                                 activeProblem.difficulty === 'medium' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
                                 activeProblem.difficulty === 'hard' && 'bg-red-500/15 text-red-400 border-red-500/25'
@@ -1065,40 +1065,40 @@ export function InterviewSession({
             {showLimitModal && (() => {
                 const isSprintP1 = interviewConfig.difficultyMode === 'sprint' && sprintCurrentIndex === 0 && sprintProblem2 !== null;
                 return (
-                <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                        <div className="text-center space-y-4">
-                            <div className={cn("w-16 h-16 mx-auto rounded-full flex items-center justify-center", isSprintP1 ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-gradient-to-br from-orange-500 to-red-600")}>
-                                <Clock className="w-8 h-8 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white">
-                                {isSprintP1 ? 'Problem 1 Complete!' : limits.isTimeUp ? 'Time\'s Up!' : 'Turn Limit Reached'}
-                            </h3>
-                            <p className="text-zinc-400 text-sm">
-                                {isSprintP1
-                                    ? 'Great work! Ready for Problem 2?'
-                                    : limits.isTimeUp
-                                        ? 'Your session time has ended.'
-                                        : 'You\'ve reached the turn limit.'
-                                } {!isSprintP1 && "Let\u2019s analyze your performance!"}
-                            </p>
-                            {!isSprintP1 && limitCountdown !== null && limitCountdown > 0 && (
-                                <p className="text-amber-400 text-xs font-bold animate-pulse">
-                                    Auto-submitting in {limitCountdown}s...
+                    <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                            <div className="text-center space-y-4">
+                                <div className={cn("w-16 h-16 mx-auto rounded-full flex items-center justify-center", isSprintP1 ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-gradient-to-br from-orange-500 to-red-600")}>
+                                    <Clock className="w-8 h-8 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">
+                                    {isSprintP1 ? 'Problem 1 Complete!' : limits.isTimeUp ? 'Time\'s Up!' : 'Turn Limit Reached'}
+                                </h3>
+                                <p className="text-zinc-400 text-sm">
+                                    {isSprintP1
+                                        ? 'Great work! Ready for Problem 2?'
+                                        : limits.isTimeUp
+                                            ? 'Your session time has ended.'
+                                            : 'You\'ve reached the turn limit.'
+                                    } {!isSprintP1 && "Let\u2019s analyze your performance!"}
                                 </p>
-                            )}
-                            {isSprintP1 ? (
-                                <Button onClick={handleSprintAdvance} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold">
-                                    Continue to Problem 2 <ChevronRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            ) : (
-                                <Button onClick={() => { setShowLimitModal(false); limitAutoFinishRef.current = true; endInterview(); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
-                                    <Flag className="w-4 h-4 mr-2" /> View My Assessment
-                                </Button>
-                            )}
+                                {!isSprintP1 && limitCountdown !== null && limitCountdown > 0 && (
+                                    <p className="text-amber-400 text-xs font-bold animate-pulse">
+                                        Auto-submitting in {limitCountdown}s...
+                                    </p>
+                                )}
+                                {isSprintP1 ? (
+                                    <Button onClick={handleSprintAdvance} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold">
+                                        Continue to Problem 2 <ChevronRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                ) : (
+                                    <Button onClick={() => { setShowLimitModal(false); limitAutoFinishRef.current = true; endInterview(); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
+                                        <Flag className="w-4 h-4 mr-2" /> View My Assessment
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
                 );
             })()}
 
