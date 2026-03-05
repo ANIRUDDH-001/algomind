@@ -260,10 +260,42 @@ npm run test:ai             # AI module tests only
 |--------|-------------|--------------|
 | TTFB | < 800ms | < 3000ms |
 | LCP | < 2500ms | < 2500ms |
-| TBT | < 200ms | < 200ms |
-| CLS | < 0.1 | < 0.1 |
-| Interview page Begin button | < 5s | < 5s |
 | Monaco editor ready | < 3s | < 3s |
+
+### 🎙️ Voice Pipeline Latency
+
+> All benchmarks run from **ap-south-1 (India)** against the live Vercel deployment and direct API endpoints. Scripts: `scripts/benchmark-voice-pipeline.mjs`, `scripts/benchmark-aws-direct.mjs`, `scripts/benchmark-ai-models.mjs`.
+
+**Direct API Performance** (Real-time baseline):
+
+| Stage | Model / Service | p50 | p95 | avg |
+|-------|----------------|-----|-----|-----|
+| Speech-to-Text | Groq whisper-large-v3-turbo | **193 ms** | 423 ms | 239 ms |
+| AI Response (chat) | Groq Llama 3.3 70B | **406 ms** | 708 ms | 451 ms |
+| Text-to-Speech | AWS Polly Kajal Neural | **450 ms** | 669 ms | 452 ms |
+| **Total perceived** | **STT + AI + TTS** | **1,049 ms** | **1,800 ms** | **1,142 ms** |
+
+**Vercel-Proxied Performance** (Production environment with cold-start & middleware):
+
+| Stage | Model / Service | p50 | p95 | avg |
+|-------|----------------|-----|-----|-----|
+| STT (API Route) | Groq Whisper turbo | 2,013 ms | 4,127 ms | 2,423 ms |
+| AI Chat (API Route) | Llama 4 Scout (Groq) | 3,853 ms | 6,740 ms | 4,498 ms |
+| **E2E Round-Trip** | **Full Pipeline** | **6,673 ms** | **6,919 ms** | **6,415 ms** |
+
+> **Note**: Perceived latency is significantly lower in production for subsequent turns once functions are warm and RAG context is cached in Redis. Bedrock Claude Haiku 4.5 is used in production but was restricted for direct local benchmarking.
+
+### 💰 Cost Per 30-Minute Interview Session
+
+Calculated for a standard session: **20 turns**, 15s avg speech per turn, 185 chars AI response.
+
+| Stack | Per Session (USD) | Per Session (INR) | % vs Human |
+|-------|------------------|-------------------|------------|
+| **AlgoMind Production** (Haiku 4.5 + Sonnet 4.5) | **$0.134** | **₹11.19** | **99.4% cheaper** |
+| AlgoMind Budget | $0.075 | ₹6.28 | 99.7% cheaper |
+| AlgoMind Free-Tier | $0.062 | ₹5.18 | 99.7% cheaper |
+
+> **Human Interview Baseline**: ₹1,000 – ₹3,000 per session.
 
 ---
 
