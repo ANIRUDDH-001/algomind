@@ -243,7 +243,84 @@ npm run test:ai             # AI module tests only
 
 ---
 
-## 📄 License
+## � Performance Benchmarks
+
+> Collected on March 5, 2026 via `pwsh scripts/collect-benchmarks.ps1` — all numbers from real builds, no synthetic data.
+
+### Code Quality & Scale
+
+| Metric | Value |
+|--------|-------|
+| TypeScript strict-mode errors | **0** |
+| ESLint errors | **0** (427 warnings — all non-blocking) |
+| Test suite | **880 tests passing** across **116 test files** (105 suites) |
+| Test run time | **21.6s** |
+| Source files (TS/TSX/CSS/SQL/JS) | **481 files** |
+| Lines of code | **71,403** |
+| TypeScript (`.ts`) | 296 files — 44,268 lines |
+| React (`.tsx`) | 178 files — 26,126 lines |
+| CSS | 1 file — 399 lines |
+| SQL migrations | 3 files — 113 lines |
+
+### Architecture Metrics
+
+| Metric | Value |
+|--------|-------|
+| API route handlers | **54** across 18 domains |
+| React components | **117** across 19 directories |
+| Custom hooks | **17** |
+| Library modules | **26 dirs**, 147 files |
+| App pages | **20** |
+| Server actions | **5** |
+| Type definitions | **5** |
+| npm dependencies | **38 prod + 24 dev = 62 total** |
+
+### Database (Supabase PostgreSQL)
+
+| Metric | Value |
+|--------|-------|
+| Tables | **67** (29 public + system) |
+| RLS policies | **73** |
+| Database functions | **97** |
+| Indexes | **96** |
+| Feature flags | **15** (server-controlled via `global_feature_flags`) |
+| AI model routing rules | **11** (6 chat + 5 analysis) |
+
+### Build Performance
+
+| Metric | Value |
+|--------|-------|
+| Production build time | **51.9s** (Turbopack) |
+| TypeScript compilation | **7.8s** (`tsc --noEmit`) |
+| Bundle total (static) | **5,672 KB** (77 files) |
+| JS chunks | **5,250 KB** (65 files) |
+| CSS | **196 KB** (2 files) |
+
+### AI & Content
+
+| Metric | Value |
+|--------|-------|
+| AI models integrated | **13** across 3 providers (Groq, Gemini, Bedrock) |
+| DSA vocabulary (STT boost) | **6,230 terms** |
+| RAG knowledge base | **8 topic files** → 31 embedding chunks (1.8 MB) |
+| Embedding dimensions | **768** (Gemini Embedding 001) |
+| Model routing fallback tiers | **5** (DB → cross-tier → legacy → Bedrock → static) |
+| Total project files | **535** |
+
+### Core Web Vitals Thresholds (Playwright)
+
+| Metric | Target (CI) | Target (Dev) |
+|--------|-------------|--------------|
+| TTFB | < 800ms | < 3000ms |
+| LCP | < 2500ms | < 2500ms |
+| TBT | < 200ms | < 200ms |
+| CLS | < 0.1 | < 0.1 |
+| Interview page Begin button | < 5s | < 5s |
+| Monaco editor ready | < 3s | < 3s |
+
+---
+
+## �📄 License
 
 MIT License © 2026 AlgoMind
 
