@@ -24,7 +24,7 @@ import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -164,52 +164,21 @@ export function InterviewSession({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [interviewConfig.sprint?.problemIds]);
 
-    // Sprint: advance to problem 2 when turns on problem 1 are exhausted
+    // Sprint: show limit modal when half-time reached on problem 1
     useEffect(() => {
         if (
             !hasStarted ||
             readOnly ||
             interviewConfig.difficultyMode !== 'sprint' ||
             sprintCurrentIndex !== 0 ||
-            !limits.isTurnsUp ||
+            !(limits.isHalfTime || limits.isTurnsUp) ||
             !sprintProblem2
         ) return;
 
-        // This fires instead of the normal limit modal for sprint problem 1
-        setShowLimitModal(false);
-        setSprintCurrentIndex(1);
-        setSprintTransitionMsg('Problem 1 complete — starting Problem 2...');
-
-        const advancedConfig = advanceSprintProblem(interviewConfig, (sprintProblem2 as any).ragContext ?? '');
-
-        // Brief announcement pause then launch problem 2
-        const t = setTimeout(async () => {
-            setSprintTransitionMsg(null);
-            (limits as any).resetTurns?.();
-            limits.startTimer?.();
-            startInterview({
-                problemTitle: sprintProblem2.title,
-                problemContent: sprintProblem2.description ?? (sprintProblem2 as any).content,
-                difficulty: sprintProblem2.difficulty,
-                difficultyMode: 'sprint',
-                ragContext: advancedConfig.ragContext,
-                kaiMemory: interviewConfig.kaiMemory,
-                kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
-                language: (activeProblem as any).language,
-                optimalApproach: (sprintProblem2 as any).solution ?? undefined,
-                sprintProblemIndex: 1,
-                secondProblem: {
-                    title: sprintProblem2.title,
-                    content: (sprintProblem2 as any).content ?? sprintProblem2.description,
-                    description: sprintProblem2.description,
-                    difficulty: sprintProblem2.difficulty,
-                },
-            });
-        }, 2500);
-
-        return () => clearTimeout(t);
+        setShowLimitModal(true);
+        voice.stopListening();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasStarted, readOnly, limits.isTurnsUp, sprintCurrentIndex, sprintProblem2]);
+    }, [hasStarted, readOnly, limits.isHalfTime, limits.isTurnsUp, sprintCurrentIndex, sprintProblem2]);
 
     // Guest mode: problem selector + result overlay
     const [showGuestSelector, setShowGuestSelector] = useState<boolean>(isGuest);
@@ -494,6 +463,40 @@ export function InterviewSession({
 
     const isSavingRef = useRef(false);
 
+    const handleSprintAdvance = useCallback(() => {
+        if (!sprintProblem2) return;
+        setShowLimitModal(false);
+        setSprintCurrentIndex(1);
+        setSprintTransitionMsg('Starting Problem 2...');
+
+        const advancedConfig = advanceSprintProblem(interviewConfig, (sprintProblem2 as any).ragContext ?? '');
+
+        setTimeout(() => {
+            setSprintTransitionMsg(null);
+            (limits as any).resetTurns?.();
+            limits.startTimer?.();
+            startInterview({
+                problemTitle: sprintProblem2.title,
+                problemContent: sprintProblem2.description ?? (sprintProblem2 as any).content,
+                difficulty: sprintProblem2.difficulty,
+                difficultyMode: 'sprint',
+                ragContext: advancedConfig.ragContext,
+                kaiMemory: interviewConfig.kaiMemory,
+                kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
+                language: (activeProblem as any).language,
+                optimalApproach: (sprintProblem2 as any).solution ?? undefined,
+                sprintProblemIndex: 1,
+                secondProblem: {
+                    title: sprintProblem2.title,
+                    content: (sprintProblem2 as any).content ?? sprintProblem2.description,
+                    description: sprintProblem2.description,
+                    difficulty: sprintProblem2.difficulty,
+                },
+            });
+        }, 1500);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem]);
+
     const handleFinish = async () => {
         if (isSavingRef.current) return; // Prevent double-click save
         if (messages.length < 2) {
@@ -593,24 +596,25 @@ export function InterviewSession({
 
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
-            // Sprint problem 1 turn exhaustion is handled by the sprint advancement effect above
-            const isSprintProblem1Transition =
+            // Sprint problem 1 half-time is handled by the sprint advancement effect above
+            const isSprintP1 =
                 interviewConfig.difficultyMode === 'sprint' &&
                 sprintCurrentIndex === 0 &&
-                limits.isTurnsUp &&
                 sprintProblem2 !== null;
 
-            if (!isSprintProblem1Transition) {
+            if (!isSprintP1) {
                 setShowLimitModal(true);
                 voice.stopListening();
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasStarted, readOnly, limits.isTimeUp, limits.isTurnsUp]);
+    }, [hasStarted, readOnly, limits.isTimeUp, limits.isHalfTime, limits.isTurnsUp]);
 
     // A5: 10-second grace timer — auto-finish when countdown expires
+    // Skip countdown during sprint P1 (user should click "Continue to P2")
+    const isSprintP1Modal = interviewConfig.difficultyMode === 'sprint' && sprintCurrentIndex === 0 && sprintProblem2 !== null;
     useEffect(() => {
-        if (!showLimitModal) {
+        if (!showLimitModal || isSprintP1Modal) {
             setLimitCountdown(null);
             return;
         }
@@ -1058,34 +1062,45 @@ export function InterviewSession({
             )}
             <GuestRegisterModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
 
-            {showLimitModal && (
+            {showLimitModal && (() => {
+                const isSprintP1 = interviewConfig.difficultyMode === 'sprint' && sprintCurrentIndex === 0 && sprintProblem2 !== null;
+                return (
                 <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
                         <div className="text-center space-y-4">
-                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center">
+                            <div className={cn("w-16 h-16 mx-auto rounded-full flex items-center justify-center", isSprintP1 ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-gradient-to-br from-orange-500 to-red-600")}>
                                 <Clock className="w-8 h-8 text-white" />
                             </div>
                             <h3 className="text-xl font-bold text-white">
-                                {limits.isTimeUp ? 'Time\'s Up!' : 'Turn Limit Reached'}
+                                {isSprintP1 ? 'Problem 1 Complete!' : limits.isTimeUp ? 'Time\'s Up!' : 'Turn Limit Reached'}
                             </h3>
                             <p className="text-zinc-400 text-sm">
-                                {limits.isTimeUp
-                                    ? `Your session time has ended.`
-                                    : `You've reached the turn limit.`
-                                } Let&apos;s analyze your performance!
+                                {isSprintP1
+                                    ? 'Great work! Ready for Problem 2?'
+                                    : limits.isTimeUp
+                                        ? 'Your session time has ended.'
+                                        : 'You\'ve reached the turn limit.'
+                                } {!isSprintP1 && "Let\u2019s analyze your performance!"}
                             </p>
-                            {limitCountdown !== null && limitCountdown > 0 && (
+                            {!isSprintP1 && limitCountdown !== null && limitCountdown > 0 && (
                                 <p className="text-amber-400 text-xs font-bold animate-pulse">
                                     Auto-submitting in {limitCountdown}s...
                                 </p>
                             )}
-                            <Button onClick={() => { setShowLimitModal(false); limitAutoFinishRef.current = true; endInterview(); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
-                                <Flag className="w-4 h-4 mr-2" /> View My Assessment
-                            </Button>
+                            {isSprintP1 ? (
+                                <Button onClick={handleSprintAdvance} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold">
+                                    Continue to Problem 2 <ChevronRight className="w-4 h-4 ml-2" />
+                                </Button>
+                            ) : (
+                                <Button onClick={() => { setShowLimitModal(false); limitAutoFinishRef.current = true; endInterview(); handleFinish(); }} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold">
+                                    <Flag className="w-4 h-4 mr-2" /> View My Assessment
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
 
             <div className="fixed top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
                 <SkillBadge skillId={lastBadgeSkill} triggerPhrase={badgeTriggerPhrase} shown={showBadge} />
