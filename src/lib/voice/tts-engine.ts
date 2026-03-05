@@ -31,8 +31,7 @@ export class TTSEngine {
     }
 
     async speak(text: string, pollyEnabled: boolean): Promise<{ provider: TTSProvider; success: boolean }> {
-        if (!text.trim()) { console.log('[TTS] Empty text, skipping'); return { provider: 'browser', success: false }; }
-        console.log(`[TTS] speak() called, text length=${text.length}, pollyEnabled=${pollyEnabled}`);
+        if (!text.trim()) { return { provider: 'browser', success: false }; }
         const id = ++this.invId;
         const wasSpeaking = this._speaking;
         this.cancel();
@@ -49,13 +48,11 @@ export class TTSEngine {
         try {
             if (pollyEnabled && id === this.invId) {
                 const ok = await this.tryPolly(text, id);
-                if (ok) { used = 'polly'; success = true; console.log('[TTS] Polly succeeded'); return { provider: used, success }; }
-                console.log('[TTS] Polly failed, falling back to browser');
+                if (ok) { used = 'polly'; success = true; return { provider: used, success }; }
+                console.warn('[TTS] Polly failed, falling back to browser');
             }
             if (id === this.invId) {
-                console.log('[TTS] Starting browser TTS...');
                 success = await this.tryBrowser(text, id);
-                console.log(`[TTS] Browser TTS completed, success=${success}`);
             }
         } finally {
             if (id === this.invId) this.setSpeaking(false);
@@ -197,14 +194,13 @@ export class TTSEngine {
             if (this._voice) utt.voice = this._voice;
 
             let started = false;
-            utt.onstart = () => { started = true; console.log('[TTS] Browser utterance started playing'); };
-            utt.onend = () => { clearTimeout(safetyTimeout); console.log('[TTS] Browser utterance ended'); resolve(true); };
+            utt.onstart = () => { started = true; };
+            utt.onend = () => { clearTimeout(safetyTimeout); resolve(true); };
             utt.onerror = (e) => {
                 clearTimeout(safetyTimeout);
                 if (e.error !== 'interrupted' && e.error !== 'canceled') {
                     console.warn('[TTS] Browser error:', e.error);
                 }
-                console.log(`[TTS] Browser utterance error: ${e.error}`);
                 resolve(started); // If it started, some speech was heard
             };
             window.speechSynthesis.speak(utt);

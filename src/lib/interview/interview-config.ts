@@ -45,14 +45,14 @@ const LIMITS: Record<DifficultyMode, { ms: number; turns: number }> = {
 };
 
 // ── Guest ─────────────────────────────────────────────────────────────────────
-// 10 turns OR 10 minutes — whichever fires first. Saves nothing to DB.
+// HACKATHON MODE: unlimited for guests too
 export function resolveGuestConfig(): InterviewConfig {
     return {
         mode: 'guest',
         difficultyMode: 'practice',
-        maxDurationMs: 10 * 60_000,
-        maxTurnsPerProblem: 10,
-        isUnlimited: false,
+        maxDurationMs: 120 * 60_000,
+        maxTurnsPerProblem: 999,
+        isUnlimited: true,
         ragContext: '',   // Guest problems have pre-embedded context in their object
         kaiMemory: '',
         sprint: null,
@@ -69,8 +69,8 @@ export function resolvePracticeConfig(opts: {
     kaiMemory: string;
     sprintProblemIds?: [string, string]; // Required when difficultyMode === 'sprint'
 }): InterviewConfig {
-    // Both 'owner' and 'admin' are unlimited (matches check_is_admin() server logic)
-    const isUnlimited = ['owner', 'admin'].includes(opts.accountType) || opts.isCoOwner;
+    // HACKATHON MODE: unlimited for all users
+    const isUnlimited = true;
     const base = LIMITS[opts.difficultyMode];
 
     return {
