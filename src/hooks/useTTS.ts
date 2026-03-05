@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSEngine, type TTSProvider } from '@/lib/voice/tts-engine';
+import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 
 export interface UseTTSOptions {
     onSpeakStart?: () => void;
@@ -30,7 +31,11 @@ export function useTTS(opts: UseTTSOptions = {}) {
     useEffect(() => {
         fetch('/api/flags', { signal: AbortSignal.timeout(3000) })
             .then(r => r.ok ? r.json() : {})
-            .then((f: any) => setPollyEnabled(f['ENABLE_AWS_POLLY_TTS']?.value === true))
+            .then((f: any) => {
+                const polly = f['ENABLE_AWS_POLLY_TTS']?.value === true;
+                const guestPolly = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
+                setPollyEnabled(polly || guestPolly);
+            })
             .catch(() => setPollyEnabled(false));
     }, []);
 
@@ -83,7 +88,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
             console.warn('[useTTS] speak() called but engine is null — TTS not ready');
             return;
         }
-        const cleaned = text.replace(/[*_#`~]/g, '').trim();
+        const cleaned = preprocessForTTS(text.replace(/[*_#`~]/g, '')).trim();
         if (!cleaned) {
             console.warn('[useTTS] speak() called with empty text after cleaning');
             return;
@@ -101,7 +106,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
             console.warn('[useTTS] speakAndWait() called but engine is null');
             return false;
         }
-        const cleaned = text.replace(/[*_#`~]/g, '').trim();
+        const cleaned = preprocessForTTS(text.replace(/[*_#`~]/g, '')).trim();
         if (!cleaned) return false;
 
         for (let attempt = 1; attempt <= retries; attempt++) {
