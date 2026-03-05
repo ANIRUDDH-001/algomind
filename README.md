@@ -2,6 +2,8 @@
 
 > **The AI-Powered Technical Interview Coach that listens, analyzes, and teaches.**
 
+![AlgoMind Dashboard](dashboard-screenshot.png)
+
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
 [![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -173,6 +175,24 @@ npm install
 cp .env.example .env.local
 # Fill in: GEMINI_API_KEY, GROQ_API_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
+
+### Database Setup
+
+After creating your Supabase project, apply the schema and seed data:
+
+```bash
+# Apply the schema (from schema details/supabase_schema.sql)
+# Then run the seed migrations in order:
+psql $DATABASE_URL -f supabase/migrations/20260305_cleanup_dead_tables.sql
+psql $DATABASE_URL -f supabase/migrations/20260305_seed_feature_flags.sql
+psql $DATABASE_URL -f supabase/migrations/20260305_seed_model_routing.sql
+```
+
+This seeds:
+- **15 feature flags** in `global_feature_flags` (VAD, Smart Routing, Polly, etc.)
+- **13 AI models** in `model_registry` (Groq + Gemini + embeddings)
+- **11 routing rules** in `model_routing` (6 chat + 5 analysis)
+- **1 system config** (`cross_tier_fallback_enabled`)
 
 ### Development
 
