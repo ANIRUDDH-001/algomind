@@ -14,6 +14,7 @@ export interface InterviewLimits {
     timeRemaining: number; // in seconds
     isTimeUp: boolean;
     isTurnsUp: boolean;
+    isHalfTime: boolean;
     shouldShowTurnWarning: boolean;
     formattedElapsed: string; // MM:SS
     formattedRemaining: string; // MM:SS
@@ -98,6 +99,7 @@ export function useInterviewLimits(options?: {
     const turnsRemaining = isUnlimited ? 9999 : Math.max(0, effectiveMaxTurns - turnsUsed);
     const isTimeUp = !isUnlimited && (elapsedTime >= maxDurationMs / 1000);
     const isTurnsUp = !isUnlimited && (turnsUsed >= effectiveMaxTurns);
+    const isHalfTime = !isUnlimited && (turnsUsed >= Math.floor(effectiveMaxTurns / 2));
     const shouldShowTurnWarning = !isUnlimited && turnsRemaining <= WARNING_TURNS_REMAINING && !isTurnsUp;
 
     // Format time as MM:SS
@@ -114,6 +116,7 @@ export function useInterviewLimits(options?: {
         timeRemaining,
         isTimeUp,
         isTurnsUp,
+        isHalfTime,
         shouldShowTurnWarning,
         formattedElapsed: formatTime(elapsedTime),
         formattedRemaining: formatTime(timeRemaining),

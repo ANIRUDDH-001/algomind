@@ -156,8 +156,11 @@ function InterviewContent() {
                 // ── Sprint: fetch problem 2 if needed ────────────────────────────────────────
                 let sprintProblemIds: [string, string] | undefined;
                 if (difficultyMode === 'sprint' && fetchedProblem && !isGuest) {
+                    const p2IdParam = searchParams.get('p2Id');
                     try {
-                        const p2 = await getRandomProblem(fetchedProblem.difficulty);
+                        const p2 = p2IdParam
+                            ? await getProblemById(p2IdParam)
+                            : await getRandomProblem(fetchedProblem.difficulty);
                         if (p2 && p2.id !== fetchedProblem.id) sprintProblemIds = [fetchedProblem.id, p2.id];
                     } catch { /* single-problem sprint if this fails */ }
                 }
