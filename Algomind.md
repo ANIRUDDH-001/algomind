@@ -344,17 +344,6 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector extensio
 |-------|---------|-------------|
 | `score_benchmarks` | Percentile benchmarks per skill+difficulty | `difficulty`, `skill_id`, `p25`, `p50`, `p75`, `p90`, `sample_count` |
 
-#### Dead / Minimal Tables
-
-| Table | Status | Notes |
-|-------|--------|-------|
-| `ai_models` | ⚠️ DEAD | Replaced by `model_registry` + `model_routing`. Not referenced in codebase. |
-| `model_performance_logs` | ⚠️ DEAD | Logging table with no active writers. |
-| `user_daily_usage` | ⚠️ DEAD | Replaced by Redis-backed rate limiter (`HACKATHON_UNLIMITED`). |
-| `company_profiles` | ⚠️ DEAD | 4-column table (`id`, `name`, `emoji`, `theme_color`, `persona_prompt`). Not referenced. |
-| `code_attempts` | Minimal | Rate-limiting for entry code attempts. Low usage. |
-| `score_benchmarks` | Minimal | Percentile data. Rarely computed. |
-
 ### **6.2 Key Database Functions**
 
 | Function | Purpose |
