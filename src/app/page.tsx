@@ -269,29 +269,29 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 2: FEATURES (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-24 px-4 relative max-w-7xl mx-auto border-b border-transparent">
+      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-8 md:py-16 px-4 relative max-w-7xl mx-auto border-b border-transparent">
         <FadeInView>
-          <div className="text-center mb-10 md:mb-16">
+          <div className="text-center mb-6 md:mb-10">
             <h2 className="text-3xl md:text-5xl font-black mb-4">Master every angle</h2>
             <p className="text-zinc-400 text-lg">Beyond just writing code. Prove how you think.</p>
           </div>
         </FadeInView>
 
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid md:grid-cols-3 gap-4 md:gap-8">
 
           {/* Feature 1 */}
           <FadeInView delay={0.1}>
             <TiltCard className="h-full">
-              <div className="surface-2 rounded-3xl p-6 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300">
+              <div className="surface-2 rounded-3xl p-5 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4 md:mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300">
                   <Mic className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Voice Interview</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6 flex-grow">
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Voice Interview</h3>
+                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-6 flex-grow">
                   Converse naturally with our AI. It responds in real-time, asking probing follow-ups based on your exact approach.
                 </p>
                 {/* Visual Mockup - Waveform */}
-                <div className="mt-auto h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex items-center justify-center gap-1.5 group-hover:border-indigo-500/40 transition-colors shadow-inner">
+                <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex items-center justify-center gap-1.5 group-hover:border-indigo-500/40 transition-colors shadow-inner">
                   {[30, 60, 40, 90, 50, 80, 45, 20].map((h, i) => (
                     <motion.div
                       key={i}
@@ -308,17 +308,17 @@ export default function HomePage() {
           {/* Feature 2 */}
           <FadeInView delay={0.2}>
             <TiltCard className="h-full">
-              <div className="surface-2 rounded-3xl p-6 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:-rotate-3 duration-300">
+              <div className="surface-2 rounded-3xl p-5 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4 md:mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:-rotate-3 duration-300">
                   <Brain className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Cognitive Analysis</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6 flex-grow">
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Cognitive Analysis</h3>
+                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-6 flex-grow">
                   We track 8 distinct cognitive skills—from pattern recognition to edge-case awareness—to find exactly what's holding you back.
                 </p>
                 {/* Visual Mockup - Animated Radar SVG */}
-                <div className="mt-auto h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex items-center justify-center group-hover:border-purple-500/40 transition-colors relative overflow-hidden shadow-inner">
-                  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+                <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex items-center justify-center group-hover:border-purple-500/40 transition-colors relative overflow-hidden shadow-inner">
+                  <svg viewBox="0 0 100 100" className="w-full h-full max-h-full drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
                     <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" className="stroke-white/10 stroke-[0.5] fill-transparent" />
                     <polygon points="50,30 70,40 70,60 50,70 30,60 30,40" className="stroke-white/10 stroke-[0.5] fill-transparent" />
                     <motion.polygon
@@ -344,16 +344,16 @@ export default function HomePage() {
           {/* Feature 3 */}
           <FadeInView delay={0.3}>
             <TiltCard className="h-full">
-              <div className="surface-2 rounded-3xl p-6 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300">
+              <div className="surface-2 rounded-3xl p-5 md:p-8 h-full flex flex-col border border-white/5 overflow-hidden group">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 md:mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300">
                   <BarChart className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Company Modes</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6 flex-grow">
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Company Modes</h3>
+                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-6 flex-grow">
                   Select your target company. The AI adapts its strictness, hints, and expected optimality to match their specific rubric.
                 </p>
                 {/* Visual Mockup - Logos */}
-                <div className="mt-auto h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-wrap gap-2 items-center justify-center group-hover:border-emerald-500/40 transition-colors shadow-inner">
+                <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-wrap gap-2 items-center justify-center group-hover:border-emerald-500/40 transition-colors shadow-inner overflow-hidden">
                   {['Google', 'Meta', 'Amazon', 'Startup'].map((co, i) => (
                     <motion.div
                       key={co}

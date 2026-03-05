@@ -99,7 +99,7 @@ export function useInterviewLimits(options?: {
     const turnsRemaining = isUnlimited ? 9999 : Math.max(0, effectiveMaxTurns - turnsUsed);
     const isTimeUp = !isUnlimited && (elapsedTime >= maxDurationMs / 1000);
     const isTurnsUp = !isUnlimited && (turnsUsed >= effectiveMaxTurns);
-    const isHalfTime = !isUnlimited && (turnsUsed >= Math.floor(effectiveMaxTurns / 2));
+    const isHalfTime = !isUnlimited && (elapsedTime >= Math.floor(maxDurationMs / 2000));
     const shouldShowTurnWarning = !isUnlimited && turnsRemaining <= WARNING_TURNS_REMAINING && !isTurnsUp;
 
     // Format time as MM:SS

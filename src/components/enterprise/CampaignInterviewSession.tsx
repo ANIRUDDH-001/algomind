@@ -529,9 +529,10 @@ function ActiveQuestionView({
                     {/* Problem Panel */}
                     <Card className="w-1/3 bg-slate-900 border-slate-800 flex flex-col min-h-0">
                         <CardHeader className="py-4 border-b border-slate-800 shrink-0">
-                            <div className="flex justify-between items-start">
-                                <CardTitle className="text-lg text-white">{problem.title}</CardTitle>
+                            <div className="flex justify-between items-start gap-4">
+                                <CardTitle className="text-lg text-white whitespace-normal break-words flex-1 min-w-0">{problem.title}</CardTitle>
                                 <Badge variant="outline" className={cn(
+                                    "shrink-0 mt-0.5",
                                     problem.difficulty === 'easy' && "text-green-400 border-green-400/30",
                                     problem.difficulty === 'medium' && "text-amber-400 border-amber-400/30",
                                     problem.difficulty === 'hard' && "text-red-400 border-red-400/30"
