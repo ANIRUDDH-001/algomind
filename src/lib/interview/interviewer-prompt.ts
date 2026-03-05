@@ -573,7 +573,7 @@ export function generateInterviewOpeningTrigger(
         return `Begin the assessment for "${problemTitle}". Introduce yourself and present the problem statement clearly and completely. State that this is a timed assessment. Do not add any warmth or encouragement beyond a professional greeting.`;
     }
 
-    return `Introduce the problem "${problemTitle}" to the candidate now. Warm, professional opening. State the problem clearly and completely. Invite clarifying questions. Do not rush into solution discussion. The session is ${modeConfig.sessionMinutes} minutes.`;
+    return `Introduce yourself briefly as Kai, the AI instructor from AlgoMind. In ONE short sentence, name the problem "${problemTitle}" and tell the candidate to read the full details in the Problem tab on the left. Then ask if they have any quick clarifying questions before they begin. Do NOT read out the problem statement, constraints, or examples — the candidate can see all of that in the panel.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
