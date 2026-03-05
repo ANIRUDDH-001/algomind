@@ -73,7 +73,7 @@ Microphone ──► [VAD] ──► [STT] ──► [useInterview] ──► [C
           .ts (ONNX)  (4-tier)    RAG + history       5-tier LLM   Polly→Browser
 ```
 
-**Target latency:** ~800ms end-to-end (VAD stop → first audio syllable)
+**Target latency:** ~1,049 ms end-to-end (direct API p50, VAD stop → first audio syllable)
 
 ### **3.2 VAD — Voice Activity Detection**
 **File:** `src/lib/voice/vad-manager.ts`
@@ -726,7 +726,7 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 ## **18. PERFORMANCE & SECURITY**
 
 ### **Performance**
-- ~800ms voice-to-voice latency
+- **~1,049 ms** voice-to-voice latency (direct API p50)
 - Edge Middleware JWT decode — no cold start penalty
 - Redis 60s ModelRouting cache
 - Script-tag VAD loading (bypasses Turbopack 120s+ WASM)
@@ -790,7 +790,7 @@ npm run lint
 | Competitor | Limitation | AlgoMind Advantage |
 |------------|-----------|-------------------|
 | LeetCode | Code-only | Voice-first + communication scoring |
-| Pramp | ₹2,000/session | ₹2/session, 24/7 |
+| Pramp | ₹2,000/session | ₹5.18/session (99.7% cheaper), 24/7 |
 | ChatGPT | Text-only | 8-dimensional scoring + FSRS |
 | Human mock | /hour | 1,500x cheaper, unlimited |
 
@@ -817,4 +817,4 @@ npm run lint
 
 **Phase 4:** Full Career Platform — salary negotiation, company-specific prep, job matching
 
-**Business Model:** ₹2/interview (70% gross margin), ₹49-99/month subscriptions, ₹10,000/year institutional
+**Business Model:** From ₹5.18/interview (production cost), ₹49-99/month subscriptions, ₹10,000/year institutional
