@@ -3,12 +3,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
 import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
+import dynamic from 'next/dynamic';
 import type { CognitiveSkill } from '@/types/assessment';
+
+const ExportReportButton = dynamic(
+    () => import('@/components/dashboard/ExportReportButton').then(m => ({ default: m.ExportReportButton })),
+    { ssr: false }
+);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -781,6 +787,22 @@ export function AnalysisClient({
                         <Link href="/practice" className="block">
                             <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300">
                                 <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
+                            </Button>
+                        </Link>
+
+                        {assessment && (
+                            <ExportReportButton sessionData={{
+                                score: assessment.overallScore,
+                                skills: assessment.skills,
+                                feedback: assessment.overallFeedback,
+                                nextSteps: assessment.nextSteps,
+                                problemTitle: session.problemTitle,
+                            }} />
+                        )}
+
+                        <Link href="/dashboard" className="block">
+                            <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300">
+                                <LayoutDashboard className="w-4 h-4 mr-2" /> Go to Dashboard
                             </Button>
                         </Link>
                     </div>
