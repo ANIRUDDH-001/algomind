@@ -134,7 +134,30 @@ export default async function AnalysisPage({
                 subCriteria: assessment.sub_criteria || {},
                 codeQuality: assessment.code_quality as any || null,
                 hireDecision: assessment.hire_decision || null,
-                keyMoments: (assessment.skill_evidence as any)?.keyMoments || [],
+                keyMoments: (() => {
+                    const raw = (assessment.skill_evidence as any)?.keyMoments;
+                    if (Array.isArray(raw) && raw.length > 0) return raw;
+                    // Fallback: synthesize from per-dimension evidence strings
+                    const fallback: any[] = [];
+                    const evidence = assessment.skill_evidence as Record<string, any> | null;
+                    if (evidence) {
+                        for (const [dim, data] of Object.entries(evidence)) {
+                            if (dim === 'keyMoments' || dim === 'improvementExamples' || !data?.evidence) continue;
+                            const quotes: string[] = Array.isArray(data.evidence) ? data.evidence : [];
+                            for (const q of quotes.slice(0, 1)) {
+                                fallback.push({
+                                    timestampIndex: 0,
+                                    momentType: 'impressive_statement',
+                                    quote: typeof q === 'string' ? q.slice(0, 60) : '',
+                                    significance: `Evidence from ${dim.replace(/-/g, ' ')}`,
+                                    dimension: dim,
+                                    sentiment: (data.score ?? 0) >= 6 ? 'positive' : 'neutral',
+                                });
+                            }
+                        }
+                    }
+                    return fallback;
+                })(),
                 improvementExamples: (assessment.skill_evidence as any)?.improvementExamples || [],
             } : null}
             sm2={sm2Data}

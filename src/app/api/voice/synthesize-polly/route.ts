@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { synthesizeWithPolly } from '@/lib/aws/polly';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 import { logAWSUsage, estimatePollyCost } from '@/lib/aws/usage-logger';
+import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +16,13 @@ const MAX_TEXT_LENGTH = 2900;
  * Client falls back to Groq/browser when Polly is disabled or unavailable.
  */
 export async function POST(request: NextRequest) {
-    // Auth check
+    // Auth check — allow guests when ENABLE_GUEST_POLLY_TTS is on
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+        const guestPolly = await getGlobalFeatureFlag('ENABLE_GUEST_POLLY_TTS');
+        if (!guestPolly) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     try {
         const { text, voice } = await request.json();
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
             region: process.env.AWS_REGION || 'ap-south-1',
             bytesProcessed: audioBuffer.byteLength,
             estimatedCostUsd: estimatePollyCost(truncated.length, (voice || 'Kajal') === 'Kajal'),
-            userId: user.id,
+            userId: user?.id ?? 'guest',
             metadata: { voice: voice || 'Kajal', textLength: truncated.length },
         }).catch(() => {}); // never block on logging
 

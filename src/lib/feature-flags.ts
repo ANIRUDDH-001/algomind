@@ -78,6 +78,14 @@ export const FEATURE_FLAGS = {
         requiresBrowserSupport: false,
     },
 
+    // AWS Polly for guest / unauthenticated users
+    ENABLE_GUEST_POLLY_TTS: {
+        storageKey: 'feature_ENABLE_GUEST_POLLY_TTS',
+        defaultValue: false,
+        description: 'Allow guest (unauthenticated) users to use AWS Polly TTS during demo sessions.',
+        requiresBrowserSupport: false,
+    },
+
     // AWS Transcribe (batch only)
     ENABLE_AWS_TRANSCRIBE_STT: {
         storageKey: 'feature_ENABLE_AWS_TRANSCRIBE_STT',
