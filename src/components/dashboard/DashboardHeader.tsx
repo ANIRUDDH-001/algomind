@@ -7,6 +7,7 @@ import { ExportReportButton } from './ExportReportButton';
 import { Brain, PlusCircle, Calendar, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface DashboardHeaderProps {
     progress: UserProgress | null;
@@ -14,6 +15,7 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderProps) {
+    const { user } = useAuth();
     const latestSession = progress?.sessions?.[0];
     const avgScore = progress?.averageScore || 0;
     const lastDate = latestSession ? format(new Date(latestSession.timestamp), 'MMM d, h:mm a') : '—';
@@ -28,8 +30,7 @@ export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderP
                         Welcome back
                     </p>
                     <h1 className="text-2xl font-bold text-white truncate text-wrap">
-                        {/* Optionally replace Code Explorer with real user name later if added to auth */}
-                        {'Code Explorer'}
+                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Code Explorer'}
                         <span className="text-zinc-600 font-normal"> — keep pushing.</span>
                     </h1>
                 </div>

@@ -119,6 +119,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Default time limits must be between 5 and 120' }, { status: 400 });
         }
 
+        const totalTimeMins = campaignQuestions.reduce((sum: number, q: any) => sum + q.time_limit_mins, 0);
+        if (totalTimeMins > 360) {
+            return NextResponse.json({ error: `Total campaign time (${totalTimeMins} min) exceeds 360-minute limit` }, { status: 400 });
+        }
+
         const supabase = await createServerSupabase();
 
         // 3. Generate entry code via RPC

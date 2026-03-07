@@ -21,13 +21,14 @@
 12. [Database Schema (29 Tables)](#12-database-schema-29-tables)
 13. [Interview Configuration](#13-interview-configuration)
 14. [Application Routes & API](#14-application-routes--api)
-15. [Hooks Reference](#15-hooks-reference)
-16. [Component Architecture](#16-component-architecture)
-17. [Technology Stack](#17-technology-stack)
-18. [Performance & Security](#18-performance--security)
-19. [Deployment](#19-deployment)
-20. [Novelty & Competitive Differentiation](#20-novelty--competitive-differentiation)
-21. [Scope to Scale](#21-scope-to-scale)
+15. [Employer Assessment Platform](#15-employer-assessment-platform)
+16. [Hooks Reference](#16-hooks-reference)
+17. [Component Architecture](#17-component-architecture)
+18. [Technology Stack](#18-technology-stack)
+19. [Performance & Security](#19-performance--security)
+20. [Deployment](#20-deployment)
+21. [Novelty & Competitive Differentiation](#21-novelty--competitive-differentiation)
+22. [Scope to Scale](#22-scope-to-scale)
 
 ---
 
@@ -73,7 +74,7 @@ Microphone ──► [VAD] ──► [STT] ──► [useInterview] ──► [C
           .ts (ONNX)  (4-tier)    RAG + history       5-tier LLM   Polly→Browser
 ```
 
-**Target latency:** ~1,049 ms end-to-end (direct API p50, VAD stop → first audio syllable)
+**Target latency:** ~800ms end-to-end (VAD stop → first audio syllable)
 
 ### **3.2 VAD — Voice Activity Detection**
 **File:** `src/lib/voice/vad-manager.ts`
@@ -175,35 +176,26 @@ Microphone ──► [VAD] ──► [STT] ──► [useInterview] ──► [C
 
 | Model ID | Tier | RPM | RPD | Context | Role |
 |----------|------|-----|-----|---------|------|
-| `llama-3.3-70b-versatile` | 1 | 26 | 850 | 128K | Primary chat |
-| `llama-3.1-8b-instant` | 2 | 26 | 12,240 | 128K | Ultra-fast hints |
-| `moonshotai/kimi-k2-instruct` | 2 | 60 | 1,000 | 131K | High-concurrency chat |
-| `qwen/qwen3-32b` | 3 | 60 | 1,000 | 131K | Multilingual reasoning |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | 4 | 26 | 850 | 128K | Balanced MoE |
-| `meta-llama/llama-4-maverick-17b-128e-instruct` | 4 | 30 | 1,000 | 1M | Long-context MoE |
-| `moonshotai/kimi-k2-instruct-0905` | 5 | 26 | 850 | 200K | Structured output |
-| `openai/gpt-oss-120b` | 5 | 26 | 850 | 200K | Heavy reasoning |
-| `openai/gpt-oss-20b` | 6 | 26 | 850 | 200K | Light reasoning |
-| `openai/gpt-oss-safeguard-20b` | 99 | 100 | 1,000 | 8K | Safety filtering |
+| `llama-3.3-70b-versatile` | 1 | 25.5 | 850 | 128K | Primary chat |
+| `llama-3.1-8b-instant` | 2 | 25.5 | 12240 | 128K | Ultra-fast hints |
+| `meta-llama/llama-4-scout-17b-16e-instruct` | 4 | 25.5 | 850 | 128K | Balanced |
+| `moonshotai/kimi-k2-instruct-0905` | 5 | 25.5 | 850 | 200K | Structured output |
+| `openai/gpt-oss-120b` | 5 | 25.5 | 850 | 200K | Heavy reasoning |
+| `openai/gpt-oss-20b` | 6 | 25.5 | 850 | 200K | Light reasoning |
+| `openai/gpt-oss-safeguard-20b` | 99 | 100 | 1000 | 8K | Safety filtering |
 
 #### Assessment Layer — Gemini (accuracy-critical)
 
 | Model ID | Tier | RPM | RPD | Context | Role |
 |----------|------|-----|-----|---------|------|
-| `gemini-2.5-pro` | 10 | 13 | 1,275 | 1M | Primary 8-dim scoring |
+| `gemini-2.5-pro` | 10 | 12.75 | 1275 | 1M | Primary 8-dim scoring |
 | `gemini-1.5-pro` | 10 | 2 | 50 | 2M | Fallback analysis |
-| `gemini-2.0-flash` | 11 | 10 | 1,500 | 1M | Fast analysis |
-| `gemini-1.5-flash` | 11 | 15 | 1,500 | 1M | Legacy fallback |
-| `gemini-2.5-flash` | 12 | 4 | 17 | 1M | Cost-optimised |
-| `gemini-2.5-flash-lite` | 11 | 10 | 20 | 1M | Moderate-volume flash |
-| `gemma-3-27b-it` | 12 | 30 | 14,400 | 131K | Strong quality (instruction-tuned) |
-| `gemma-3-12b-it` | 13 | 30 | 14,400 | 131K | Balanced speed/quality |
-| `gemma-3-4b-it` | 14 | 30 | 14,400 | 131K | Low-latency fallback |
-| `gemma-3-1b-it` | 15 | 30 | 14,400 | 32K | Minimal inference |
+| `gemini-2.0-flash` | 11 | 10 | 1500 | 1M | Fast analysis |
+| `gemini-1.5-flash` | 11 | 15 | 1500 | 1M | Legacy fallback |
+| `gemini-2.5-flash` | 12 | 4.25 | 17 | 1M | Cost-optimised |
 
 #### Emergency Fallback — AWS Bedrock
-- **Chat models**: `us.anthropic.claude-haiku-4-5-20251001-v1:0` (P1), `openai.gpt-oss-20b-1:0` (P100)
-- **Analysis model**: `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (P1), `openai.gpt-oss-120b-1:0` (P30)
+- Default model: `openai.gpt-oss-120b-1:0`
 - DB-overridable via `model_routing` table (`provider = 'bedrock'`)
 - Auto-detects model family from ID prefix: `anthropic.*` → Claude, `openai.*` → OpenAI format
 - Region: `us-east-1` (configurable via `AWS_BEDROCK_REGION`)
@@ -669,7 +661,119 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 
 ---
 
-## **15. HOOKS REFERENCE**
+## **15. EMPLOYER ASSESSMENT PLATFORM**
+
+End-to-end hiring assessment system enabling employers to create multi-question campaigns, distribute them via entry codes, and rank candidates across 8 cognitive dimensions.
+
+### **15.1 Architecture Overview**
+
+```
+Employer creates campaign → Entry code + public link generated
+                          ↓
+Candidate enters code → verify-code RPC (rate-limited) → start session (JWT signed)
+                          ↓
+Per-question interview (employer mode: zero hints, max strictness)
+                          ↓
+Complete → CognitiveAnalyzer runs per-question → weighted-average 8-dim scores
+                          ↓
+Employer views ranked submissions → radar comparison → transcript viewer → CSV export
+```
+
+### **15.2 Campaign Creation**
+
+**Component:** `CreateCampaignModal` — 2-step wizard
+
+| Step | UI | Details |
+|------|-----|---------|
+| **1: Select Questions** | Title input, searchable problem picker, drag reorder | 1–3 questions per campaign; includes "Random Easy/Medium/Hard" synthetic options |
+| **2: Adjust Timing** | Per-question time editors, global timing defaults | 5–120 min per question, total ≤ 360 min; advanced panel for default Easy/Medium/Hard times |
+
+**Settings:** Link expiry (datetime picker), max uses, "Show score to candidate" toggle.
+
+**API:** `POST /api/employer/campaigns`
+- Validates title (5–100 chars), 1–3 questions, per-question time (5–120 min), total time (≤ 360 min)
+- Generates unique entry code via `supabase.rpc('generate_campaign_entry_code')`
+- Inserts `assessment_campaigns` row with `campaign_questions` JSONB array
+- Returns campaign with entry code + public token
+
+**Post-creation:** Success modal displays entry code (large monospace + copy) and assessment link (copyable). Candidates need both to start.
+
+### **15.3 Candidate Assessment Flow**
+
+| Step | API Endpoint | Key Logic |
+|------|-------------|-----------|
+| **Verify code** | `POST /api/assess/verify-code` | IP rate limit (5 attempts/2 min via RPC), `ENTRY_CODE_REGEX` validation, timing-attack prevention (records failure *before* verification), returns campaign + question details |
+| **Start session** | `POST /api/assess/start` | Re-verifies code server-side, rate limit (5/10 min), checks for resumable in-progress submission, atomic slot claim via `claim_campaign_slot` RPC, resolves random problem IDs, signs JWT (HMAC-SHA256) with submission ID + campaign ID |
+| **Interview** | `POST /api/assess/chat` | Employer interview mode — zero hints, maximum strictness, evaluation-only prompts. Per-question state tracking with individual time limits |
+| **Complete** | `POST /api/assess/complete` | JWT verification, runs `CognitiveAnalyzer.analyze()` per question (50s timeout), weighted-average across 8 skills (weighted by elapsed time), graceful degradation on timeout (`analysis_status: 'pending_retry'`), inserts `interview_sessions` + `assessments` rows |
+
+**Security:** Entry code rate limiting, JWT session auth, atomic slot claiming, input sanitization, timing-attack prevention, service-role client for cross-user writes.
+
+### **15.4 Employer Dashboard**
+
+**Server component:** `employer/dashboard/page.tsx` — RSC with `requireEmployer()` guard, prefetches campaigns + problems + submission counts in parallel via `Promise.all`.
+
+**Client component:** `EmployerDashboard` — two-tab interface:
+
+#### Campaigns Tab
+Grid of campaign cards showing:
+- Title, status badge (Active / Deactivated / Expired / Full), completed count
+- Questions & total time, entry code with copy button
+- Actions: View Results, Copy Assessment Link, Deactivate, Delete (with confirmation dialogs)
+
+#### Submissions Ranking Tab
+- **`CohortStatsPanel`** — aggregate statistics across all submissions
+- **Campaign selector** dropdown + **status filter** pills (`All`, `Completed`, `In Progress`, `Dropped Out`, `Expired`) with live counts
+- **Ranked data table** — columns: Compare checkbox, Rank, Status (animated "In Progress" with active timer), Candidate, Overall score, 8 individual skill scores (color-coded: green ≥ 7, amber ≥ 4, red < 4), Hire Decision, Integrity Flags, Details
+- **Sortable** by any score column
+- **CSV export** via blob download with `Content-Disposition` filename parsing
+
+#### Submission Detail Side Panel
+Slides in from right showing:
+- Candidate info, status, overall score, start/last-active timestamps
+- `RadarChart` 8-dim skill breakdown
+- Overall feedback text
+- Per-question breakdown with transcript preview
+- "Launch Full Transcript Viewer" button
+- Print/PDF button
+
+#### 2-Candidate Radar Comparison
+Select exactly 2 candidates → overlay `RadarChart` with both skill profiles side-by-side.
+
+#### Transcript Viewer
+`CandidateTranscriptViewer` — full-screen modal with:
+- Per-question sticky section headers (title, time spent/limit, status)
+- Chat-bubble transcript layout (user right/indigo, AI left/dark)
+- System messages filtered out (hidden from employer view)
+
+### **15.5 Database Tables**
+
+| Table | Key Columns | Purpose |
+|-------|-------------|---------|
+| `assessment_campaigns` | `created_by`, `title`, `campaign_questions` (JSONB), `entry_code`, `public_token`, `time_limit_mins` (5–360), `expires_at`, `max_uses`, `is_active`, `show_score_to_candidate` | Campaign configuration |
+| `candidate_submissions` | `campaign_id`, `candidate_name`, `candidate_email`, `status` (in_progress/completed/dropped_out/expired), `overall_score`, `question_states` (JSONB), `integrity_flags`, `started_at`, `completed_at` | Per-candidate assessment state |
+| `company_profiles` | `employer_id`, `company_name`, `logo_url` | Employer branding |
+| `code_attempts` | `ip_address`, `attempted_at`, `was_valid` | Entry code rate limiting |
+| `employer_invites` | `invite_code`, `employer_id` | Onboarding invites |
+
+### **15.6 API Routes Summary**
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/employer/campaigns` | GET | Employer | Paginated campaign list with submission counts |
+| `/api/employer/campaigns` | POST | Employer | Create campaign (entry code generation) |
+| `/api/employer/campaigns/[id]` | DELETE | Employer | Deactivate or permanently delete |
+| `/api/employer/submissions/[campaignId]` | GET | Employer | Ranked submissions with status filter |
+| `/api/employer/submissions/[campaignId]/report/[submissionId]` | GET | Employer | Full candidate report with transcript |
+| `/api/employer/submissions/[campaignId]/export` | GET | Employer | CSV export |
+| `/api/assess/verify-code` | POST | Public | Rate-limited entry code verification |
+| `/api/assess/start` | POST | Public | Start assessment session (JWT issued) |
+| `/api/assess/chat` | POST | JWT | Interview turn (employer mode) |
+| `/api/assess/complete` | POST | JWT | Complete + run 8-dim analysis |
+
+---
+
+## **16. HOOKS REFERENCE**
 
 | Hook | Purpose |
 |------|---------|
@@ -692,7 +796,7 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 
 ---
 
-## **16. COMPONENT ARCHITECTURE**
+## **17. COMPONENT ARCHITECTURE**
 
 | Directory | Key Components |
 |-----------|---------------|
@@ -707,13 +811,13 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 
 ---
 
-## **17. TECHNOLOGY STACK**
+## **18. TECHNOLOGY STACK**
 
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | Next.js 16.1.6, React 19.2.3, Monaco Editor 4.7.0, Radix UI 1.4.3, Framer Motion 12, Recharts 3.7.0 |
 | **Backend** | Next.js Server Actions + API Routes, Edge Middleware, @tanstack/react-query |
-| **AI/ML** | Groq (Llama 4/3.3/3.1, Kimi K2, GPT-OSS, Qwen3), Gemini (2.5 Pro, 2.5/2.0/1.5 Flash, Gemma 3), AWS Bedrock (Claude Sonnet 4.5, Claude Haiku 4.5, GPT-OSS) |
+| **AI/ML** | Groq (Llama 4/3.3/3.1, Kimi K2, GPT-OSS), Gemini (2.5 Pro, 2.5/2.0/1.5 Flash), AWS Bedrock |
 | **Voice** | Silero VAD (ONNX Runtime Web), Groq Whisper (STT), AWS Polly Neural Kajal (TTS) |
 | **Database** | Supabase PostgreSQL 17.6 + RLS + Auth (29 tables), Upstash Redis, pgvector |
 | **Spaced Rep** | ts-fsrs 5.2.3 (FSRS-5), SM-2 backward compat |
@@ -723,10 +827,10 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 
 ---
 
-## **18. PERFORMANCE & SECURITY**
+## **19. PERFORMANCE & SECURITY**
 
 ### **Performance**
-- **~1,049 ms** voice-to-voice latency (direct API p50)
+- ~800ms voice-to-voice latency
 - Edge Middleware JWT decode — no cold start penalty
 - Redis 60s ModelRouting cache
 - Script-tag VAD loading (bypasses Turbopack 120s+ WASM)
@@ -745,7 +849,7 @@ All tables in `public` schema on Supabase PostgreSQL 17.6 with pgvector.
 
 ---
 
-## **19. DEPLOYMENT**
+## **20. DEPLOYMENT**
 
 ### **Environment Variables**
 
@@ -785,17 +889,17 @@ npm run lint
 
 ---
 
-## **20. NOVELTY & COMPETITIVE DIFFERENTIATION**
+## **21. NOVELTY & COMPETITIVE DIFFERENTIATION**
 
 | Competitor | Limitation | AlgoMind Advantage |
 |------------|-----------|-------------------|
 | LeetCode | Code-only | Voice-first + communication scoring |
-| Pramp | ₹2,000/session | ₹5.18/session (99.7% cheaper), 24/7 |
+| Pramp | ₹2,000/session | ₹2/session, 24/7 |
 | ChatGPT | Text-only | 8-dimensional scoring + FSRS |
 | Human mock | /hour | 1,500x cheaper, unlimited |
 
 **Technical Innovations:**
-1. **Multi-Model Orchestration**: 31+ models, 5-tier fallback, DB-driven routing
+1. **Multi-Model Orchestration**: 12+ models, 5-tier fallback, DB-driven routing
 2. **Indian Accent Optimisation**: en-IN STT, Kajal Neural TTS, Hinglish mode
 3. **8-Dimensional Rubric**: Sub-criteria weights + AI evidence citation
 4. **80+ TTS Preprocessing Rules**: `O(n²)` → natural speech
@@ -807,7 +911,7 @@ npm run lint
 
 ---
 
-## **21. SCOPE TO SCALE**
+## **22. SCOPE TO SCALE**
 
 **Phase 1 (Current):** DSA Interview Coach ✅ — voice-first, 480+ problems, 8-dim scoring, FSRS-5, Sprint mode, Employer mode
 
@@ -817,4 +921,4 @@ npm run lint
 
 **Phase 4:** Full Career Platform — salary negotiation, company-specific prep, job matching
 
-**Business Model:** From ₹5.18/interview (production cost), ₹49-99/month subscriptions, ₹10,000/year institutional
+**Business Model:** ₹2/interview (70% gross margin), ₹49-99/month subscriptions, ₹10,000/year institutional
