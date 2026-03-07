@@ -198,27 +198,6 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    // ROUTING-001: Employer account type redirect
-    // If authenticated user is on dashboard or home, check if they're an employer
-    if (user && isDashboard) {
-        let accountType = user.app_metadata?.account_type || user.user_metadata?.account_type;
-
-        if (!accountType) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('account_type')
-                .eq('id', user.id)
-                .single();
-            accountType = profile?.account_type;
-        }
-
-        if (accountType === 'employer') {
-            const url = request.nextUrl.clone();
-            url.pathname = '/employer/dashboard';
-            return NextResponse.redirect(url);
-        }
-    }
-
     return supabaseResponse;
 }
 
