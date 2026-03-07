@@ -45,14 +45,15 @@ const LIMITS: Record<DifficultyMode, { ms: number; turns: number }> = {
 };
 
 // ── Guest ─────────────────────────────────────────────────────────────────────
-// HACKATHON MODE: unlimited for guests too
+// Guests get 20-min sessions with warm-up turn limits.
+// Users can start unlimited sessions — only per-session limits apply.
 export function resolveGuestConfig(): InterviewConfig {
     return {
         mode: 'guest',
         difficultyMode: 'practice',
-        maxDurationMs: 120 * 60_000,
-        maxTurnsPerProblem: 999,
-        isUnlimited: true,
+        maxDurationMs: 20 * 60_000,
+        maxTurnsPerProblem: 15,
+        isUnlimited: false,
         ragContext: '',   // Guest problems have pre-embedded context in their object
         kaiMemory: '',
         sprint: null,
@@ -69,16 +70,16 @@ export function resolvePracticeConfig(opts: {
     kaiMemory: string;
     sprintProblemIds?: [string, string]; // Required when difficultyMode === 'sprint'
 }): InterviewConfig {
-    // HACKATHON MODE: unlimited for all users
-    const isUnlimited = true;
+    // Per-session limits enforced for all users (admin, owner, candidate).
+    // Users can start unlimited sessions — only per-session time/turn limits apply.
     const base = LIMITS[opts.difficultyMode];
 
     return {
         mode: 'practice',
         difficultyMode: opts.difficultyMode,
-        maxDurationMs: isUnlimited ? 120 * 60_000 : base.ms,
-        maxTurnsPerProblem: isUnlimited ? 999 : (opts.rateOverride ?? base.turns),
-        isUnlimited,
+        maxDurationMs: base.ms,
+        maxTurnsPerProblem: opts.rateOverride ?? base.turns,
+        isUnlimited: false,
         ragContext: opts.ragContext,
         kaiMemory: opts.kaiMemory,
         sprint: opts.difficultyMode === 'sprint' && opts.sprintProblemIds

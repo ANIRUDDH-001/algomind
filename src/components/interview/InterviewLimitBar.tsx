@@ -9,6 +9,13 @@ interface InterviewLimitBarProps {
     limitReason: 'rounds' | 'time' | null;
 }
 
+function formatMs(ms: number): string {
+    const totalSecs = Math.max(0, Math.floor(ms / 1000));
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 export function InterviewLimitBar({ startTime, maxMs, roundCount, maxRounds, isLimitReached, limitReason }: InterviewLimitBarProps) {
     const [elapsed, setElapsed] = useState(0);
 
@@ -20,11 +27,8 @@ export function InterviewLimitBar({ startTime, maxMs, roundCount, maxRounds, isL
     }, [startTime]);
 
     const remainingMs = Math.max(0, maxMs - elapsed);
-    const remainingMins = Math.floor(remainingMs / 60000);
-    const remainingSecs = Math.floor((remainingMs % 60000) / 1000);
     const timePercent = Math.min(100, (elapsed / maxMs) * 100);
-    const roundPercent = Math.min(100, (roundCount / maxRounds) * 100);
-    const isWarning = remainingMs < 120_000 || roundCount >= maxRounds - 3; // Last 2 mins or 3 rounds
+    const isWarning = remainingMs < 120_000 || roundCount >= maxRounds - 3;
 
     if (isLimitReached) {
         return (
@@ -36,11 +40,13 @@ export function InterviewLimitBar({ startTime, maxMs, roundCount, maxRounds, isL
 
     return (
         <div className="flex items-center gap-4 text-xs text-slate-400">
-            {/* Time */}
+            {/* Time: elapsed / total */}
             <div className="flex items-center gap-1.5">
                 <span className={isWarning ? 'text-amber-400' : ''}>
-                    ⏱ {remainingMins}:{remainingSecs.toString().padStart(2, '0')}
+                    ⏱ {formatMs(elapsed)}
                 </span>
+                <span className="text-slate-600">/</span>
+                <span className="text-slate-500">{formatMs(maxMs)}</span>
                 <div className="w-16 h-1 bg-slate-700 rounded-full overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all ${timePercent > 80 ? 'bg-amber-500' : 'bg-blue-500'}`}
