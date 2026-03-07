@@ -32,9 +32,9 @@ Proprietary scoring engine measuring:
 
 ### 🚀 Multi-Model AI Architecture
 - **DB-Driven Model Routing** — `model_routing` table with Redis-cached (60s TTL) priority-ordered model selection per use case
-- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock
-- **Chat Models (14 routes)**: Claude Haiku 4.5(Bedrock), Gemini 2.0 Flash, GPT-OSS 20B (Bedrock), Kimi K2, GPT-OSS 20B/120B, Llama 4 Scout, Llama 3.3 70B, Llama 3.1 8B
-- **Analysis Models (11 routes)**: Claude Sonnet 4.5(Bedrock), Gemini 2.5 Pro, GPT-OSS 120B (Bedrock), Gemini 2.5/2.0/1.5 Flash, Gemini 1.5 Pro, Llama 3.3 70B
+- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock Claude 3.5 Sonnet
+- **Chat Models**: Llama 3.3 70B, Llama 3.1 8B, Llama 4 Scout/Maverick, Kimi K2, GPT-OSS 120B/20B (via Groq)
+- **Analysis Models**: Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5/2.0 Flash (via Google AI)
 - **Embeddings**: Gemini Embedding 001 (768 dimensions)
 - **Safety**: GPT-OSS Safeguard 20B content filtering
 
@@ -57,6 +57,16 @@ Proprietary scoring engine measuring:
 - **Voice Debug Tab** — real-time VAD event stream, 10 tunable sliders (interruption + VAD engine params), live reconfiguration
 - **Co-Owner System** — database-backed co-owner table with RLS policies
 - **Feature Flags** — Redis + Supabase backed, per-user and global flags
+
+### 🏢 Employer Assessment Platform
+- **Campaign Creation Wizard** — 2-step builder: select 1–3 questions (or random by difficulty), set per-question time limits (5–120 min, total ≤ 360 min), configure expiry and max uses
+- **Entry Code System** — unique codes generated via RPC; candidates verify code + enter name/email to start; IP-based rate limiting (5 attempts/2 min) with timing-attack prevention
+- **Zero-Hint Employer Mode** — maximum strictness interviews with no encouragement or hints; evaluation-only AI prompts
+- **Ranked Submissions Dashboard** — sortable table with 8 individual skill scores (color-coded), hire decision, integrity flags, status filters with live counts
+- **2-Candidate Radar Comparison** — overlay two candidates' 8-dim skill profiles on a single RadarChart
+- **Full Transcript Viewer** — per-question chat-bubble replay (system messages hidden from employer)
+- **CSV Export** — one-click download of all submission data per campaign
+- **JWT-Secured Sessions** — HMAC-SHA256 signed tokens with campaign-scoped expiry; atomic slot claiming prevents race conditions
 
 ### 💎 Additional Features
 - **Visual Radar Charts** — Recharts-powered strength/weakness visualization
@@ -93,9 +103,9 @@ Proprietary scoring engine measuring:
 ### AI & Intelligence
 | Provider | Models | Use Case |
 |----------|--------|----------|
-| **Groq** | Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B, Qwen3 32B | Chat, hints, fast responses |
-| **Google AI** | Gemini 2.5 Pro, Gemini 2.5/2.0/1.5 Flash, Gemini 1.5 Pro, Gemma 3 (27B/12B/4B/1B) | Deep analysis, 8-dim scoring |
-| **AWS Bedrock** | Claude Sonnet 4.5, Claude Haiku 4.5, GPT-OSS 120B/20B | Primary analysis + chat fallback |
+| **Groq** | Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B | Chat, hints, fast responses |
+| **Google AI** | Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash | Deep analysis, 8-dim scoring |
+| **AWS Bedrock** | Claude 3.5 Sonnet v2 | Last-resort fallback |
 | **Embeddings** | Gemini Embedding 001 (768d) | RAG vector search |
 
 ### Voice
@@ -136,6 +146,7 @@ src/
 │   ├── interview/          # ConversationView, CodeEditor, Timer
 │   ├── analysis/           # AnalysisClient, radar charts, FSRS section
 │   ├── dashboard/          # Stats, history, progress cards
+│   ├── enterprise/         # EmployerDashboard, CreateCampaignModal, TranscriptViewer
 │   └── ui/                 # shadcn/ui primitives
 ├── config/                 # Voice config, provider config
 ├── hooks/                  # 18 custom hooks (useVAD, useSTT, useTTS, etc.)
@@ -231,7 +242,7 @@ npm run test:ai             # AI module tests only
 | Database functions | **97** |
 | Indexes | **96** |
 | Feature flags | **15** (server-controlled via `global_feature_flags`) |
-| AI model routing rules | **25** (14 chat + 11 analysis) |
+| AI model routing rules | **11** (6 chat + 5 analysis) |
 
 ### Build Performance
 
@@ -247,7 +258,7 @@ npm run test:ai             # AI module tests only
 
 | Metric | Value |
 |--------|-------|
-| AI models integrated | **31** across 3 providers (Groq, Gemini, Bedrock) |
+| AI models integrated | **13** across 3 providers (Groq, Gemini, Bedrock) |
 | DSA vocabulary (STT boost) | **6,230 terms** |
 | RAG knowledge base | **8 topic files** → 31 embedding chunks (1.8 MB) |
 | Embedding dimensions | **768** (Gemini Embedding 001) |
@@ -260,42 +271,10 @@ npm run test:ai             # AI module tests only
 |--------|-------------|--------------|
 | TTFB | < 800ms | < 3000ms |
 | LCP | < 2500ms | < 2500ms |
+| TBT | < 200ms | < 200ms |
+| CLS | < 0.1 | < 0.1 |
+| Interview page Begin button | < 5s | < 5s |
 | Monaco editor ready | < 3s | < 3s |
-
-### 🎙️ Voice Pipeline Latency
-
-> All benchmarks run from **ap-south-1 (India)** against the live Vercel deployment and direct API endpoints. Scripts: `scripts/benchmark-voice-pipeline.mjs`, `scripts/benchmark-aws-direct.mjs`, `scripts/benchmark-ai-models.mjs`.
-
-**Direct API Performance** (Real-time baseline):
-
-| Stage | Model / Service | p50 | p95 | avg |
-|-------|----------------|-----|-----|-----|
-| Speech-to-Text | Groq whisper-large-v3-turbo | **193 ms** | 423 ms | 239 ms |
-| AI Response (chat) | Groq Llama 3.3 70B | **406 ms** | 708 ms | 451 ms |
-| Text-to-Speech | AWS Polly Kajal Neural | **450 ms** | 669 ms | 452 ms |
-| **Total perceived** | **STT + AI + TTS** | **1,049 ms** | **1,800 ms** | **1,142 ms** |
-
-**Vercel-Proxied Performance** (Production environment with cold-start & middleware):
-
-| Stage | Model / Service | p50 | p95 | avg |
-|-------|----------------|-----|-----|-----|
-| STT (API Route) | Groq Whisper turbo | 2,013 ms | 4,127 ms | 2,423 ms |
-| AI Chat (API Route) | Llama 4 Scout (Groq) | 3,853 ms | 6,740 ms | 4,498 ms |
-| **E2E Round-Trip** | **Full Pipeline** | **6,673 ms** | **6,919 ms** | **6,415 ms** |
-
-> **Note**: Perceived latency is significantly lower in production for subsequent turns once functions are warm and RAG context is cached in Redis. Bedrock Claude Haiku 4.5 is used in production but was restricted for direct local benchmarking.
-
-### 💰 Cost Per 30-Minute Interview Session
-
-Calculated for a standard session: **20 turns**, 15s avg speech per turn, 185 chars AI response.
-
-| Stack | Per Session (USD) | Per Session (INR) | % vs Human |
-|-------|------------------|-------------------|------------|
-| **AlgoMind Production** (Haiku 4.5 + Sonnet 4.5) | **$0.134** | **₹11.19** | **99.4% cheaper** |
-| AlgoMind Budget | $0.075 | ₹6.28 | 99.7% cheaper |
-| AlgoMind Free-Tier | $0.062 | ₹5.18 | 99.7% cheaper |
-
-> **Human Interview Baseline**: ₹1,000 – ₹3,000 per session.
 
 ---
 
