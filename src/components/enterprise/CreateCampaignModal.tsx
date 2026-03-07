@@ -136,8 +136,8 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                 body: JSON.stringify(payload)
             });
 
-            if (!res.ok) throw new Error("Failed to create campaign");
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to create campaign');
             setCreatedCampaign(data.campaign);
             onSuccess(data.campaign);
         } catch (err) {
