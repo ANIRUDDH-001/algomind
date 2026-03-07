@@ -5,7 +5,12 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const MODELS = [
+    // Direct model IDs (as provided)
+    'anthropic.claude-sonnet-4-6',
+    'anthropic.claude-haiku-4-5-20251001-v1:0',
+    'anthropic.claude-sonnet-4-5-20250929-v1:0',
     // Cross-region inference profile IDs
+    'us.anthropic.claude-sonnet-4-6',
     'us.anthropic.claude-haiku-4-5-20251001-v1:0',
     'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
 ];

@@ -18,6 +18,7 @@ export interface InterviewLimits {
     shouldShowTurnWarning: boolean;
     formattedElapsed: string; // MM:SS
     formattedRemaining: string; // MM:SS
+    formattedTotal: string; // MM:SS — total duration for the mode
     startTimer: () => void;
     stopTimer: () => void;
     incrementTurn: () => void;
@@ -109,6 +110,8 @@ export function useInterviewLimits(options?: {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const totalSeconds = Math.floor(maxDurationMs / 1000);
+
     return {
         elapsedTime,
         turnsUsed,
@@ -120,6 +123,7 @@ export function useInterviewLimits(options?: {
         shouldShowTurnWarning,
         formattedElapsed: formatTime(elapsedTime),
         formattedRemaining: formatTime(timeRemaining),
+        formattedTotal: formatTime(totalSeconds),
         startTimer,
         stopTimer,
         incrementTurn,

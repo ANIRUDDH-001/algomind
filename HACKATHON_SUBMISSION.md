@@ -86,7 +86,7 @@ AWS provides **4 services** — each gated behind feature flags for cost control
 | AWS Service | Purpose | Feature Flag | Region | Source File |
 |-------------|---------|--------------|--------|-------------|
 | **AWS Polly** | Neural TTS — Kajal voice (Indian English) | `ENABLE_AWS_POLLY_TTS` | ap-south-1 | `src/lib/aws/polly.ts` |
-| **AWS Bedrock** | Claude Sonnet 4.5 + Claude Haiku 4.5 + GPT-OSS 120B/20B — AI fallback | `ENABLE_AWS_BEDROCK` | us-east-1 | `src/lib/ai/bedrock-client.ts` |
+| **AWS Bedrock** | Claude 3.5 Sonnet v2 — last-resort AI fallback | `ENABLE_AWS_BEDROCK` | us-east-1 | `src/lib/ai/bedrock-client.ts` |
 | **AWS Transcribe** | Post-interview batch transcription enrichment | `ENABLE_AWS_TRANSCRIBE_STT` | ap-south-1 | `src/lib/aws/transcribe.ts` |
 | **AWS S3** | Audio staging for Transcribe jobs only | `ENABLE_AWS_S3_STORAGE` | ap-south-1 | `src/lib/aws/s3.ts` |
 
@@ -101,9 +101,8 @@ Guest access: Controlled by ENABLE_GUEST_POLLY_TTS flag
 
 **AWS Bedrock integration detail** (`src/lib/ai/bedrock-client.ts`):
 ```
-Chat: us.anthropic.claude-haiku-4-5-20251001-v1:0 (P1), openai.gpt-oss-20b-1:0 (P100)
-Analysis: us.anthropic.claude-sonnet-4-5-20250929-v1:0 (P1), openai.gpt-oss-120b-1:0 (P30)
-Role: Primary high-quality fallback + cheap secondary fallback
+Model: openai.gpt-oss-120b-1:0 (default, DB-configurable)
+Role: Last-resort fallback when all Groq + Gemini models exhausted
 Cost tracking: logAWSUsage() records service, operation, estimated cost
 Owner dashboard: /owner → AWS Budget tab shows real-time spend
 ```
@@ -123,7 +122,7 @@ Owner dashboard: /owner → AWS Budget tab shows real-time spend
 | Fixed difficulty | Adaptive difficulty modes (warm-up → sprint) |
 | No memory across sessions | AI memory (Kai framework) tracks patterns across interviews |
 | Manual review scheduling | FSRS-5 spaced repetition targets weak dimensions |
-| Single model, single failure point | 31-model fallback chain across 3 providers |
+| Single model, single failure point | 13-model fallback chain across 3 providers |
 | ₹2,000 per session | ₹2 per session (1,000x cheaper) |
 
 ---
@@ -148,7 +147,7 @@ Owner dashboard: /owner → AWS Budget tab shows real-time spend
 | **Sub-Criteria Rubrics** | Each dimension has 3-4 weighted sub-criteria, 5 mastery levels | `src/lib/assessment/analyzer.ts` |
 | **Hire Decision Engine** | STRONG_HIRE / HIRE / BORDERLINE / NO_HIRE / STRONG_NO_HIRE | `src/lib/assessment/analyzer.ts` |
 | **Difficulty-Weighted Scoring** | Easy ×1.0, Medium ×1.15, Hard ×1.3 multiplier | `src/lib/assessment/analyzer.ts` |
-| **31-Model Fallback Chain** | DB routing → cross-tier → legacy → Bedrock → static | `src/lib/ai/model-routing.ts`, `client.ts` |
+| **13-Model Fallback Chain** | DB routing → cross-tier → legacy → Bedrock → static | `src/lib/ai/model-routing.ts`, `client.ts` |
 | **Intent Classification** | Hybrid regex (0ms) + LLM (3s timeout) for smart query routing | `src/lib/ai/intent-classifier.ts` |
 | **Phase-Aware RAG** | Interview phase (intro/approach/coding/wrap-up) determines context injection | `src/app/api/chat/route.ts` |
 
@@ -285,27 +284,18 @@ Owner dashboard: /owner → AWS Budget tab shows real-time spend
 │  ┌─────────────────────────────────┐               │
 │  │ Try models in priority order:   │               │
 │  │                                  │               │
-│  │ Chat:     haiku-4.5    (P1)    │               │
-│  │         → llama-3.3-70b (P20)  │               │
-│  │         → llama-3.1-8b  (P30)  │               │
-│  │         → llama-4-scout (P30)  │               │
-│  │         → kimi-k2       (P40)  │               │
-│  │         → gpt-oss-120b  (P50)  │               │
-│  │         → gpt-oss-20b   (P60)  │               │
-│  │         → kimi-k2-inst  (P70)  │               │
-│  │         → gemini-2.0    (P100) │               │
-│  │         → gpt-oss-20b-bk(P100) │               │
-│  │         → sonnet-3.5    (P110) │               │
+│  │ Chat:     llama-3.3-70b (P10)   │               │
+│  │         → llama-3.1-8b  (P20)   │               │
+│  │         → llama-4-scout (P30)   │               │
+│  │         → kimi-k2       (P40)   │               │
+│  │         → gpt-oss-120b  (P50)   │               │
+│  │         → gpt-oss-20b   (P60)   │               │
 │  │                                  │               │
-│  │ Analysis: sonnet-4.5    (P1)    │               │
-│  │         → gemini-2.5-pro (P20)  │               │
-│  │         → gpt-oss-120b-bk(P30)  │               │
+│  │ Analysis: gemini-2.5-pro (P10)  │               │
+│  │         → gemini-2.0-flash(P20) │               │
 │  │         → gemini-2.5-flash(P30) │               │
-│  │         → gemini-2.0-flash(P40) │               │
-│  │         → gemini-1.5-pro (P50)  │               │
+│  │         → gemini-1.5-pro (P40)  │               │
 │  │         → gemini-1.5-flash(P50) │               │
-│  │         → llama-3.3-70b  (P60)  │               │
-│  │         → gpt-oss-120b   (P70)  │               │
 │  └────────────────┬────────────────┘               │
 │                   │ ALL EXHAUSTED                    │
 │                   ▼                                  │
@@ -683,9 +673,9 @@ Employer views all candidates sorted by score + radar charts
 
 | Provider | Models / Services | Purpose | Source |
 |----------|------------------|---------|--------|
-| Groq | Llama 3.3 70B, 3.1 8B, 4 Scout/Maverick, Kimi K2, GPT-OSS 120B/20B, Qwen3 32B, Whisper | Chat AI + STT | `src/lib/ai/providers.ts` |
-| Google AI | Gemini 2.5 Pro, 2.0/2.5/1.5 Flash, Gemma 3 (27B/12B/4B/1B), Embedding 001 | Analysis + Embeddings | `src/lib/ai/providers.ts` |
-| AWS Bedrock | Claude Sonnet 4.5, Claude Haiku 4.5, GPT-OSS 120B/20B | Primary analysis + chat fallback | `src/lib/ai/bedrock-client.ts` |
+| Groq | Llama 3.3 70B, 3.1 8B, 4 Scout, Kimi K2, GPT-OSS 120B/20B, Whisper | Chat AI + STT | `src/lib/ai/providers.ts` |
+| Google AI | Gemini 2.5 Pro, 2.0/2.5/1.5 Flash, Embedding 001 | Analysis + Embeddings | `src/lib/ai/providers.ts` |
+| AWS Bedrock | Claude 3.5 Sonnet v2 | Last-resort AI fallback | `src/lib/ai/bedrock-client.ts` |
 | AWS Polly | Kajal (Neural, Indian English) | Text-to-Speech | `src/lib/aws/polly.ts` |
 | AWS Transcribe | Batch post-interview | Transcription enrichment | `src/lib/aws/transcribe.ts` |
 | AWS S3 | Audio staging | Transcribe input | `src/lib/aws/s3.ts` |
@@ -710,18 +700,12 @@ All rate limits sourced from `src/lib/ai/providers.ts`:
 
 | Provider | Model | RPM | RPD | Monthly Capacity |
 |----------|-------|-----|-----|-----------------|
-| Groq | llama-3.3-70b | 26 | 850 | ~25,500 req |
-| Groq | llama-3.1-8b | 26 | 12,240 | ~367,200 req |
-| Groq | kimi-k2-instruct | 60 | 1,000 | ~30,000 req |
-| Groq | qwen3-32b | 60 | 1,000 | ~30,000 req |
+| Groq | llama-3.3-70b | 25.5 | 850 | ~25,500 req |
+| Groq | llama-3.1-8b | 25.5 | 12,240 | ~367,200 req |
 | Groq | Whisper (STT) | — | — | Included in RPM |
-| Google | gemini-2.5-pro | 13 | 1,275 | ~38,250 req |
+| Google | gemini-2.5-pro | 12.75 | 1,275 | ~38,250 req |
 | Google | gemini-2.0-flash | 10 | 1,500 | ~45,000 req |
 | Google | embedding-001 | 100 | 1,000 | ~30,000 req |
-| Bedrock | claude-haiku-4.5 | 60 | 1,000 | ~30,000 req |
-| Bedrock | claude-sonnet-4.5 | 60 | 1,000 | ~30,000 req |
-| Bedrock | gpt-oss-20b | 100 | 2,000 | ~60,000 req |
-| Bedrock | gpt-oss-120b | 50 | 1,000 | ~30,000 req |
 
 **Interview cost breakdown (1 session = ~20 chat turns + 1 analysis):**
 - Chat: ~20 requests to Groq (free)
@@ -820,7 +804,7 @@ All rate limits sourced from `src/lib/ai/providers.ts`:
 | Database functions | **97** |
 | Indexes | **96** |
 | Feature flags | **15** (server-controlled) |
-| AI model routing rules | **25** (14 chat + 11 analysis) |
+| AI model routing rules | **11** (6 chat + 5 analysis) |
 
 ### 10.4 Build Performance
 
@@ -837,7 +821,7 @@ All rate limits sourced from `src/lib/ai/providers.ts`:
 
 | Metric | Value |
 |--------|-------|
-| AI models integrated | **31** across 3 providers |
+| AI models integrated | **13** across 3 providers |
 | DSA vocabulary (STT accuracy boost) | **6,230 terms** |
 | RAG embedding chunks | **31** (768-dim vectors, 1.8 MB) |
 | Knowledge base topics | **8** (arrays, DP, trees, hashing, etc.) |
@@ -876,104 +860,6 @@ From `scripts/benchmark-classifier.ts` — 35 sample queries:
 | Metric | Cold (regex-only) | Warm (cached) |
 |--------|-------------------|---------------|
 | Pass threshold p99 | < 5ms | < 1ms |
-
-### 10.9 Voice Pipeline Latency
-
-> All benchmarks run from ap-south-1 (India) against the live Vercel deployment
-> and direct API endpoints, March 5, 2026. Scripts: `scripts/benchmark-voice-pipeline.mjs`,
-> `scripts/benchmark-aws-direct.mjs`, `scripts/benchmark-ai-models.mjs`.
-> Raw results: `scripts/benchmark-results.json`.
-
-**Direct API latencies** (no Vercel proxy overhead, 10 iterations each):
-
-| Stage | Model / Service | p50 | p95 | avg | Success |
-|-------|----------------|-----|-----|-----|---------|
-| Speech-to-Text | Groq whisper-large-v3-turbo | 193 ms | 423 ms | 239 ms | 10/10 |
-| AI Response (chat) | Groq Llama 3.3 70B | 397 ms | 610 ms | 410 ms | 10/10 |
-| Text-to-Speech | AWS Polly Kajal Neural (ap-south-1) | 450 ms | 669 ms | 452 ms | 10/10 |
-| **E2E (additive)** | **STT + AI + TTS** | **1,040 ms** | **1,702 ms** | **1,101 ms** | — |
-
-**Vercel-proxied latencies** (12 iterations, 3 concurrent VUs — includes Vercel cold-start + serverless overhead):
-
-| Stage | Model / Service | p50 | p95 | avg | Success |
-|-------|----------------|-----|-----|-----|---------|
-| STT (via /api/voice/transcribe) | Groq Whisper turbo | 2,013 ms | 4,127 ms | 2,423 ms | 12/12 |
-| AI Chat (via /api/chat, guest mode) | Llama 4 Scout 17B (Groq) | 3,853 ms | 6,740 ms | 4,498 ms | 12/12 |
-| **E2E Round-Trip** (via Vercel) | **STT + AI + TTS** | **6,673 ms** | **6,919 ms** | **6,415 ms** | 5/5 |
-
-**E2E breakdown (Vercel, averages):** STT 2,157 ms + AI 3,764 ms + TTS 494 ms = 6,415 ms
-
-> **Note:** Vercel-proxied latencies are 5–10× higher than direct API due to:
-> cold-start overhead on serverless functions, auth/rate-limit middleware, RAG context
-> retrieval, and Supabase/Redis cache checks. In production, warm functions bring
-> these closer to the direct API numbers.
->
-> Silero VAD runs entirely in the browser (ONNX Runtime, ~0 ms server cost). STT is
-> triggered only after VAD confirms end-of-utterance.
->
-> Bedrock Claude Haiku 4.5 (cross-region) was not testable from the local benchmark
-> machine due to IAM IP restrictions — the model is accessible only from the Vercel
-> deployment environment.
-
-**AI provider distribution (12 requests via guest mode):**
-Llama 4 Scout 17B (Groq): 12/12 hits — guest mode routes through Groq-only path, Bedrock requires authenticated sessions.
-
-### 10.10 Cost Per 30-Minute Interview Session
-
-Region: ap-south-1 · Rate: ₹83.5/USD · Session: 20 turns, 15s speech/turn,
-185 chars/response, 1 analysis call at end. All pricing from published rate cards (March 2026).
-
-**PRODUCTION stack — Haiku 4.5 cross-region chat + Sonnet 4.5 cross-region analysis:**
-
-| Component | Pricing Basis | Per-Session | USD | INR | Share |
-|-----------|--------------|-------------|-----|-----|-------|
-| STT — Groq Whisper large-v3-turbo | Free tier | 20 × 15s = 300s | $0.000 | ₹0.00 | 0% |
-| AI Chat — Claude Haiku 4.5 (Bedrock CR) | $1.00/1M in + $5.00/1M out | 10K in + 4K out tokens | $0.030 | ₹2.51 | 22.3% |
-| AI Analysis — Claude Sonnet 4.5 (Bedrock CR) | $3.00/1M in + $15.00/1M out | 4K in + 2K out tokens | $0.042 | ₹3.51 | 31.2% |
-| TTS — Polly Kajal Neural | $16.00/1M chars | 20 × 185 = 3,700 chars | $0.059 | ₹4.93 | 43.9% |
-| Infra (Vercel + Redis) | Amortized at ~3K sessions/mo | — | $0.003 | ₹0.25 | 2.6% |
-| **Total** | | | **$0.134** | **₹11.19** | 100% |
-
-**BUDGET stack** (gpt-oss-20b chat $0.60/1M in + $0.30/1M out + gpt-oss-120b analysis $1.20/1M in + $0.60/1M out):
-
-| Component | USD | INR |
-|-----------|-----|-----|
-| AI Chat — gpt-oss-20b (Bedrock) | $0.007 | ₹0.60 |
-| AI Analysis — gpt-oss-120b (Bedrock) | $0.006 | ₹0.50 |
-| TTS — Polly + Infra | $0.062 | ₹5.18 |
-| **Total** | **$0.075** | **₹6.28** |
-
-**FREE-TIER stack** (Llama 3.3 70B chat via Groq free + Gemini 2.5 Pro analysis via Google free):
-
-| Component | USD | INR |
-|-----------|-----|-----|
-| AI Chat — Groq Llama 3.3 70B | $0.000 | ₹0.00 |
-| AI Analysis — Gemini 2.5 Pro | $0.000 | ₹0.00 |
-| TTS — Polly + Infra | $0.062 | ₹5.18 |
-| **Total** | **$0.062** | **₹5.18** |
-
-**ULTRA-CHEAP stack** (Llama 3.1 8B chat via Groq free + gpt-oss-120b analysis Bedrock):
-
-| Component | USD | INR |
-|-----------|-----|-----|
-| AI Chat — Groq Llama 3.1 8B | $0.000 | ₹0.00 |
-| AI Analysis — gpt-oss-120b | $0.006 | ₹0.50 |
-| TTS — Polly + Infra | $0.062 | ₹5.18 |
-| **Total** | **$0.068** | **₹5.68** |
-
-**Comparison:**
-
-| Option | Cost per session | vs Human interviewer |
-|--------|-----------------|----------------------|
-| Human mock interview (30 min) | ₹1,000 – ₹3,000 | baseline |
-| AlgoMind Production stack | ₹11.19 | 99.4% cheaper |
-| AlgoMind Budget stack | ₹6.28 | 99.7% cheaper |
-| AlgoMind Free-tier stack | ₹5.18 | 99.7% cheaper |
-| AlgoMind Ultra-cheap stack | ₹5.68 | 99.7% cheaper |
-
-> **Note:** ₹20/session worst-case (full AWS stack including EC2 t3.medium, Bedrock Sonnet
-> on every turn, Polly, S3) is still 98%+ cheaper than the cheapest available human
-> mock interviewer, with zero scheduling overhead and 24/7 availability.
 
 ---
 

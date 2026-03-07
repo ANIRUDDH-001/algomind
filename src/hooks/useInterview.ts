@@ -235,10 +235,27 @@ export function useInterview(options: {
     const isProcessingRef = useRef(false);
     isProcessingRef.current = isProcessing;
 
+    // Sync ref so in-flight async code can read time-up state synchronously
+    const timeUpRef = useRef(false);
+    timeUpRef.current = !!options.isTimeUp;
+
+    // Ref to break forward-reference cycle: submitUserResponse is defined later
+    const submitUserResponseRef = useRef<((text: string, ctx: ProblemContext) => Promise<void>) | null>(null);
+
     // Time limit enforcement: tied strictly to global UI hook
     useEffect(() => {
         if (!options.isTimeUp) return;
         if (isLimitReached || state === 'idle' || state === 'completed') return;
+
+        // If there's unsent voice transcript, auto-send it before ending.
+        // submitUserResponse will detect timeUpRef and skip TTS after AI replies.
+        const pendingText = transcriptRef.current.trim();
+        if (pendingText && currentProblemRef.current && !isProcessingRef.current && submitUserResponseRef.current) {
+            // Auto-send the pending transcript — the post-turn check will end the session
+            submitUserResponseRef.current(pendingText, currentProblemRef.current);
+            return; // submitUserResponse will handle limit after AI responds
+        }
+
         setIsLimitReached(true);
         setLimitReason('time');
         setMicIntent('off');
@@ -428,6 +445,26 @@ export function useInterview(options: {
             const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
 
             addMessage(aiMsg);
+
+            const newRoundCount = roundCount + 1;
+            setRoundCount(newRoundCount);
+
+            const elapsedMs = interviewStartTime ? Date.now() - interviewStartTime : 0;
+            const roundLimitHit = newRoundCount >= INTERVIEW_MAX_ROUNDS;
+            const timeLimitHit = elapsedMs >= INTERVIEW_MAX_MS || timeUpRef.current;
+
+            // If time/turn limit hit: skip TTS, end immediately so analysis includes this last AI reply
+            if (roundLimitHit || timeLimitHit) {
+                setIsProcessing(false);
+                setIsLimitReached(true);
+                setLimitReason(roundLimitHit ? 'rounds' : 'time');
+                setMicIntent('off');
+                stopListening();
+                stateMachine.current.transition('SUBMIT_SOLUTION');
+                setState(stateMachine.current.getState());
+                return; // Skip TTS — go straight to auto-submit in InterviewSession
+            }
+
             // A1 fix: setIsProcessing(false) MOVED to after speakAndWait
             // Previously fired here before TTS, allowing auto-submit during playback
 
@@ -455,22 +492,6 @@ export function useInterview(options: {
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
-
-            const newRoundCount = roundCount + 1;
-            setRoundCount(newRoundCount);
-
-            const elapsedMs = interviewStartTime ? Date.now() - interviewStartTime : 0;
-            const roundLimitHit = newRoundCount >= INTERVIEW_MAX_ROUNDS;
-            const timeLimitHit = elapsedMs >= INTERVIEW_MAX_MS;
-
-            if (roundLimitHit || timeLimitHit) {
-                setIsLimitReached(true);
-                setLimitReason(roundLimitHit ? 'rounds' : 'time');
-                setTimeout(() => {
-                    stateMachine.current.transition('SUBMIT_SOLUTION');
-                    setState(stateMachine.current.getState());
-                }, 1500);
-            }
         } catch (e) {
             console.error('❌ [ERROR] Failed to process user response:', e);
             addMessage({ id: generateMessageId(), role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date(), status: 'complete' });
@@ -480,6 +501,9 @@ export function useInterview(options: {
             setMicIntent('auto-on');
         }
     }, [stopListening, addMessage, resetTranscript, callChatApi, speakAndWait, roundCount, interviewStartTime]);
+
+    // Keep ref in sync so the isTimeUp effect can call submitUserResponse without forward-ref issues
+    submitUserResponseRef.current = submitUserResponse;
 
     // Phase 2e: Auto-Submit on silence — submit accumulated transcript after 5s of no new speech.
     // Only active when mic is on (not manually stopped). Works alongside the manual Send button.
@@ -896,7 +920,7 @@ export function useInterview(options: {
     }, []);
 
     const endInterview = useCallback(() => {
-        if (roundCount < 1) return;
+        if (roundCount < 1 && !timeUpRef.current) return;
         setMicIntent('off');
         setMicStoppedManually(false);
         setSendCountdown(null);
