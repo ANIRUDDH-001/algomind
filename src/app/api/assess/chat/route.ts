@@ -165,8 +165,13 @@ export async function POST(req: NextRequest) {
             throw new Error(result.error || 'Failed to generate response');
         }
 
+        const cleanResponse = (result.response || '')
+            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+            .trim();
+
         const response = NextResponse.json({
-            response: result.response,
+            response: cleanResponse,
             modelUsed: result.modelUsed,
             provider: result.provider
         });
@@ -178,7 +183,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Fire-and-forget: Save transcript to DB so it persists on refresh
-        const newTranscript = [...messages, { role: 'assistant', content: result.response }];
+        const newTranscript = [...messages, { role: 'assistant', content: cleanResponse }];
         const supabaseAdmin = getServiceClient();
         supabaseAdmin.from('candidate_submissions')
             .update({ current_transcript: newTranscript })

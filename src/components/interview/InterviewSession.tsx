@@ -50,7 +50,7 @@ import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/inter
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
 import { getProblemById } from '@/lib/supabase/problems';
-import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
+
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -471,7 +471,7 @@ export function InterviewSession({
 
         setTimeout(() => {
             setSprintTransitionMsg(null);
-            (limits as any).reset?.();
+            limits.reset();
             limits.startTimer?.();
             startInterview({
                 problemTitle: sprintProblem2.title,
@@ -800,7 +800,7 @@ export function InterviewSession({
                                                 </span>
                                             </div>
                                         )}
-                                        {isGuest && !isAssessment && (
+                                        {isGuest && !isAssessment && GUEST_SESSION_LIMITS.MAX_USER_TURNS < 9000 && (
                                             <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
                                                 🌟 Trial Mode ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} turns left)
                                             </div>

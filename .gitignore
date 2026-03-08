@@ -69,3 +69,10 @@ vitest-errors.txt
 vitest-results.json
 vitest_report.json
 prompt-output.txt
+
+# Schema dumps & agent artifacts
+schema details/
+*.sql
+type-check-output.txt
+type_check*.txt
+.agents/
