@@ -6,7 +6,7 @@
 [![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-AlgoMind is an AI-powered technical interview preparation platform that simulates real-world coding interviews using **voice-first AI**. Built with a **Multi-Model Architecture** (Llama 4 + Gemini 2.5/3.0 + Kimi K2) and **Hybrid RAG** (JSON Vector Store + pgvector), it delivers sub-second latency and context-aware feedback across **8 cognitive dimensions**.
+AlgoMind is an AI-powered technical interview preparation platform that simulates real-world coding interviews using **voice-first AI**. Built with a **Multi-Model Architecture** (Llama 4 + Gemini 2.5/3.0 + Kimi K2 + AWS Bedrock Claude Haiku 4.5/Sonnet 4.5) and **Hybrid RAG** (JSON Vector Store + pgvector), it delivers sub-second latency and context-aware feedback across **8 cognitive dimensions**.
 
 ---
 
@@ -32,7 +32,7 @@ Proprietary scoring engine measuring:
 
 ### 🚀 Multi-Model AI Architecture
 - **DB-Driven Model Routing** — `model_routing` table with Redis-cached (60s TTL) priority-ordered model selection per use case
-- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock Claude 3.5 Sonnet
+- **Intelligent Fallback Chain**: DB routing → cross-tier fallback → legacy provider fallback → AWS Bedrock Claude (primary AI provider in demo)
 - **Chat Models**: Llama 3.3 70B, Llama 3.1 8B, Llama 4 Scout/Maverick, Kimi K2, GPT-OSS 120B/20B (via Groq)
 - **Analysis Models**: Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5/2.0 Flash (via Google AI)
 - **Embeddings**: Gemini Embedding 001 (768 dimensions)
@@ -105,7 +105,7 @@ Proprietary scoring engine measuring:
 |----------|--------|----------|
 | **Groq** | Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B | Chat, hints, fast responses |
 | **Google AI** | Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash | Deep analysis, 8-dim scoring |
-| **AWS Bedrock** | Claude 3.5 Sonnet v2 | Last-resort fallback |
+| **AWS Bedrock** | Claude Haiku 4.5, Claude Sonnet 4.5 | Primary AI provider (demo mode) |
 | **Embeddings** | Gemini Embedding 001 (768d) | RAG vector search |
 
 ### Voice
