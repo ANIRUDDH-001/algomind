@@ -73,7 +73,8 @@ Return ONLY a valid JSON array of objects. No prose.`;
             level6Response: item.level6Response || '',
             level9Response: item.level9Response || '',
         }));
-    } catch {
+    } catch (e) {
+        console.error('[ImprovementExamples] Failed to generate improvement examples — report will have empty examples section:', e);
         return [];
     }
 }

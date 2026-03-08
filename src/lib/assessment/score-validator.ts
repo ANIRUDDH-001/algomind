@@ -124,7 +124,8 @@ export async function validateAndCorrectScores(
         }
 
         return parsed as ValidationResult;
-    } catch {
+    } catch (e) {
+        console.error('[ScoreValidator] Validation crashed — raw scores will pass through uncorrected:', e);
         return { correctedScores: {}, inflationDetected: false, validationNotes: 'Validation error.' };
     }
 }

@@ -40,7 +40,6 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=us-east-1
-AWS_BEDROCK_REGION=us-east-1
 
 # ============================================
 # Application Settings
@@ -102,7 +101,6 @@ vercel --prod
 - [ ] Interview mode works with voice (requires HTTPS)
 - [ ] PDF export downloads correctly
 - [ ] API health check returns 200
-- [ ] Run benchmark suite to verify sub-second latencies: `node scripts/benchmark-voice-pipeline.mjs`
 
 ## Demo Preparation (Hackathon)
 
