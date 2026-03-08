@@ -45,7 +45,7 @@ export type MicIntent = 'user-on' | 'auto-on' | 'paused-for-ai' | 'off';
 
 interface ProblemContext {
     title: string;
-    content: string;
+    content?: string;
     ragContext?: string;
     kaiMemory?: string;
     problemId?: string;
@@ -160,7 +160,7 @@ export function useInterview(options: {
             lastTranscriptTimeRef.current = Date.now();
         },
         // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
-        onSilenceTimeout: () => {},
+        onSilenceTimeout: () => { },
         onError: (err) => setVoiceError(new Error(err)),
     });
 
@@ -390,7 +390,7 @@ export function useInterview(options: {
         const prompt = generateTurnPrompt({
             state: stateMachine.current.getState(),
             problemTitle: problemContext.title,
-            problemContent: problemContext.content,
+            problemContent: problemContext.content ?? '',
             transcript: safeUserText,
             interruptionContext: interruptionCtx,
             turnsRemaining: optionsRef.current.turnsRemaining,
@@ -756,7 +756,7 @@ export function useInterview(options: {
                 }
             })
             .catch(() => console.warn('[Mic Permission] permissions API not available'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // mount only
 
     // Test Hook: Expose trigger for Playwright (secured)

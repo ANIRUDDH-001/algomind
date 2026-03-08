@@ -436,7 +436,7 @@ export function InterviewSession({
         limits.startTimer();
         startInterview({
             problemTitle: activeProblem.title,
-            problemContent: activeProblem.description,
+            problemContent: activeProblem.description ?? '',
             ragContext: interviewConfig.ragContext,
             kaiMemory: interviewConfig.kaiMemory,
             problemId: activeProblem.id,
@@ -453,7 +453,7 @@ export function InterviewSession({
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
-        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
+        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description ?? '' });
         shareCode(code); // A3: transition state machine back to ai-feedback
         setShowCodeEditor(false);
         setActiveTab('interview');
@@ -697,7 +697,7 @@ export function InterviewSession({
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
                     <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
                     <div className="space-y-3 lg:space-y-4 pt-2">
-                        {activeProblem.examples && activeProblem.examples.map((example, idx) => (
+                        {activeProblem.examples && activeProblem.examples.map((example: any, idx: number) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
                                 <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-zinc-500 mb-2 lg:mb-3 group-hover:text-indigo-400 transition-colors">Example {idx + 1}:</p>
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
@@ -916,7 +916,7 @@ export function InterviewSession({
                                                 onClick={() => {
                                                     const content = voice.transcript;
                                                     if (content) {
-                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
+                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description ?? '' });
                                                     }
                                                 }}
                                                 disabled={isProcessing}

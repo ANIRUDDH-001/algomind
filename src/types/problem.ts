@@ -5,7 +5,7 @@
 export interface Problem {
     id: string;
     title: string;
-    content: string;
+    content?: string;
     description?: string;
     examples?: any;
     constraints?: string;
