@@ -7,11 +7,9 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
-import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { InterviewLimitBar } from './InterviewLimitBar';
-import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -35,7 +33,7 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 
 // Tools & Helpers
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import type { Problem } from '@/lib/supabase/problems';
+import type { Problem } from '@/types/problem';
 import { CodeEditor } from './CodeEditor';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
@@ -473,7 +471,7 @@ export function InterviewSession({
 
         setTimeout(() => {
             setSprintTransitionMsg(null);
-            (limits as any).resetTurns?.();
+            (limits as any).reset?.();
             limits.startTimer?.();
             startInterview({
                 problemTitle: sprintProblem2.title,
