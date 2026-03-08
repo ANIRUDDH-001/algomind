@@ -152,7 +152,8 @@ export class SilentObserver {
                 nudgeType: 'coaching',
                 badgeSignal: null,
             };
-        } catch {
+        } catch (e) {
+            console.error('[SilentObserver] Coaching nudge generation failed:', e);
             return { nudgeText: null, nudgeType: null };
         }
     }
@@ -216,7 +217,8 @@ export class SilentObserver {
 
             this.setCooldown('code_analysis');
             return { hint: response };
-        } catch {
+        } catch (e) {
+            console.error('[SilentObserver] Code analysis hint generation failed:', e);
             return { hint: null };
         }
     }

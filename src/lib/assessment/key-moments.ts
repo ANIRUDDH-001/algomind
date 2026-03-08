@@ -106,7 +106,8 @@ export async function extractKeyMoments(
                 significance: typeof m.significance === 'string' ? m.significance : '',
             }))
             .slice(0, 7);
-    } catch {
+    } catch (e) {
+        console.error('[KeyMoments] Failed to extract key moments — report will have empty moments section:', e);
         return [];
     }
 }

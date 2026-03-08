@@ -7,9 +7,11 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
+import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { InterviewLimitBar } from './InterviewLimitBar';
+import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -33,7 +35,7 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 
 // Tools & Helpers
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import type { Problem } from '@/types/problem';
+import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
@@ -50,7 +52,7 @@ import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/inter
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
 import { getProblemById } from '@/lib/supabase/problems';
-
+import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -436,7 +438,7 @@ export function InterviewSession({
         limits.startTimer();
         startInterview({
             problemTitle: activeProblem.title,
-            problemContent: activeProblem.description ?? '',
+            problemContent: activeProblem.description,
             ragContext: interviewConfig.ragContext,
             kaiMemory: interviewConfig.kaiMemory,
             problemId: activeProblem.id,
@@ -453,7 +455,7 @@ export function InterviewSession({
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
-        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description ?? '' });
+        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
         shareCode(code); // A3: transition state machine back to ai-feedback
         setShowCodeEditor(false);
         setActiveTab('interview');
@@ -471,7 +473,7 @@ export function InterviewSession({
 
         setTimeout(() => {
             setSprintTransitionMsg(null);
-            limits.reset();
+            (limits as any).resetTurns?.();
             limits.startTimer?.();
             startInterview({
                 problemTitle: sprintProblem2.title,
@@ -697,7 +699,7 @@ export function InterviewSession({
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
                     <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
                     <div className="space-y-3 lg:space-y-4 pt-2">
-                        {activeProblem.examples && activeProblem.examples.map((example: any, idx: number) => (
+                        {activeProblem.examples && activeProblem.examples.map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
                                 <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-zinc-500 mb-2 lg:mb-3 group-hover:text-indigo-400 transition-colors">Example {idx + 1}:</p>
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
@@ -800,7 +802,7 @@ export function InterviewSession({
                                                 </span>
                                             </div>
                                         )}
-                                        {isGuest && !isAssessment && GUEST_SESSION_LIMITS.MAX_USER_TURNS < 9000 && (
+                                        {isGuest && !isAssessment && (
                                             <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
                                                 🌟 Trial Mode ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} turns left)
                                             </div>
@@ -916,7 +918,7 @@ export function InterviewSession({
                                                 onClick={() => {
                                                     const content = voice.transcript;
                                                     if (content) {
-                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description ?? '' });
+                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
                                                     }
                                                 }}
                                                 disabled={isProcessing}

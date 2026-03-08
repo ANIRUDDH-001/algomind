@@ -206,7 +206,8 @@ export class IntelligentRateLimiter {
                     deprecated: false,
                     cooldown: 'none',
                 };
-            } catch {
+            } catch (e) {
+                console.error(`[RateLimiter] Failed to read rate limit status for model '${model.id}' — dashboard will show '?':`, e);
                 result[model.id] = { rpm: '?', rpd: '?', failures: 0, deprecated: false, cooldown: 'unknown' };
             }
         }
