@@ -7,7 +7,7 @@ export interface Problem {
     title: string;
     content: string;
     description?: string;
-    examples?: string;
+    examples?: any;
     constraints?: string;
     difficulty: 'easy' | 'medium' | 'hard';
     category?: string;
@@ -16,6 +16,10 @@ export interface Problem {
     solution?: string;
     external_url?: string;
     ragContext?: string; // Pre-embedded context for guest problems
+    tags?: string[];
+    curated_lists?: string[];
+    time_complexity?: string;
+    space_complexity?: string;
 }
 
 export interface ProblemWithContext extends Problem {

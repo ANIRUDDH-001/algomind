@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 
         // Use the full model registry with proper fallback (same as assess/chat route)
         const result = await client.generateResponse(messages, {
-            preferredModel: 'gemini' as any, // Start with fastest Gemini, fall to Groq automatically
+            preferredModel: 'gemini' as any, // Note: when ENABLE_AWS_BEDROCK=ON, Bedrock (Haiku 4.5) runs FIRST regardless of this field. This is the fallback priority if Bedrock is OFF.
             category: 'speed',
             maxTokens: 4096,
             systemPrompt: enhancedSystemPrompt,
@@ -155,8 +155,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const cleanResponse = (result.response || '')
+            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+            .trim();
+
         return NextResponse.json({
-            response: result.response,
+            response: cleanResponse,
             modelUsed: result.modelUsed,
             provider: result.provider,
         });
