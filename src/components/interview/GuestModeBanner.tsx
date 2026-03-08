@@ -46,6 +46,7 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
                     ? 'border-amber-500/30 bg-amber-500/8'
                     : 'border-indigo-500/20 bg-indigo-500/6'
                 }
+                ${turnsLeft >= 9000 ? 'hidden' : ''}
             `}
         >
             {/* AlgoMind brand intro — always visible, not dismissable */}
@@ -118,7 +119,7 @@ export function GuestModeBanner({ turnsUsed, timeRemaining, onSignUp }: GuestMod
                         Sign up free to save progress & unlock unlimited practice →
                     </button>
                 </div>
-            </div>  
+            </div>
         </div>
     );
 }
