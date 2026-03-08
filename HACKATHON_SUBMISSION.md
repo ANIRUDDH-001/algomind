@@ -56,8 +56,8 @@ AlgoMind uses AI at **every layer** — it's not a wrapper around a single API. 
 
 | Layer | AI Model | Why This Model | Source File |
 |-------|----------|----------------|-------------|
-| **Real-time chat** | Claude Haiku 4.5 (AWS Bedrock cross-region) | Sub-200ms latency, strong reasoning | `src/lib/ai/providers.ts` |
-| **Deep analysis** | Claude Sonnet 4.5 (AWS Bedrock cross-region) | Best structured JSON output, 1M context window | `src/lib/ai/providers.ts` |
+| **Real-time chat** | Llama 3.3 70B (Groq) | Sub-200ms latency, strong reasoning | `src/lib/ai/providers.ts` |
+| **Deep analysis** | Gemini 2.5 Pro (Google) | Best structured JSON output, 1M context window | `src/lib/ai/providers.ts` |
 | **Intent classification** | Regex + Llama 3.1 8B | Hybrid: 0ms regex pass, LLM only when confidence <0.8 | `src/lib/ai/intent-classifier.ts` |
 | **Safety filtering** | GPT-OSS Safeguard 20B | Dedicated content safety model | `src/lib/ai/providers.ts` |
 | **Speech recognition** | Groq Whisper | Optimized for Indian/technical accents, 500ms for 10s audio | `src/hooks/useSTT.ts` |
@@ -86,7 +86,7 @@ AWS provides **4 services** — each gated behind feature flags for cost control
 | AWS Service | Purpose | Feature Flag | Region | Source File |
 |-------------|---------|--------------|--------|-------------|
 | **AWS Polly** | Neural TTS — Kajal voice (Indian English) | `ENABLE_AWS_POLLY_TTS` | ap-south-1 | `src/lib/aws/polly.ts` |
-| **AWS Bedrock** | Claude Haiku 4.5 (chat) + Claude Sonnet 4.5 (analysis) — primary AI provider | `ENABLE_AWS_BEDROCK` | us-east-1 | `src/lib/ai/bedrock-client.ts` |
+| **AWS Bedrock** | Claude 3.5 Sonnet v2 — last-resort AI fallback | `ENABLE_AWS_BEDROCK` | us-east-1 | `src/lib/ai/bedrock-client.ts` |
 | **AWS Transcribe** | Post-interview batch transcription enrichment | `ENABLE_AWS_TRANSCRIBE_STT` | ap-south-1 | `src/lib/aws/transcribe.ts` |
 | **AWS S3** | Audio staging for Transcribe jobs only | `ENABLE_AWS_S3_STORAGE` | ap-south-1 | `src/lib/aws/s3.ts` |
 
@@ -101,14 +101,11 @@ Guest access: Controlled by ENABLE_GUEST_POLLY_TTS flag
 
 **AWS Bedrock integration detail** (`src/lib/ai/bedrock-client.ts`):
 ```
-Model: us.anthropic.claude-3-5-sonnet-20241022-v2:0 (analysis) + us.anthropic.claude-3-5-haiku-20241022-v1:0 (chat)
-Role: Primary AI Provider for Demo purposes (when ENABLE_AWS_BEDROCK=ON)
+Model: openai.gpt-oss-120b-1:0 (default, DB-configurable)
+Role: Last-resort fallback when all Groq + Gemini models exhausted
 Cost tracking: logAWSUsage() records service, operation, estimated cost
 Owner dashboard: /owner → AWS Budget tab shows real-time spend
 ```
-
-> **Note for Judges on AWS Bedrock:**
-> The `ENABLE_AWS_BEDROCK` feature flag in the database is currently set to `ON` for the live demo, prioritizing Claude Haiku 4.5 and Claude Sonnet 4.5 for testing latency and analysis quality. In the codebase, the default value is `false` as a cost-limiting measure for post-hackathon deployments (falling back to Groq/Gemini free tiers).
 
 **AWS cost tracking** (`src/lib/aws/usage-logger.ts`):
 - Every AWS API call is logged with `estimatedCostUsd`

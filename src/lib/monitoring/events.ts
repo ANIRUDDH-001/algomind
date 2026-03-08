@@ -45,8 +45,9 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
     let supabaseAdmin: ReturnType<typeof getServiceClient>;
     try {
         supabaseAdmin = getServiceClient();
-    } catch {
-        return; // Missing env vars — silently skip
+    } catch (e) {
+        console.error('[Monitoring] getServiceClient() failed — system events will not be recorded. Check SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL env vars.', e);
+        return;
     }
 
     const payload = {
