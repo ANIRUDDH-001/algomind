@@ -51,7 +51,7 @@ graph TD
         end
 
         subgraph "Emergency Fallback"
-            Bedrock[AWS Bedrock Claude 3.5 Sonnet]
+            Bedrock[AWS Bedrock Claude Haiku/Sonnet]
         end
 
         Router -->|Fast Chat| Llama4 & Llama33 & Llama31
@@ -113,7 +113,7 @@ graph TD
 ### AI/ML
 - **Chat Models:** Llama 4 Scout/Maverick, Llama 3.3 70B, Llama 3.1 8B, Kimi K2, GPT-OSS 120B/20B (via Groq)
 - **Analysis Models:** Gemini 2.5 Pro, Gemini 3.0 Pro, Gemini 2.5/2.0 Flash (Google AI)
-- **Fallback:** Claude 3.5 Sonnet v2 (AWS Bedrock)
+- **Fallback:** Claude Haiku 4.5, Sonnet 4.5, Sonnet 4.6 (AWS Bedrock with cross-region inference)
 - **Embeddings:** Gemini Embedding 001 (768 dimensions)
 - **Spaced Repetition:** ts-fsrs (FSRS-5 algorithm)
 
@@ -302,6 +302,7 @@ graph TD
 ## 12. Monitoring & Diagnostics
 
 - **Owner Panel:** Real-time VAD event stream with confidence/duration metrics
+- **Benchmarking Suite:** Included Node.js scripts for direct AWS/Groq API metric collection and live voice pipeline load testing (E2E p50/p95 latency)
 - **Console Logging:** Structured `[Module]` prefixed logs throughout voice pipeline
 - **Feature Flags:** System-level flags for gradual rollout and kill switches
 - **Error Boundaries:** React error boundaries prevent full-page crashes
