@@ -190,6 +190,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                 const params = new URLSearchParams();
                 if (campaign.show_score_to_candidate && data.overallScore) {
                     params.set('score', data.overallScore.toFixed(1));
+                    params.set('showScore', 'true');
                 }
                 window.location.href = `/assess/complete?${params.toString()}`;
             } else {
