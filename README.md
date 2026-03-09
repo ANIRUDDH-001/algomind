@@ -3,7 +3,7 @@
 > **Voice-first AI technical interview coach — speaks, listens, scores, and teaches.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
-[![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
+[![Tests](https://img.shields.io/badge/Tests-898%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
 AlgoMind is an AI-powered technical interview preparation platform that simulates real-world coding interviews using **voice-first AI**. Built with a **Multi-Model Architecture** (Llama 4 + Gemini 2.5/3.0 + Kimi K2) and **Hybrid RAG** (JSON Vector Store + pgvector), it delivers sub-second latency and context-aware feedback across **8 cognitive dimensions**.
@@ -17,6 +17,7 @@ AlgoMind is an AI-powered technical interview preparation platform that simulate
 - **Smart Interruption Manager** — framework-agnostic `InterruptionManager` with grace periods, debouncing, confidence filtering, and circular event streams for diagnostics
 - **Voice Activity Detection (VAD)** — Silero VAD (ONNX Runtime) running in-browser for privacy-first, zero-latency speech detection with tunable thresholds
 - **Multi-Provider Voice Pipeline** — STT (Groq Whisper / Browser native), TTS (AWS Polly / Browser native), with feature-flag-driven provider switching
+- **Hinglish Language Detection** — per-turn spoken language detection; Kai mirrors Hinglish naturally with Hindi fillers while keeping all technical terms in English
 - **DSA Vocabulary Engine** — 500+ technical terms for improved STT accuracy
 
 ### 🧠 8-Dimensional Cognitive Assessment
@@ -118,7 +119,7 @@ Proprietary scoring engine measuring:
 ### DevOps & Testing
 | Tool | Purpose |
 |------|---------|
-| [Vitest](https://vitest.dev/) | Unit testing (880 tests, 105 files) |
+| [Vitest](https://vitest.dev/) | Unit testing (898 tests, 106 files) |
 | [Playwright](https://playwright.dev/) | E2E testing |
 | [ESLint](https://eslint.org/) | Linting (flat config) |
 | [Vercel](https://vercel.com/) | Deployment & edge functions |
@@ -189,7 +190,7 @@ All tables live in the `public` schema on Supabase PostgreSQL 17.6 with pgvector
 ## 🧪 Testing
 
 ```bash
-npm run test                # 880 tests across 105 files
+npm run test                # 898 tests across 106 files
 npm run test:watch          # Watch mode
 npm run test:coverage       # Coverage report
 npm run test:voice          # Voice module tests only
@@ -212,7 +213,7 @@ npm run test:ai             # AI module tests only
 
 | Metric | Value |
 |--------|-------|
-| Test suite | **880 tests passing** across **116 test files** (105 suites) |
+| Test suite | **898 tests passing** across **116 test files** (106 suites) |
 | Source files (TS/TSX/CSS/SQL/JS) | **481 files** |
 | Lines of code | **71,403** |
 | TypeScript (`.ts`) | 296 files — 44,268 lines |
