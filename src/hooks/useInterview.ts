@@ -982,6 +982,7 @@ export function useInterview(options: {
             isListening,
             transcript,
             interimTranscript,
+            isTranscribing: stt.isTranscribing,
             startListening: () => {
                 // Don't start mic while AI is speaking — would cause feedback/echo into VAD
                 if (isSpeaking) return;
