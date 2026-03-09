@@ -6,6 +6,8 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
 import type { InterviewState } from '@/lib/interview/state-machine';
+import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 
 export async function POST(req: NextRequest) {
     try {
@@ -38,6 +40,16 @@ export async function POST(req: NextRequest) {
             );
         }
         const { messages, systemPrompt, problemContext, guestMode, companyPersona, interviewState, sessionId: clientSessionId } = body;
+
+        // Read Hinglish feature flag once — used for language detection and prompt injection
+        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+
+        // Detect spoken language from the most recent user turn
+        const lastUserMessage = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
+        const spokenLanguage: 'english' | 'hinglish' =
+            (hinglishEnabled && lastUserMessage)
+                ? detectSpokenLanguage(lastUserMessage.content ?? '')
+                : 'english';
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
@@ -130,6 +142,13 @@ export async function POST(req: NextRequest) {
         if (ragContext && ragContext !== problemContext?.ragContext) {
             enhancedSystemPrompt += `\n\n<server_rag_context>\n${ragContext}\n</server_rag_context>`;
         }
+
+        // Append Hinglish instruction block when candidate is detected as Hinglish speaker
+        const hinglishBlock = (hinglishEnabled && spokenLanguage === 'hinglish')
+            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
+            '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
+            : '';
+        enhancedSystemPrompt += hinglishBlock;
 
         // Use the full model registry with proper fallback (same as assess/chat route)
         const result = await client.generateResponse(messages, {

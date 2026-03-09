@@ -4,6 +4,8 @@ import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
+import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 
 validateEnv();
 
@@ -30,6 +32,14 @@ export async function POST(req: NextRequest) {
         }
 
         const { sessionToken, messages, systemPrompt } = body;
+
+        // Hinglish detection — read flag and sniff last user turn
+        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+        const lastUserMsg = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
+        const hinglishBlock = (hinglishEnabled && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
+            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
+            '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
+            : '';
 
         if (!sessionToken) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
@@ -152,6 +162,7 @@ export async function POST(req: NextRequest) {
 
         // Add minimal instructions prioritizing standard assessment style
         enhancedSystemPrompt += '\n\n## CANDIDATE INTERVIEW GUIDELINES\nYou are conducting a technical interview. Keep your answers concise, ask probing questions about space/time complexity, and do not write the code for the candidate.';
+        enhancedSystemPrompt += hinglishBlock;
 
         const result = await client.generateResponse(messages, {
             preferredModel: 'auto',
