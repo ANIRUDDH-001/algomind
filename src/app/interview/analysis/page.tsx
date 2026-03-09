@@ -145,6 +145,8 @@ export default async function AnalysisPage({
                             if (dim === 'keyMoments' || dim === 'improvementExamples' || !data?.evidence) continue;
                             const quotes: string[] = Array.isArray(data.evidence) ? data.evidence : [];
                             for (const q of quotes.slice(0, 1)) {
+                                // Skip fallback/error evidence strings that aren't real candidate quotes
+                                if (!q || q.toLowerCase().includes('fallback') || q.toLowerCase().includes('ai analysis')) continue;
                                 fallback.push({
                                     timestampIndex: 0,
                                     momentType: 'impressive_statement',
