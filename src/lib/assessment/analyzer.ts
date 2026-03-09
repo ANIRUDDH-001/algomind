@@ -336,7 +336,8 @@ export class CognitiveAnalyzer {
                 category: 'analysis',
                 systemPrompt: "You are a professional assessment engine. Return only valid JSON.",
                 maxTokens: 4096,
-                estimatedTokens: 2000
+                estimatedTokens: 2000,
+                responseFormat: { type: 'json_object' },
             }
         );
 
