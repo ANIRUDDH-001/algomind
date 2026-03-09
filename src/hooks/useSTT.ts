@@ -48,6 +48,7 @@ export function useSTT(opts: UseSTTOptions) {
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [interimTranscript, setInterimTranscript] = useState('');
+    const [isTranscribing, setIsTranscribing] = useState(false);
     const [permissionState, setPermissionState] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -273,6 +274,7 @@ export function useSTT(opts: UseSTTOptions) {
             const wav = float32ToWav(audio, 16000);
             const form = new FormData();
             form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'audio.wav');
+            setIsTranscribing(true);
             const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form });
             if (!res.ok) {
                 const errBody = await res.json().catch(() => ({ error: res.statusText }));
@@ -294,6 +296,7 @@ export function useSTT(opts: UseSTTOptions) {
             optsRef.current.onTranscript(text, true);
             armTimer();
         } catch (err) { console.error('[STT] Whisper transcription failed:', err); }
+        finally { setIsTranscribing(false); }
     }, [resolvedProvider, armTimer]);
 
     const resetTranscript = useCallback(() => {
@@ -317,6 +320,7 @@ export function useSTT(opts: UseSTTOptions) {
         isListening,
         transcript,
         interimTranscript,
+        isTranscribing,
         startListening,
         stopListening,
         resetTranscript,
