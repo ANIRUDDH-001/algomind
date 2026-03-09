@@ -112,12 +112,13 @@ export async function POST(req: NextRequest) {
 
                 const data = await response.json();
 
-                const confidence = data.segments?.[0]?.avg_logprob
-                    ? Math.exp(data.segments[0].avg_logprob)
+                const segments = data.segments ?? [];
+                const confidence = segments.length > 0
+                    ? Math.exp(segments.reduce((sum: number, s: { avg_logprob?: number }) => sum + (s.avg_logprob ?? -1), 0) / segments.length)
                     : undefined;
 
-                // Confidence gate: reject low-confidence hallucinations
-                if (confidence !== undefined && confidence < 0.3) {
+                // Confidence gate: reject low-confidence hallucinations (0.15 for short utterances)
+                if (confidence !== undefined && confidence < 0.15) {
                     console.warn(`[Transcribe] Low confidence (${confidence.toFixed(3)}), discarding: "${data.text?.substring(0, 60)}"`);
                     return NextResponse.json({ text: '', model, confidence, duration: data.duration });
                 }

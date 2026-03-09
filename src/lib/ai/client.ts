@@ -29,6 +29,8 @@ export interface CompletionOptions {
     systemPrompt?: string; // Legacy support
     // Disables LLM intent classification pass when routing is smart
     enableLLMPass?: boolean;
+    /** OpenAI-compatible response_format for structured output (e.g. { type: 'json_object' }) */
+    responseFormat?: { type: string; [key: string]: unknown };
 }
 
 export interface CompletionResult {
@@ -329,12 +331,16 @@ export class UnifiedAIClient {
             apiMessages.unshift({ role: 'system', content: systemPrompt });
         }
 
-        const body = {
+        const body: Record<string, unknown> = {
             model: modelId,
             messages: apiMessages,
             max_tokens: options.maxTokens,
             temperature: options.temperature ?? 0.7,
         };
+
+        if (options.responseFormat) {
+            body.response_format = options.responseFormat;
+        }
 
         const response = await fetch(this.GROQ_API_URL, {
             method: "POST",

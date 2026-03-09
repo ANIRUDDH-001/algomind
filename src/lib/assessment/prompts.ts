@@ -69,7 +69,7 @@ export function generateAssessmentPrompt(
       "subCriteria": {
 ${def.subCriteria.map(sc => `        "${sc.id}": <1–10>`).join(',\n')}
       },
-      "evidence": ["Exact quote or specific described moment from transcript"],
+      "evidence": ["MUST be a direct verbatim quote from a USER turn only. Never quote Kai/assistant turns."],
       "strengths": ["1–2 observed strengths for this dimension"],
       "improvements": ["1–2 actionable improvements for this dimension"]
     }`).join(',\n');
@@ -200,7 +200,7 @@ If no code submitted: codeQuality must be null — not 0, not empty object.
 2. Compute dimension score as weighted average of its sub-criteria. Do not override with intuition.
 3. Sub-criteria scores are authoritative — they feed into computeOverallScore() in the backend.
 4. Do NOT include an "overallScore" field. It is computed programmatically.
-5. Evidence must be concrete: exact phrase or described specific moment. "Seemed to understand X" is not acceptable.
+5. Evidence must be concrete: exact verbatim quote from a USER turn only. Never quote the interviewer (Kai/assistant). "Seemed to understand X" is not acceptable.
 6. knowledgeGaps: 1–3 specific concepts. Empty array if none.
 7. Do not give 10/10 unless genuinely exceptional by expert-level standards.
 8. bonusDimensions scores contribute 10% to the overall score via computeOverallScoreWithBonus() — score them accurately.

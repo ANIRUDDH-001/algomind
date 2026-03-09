@@ -217,6 +217,7 @@ export function useInterview(options: {
     const stopListening = stt.stopListening;
     const _abortListening = stt.stopListening;
     const resetTranscript = useCallback(() => {
+        transcriptRef.current = ''; // Imperative sync — no render lag
         stt.resetTranscript();
         setTranscript('');
         setInterimTranscript('');

@@ -66,7 +66,7 @@ const DEFAULTS: VoiceConfigValues = {
     debugMode: false,
     eventStreamMaxSize: 200,
 
-    vadSilenceWindowMs: 800,
+    vadSilenceWindowMs: 1800,
     sttRestartDelayBrowserTts: 1500,
     sttRestartDelayAudioElement: 200,
 
