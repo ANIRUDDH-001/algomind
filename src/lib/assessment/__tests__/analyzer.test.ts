@@ -124,7 +124,14 @@ describe('CognitiveAnalyzer', () => {
             response: generateMockValidAiResponse()
         });
 
-        const transcript: ConversationTurn[] = [{ role: 'user', content: 'test' }];
+        const transcript: ConversationTurn[] = [
+            { role: 'user', content: 'Let me think about this problem step by step' },
+            { role: 'user', content: 'I would use a hash map to store complements' },
+            { role: 'user', content: 'The time complexity is O(n)' },
+            { role: 'user', content: 'For edge cases we handle empty arrays' },
+            { role: 'user', content: 'We could also consider a two-pointer approach' },
+            { role: 'user', content: 'The space complexity is O(n) for the map' },
+        ];
         const result = await analyzer.analyze('session-1', mockProblem, transcript);
 
         const skillArr = Object.values(result.skills);
@@ -147,7 +154,7 @@ describe('CognitiveAnalyzer', () => {
         const transcript: any[] = [];
         const result = await analyzer.analyze('session-1', mockProblem, transcript);
 
-        expect(result.skills['communication-clarity'].score).toBe(10);
+        expect(result.skills['communication-clarity'].score).toBe(5);
         expect(mockGenerateCompletion).toHaveBeenCalledTimes(1); // Didn't crash
     });
 

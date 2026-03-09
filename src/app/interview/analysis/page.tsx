@@ -72,6 +72,10 @@ export default async function AnalysisPage({
         redirect('/practice');
     }
 
+    // Detect limited evidence from transcript turn count
+    const userTurnCount = ((session.transcript || []) as TranscriptTurn[]).filter(t => t.speaker === 'user' || t.speaker === 'USER').length;
+    const isLimitedEvidence = userTurnCount <= 5;
+
     // 2. Fetch assessment
     const { data: assessment } = await supabase
         .from('assessments')
@@ -114,6 +118,8 @@ export default async function AnalysisPage({
                 overallScore: session.overall_score || 0,
                 completedAt: session.completed_at,
                 difficultyMode: session.difficulty_mode || undefined,
+                status: session.status || 'completed',
+                isLimitedEvidence,
             }}
             assessment={assessment ? {
                 overallScore: assessment.overall_score || 0,
@@ -147,13 +153,17 @@ export default async function AnalysisPage({
                             for (const q of quotes.slice(0, 1)) {
                                 // Skip fallback/error evidence strings that aren't real candidate quotes
                                 if (!q || q.toLowerCase().includes('fallback') || q.toLowerCase().includes('ai analysis')) continue;
+                                const score = data.score ?? 0;
+                                const sentiment = score >= 6 ? 'positive' as const : score <= 3 ? 'negative' as const : 'neutral' as const;
+                                const type = score >= 6 ? 'impressive' as const : score <= 3 ? 'gap' as const : 'notable' as const;
                                 fallback.push({
                                     timestampIndex: 0,
-                                    momentType: 'impressive_statement',
+                                    momentType: score >= 6 ? 'impressive_statement' : score <= 3 ? 'missed_opportunity' : 'approach_identified',
+                                    type,
                                     quote: typeof q === 'string' ? q.slice(0, 60) : '',
                                     significance: `Evidence from ${dim.replace(/-/g, ' ')}`,
                                     dimension: dim,
-                                    sentiment: (data.score ?? 0) >= 6 ? 'positive' : 'neutral',
+                                    sentiment,
                                 });
                             }
                         }

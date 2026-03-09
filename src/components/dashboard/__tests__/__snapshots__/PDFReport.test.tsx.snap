@@ -150,9 +150,9 @@ exports[`PDFReport > 11. Snapshot test: full PDF structure with mock progress da
           data-testid="pdf-text"
           style="font-size: 10px; color: rgb(71, 85, 105); line-height: 1.5; margin-bottom: 10px;"
         >
-          This report represents a comprehensive evaluation of cognitive performance across standard DSA domains. The global score 
-          7.5
-           reflects consistent agility and problem-solving depth.
+          This report represents a comprehensive evaluation of cognitive performance across standard DSA domains.
+           
+          This session demonstrated solid technical thinking with some areas to refine.
         </span>
       </div>
       <div

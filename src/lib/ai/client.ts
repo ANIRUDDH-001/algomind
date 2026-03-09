@@ -29,9 +29,6 @@ export interface CompletionOptions {
     systemPrompt?: string; // Legacy support
     // Disables LLM intent classification pass when routing is smart
     enableLLMPass?: boolean;
-    // Structured output: json_schema (strict) or json_object mode
-    // Maps directly to Groq/OpenAI response_format field
-    responseFormat?: { type: 'json_object' } | { type: 'json_schema'; json_schema: Record<string, unknown> };
 }
 
 export interface CompletionResult {
@@ -109,7 +106,7 @@ export class UnifiedAIClient {
                             bytesProcessed: inputChars + response.length,
                             estimatedCostUsd: estimateBedrockCost(inputChars, response.length),
                             metadata: { model: modelId, useCase, primary: true },
-                        }).catch(() => { });
+                        }).catch(() => {});
                         return {
                             success: true,
                             modelUsed: modelId,
@@ -332,17 +329,12 @@ export class UnifiedAIClient {
             apiMessages.unshift({ role: 'system', content: systemPrompt });
         }
 
-        const body: Record<string, unknown> = {
+        const body = {
             model: modelId,
             messages: apiMessages,
             max_tokens: options.maxTokens,
             temperature: options.temperature ?? 0.7,
         };
-
-        // Add response_format for structured JSON output (json_schema or json_object)
-        if (options.responseFormat) {
-            body.response_format = options.responseFormat;
-        }
 
         const response = await fetch(this.GROQ_API_URL, {
             method: "POST",

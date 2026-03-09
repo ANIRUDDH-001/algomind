@@ -66,3 +66,13 @@ export interface UserProgress {
     sessionsAtLastNarrative?: number; // To track when to trigger a new one
     next_steps?: string[];          // Latest next steps from generative feedback
 }
+
+/**
+ * Compute the number of improving skill dimensions.
+ * Returns null if there's only one session (no comparison possible).
+ */
+export function computeImprovingAreasCount(progress: UserProgress): number | null {
+    if (progress.totalSessions <= 1) return null;
+    if (!progress.trends || progress.trends.length === 0) return null;
+    return progress.trends.filter(t => t.trend === 'improving').length;
+}
