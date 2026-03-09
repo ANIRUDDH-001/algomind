@@ -44,6 +44,12 @@ export function useVAD(opts: UseVADOptions) {
     // render and useEffect that could cause stale callbacks in onSpeechEnd.
     optsRef.current = opts;
 
+    // Pending-stop: set true when stopListening is called while VAD is still
+    // capturing audio (LISTENING state). The stop is deferred until the
+    // current onSpeechEnd fires so the audio buffer isn't discarded.
+    const pendingStopRef = useRef(false);
+    const stopFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     // Detect basic browser support on mount.
     // NOTE: SharedArrayBuffer is NOT required — the vad-bundle.min.js UMD build
     // handles its own polyfills and works without it (confirmed in production).
@@ -87,6 +93,16 @@ export function useVAD(opts: UseVADOptions) {
 
         const unsubEnd = manager.onSpeechEnd?.((audio: Float32Array) => {
             optsRef.current.onSpeechEnd?.(audio);
+            // If stopListening was called while this segment was in-flight,
+            // now that the audio has been delivered, execute the deferred stop.
+            if (pendingStopRef.current) {
+                pendingStopRef.current = false;
+                if (stopFallbackTimerRef.current) {
+                    clearTimeout(stopFallbackTimerRef.current);
+                    stopFallbackTimerRef.current = null;
+                }
+                managerRef.current?.stop().catch(() => { /* ignore */ });
+            }
         });
         if (unsubEnd) unsubs.push(unsubEnd);
 
@@ -153,7 +169,22 @@ export function useVAD(opts: UseVADOptions) {
 
     const stopListening = useCallback(async () => {
         setIsListening(false);
-        if (managerRef.current) {
+        if (!managerRef.current) return;
+
+        // If VAD is actively listening, defer the hardware stop until the
+        // current speech segment ends so onSpeechEnd can fire and Whisper
+        // can transcribe the captured audio (fixes the mid-utterance discard bug).
+        if (managerRef.current.state === VADState.LISTENING) {
+            pendingStopRef.current = true;
+            // Safety fallback: force-stop after 2s if onSpeechEnd never fires
+            if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
+            stopFallbackTimerRef.current = setTimeout(async () => {
+                if (pendingStopRef.current) {
+                    pendingStopRef.current = false;
+                    try { await managerRef.current?.stop(); } catch { /* ignore */ }
+                }
+            }, 2000);
+        } else {
             try { await managerRef.current.stop(); } catch { /* ignore */ }
         }
     }, []);
@@ -164,6 +195,11 @@ export function useVAD(opts: UseVADOptions) {
             unsubRef.current();
             unsubRef.current = null;
         }
+        if (stopFallbackTimerRef.current) {
+            clearTimeout(stopFallbackTimerRef.current);
+            stopFallbackTimerRef.current = null;
+        }
+        pendingStopRef.current = false;
         if (managerRef.current) {
             try { managerRef.current.destroy?.(); } catch { /* ignore */ }
         }

@@ -19,6 +19,8 @@ interface ZoomTranscriptProps {
     micStoppedManually: boolean;
     /** Push-to-talk mode (VAD failed or browser STT) */
     isPushToTalk: boolean;
+    /** Whisper transcription request is in-flight */
+    isTranscribing?: boolean;
 }
 
 export function ZoomTranscript({
@@ -30,6 +32,7 @@ export function ZoomTranscript({
     isListening,
     micStoppedManually,
     isPushToTalk,
+    isTranscribing = false,
 }: ZoomTranscriptProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,7 @@ export function ZoomTranscript({
         interimTranscript,
         isPushToTalk,
         micStoppedManually,
+        isTranscribing,
     });
 
     return (
@@ -97,8 +101,9 @@ function getUserRowContent(opts: {
     interimTranscript: string;
     isPushToTalk: boolean;
     micStoppedManually: boolean;
+    isTranscribing: boolean;
 }): React.ReactNode {
-    const { isProcessing, isListening, transcript, interimTranscript, isPushToTalk, micStoppedManually } = opts;
+    const { isProcessing, isListening, transcript, interimTranscript, isPushToTalk, micStoppedManually, isTranscribing } = opts;
 
     // Processing state — KAI is thinking
     if (isProcessing) {
@@ -112,6 +117,19 @@ function getUserRowContent(opts: {
             </div>
         );
     }
+
+    // Whisper transcription in-flight — show indicator so user knows not to click off
+    if (micStoppedManually && isTranscribing) {
+        return (
+            <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+                </span>
+                <span className="text-[10px] text-sky-400/80 italic">transcribing…</span>
+            </div>
+        );
+ }
 
     // Mic stopped manually with transcript — waiting for user action
     if (micStoppedManually && transcript) {

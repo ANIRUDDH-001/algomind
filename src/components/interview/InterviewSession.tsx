@@ -899,6 +899,7 @@ export function InterviewSession({
                                                     isListening={voice.isListening}
                                                     micStoppedManually={micStoppedManually}
                                                     isPushToTalk={isPushToTalk}
+                                                    isTranscribing={voice.isTranscribing}
                                                 />
                                             </div>
                                         </div>
@@ -911,8 +912,8 @@ export function InterviewSession({
                                             </div>
                                         )}
 
-                                        {/* Send button: shown when mic is manually stopped AND there is content */}
-                                        {micStoppedManually && voice.transcript && (
+                                        {/* Send button: shown when mic is manually stopped AND there is content (or Whisper is in-flight) */}
+                                        {micStoppedManually && (voice.transcript || voice.isTranscribing) && (
                                             <Button
                                                 className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 onClick={() => {
@@ -921,11 +922,11 @@ export function InterviewSession({
                                                         submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
                                                     }
                                                 }}
-                                                disabled={isProcessing}
+                                                disabled={isProcessing || voice.isTranscribing}
                                                 title="Send your response"
                                             >
                                                 <Send className="w-3 h-3 mr-2" />
-                                                {sendCountdown !== null ? `Sending in ${sendCountdown}s…` : 'Send Message'}
+                                                {voice.isTranscribing ? 'Transcribing…' : sendCountdown !== null ? `Sending in ${sendCountdown}s…` : 'Send Message'}
                                             </Button>
                                         )}
 
