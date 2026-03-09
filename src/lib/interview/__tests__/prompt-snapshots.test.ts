@@ -38,4 +38,35 @@ describe('Prompt snapshot tests', () => {
         expect(prompt).toContain('timeEfficiency');
         expect(prompt).toContain('CRUNCH');
     });
+
+    it('includes Hinglish block when spokenLanguage is hinglish', () => {
+        const prompt = generateInterviewerSystemPrompt({
+            problem: MOCK_PROBLEM,
+            difficulty: 'medium',
+            difficultyMode: 'practice',
+            spokenLanguage: 'hinglish',
+        });
+        expect(prompt).toContain('SPOKEN LANGUAGE');
+        expect(prompt).toContain('Devanagari');
+        expect(prompt).toContain('yaar');
+    });
+
+    it('does NOT include Hinglish block when spokenLanguage is english', () => {
+        const prompt = generateInterviewerSystemPrompt({
+            problem: MOCK_PROBLEM,
+            difficulty: 'medium',
+            difficultyMode: 'practice',
+            spokenLanguage: 'english',
+        });
+        expect(prompt).not.toContain('SPOKEN LANGUAGE');
+    });
+
+    it('does NOT include Hinglish block when spokenLanguage is undefined', () => {
+        const prompt = generateInterviewerSystemPrompt({
+            problem: MOCK_PROBLEM,
+            difficulty: 'medium',
+            difficultyMode: 'practice',
+        });
+        expect(prompt).not.toContain('SPOKEN LANGUAGE');
+    });
 });

@@ -80,20 +80,28 @@ export async function POST(req: NextRequest) {
 
         // Try turbo model first, fall back to large-v3
         const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
+        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+
+        const vocabPrompt = hinglishEnabled
+            ? 'Technical interview about data structures and algorithms. Candidate may speak in Hinglish (Hindi-English mix). ' +
+            'DSA vocabulary: Big O notation, binary search, Dijkstra, BFS, DFS, dynamic programming, ' +
+            'hash map, linked list, binary tree. Hindi filler words: matlab, yaar, toh, karo, samjhe.'
+            : 'Technical interview about data structures and algorithms. ' +
+            'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
+            'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
+            'hash map, linked list, binary tree, heap, graph, two pointers.';
 
         for (const model of models) {
             try {
                 const groqForm = new FormData();
                 groqForm.append('file', audioFile);
                 groqForm.append('model', model);
-                groqForm.append('language', 'en');
+                if (!hinglishEnabled) {
+                    groqForm.append('language', 'en');
+                }
                 groqForm.append('response_format', 'verbose_json');
-                // DSA vocabulary prompt for better accuracy
-                groqForm.append('prompt',
-                    'Technical interview about data structures and algorithms. ' +
-                    'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
-                    'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
-                    'hash map, linked list, binary tree, heap, graph, two pointers.');
+                // DSA vocabulary prompt — Hinglish-aware when flag is on
+                groqForm.append('prompt', vocabPrompt);
 
                 const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                     method: 'POST',

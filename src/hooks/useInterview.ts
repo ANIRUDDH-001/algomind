@@ -17,6 +17,7 @@ import type { KaiMemoryStructured } from '@/types/kai-memory';
 import type { Problem } from '@/types/problem';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
+import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 
 /** Unique ID for stable message identification. */
 function generateMessageId(): string {
@@ -160,7 +161,7 @@ export function useInterview(options: {
             lastTranscriptTimeRef.current = Date.now();
         },
         // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
-        onSilenceTimeout: () => {},
+        onSilenceTimeout: () => { },
         onError: (err) => setVoiceError(new Error(err)),
     });
 
@@ -397,6 +398,9 @@ export function useInterview(options: {
             timeRemaining: optionsRef.current.timeRemaining,
         });
 
+        // Detect spoken language from this turn's user text
+        const detectedLang = detectSpokenLanguage(safeUserText);
+
         // Rebuild system prompt every turn so turnsRemaining / timeRemaining are current
         const currentSysPrompt = generateSystemPrompt({
             problem: {
@@ -418,6 +422,7 @@ export function useInterview(options: {
             isGuest: optionsRef.current.isGuest ?? false,
             sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
             secondProblem: currentProblemRef.current?.secondProblem,
+            spokenLanguage: detectedLang,
         });
 
         try {
@@ -634,6 +639,7 @@ export function useInterview(options: {
             isGuest: optionsRef.current.isGuest ?? false,
             sprintProblemIndex: opts.sprintProblemIndex ?? 0,
             secondProblem: opts.secondProblem,
+            spokenLanguage: 'english', // No user text yet at interview start
         });
 
         const introTrigger = generateInterviewOpeningTrigger(
@@ -756,7 +762,7 @@ export function useInterview(options: {
                 }
             })
             .catch(() => console.warn('[Mic Permission] permissions API not available'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // mount only
 
     // Test Hook: Expose trigger for Playwright (secured)
