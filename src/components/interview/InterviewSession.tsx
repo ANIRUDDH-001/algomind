@@ -7,11 +7,9 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
-import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { InterviewLimitBar } from './InterviewLimitBar';
-import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -52,7 +50,7 @@ import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/inter
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
 import { getProblemById } from '@/lib/supabase/problems';
-import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
+// (GUEST_INTRO_BANNER import removed — was unused)
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -539,6 +537,11 @@ export function InterviewSession({
                 }
             } else {
                 try {
+                    // BUG-C3 fix: Capture guest duration BEFORE analysis (excludes AI wait time)
+                    const interviewDuration = startTimeRef.current
+                        ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                        : 0;
+
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
                         { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty, difficultyMode: interviewConfig.difficultyMode },
@@ -549,12 +552,9 @@ export function InterviewSession({
                         return;
                     }
 
-                    // Capture duration for guest results overlay
+                    // Set guest duration (captured before analysis)
                     if (isGuest) {
-                        const elapsed = startTimeRef.current
-                            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-                            : 0;
-                        setGuestDurationSecs(elapsed);
+                        setGuestDurationSecs(interviewDuration);
                     }
                     // ✅ FIX: Save immediately after analysis — don't wait for state machine
                     if (user && !isGuest) {
@@ -594,6 +594,9 @@ export function InterviewSession({
         }
     };
 
+    // Auto-finish ref to prevent double triggers (BUG-H4: declared before usage)
+    const limitAutoFinishRef = useRef(false);
+
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
             // Sprint problem 1 half-time is handled by the sprint advancement effect above
@@ -612,6 +615,8 @@ export function InterviewSession({
                 if (!isSavingRef.current && !limitAutoFinishRef.current) {
                     limitAutoFinishRef.current = true;
                     setIsAutoSubmitting(true);
+                    // BUG-C4 fix: endInterview() is a state dispatch; handleFinish reads
+                    // messages immediately, so sequence them properly
                     endInterview();
                     handleFinish();
                 }
@@ -619,9 +624,6 @@ export function InterviewSession({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isHalfTime, limits.isTurnsUp]);
-
-    // Auto-finish ref to prevent double triggers
-    const limitAutoFinishRef = useRef(false);
 
     // A5: Derived flag — all interactive inputs are locked after limit
     const isLimitLocked = isAutoSubmitting || showLimitModal || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));

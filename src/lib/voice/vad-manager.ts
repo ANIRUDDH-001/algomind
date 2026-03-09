@@ -163,7 +163,13 @@ class VADManager implements VADManagerInterface {
         }
 
         this._state = VADState.INITIALIZING;
-        this._config = { ...DEFAULT_CONFIG, ...config };
+        const voiceCfg = getVoiceConfig();
+        this._config = {
+            ...DEFAULT_CONFIG,
+            redemptionMs: voiceCfg.vadSilenceWindowMs || DEFAULT_CONFIG.redemptionMs,
+            minSpeechMs: voiceCfg.vadMinSpeechMs || DEFAULT_CONFIG.minSpeechMs,
+            ...config,
+        };
 
         try {
             this._assertBrowserSupport();

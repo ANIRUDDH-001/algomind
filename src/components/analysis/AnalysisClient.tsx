@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, ChevronUp, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
@@ -299,6 +299,73 @@ function formatDuration(seconds: number): string {
     const m = Math.floor(seconds / 60);
     return m < 1 ? 'less than a minute' : `${m} minute${m !== 1 ? 's' : ''}`;
 }
+// ─── Moment Card (with expand/collapse for long quotes) ─────────────────────
+
+function MomentCard({ moment, idx, typeConfig, isLongQuote }: {
+    moment: AIKeyMoment; idx: number;
+    typeConfig: { icon: string; label: string; color: string };
+    isLongQuote: boolean;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    const displayQuote = isLongQuote && !expanded
+        ? moment.quote.slice(0, 120) + '…'
+        : moment.quote;
+
+    return (
+        <motion.div
+            className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 + idx * 0.1 }}
+        >
+            {/* Timeline dot */}
+            <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
+                style={{
+                    background: typeConfig.color + '20',
+                    border: `2px solid ${typeConfig.color}`,
+                }}
+            >
+                {typeConfig.icon}
+            </div>
+
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color: typeConfig.color }}
+                    >
+                        {typeConfig.label}
+                    </span>
+                    {moment.dimension && (
+                        <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
+                            {SKILL_DEFINITIONS[moment.dimension as CognitiveSkill]?.name || moment.dimension}
+                        </span>
+                    )}
+                </div>
+
+                <div className="text-xs text-zinc-200 font-mono bg-zinc-900/50 rounded px-2 py-1 mb-1 break-words">
+                    <span>&ldquo;{displayQuote}&rdquo;</span>
+                    {isLongQuote && (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                        >
+                            {expanded ? (
+                                <><ChevronUp className="w-3 h-3" /> Less</>
+                            ) : (
+                                <><ChevronDown className="w-3 h-3" /> More</>
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    {moment.significance}
+                </p>
+            </div>
+        </motion.div>
+    );
+}
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -327,7 +394,7 @@ export function AnalysisClient({
                 problemId: session.problemId,
                 problemTitle: session.problemTitle,
                 problemDifficulty: session.problemDifficulty,
-                overallScore: session.overallScore || assessment?.overallScore || 5,
+                overallScore: session.overallScore || (assessment?.overallScore ?? 0),
             });
             if (result) {
                 setLocalSm2({
@@ -350,14 +417,18 @@ export function AnalysisClient({
         }
     }, [session, assessment]);
 
-    // Extract first actionable sentence from feedback
+    // Extract first actionable sentence from feedback (prefer sentences with action words)
     const oneThingFeedback = (() => {
         if (!assessment?.overallFeedback) return null;
         const sentences = assessment.overallFeedback
             .split(/[.!]\s+/)
             .map(s => s.trim())
             .filter(s => s.length > 20);
-        return sentences[0] ? sentences[0] + '.' : null;
+        // Prefer a sentence with actionable language
+        const actionWords = ['focus', 'practice', 'improve', 'work on', 'try', 'consider', 'strengthen', 'develop', 'revisit', 'should'];
+        const actionable = sentences.find(s => actionWords.some(w => s.toLowerCase().includes(w)));
+        const picked = actionable || sentences[0];
+        return picked ? picked + '.' : null;
     })();
 
     const difficultyColors: Record<string, string> = {
@@ -374,9 +445,9 @@ export function AnalysisClient({
                 {...ANIM.fadeUp}
                 transition={TRANSITIONS.page}
             >
-                <Link href="/practice" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
-                    <ArrowLeft className="w-4 h-4" /> Back to Practice
-                </Link>
+                <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                </button>
                 <h1 className="text-2xl font-black text-white tracking-tight">
                     Interview Analysis
                 </h1>
@@ -591,49 +662,16 @@ export function AnalysisClient({
                             {aiMoments.map((moment, idx) => {
                                 const typeKey = moment.type || (moment.sentiment === 'positive' ? 'impressive' : moment.sentiment === 'negative' ? 'gap' : 'notable');
                                 const typeConfig = MOMENT_TYPE_CONFIG[typeKey] || MOMENT_TYPE_CONFIG.notable;
+                                const isLongQuote = moment.quote.length > 120;
 
                                 return (
-                                <motion.div
-                                    key={idx}
-                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
-                                    initial={{ opacity: 0, x: -12 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.4 + idx * 0.1 }}
-                                >
-                                    {/* Timeline dot */}
-                                    <div
-                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
-                                        style={{
-                                            background: typeConfig.color + '20',
-                                            border: `2px solid ${typeConfig.color}`,
-                                        }}
-                                    >
-                                        {typeConfig.icon}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider"
-                                                style={{ color: typeConfig.color }}
-                                            >
-                                                {typeConfig.label}
-                                            </span>
-                                            {moment.dimension && (
-                                                <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
-                                                    {SKILL_DEFINITIONS[moment.dimension as CognitiveSkill]?.name || moment.dimension}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <p className="text-xs text-zinc-200 font-mono bg-zinc-900/50 rounded px-2 py-1 mb-1 break-words">
-                                            &ldquo;{moment.quote}&rdquo;
-                                        </p>
-
-                                        <p className="text-[10px] text-zinc-500 leading-relaxed">
-                                            {moment.significance}
-                                        </p>
-                                    </div>
-                                </motion.div>
+                                    <MomentCard
+                                        key={idx}
+                                        moment={moment}
+                                        idx={idx}
+                                        typeConfig={typeConfig}
+                                        isLongQuote={isLongQuote}
+                                    />
                                 );
                             })}
                         </div>
@@ -815,11 +853,11 @@ export function AnalysisClient({
                             </Link>
                         )}
 
-                        <Link href="/practice" className="block">
+                        <button onClick={() => window.history.back()} className="block w-full">
                             <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300">
-                                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Back
                             </Button>
-                        </Link>
+                        </button>
 
                         {assessment && (
                             <ExportReportButton sessionData={{

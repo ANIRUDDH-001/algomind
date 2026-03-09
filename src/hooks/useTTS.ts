@@ -27,16 +27,22 @@ export function useTTS(opts: UseTTSOptions = {}) {
     const optsRef = useRef(opts);
     useEffect(() => { optsRef.current = opts; }, [opts]);
 
-    // 1. Detect Polly flag ONCE
+    // 1. Detect Polly flag on mount + listen for runtime changes (TTS-4 fix)
     useEffect(() => {
-        fetch('/api/flags', { signal: AbortSignal.timeout(3000) })
-            .then(r => r.ok ? r.json() : {})
-            .then((f: any) => {
-                const polly = f['ENABLE_AWS_POLLY_TTS']?.value === true;
-                const guestPolly = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
-                setPollyEnabled(polly || guestPolly);
-            })
-            .catch(() => setPollyEnabled(false));
+        const fetchPollyFlag = () => {
+            fetch('/api/flags', { signal: AbortSignal.timeout(3000) })
+                .then(r => r.ok ? r.json() : {})
+                .then((f: any) => {
+                    const polly = f['ENABLE_AWS_POLLY_TTS']?.value === true;
+                    const guestPolly = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
+                    setPollyEnabled(polly || guestPolly);
+                })
+                .catch(() => setPollyEnabled(false));
+        };
+        fetchPollyFlag();
+        // Re-fetch when owner panel toggles the flag
+        window.addEventListener('polly-flag-changed', fetchPollyFlag);
+        return () => window.removeEventListener('polly-flag-changed', fetchPollyFlag);
     }, []);
 
     // 2. Pick best browser voice (respects voiceName preference from user_preferences)
@@ -69,7 +75,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
         };
         engineRef.current = engine;
         return () => { engine.destroy(); engineRef.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // mount only
 
     // 3b. Update voice config on existing engine (no destroy/recreate)

@@ -160,7 +160,7 @@ export default async function AnalysisPage({
                                     timestampIndex: 0,
                                     momentType: score >= 6 ? 'impressive_statement' : score <= 3 ? 'missed_opportunity' : 'approach_identified',
                                     type,
-                                    quote: typeof q === 'string' ? q.slice(0, 60) : '',
+                                    quote: typeof q === 'string' ? q : '',
                                     significance: `Evidence from ${dim.replace(/-/g, ' ')}`,
                                     dimension: dim,
                                     sentiment,
