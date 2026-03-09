@@ -122,7 +122,7 @@ describe('HomePage — Unauthenticated', () => {
         await waitFor(() => {
             expect(screen.getByText('Voice Interview')).toBeDefined();
             expect(screen.getByText('Cognitive Analysis')).toBeDefined();
-            expect(screen.getByText('Company Modes')).toBeDefined();
+            expect(screen.getByText('Interview Modes')).toBeDefined();
         });
     });
 

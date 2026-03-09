@@ -196,7 +196,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-[clamp(0.875rem,2vw,1.25rem)] text-zinc-400 max-w-2xl mb-6 md:mb-10 font-medium px-2"
           >
-            Practice with an AI interviewer trained on FAANG interview standards. Get real-time voice feedback, cognitive analysis, and ace your systems design and DSA rounds.
+            Practice with an AI interviewer trained on FAANG interview standards. Get real-time voice feedback, cognitive analysis, and ace your DSA rounds.
           </motion.p>
 
           <motion.div
@@ -298,7 +298,9 @@ export default function HomePage() {
                     <motion.div
                       key={i}
                       className="w-1.5 rounded-full bg-indigo-500/90 shadow-[0_0_8px_rgba(99,102,241,0.6)]"
-                      animate={{ height: [`${h * 0.4}%`, `${h}%`, `${h * 0.4}%`] }}
+                      animate={{
+                        height: [`${h * 0.4}%`, `${h}%`, `${h * 0.4}%`]
+                      }}
                       transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
                     />
                   ))}
@@ -350,13 +352,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 md:mb-6 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300">
                   <BarChart className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Company Modes</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Interview Modes</h3>
                 <p className="text-zinc-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-6 flex-grow">
-                  Select your target company. The AI adapts its strictness, hints, and expected optimality to match their specific rubric.
+                  Choose between Warm-up, Practice, Crunch, and Sprint modes to match your preparation intensity.
                 </p>
                 {/* Visual Mockup - Logos */}
                 <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-wrap gap-2 items-center justify-center group-hover:border-emerald-500/40 transition-colors shadow-inner overflow-hidden">
-                  {['Google', 'Meta', 'Amazon', 'Startup'].map((co, i) => (
+                  {['Warm-up', 'Practice', 'Crunch', 'Sprint'].map((co, i) => (
                     <motion.div
                       key={co}
                       whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}

@@ -57,7 +57,7 @@ function DashboardContent() {
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
         if (!session?.sessionId) return; // Guard: don't navigate with a null session
-        router.push(`/interview/history/${session.sessionId}`);
+        router.push(`/interview/analysis?sessionId=${session.sessionId}`);
     }, [router]);
 
     // State for asynchronous recommendations (memoized to avoid render cycle issues)
@@ -347,7 +347,7 @@ function DashboardContent() {
                                                             {session.overallScore.toFixed(1)}
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemId.replace(/-/g, ' ')}</h4>
+                                                            <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemTitle || session.problemId.replace(/-/g, ' ')}</h4>
                                                             <p className="text-xs text-zinc-500">{format(new Date(session.timestamp), 'PPP p')}</p>
                                                         </div>
                                                     </div>
@@ -399,7 +399,7 @@ function DashboardContent() {
                                         <div>
                                             <h4 className="text-white font-bold mb-1 uppercase tracking-wide">Next Milestone</h4>
                                             <p className="text-sm text-zinc-500 max-w-xl">
-                                                Complete 3 more sessions focused on **Complexity Analysis** to reach your next skill milestone and unlock detailed performance benchmarks.
+                                                Complete 3 more sessions focused on <strong>Complexity Analysis</strong> to reach your next skill milestone and unlock detailed performance benchmarks.
                                             </p>
                                         </div>
                                     </div>

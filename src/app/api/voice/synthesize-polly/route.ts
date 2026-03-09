@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         // Preprocess: strip markdown and clean for TTS
         const cleaned = preprocessForTTS(text.replace(/[*_#`]/g, ''));
         const truncated = cleaned.length > MAX_TEXT_LENGTH
-            ? cleaned.slice(0, MAX_TEXT_LENGTH) + '...'
+            ? cleaned.slice(0, MAX_TEXT_LENGTH)
             : cleaned;
 
         const audioBuffer = await synthesizeWithPolly(truncated, voice || 'Kajal');
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
             estimatedCostUsd: estimatePollyCost(truncated.length, (voice || 'Kajal') === 'Kajal'),
             userId: user?.id ?? 'guest',
             metadata: { voice: voice || 'Kajal', textLength: truncated.length },
-        }).catch(() => {}); // never block on logging
+        }).catch(() => { }); // never block on logging
 
         return new NextResponse(audioBuffer, {
             status: 200,

@@ -208,7 +208,7 @@ export default function PracticePage() {
                     </div>
                     <Button
                         onClick={handleRandomProblem}
-                        disabled={problems.length === 0}
+                        disabled={!user && problems.length === 0 && false}
                         className="btn-primary"
                     >
                         <Shuffle className="w-4 h-4 mr-2" />
