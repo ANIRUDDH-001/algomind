@@ -184,9 +184,17 @@ const ReportFooter = () => (
 
 interface PDFReportProps {
     progress: UserProgress;
+    isIncompleteSession?: boolean;
 }
 
-export const PDFReport = ({ progress }: PDFReportProps) => {
+function getScoreConditionalCopy(score: number): string {
+    if (score >= 8) return 'This session reflected strong technical depth and clear communication.';
+    if (score >= 6) return 'This session demonstrated solid technical thinking with some areas to refine.';
+    if (score >= 3) return 'This session showed emerging problem-solving ability with clear areas to develop.';
+    return 'This session showed significant room for growth. Focused practice on fundamentals is recommended.';
+}
+
+export const PDFReport = ({ progress, isIncompleteSession }: PDFReportProps) => {
     const candidateName = progress.userId; // Using userId as name fallback
     const date = format(new Date(), 'PPP');
 
@@ -233,7 +241,9 @@ export const PDFReport = ({ progress }: PDFReportProps) => {
                     </View>
                     <View style={[styles.statBox, { borderRightWidth: 0 }]}>
                         <Text style={styles.statValue}>
-                            {progress.trends?.filter(t => t.trend === 'improving').length || 0}
+                            {progress.trends && progress.trends.filter(t => t.trend === 'improving').length > 0
+                                ? progress.trends.filter(t => t.trend === 'improving').length
+                                : progress.totalSessions <= 1 ? '—' : '0'}
                         </Text>
                         <Text style={styles.statLabel}>Improving Areas</Text>
                     </View>
@@ -243,7 +253,7 @@ export const PDFReport = ({ progress }: PDFReportProps) => {
                     <Text style={styles.sectionTitle}>Performance Analysis</Text>
                     <Text style={{ fontSize: 10, color: '#475569', lineHeight: 1.5, marginBottom: 10 }}>
                         This report represents a comprehensive evaluation of cognitive performance across standard DSA domains.
-                        The global score {progress.averageScore.toFixed(1)} reflects consistent agility and problem-solving depth.
+                        {' '}{getScoreConditionalCopy(progress.averageScore)}
                     </Text>
                 </View>
 
@@ -295,6 +305,25 @@ export const PDFReport = ({ progress }: PDFReportProps) => {
             {/* Page 3: Overall Feedback + Next Steps */}
             <Page size="A4" style={styles.page}>
                 <View style={[styles.contentContainer, { paddingTop: 40 }]}>
+                    {/* Incomplete session disclaimer */}
+                    {isIncompleteSession && (
+                        <View style={{
+                            backgroundColor: '#fef3c7',
+                            padding: 12,
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: '#f59e0b',
+                            marginBottom: 20,
+                        }}>
+                            <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#92400e', marginBottom: 4 }}>
+                                ⚠ Incomplete Session
+                            </Text>
+                            <Text style={{ fontSize: 9, color: '#92400e', lineHeight: 1.4 }}>
+                                Note: This report is based on an incomplete session. Scores may not reflect true ability.
+                            </Text>
+                        </View>
+                    )}
+
                     <View style={{ flexDirection: 'row', gap: 24 }}>
                         <View style={{ flex: 2 }}>
                             <Text style={styles.sectionTitle}>Overall Feedback</Text>

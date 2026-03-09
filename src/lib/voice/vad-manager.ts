@@ -33,7 +33,7 @@ const DEFAULT_CONFIG: VADConfig = {
     negativeSpeechThreshold: 0.25,  // Stay in speech mode until clearly stopped (lower = more tolerant of pauses)
     redemptionMs: 1500,             // Wait 1.5s after speech dips before ending — captures full sentences
     preSpeechPadMs: 300,            // Include 300ms before speech start for cleaner Whisper context
-    minSpeechMs: 800,               // Ignore short bursts (<800ms) likely from noise/coughs
+    minSpeechMs: 1200,              // Ignore short bursts (<1.2s) — reduces Whisper hallucination on noise/coughs
     model: 'legacy',
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',

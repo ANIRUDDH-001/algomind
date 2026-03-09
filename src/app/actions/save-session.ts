@@ -238,7 +238,8 @@ export async function saveInterviewSession(
                 problemId,
                 problemTitle,
                 problemDifficulty: probDiff?.difficulty || 'medium',
-                overallScore: finalResult?.rawScore ?? 5
+                overallScore: finalResult?.rawScore ?? 5,
+                sessionStatus: finalResult?.analysisFailure === 'user_fault' ? 'incomplete' : undefined,
             });
         } catch (err) { console.error('[save-session] addToQueue failed:', err); }
 

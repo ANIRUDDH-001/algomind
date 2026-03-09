@@ -10,7 +10,14 @@ export async function addToQueue(params: {
     problemTitle: string;
     problemDifficulty: 'easy' | 'medium' | 'hard';
     overallScore: number;
+    sessionStatus?: string;
 }): Promise<void> {
+    // Guard: skip FSRS card update for incomplete sessions (BUG-06)
+    if (params.sessionStatus === 'incomplete') {
+        console.warn(`[FSRS] Skipping card update for incomplete session (problem: ${params.problemId}, user: ${params.userId})`);
+        return;
+    }
+
     try {
         const supabase = getServiceClient();
 

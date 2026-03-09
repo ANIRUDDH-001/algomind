@@ -1,28 +1,31 @@
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useGuardedRouter } from '@/hooks/useGuardedRouter';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { Brain } from 'lucide-react';
 
 // ── Main Login Content ────────────────────────────────────────────────────────
 
 function LoginContent() {
     const { user, signIn, loading, isConfigured } = useAuth();
-    const router = useRouter();
+    const router = useGuardedRouter();
     const searchParams = useSearchParams();
 
     const [oauthProvider, setOauthProvider] = useState<'google' | 'github' | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const hasRedirected = useRef(false);
 
     // Redirect if already logged in
     useEffect(() => {
-        if (user) {
+        if (user && !hasRedirected.current) {
+            hasRedirected.current = true;
             const urlRedirect = searchParams.get('redirect');
             const target = urlRedirect || '/dashboard';
             router.push(target);
         }
-    }, [user, router, searchParams]);
+    }, [user, searchParams]); // removed router from deps
 
     // Show error from URL params (OAuth failure / callback error)
     useEffect(() => {

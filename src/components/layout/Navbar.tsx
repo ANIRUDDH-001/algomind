@@ -64,6 +64,8 @@ export function Navbar() {
 
         const checkModels = async () => {
             if (!isAdmin) return;
+            // Pause polling when tab is hidden
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
             try {
                 const res = await fetch('/api/admin/events?type=model_deprecated&days=1&limit=1');
                 if (res.ok) {
@@ -77,10 +79,11 @@ export function Navbar() {
 
         if (isAdmin) {
             checkModels();
-            const interval = setInterval(checkModels, 5 * 60 * 1000); // 5 mins
+            // Poll every 60 seconds (was 5 minutes but with pathname dependency causing re-mounts)
+            const interval = setInterval(checkModels, 60 * 1000);
             return () => clearInterval(interval);
         }
-    }, [pathname, isAdmin]);
+    }, [isAdmin]);
 
     const handleLogout = async () => {
         await signOut();

@@ -207,6 +207,23 @@ If no code submitted: codeQuality must be null — not 0, not empty object.
 
 ---
 
+## ACTION ITEM GENERATION RULES
+
+Before generating nextSteps (action items), you MUST classify every technical concept into one of three evidence levels:
+- MENTIONED: candidate explicitly raised the concept, even briefly or imperfectly (e.g., said "I will use hat" meaning HashMap)
+- PARTIAL: candidate started but didn't complete the reasoning, or had a severe misunderstanding
+- ABSENT: concept never came up in the transcript at all
+
+Before generating action items, list what the candidate explicitly mentioned. Do not create action items for things already mentioned, even if not fully elaborated.
+
+Action items (nextSteps) should ONLY target:
+- ABSENT concepts that would have been relevant
+- PARTIAL concepts where the candidate had a severe misunderstanding (not just incomplete phrasing)
+
+NEVER generate action items for MENTIONED concepts. If the candidate said "hash map" or any recognizable variant, do NOT recommend "Review how to use a Hash Map."
+
+---
+
 ${modeConfig.feedbackTone}
 `;
 }

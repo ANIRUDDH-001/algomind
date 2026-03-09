@@ -283,7 +283,14 @@ export function useSTT(opts: UseSTTOptions) {
             if (!text?.trim()) {
                 return;
             }
-            setTranscript(p => p ? `${p} ${text}` : text);
+            // Overlap dedup: skip if the new text is already a suffix of the current transcript
+            setTranscript(p => {
+                if (!p) return text;
+                const prevLower = p.toLowerCase().trimEnd();
+                const newLower = text.toLowerCase().trim();
+                if (prevLower.endsWith(newLower)) return p;
+                return `${p} ${text}`;
+            });
             optsRef.current.onTranscript(text, true);
             armTimer();
         } catch (err) { console.error('[STT] Whisper transcription failed:', err); }

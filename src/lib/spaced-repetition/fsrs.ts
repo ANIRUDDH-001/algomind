@@ -6,10 +6,14 @@ const fsrs = new FSRS({
     maximum_interval: 180,    // Keep 180-day max from original SM2 implementation
     enable_fuzz: true,        // Slight randomness prevents review day clustering
     w: [
-        // FSRS-5 default weights (trained on 20k+ learners)
-        // Override these if you collect enough AlgoMind-specific data later
-        0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.059,
-        1.5330, 0.1544, 1.0070, 1.9395, 0.1100, 0.2900, 2.3850, 0.1695, 2.0000
+        // FSRS-6 default weights (full 21-parameter vector)
+        // See: https://github.com/open-spaced-repetition/fsrs4anki/wiki
+        0.4072, 1.1829, 3.1262, 15.4722,
+        7.2102, 0.5316, 1.0651, 0.0590,
+        1.5330, 0.1544, 1.0070, 1.9395,
+        0.1100, 0.2900, 2.3850, 0.1695,
+        2.9898, 0.5100, 0.6000, 0.0000,
+        0.0000
     ],
 });
 
