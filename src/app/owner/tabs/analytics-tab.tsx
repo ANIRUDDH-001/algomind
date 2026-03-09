@@ -102,8 +102,43 @@ export function AnalyticsTab() {
 
     useEffect(() => {
         loadData();
-        const interval = setInterval(() => loadData(), 30000);
-        return () => clearInterval(interval);
+        let currentInterval = 60000; // Start at 60 seconds
+        const MAX_INTERVAL = 300000; // Max 5 minutes
+        let consecutiveErrors = 0;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const poll = async () => {
+            // Pause polling when tab is hidden
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                timer = setTimeout(poll, currentInterval);
+                return;
+            }
+            try {
+                await loadData();
+                consecutiveErrors = 0;
+                currentInterval = 60000; // Reset to base interval on success
+            } catch {
+                consecutiveErrors++;
+                // Exponential backoff: 60s, 120s, 240s, capped at 300s
+                currentInterval = Math.min(60000 * Math.pow(2, consecutiveErrors), MAX_INTERVAL);
+            }
+            timer = setTimeout(poll, currentInterval);
+        };
+
+        timer = setTimeout(poll, currentInterval);
+
+        // Resume polling when tab becomes visible
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                loadData();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
 
     const toggleDbError = (id: string) => {

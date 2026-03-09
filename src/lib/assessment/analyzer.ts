@@ -41,6 +41,7 @@ export interface AssessmentResult {
     analysisFailure?: 'user_fault' | 'system_fault';
     validationPassDone?: boolean;
     hireDecision?: HireDecision | null;
+    isLimitedEvidence?: boolean;
 }
 
 function computeWeightedScore(
@@ -138,6 +139,26 @@ export class CognitiveAnalyzer {
                 const validation = await validateAndCorrectScores(parsedData.skills, userTurnCount);
                 const validatedSkills = applyValidation(parsedData.skills, validation);
 
+                // Hard score cap enforcement for short sessions (BUG-07)
+                // The validator only caps scores above the threshold, but the LLM
+                // may still produce scores that slip through. Enforce ceiling here.
+                const shortSessionCap: number | null =
+                    userTurnCount <= 3 ? 5 :
+                    userTurnCount <= 5 ? 6 :
+                    null;
+                const isLimitedEvidence = shortSessionCap !== null;
+
+                if (shortSessionCap !== null) {
+                    for (const skillId of Object.keys(validatedSkills)) {
+                        if (validatedSkills[skillId] && validatedSkills[skillId].score > shortSessionCap) {
+                            validatedSkills[skillId] = {
+                                ...validatedSkills[skillId],
+                                score: Math.min(validatedSkills[skillId].score, shortSessionCap),
+                            };
+                        }
+                    }
+                }
+
                 // Post-process: calculate confidence and finalize structure
                 const sessionConfidence = calculateConfidence(transcript, parsedData);
 
@@ -202,6 +223,7 @@ export class CognitiveAnalyzer {
                     modelUsed: rawResponse.model ?? 'gemini-2.0-flash',
                     validationPassDone: true,
                     hireDecision,
+                    isLimitedEvidence,
                 };
 
             } catch (error: unknown) {
@@ -303,62 +325,6 @@ export class CognitiveAnalyzer {
         };
     }
 
-    /** Strict JSON schema for assessment responses — all fields required, no extras. */
-    private static readonly ASSESSMENT_JSON_SCHEMA = {
-        type: 'json_schema' as const,
-        json_schema: {
-            name: 'interview_assessment',
-            strict: true,
-            schema: {
-                type: 'object',
-                properties: {
-                    skills: {
-                        type: 'object',
-                        additionalProperties: {
-                            type: 'object',
-                            properties: {
-                                score: { type: 'number' },
-                                subCriteria: {
-                                    type: 'object',
-                                    additionalProperties: { type: 'number' }
-                                },
-                                evidence: { type: 'array', items: { type: 'string' } },
-                                strengths: { type: 'array', items: { type: 'string' } },
-                                improvements: { type: 'array', items: { type: 'string' } }
-                            },
-                            required: ['score', 'subCriteria', 'evidence', 'strengths', 'improvements'],
-                            additionalProperties: false
-                        }
-                    },
-                    codeQuality: {
-                        type: ['object', 'null'],
-                        properties: {
-                            score: { type: ['number', 'null'] },
-                            correctness: { type: 'string' },
-                            clarity: { type: 'string' },
-                            consistency: { type: 'string' },
-                            issues: { type: 'array', items: { type: 'string' } }
-                        },
-                        required: ['score', 'correctness', 'clarity', 'consistency', 'issues'],
-                        additionalProperties: false
-                    },
-                    overallFeedback: { type: 'string' },
-                    nextSteps: { type: 'array', items: { type: 'string' } },
-                    knowledgeGaps: { type: 'array', items: { type: 'string' } },
-                    hireDecision: {
-                        type: 'string',
-                        enum: ['STRONG_HIRE', 'HIRE', 'BORDERLINE', 'NO_HIRE', 'STRONG_NO_HIRE']
-                    }
-                },
-                required: ['skills', 'overallFeedback', 'nextSteps'],
-                additionalProperties: false
-            }
-        }
-    };
-
-    /** Fallback format for models that don't support json_schema (e.g. llama via Groq). */
-    private static readonly JSON_OBJECT_FORMAT = { type: 'json_object' as const };
-
     private async callAI(prompt: string): Promise<{ text: string, model: string }> {
         // Use UnifiedAIClient directly instead of internal API fetch
         const { getAIClient } = await import('@/lib/ai/client');
@@ -370,8 +336,7 @@ export class CognitiveAnalyzer {
                 category: 'analysis',
                 systemPrompt: "You are a professional assessment engine. Return only valid JSON.",
                 maxTokens: 4096,
-                estimatedTokens: 2000,
-                responseFormat: CognitiveAnalyzer.ASSESSMENT_JSON_SCHEMA
+                estimatedTokens: 2000
             }
         );
 

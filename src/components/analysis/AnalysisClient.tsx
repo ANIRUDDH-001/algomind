@@ -28,6 +28,8 @@ interface SessionData {
     overallScore: number;
     completedAt: string;
     difficultyMode?: string;
+    status?: string;
+    isLimitedEvidence?: boolean;
 }
 
 interface TranscriptTurn {
@@ -39,6 +41,7 @@ interface TranscriptTurn {
 interface AIKeyMoment {
     timestampIndex: number;
     momentType: string;
+    type?: 'impressive' | 'gap' | 'notable';
     quote: string;
     significance: string;
     dimension: string | null;
@@ -130,6 +133,12 @@ const MOMENT_COLORS: Record<string, string> = {
     positive: '#10b981',
     negative: '#ef4444',
     neutral: '#6b7280',
+};
+
+const MOMENT_TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
+    impressive: { icon: '⭐', label: 'Strong Moment', color: '#10b981' },
+    gap: { icon: '⚠️', label: 'Area to Improve', color: '#f59e0b' },
+    notable: { icon: 'ℹ️', label: 'Notable Observation', color: '#3b82f6' },
 };
 
 const HIRE_STYLES: Record<string, string> = {
@@ -307,6 +316,7 @@ export function AnalysisClient({
     const improvementExamples = assessment?.improvementExamples || [];
     const [showImprovements, setShowImprovements] = useState(false);
     const isWarmUp = session.difficultyMode === 'warm-up';
+    const isIncompleteSession = session.status === 'incomplete' || session.isLimitedEvidence;
     const [queueStatus, setQueueStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
     const [localSm2, setLocalSm2] = useState(sm2);
 
@@ -374,6 +384,22 @@ export function AnalysisClient({
                     {session.problemTitle} · Completed {session.completedAt ? new Date(session.completedAt).toLocaleDateString() : ''}
                 </p>
             </motion.div>
+
+            {/* Incomplete Session Warning Banner */}
+            {isIncompleteSession && (
+                <motion.div
+                    className="max-w-7xl mx-auto mb-6"
+                    {...ANIM.fadeUp}
+                    transition={{ ...TRANSITIONS.page, delay: 0.05 }}
+                >
+                    <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                        <p className="text-sm font-semibold text-amber-300">
+                            Incomplete session — scores are limited and may not reflect your true ability. Complete a full session for accurate results.
+                        </p>
+                    </div>
+                </motion.div>
+            )}
 
             {/* 3-Panel Grid */}
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -562,7 +588,11 @@ export function AnalysisClient({
                             {/* Vertical timeline line */}
                             <div className="absolute left-3 top-2 bottom-2 w-px bg-zinc-800" />
 
-                            {aiMoments.map((moment, idx) => (
+                            {aiMoments.map((moment, idx) => {
+                                const typeKey = moment.type || (moment.sentiment === 'positive' ? 'impressive' : moment.sentiment === 'negative' ? 'gap' : 'notable');
+                                const typeConfig = MOMENT_TYPE_CONFIG[typeKey] || MOMENT_TYPE_CONFIG.notable;
+
+                                return (
                                 <motion.div
                                     key={idx}
                                     className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
@@ -574,19 +604,19 @@ export function AnalysisClient({
                                     <div
                                         className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
                                         style={{
-                                            background: MOMENT_COLORS[moment.sentiment] + '20',
-                                            border: `2px solid ${MOMENT_COLORS[moment.sentiment]}`,
+                                            background: typeConfig.color + '20',
+                                            border: `2px solid ${typeConfig.color}`,
                                         }}
                                     >
-                                        {MOMENT_ICONS[moment.momentType] || '📌'}
+                                        {typeConfig.icon}
                                     </div>
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-[10px] font-bold uppercase tracking-wider"
-                                                style={{ color: MOMENT_COLORS[moment.sentiment] }}
+                                                style={{ color: typeConfig.color }}
                                             >
-                                                {MOMENT_TYPE_LABELS[moment.momentType] || moment.momentType}
+                                                {typeConfig.label}
                                             </span>
                                             {moment.dimension && (
                                                 <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
@@ -604,7 +634,8 @@ export function AnalysisClient({
                                         </p>
                                     </div>
                                 </motion.div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
@@ -808,7 +839,17 @@ export function AnalysisClient({
                     </div>
 
                     {/* Comparison Preview */}
-                    {flags.enableComparative && previousAttempts.length > 0 && (
+                    {isIncompleteSession ? (
+                        <div
+                            className="p-4 rounded-xl"
+                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                            data-testid="comparison-incomplete-notice"
+                        >
+                            <p className="text-xs text-zinc-500 text-center">
+                                Complete a full session to compare your progress.
+                            </p>
+                        </div>
+                    ) : flags.enableComparative && previousAttempts.length > 0 && (
                         <div
                             className="p-4 rounded-xl flex items-center justify-between"
                             style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
@@ -821,6 +862,12 @@ export function AnalysisClient({
                                 <p className="text-[10px] text-zinc-500">
                                     {new Date(previousAttempts[0].completedAt).toLocaleDateString()}
                                 </p>
+                                {/* Contextual note for negative score delta */}
+                                {(session.overallScore - previousAttempts[0].score) < -0.5 && (
+                                    <p className="text-[10px] text-amber-500 mt-1">
+                                        Scores vary by problem difficulty
+                                    </p>
+                                )}
                             </div>
                             <Link href={`/interview/analysis?sessionId=${previousAttempts[0].id}`}>
                                 <Button variant="ghost" size="sm" className="text-indigo-400 hover:text-indigo-300 text-xs">

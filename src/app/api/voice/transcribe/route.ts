@@ -80,28 +80,21 @@ export async function POST(req: NextRequest) {
 
         // Try turbo model first, fall back to large-v3
         const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
-        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
-
-        const vocabPrompt = hinglishEnabled
-            ? 'Technical interview about data structures and algorithms. Candidate may speak in Hinglish (Hindi-English mix). ' +
-            'DSA vocabulary: Big O notation, binary search, Dijkstra, BFS, DFS, dynamic programming, ' +
-            'hash map, linked list, binary tree. Hindi filler words: matlab, yaar, toh, karo, samjhe.'
-            : 'Technical interview about data structures and algorithms. ' +
-            'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
-            'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
-            'hash map, linked list, binary tree, heap, graph, two pointers.';
 
         for (const model of models) {
             try {
                 const groqForm = new FormData();
                 groqForm.append('file', audioFile);
                 groqForm.append('model', model);
-                if (!hinglishEnabled) {
-                    groqForm.append('language', 'en');
-                }
+                groqForm.append('language', 'en');
                 groqForm.append('response_format', 'verbose_json');
-                // DSA vocabulary prompt — Hinglish-aware when flag is on
-                groqForm.append('prompt', vocabPrompt);
+                groqForm.append('temperature', '0');
+                // DSA vocabulary prompt for better accuracy
+                groqForm.append('prompt',
+                    'Technical interview about data structures and algorithms. ' +
+                    'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
+                    'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
+                    'hash map, linked list, binary tree, heap, graph, two pointers.');
 
                 const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                     method: 'POST',
@@ -119,12 +112,20 @@ export async function POST(req: NextRequest) {
 
                 const data = await response.json();
 
+                const confidence = data.segments?.[0]?.avg_logprob
+                    ? Math.exp(data.segments[0].avg_logprob)
+                    : undefined;
+
+                // Confidence gate: reject low-confidence hallucinations
+                if (confidence !== undefined && confidence < 0.3) {
+                    console.warn(`[Transcribe] Low confidence (${confidence.toFixed(3)}), discarding: "${data.text?.substring(0, 60)}"`);
+                    return NextResponse.json({ text: '', model, confidence, duration: data.duration });
+                }
+
                 return NextResponse.json({
                     text: data.text?.trim() || '',
                     model,
-                    confidence: data.segments?.[0]?.avg_logprob
-                        ? Math.exp(data.segments[0].avg_logprob)
-                        : undefined,
+                    confidence,
                     duration: data.duration,
                 });
             } catch (err) {

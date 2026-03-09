@@ -2,16 +2,16 @@
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Zap, Brain, Share2, Briefcase, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useGuardedRouter } from '@/hooks/useGuardedRouter';
 import { getSupabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 export default function EmployerPage() {
     const { user, loading: authLoading } = useAuth();
-    const router = useRouter();
+    const router = useGuardedRouter();
     const [accountType, setAccountType] = useState<string | null>(null);
     const [checkingType, setCheckingType] = useState(true);
 

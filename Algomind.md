@@ -1,7 +1,7 @@
 ﻿# **ALGOMIND — DEEP TECHNICAL REFERENCE**
 ## *For Judges Who Want to Go Beyond the README*
 
-> **Last updated**: March 9, 2026 — Added Hinglish language detection to voice pipeline.
+> **Last updated**: March 6, 2026 — Rewritten from live codebase audit against all source files.
 
 ---
 
@@ -155,32 +155,7 @@ Microphone ──► [VAD] ──► [STT] ──► [useInterview] ──► [C
 | Variable patterns | `i++` → `"i plus plus"` |
 | Markdown | `**bold**`, backticks → stripped or spoken naturally |
 
-### **3.6 Hinglish Language Detection**
-**File:** `src/lib/voice/language-detector.ts`
-
-Per-turn spoken language classifier that runs client-side with zero latency.
-
-| Export | Purpose |
-|--------|---------|
-| `HINGLISH_MARKERS` | 30 common romanized Hindi filler words used in code-switching |
-| `containsDevanagari(text)` | Returns `true` if text contains Unicode block `\u0900-\u097F` |
-| `detectSpokenLanguage(text)` | Returns `'hinglish'` or `'english'` |
-
-**Detection logic:**
-1. If text contains Devanagari → `'hinglish'`
-2. Tokenize to lowercase words; count `HINGLISH_MARKERS` whole-word matches
-3. If markerCount ≥ 2 **or** (markerCount ≥ 1 and text.length < 60) → `'hinglish'`
-4. Otherwise → `'english'`
-
-**Integration points:**
-- `useInterview.ts` — detects language from every `submitUserResponse` call; passes `spokenLanguage` to `generateSystemPrompt`
-- `src/app/api/chat/route.ts` — server-side detection appends a compact Hinglish instruction block to the system prompt when triggered
-- `src/app/api/assess/chat/route.ts` — same pattern for employer assessment sessions
-- `src/app/api/voice/transcribe/route.ts` — omits `language: 'en'` so Whisper auto-detects Hindi/English mix; uses enriched vocabulary prompt
-
-**TTS safety layer:** `stripDevanagariForTTS(text)` in `tts-preprocessor.ts` removes any Devanagari characters from AI responses before AWS Polly synthesizes them, preventing Kajal Neural from spelling out character names instead of pronouncing words.
-
-### **3.7 Interview Orchestration**
+### **3.6 Interview Orchestration**
 **File:** `src/hooks/useInterview.ts`
 
 `useInterview` wires together: `useTTS`, `useSTT`, `useVAD`, `InterviewStateMachine`, and `/api/chat`.

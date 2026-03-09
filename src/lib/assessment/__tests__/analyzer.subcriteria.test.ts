@@ -12,6 +12,16 @@ vi.mock('../score-validator', () => ({
     applyValidation: vi.fn().mockImplementation(s => s)
 }));
 
+// Provide enough user turns to avoid the short-session score cap
+const sufficientTranscript = [
+    { role: 'user' as const, content: 'Let me decompose this problem' },
+    { role: 'user' as const, content: 'First I will clarify the ambiguity' },
+    { role: 'user' as const, content: 'Then identify subproblems' },
+    { role: 'user' as const, content: 'Define the interfaces between them' },
+    { role: 'user' as const, content: 'Handle the dependencies carefully' },
+    { role: 'user' as const, content: 'Finally verify correctness' },
+];
+
 describe('CognitiveAnalyzer with sub-criteria', () => {
     let analyzer: CognitiveAnalyzer;
 
@@ -43,7 +53,7 @@ describe('CognitiveAnalyzer with sub-criteria', () => {
             })
         });
 
-        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, []);
+        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, sufficientTranscript);
         expect(res.skills['problem-decomposition'].score).toBe(10);
     });
 
@@ -62,7 +72,7 @@ describe('CognitiveAnalyzer with sub-criteria', () => {
             })
         });
 
-        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, []);
+        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, sufficientTranscript);
         expect(res.skills['problem-decomposition'].subCriteria.clarifiesAmbiguity).toBe(8);
     });
 
@@ -80,7 +90,7 @@ describe('CognitiveAnalyzer with sub-criteria', () => {
                 overallFeedback: 'Good', nextSteps: []
             })
         });
-        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, []);
+        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, sufficientTranscript);
         expect(res.skills['problem-decomposition'].score).toBe(10);
     });
 
@@ -98,7 +108,7 @@ describe('CognitiveAnalyzer with sub-criteria', () => {
                 overallFeedback: 'Good', nextSteps: []
             })
         });
-        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, []);
+        const res = await analyzer.analyze('s1', { title: 'P', description: 'D', difficulty: 'easy' }, sufficientTranscript);
         // should default to what was given or 5
         expect(res.skills['problem-decomposition'].score).toBe(8);
         expect(res.skills['problem-decomposition'].subCriteria).toEqual({});

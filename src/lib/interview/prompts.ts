@@ -78,7 +78,6 @@ export interface SystemPromptOptions {
     isGuest?: boolean;
     sprintProblemIndex?: 0 | 1;
     secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
-    /** Detected spoken language — drives Hinglish mirroring in the prompt. */
     spokenLanguage?: 'english' | 'hinglish';
 }
 
@@ -199,16 +198,16 @@ export function generateTurnPrompt(context: PromptContext): string {
         InterviewState,
         'intro' | 'approach' | 'coding' | 'testing' | 'complexity' | 'wrap-up'
     > = {
-        'idle': 'intro',
-        'problem-intro': 'intro',
-        'user-thinking': 'approach',
-        'ai-clarifying': 'approach',
-        'user-solving': 'coding',
-        'ai-feedback': 'coding',
-        'user-coding': 'coding',
-        'solution-review': 'testing',    // FG-04 fix
-        'assessment': 'complexity', // FG-04 fix
-        'completed': 'wrap-up',
+        'idle':             'intro',
+        'problem-intro':    'intro',
+        'user-thinking':    'approach',
+        'ai-clarifying':    'approach',
+        'user-solving':     'coding',
+        'ai-feedback':      'coding',
+        'user-coding':      'coding',
+        'solution-review':  'testing',    // FG-04 fix
+        'assessment':       'complexity', // FG-04 fix
+        'completed':        'wrap-up',
     };
 
     const phase = stateToPhase[state] ?? 'approach';
