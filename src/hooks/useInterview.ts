@@ -789,7 +789,14 @@ export function useInterview(options: {
         // Gate on interview being active
         if (state === 'idle' || state === 'completed') {
             if (isListeningRef.current) stopListening();
-            if (sttProvider === 'whisper') vad.stopListening();
+            if (sttProvider === 'whisper') {
+                vad.stopListening();
+                // VAD-1 fix: Also destroy the VAD singleton on interview end so Chrome
+                // releases the mic indicator. It will be re-initialized on next interview start.
+                import('@/lib/voice/vad-manager').then(({ resetVADManager }) => {
+                    resetVADManager().catch(() => { });
+                });
+            }
             return;
         }
 

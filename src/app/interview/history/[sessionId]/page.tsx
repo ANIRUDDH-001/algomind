@@ -60,13 +60,17 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
         })
         .filter(Boolean) as Array<{ language: string; code: string }>;
 
-    // Skill scores
-    const skills = assessment?.skill_evidence as Record<string, { score: number }> | null;
-    const skillEntries = skills ? Object.entries(skills).map(([key, val]) => ({
-        name: key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        key,
-        score: val?.score ?? 0,
-    })) : [];
+    // Skill scores — read from dedicated assessment columns, not skill_evidence
+    const skillEntries = assessment ? [
+        { name: 'Problem Decomposition', key: 'problem-decomposition', score: assessment.problem_decomposition ?? 0 },
+        { name: 'Pattern Recognition', key: 'pattern-recognition', score: assessment.pattern_recognition ?? 0 },
+        { name: 'Algorithmic Thinking', key: 'algorithmic-thinking', score: assessment.algorithmic_thinking ?? 0 },
+        { name: 'Complexity Analysis', key: 'complexity-analysis', score: assessment.complexity_analysis ?? 0 },
+        { name: 'Communication Clarity', key: 'communication-clarity', score: assessment.communication_clarity ?? 0 },
+        { name: 'Edge Case Awareness', key: 'edge-case-awareness', score: assessment.edge_case_awareness ?? 0 },
+        { name: 'Optimization Mindset', key: 'optimization-mindset', score: assessment.optimization_mindset ?? 0 },
+        { name: 'Debugging Approach', key: 'debugging-approach', score: assessment.debugging_approach ?? 0 },
+    ] : [];
 
     const difficultyColors: Record<string, string> = {
         easy: 'bg-emerald-500/10 text-emerald-400',
