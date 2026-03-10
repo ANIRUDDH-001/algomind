@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "AlgoMind - AI-Powered DSA Interview Practice",
+    default: "AlgoMind",
     template: "%s | AlgoMind",
   },
   description: "Master Data Structures and Algorithms with AI-powered voice interviews, cognitive assessment, and personalized learning paths.",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: "AlgoMind - AI-Powered DSA Interview Practice",
+    title: "AlgoMind",
     description: "Master DSA with AI voice interviews and cognitive assessment",
     type: "website",
   },
