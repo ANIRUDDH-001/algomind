@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'AlgoMind - AI DSA Interview Practice',
+        name: 'AlgoMind',
         short_name: 'AlgoMind',
         description: 'Master Data Structures and Algorithms with AI-powered voice interviews and cognitive assessment.',
         start_url: '/',
