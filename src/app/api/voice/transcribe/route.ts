@@ -117,10 +117,9 @@ export async function POST(req: NextRequest) {
                     ? Math.exp(segments.reduce((sum: number, s: { avg_logprob?: number }) => sum + (s.avg_logprob ?? -1), 0) / segments.length)
                     : undefined;
 
-                // Confidence gate: reject low-confidence hallucinations (0.15 for short utterances)
+                // Confidence logged for monitoring — no gate applied (real speech confidence varies widely with accents)
                 if (confidence !== undefined && confidence < 0.15) {
-                    console.warn(`[Transcribe] Low confidence (${confidence.toFixed(3)}), discarding: "${data.text?.substring(0, 60)}"`);
-                    return NextResponse.json({ text: '', model, confidence, duration: data.duration });
+                    console.warn(`[Transcribe] Low confidence (${confidence.toFixed(3)}) — passing through anyway: "${data.text?.substring(0, 60)}"`);
                 }
 
                 return NextResponse.json({

@@ -164,7 +164,7 @@ export function useVAD(opts: UseVADOptions) {
             // Notify parent to fall back to browser STT
             optsRef.current.onFallback?.();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [opts.enabled, mode, initAttempted, registerCallback]);
 
     const stopListening = useCallback(async () => {
@@ -178,11 +178,13 @@ export function useVAD(opts: UseVADOptions) {
             pendingStopRef.current = true;
             // Safety fallback: force-stop after 2s if onSpeechEnd never fires
             if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
-            stopFallbackTimerRef.current = setTimeout(async () => {
-                if (pendingStopRef.current) {
-                    pendingStopRef.current = false;
-                    try { await managerRef.current?.stop(); } catch { /* ignore */ }
-                }
+            stopFallbackTimerRef.current = setTimeout(() => {
+                // Just clear the pending flag — do NOT call stop() here.
+                // Calling stop() would invoke micVAD.pause() which discards the audio buffer
+                // without firing onSpeechEnd, silently killing the transcription.
+                // If onSpeechEnd hasn't fired in 2s, the VAD buffer is likely empty anyway.
+                pendingStopRef.current = false;
+                stopFallbackTimerRef.current = null;
             }, 2000);
         } else {
             try { await managerRef.current.stop(); } catch { /* ignore */ }

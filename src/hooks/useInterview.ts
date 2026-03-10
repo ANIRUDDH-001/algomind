@@ -523,10 +523,10 @@ export function useInterview(options: {
         const timer = setTimeout(() => {
             const text = transcriptRef.current.trim();
             if (text && currentProblemRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
-                console.log(`[useInterview] Auto-submit after 5s silence: "${text.substring(0, 60)}..."`);
+                console.log(`[useInterview] Auto-submit after 2.5s silence: "${text.substring(0, 60)}..."`);
                 submitUserResponse(text, currentProblemRef.current);
             }
-        }, 5000);
+        }, 2500);
 
         return () => clearTimeout(timer);
     }, [transcript, state, isProcessing, isSpeaking, micStoppedManually, submitUserResponse]);
@@ -544,8 +544,8 @@ export function useInterview(options: {
             return;
         }
 
-        // Start 5s countdown
-        setSendCountdown(5);
+        // Start 3s countdown
+        setSendCountdown(3);
         sendCountdownIntervalRef.current = setInterval(() => {
             setSendCountdown(prev => {
                 if (prev === null || prev <= 1) {
