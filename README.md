@@ -1,6 +1,6 @@
 # AlgoMind 🧠
 
-> **Voice-first AI technical interview coach — speaks, listens, scores, and teaches.**
+> **AI-Powered DSA Interview Practice — speaks, listens, scores, and teaches.**
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
 [![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)

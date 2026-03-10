@@ -1,4 +1,4 @@
-﻿# **ALGOMIND — DEEP TECHNICAL REFERENCE**
+# **ALGOMIND — AI-POWERED DSA INTERVIEW PRACTICE**
 ## *For Judges Who Want to Go Beyond the README*
 
 > **Last updated**: March 6, 2026 — Rewritten from live codebase audit against all source files.
