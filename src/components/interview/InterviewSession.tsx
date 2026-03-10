@@ -671,6 +671,11 @@ export function InterviewSession({
 
     // --- Sub-components (Visual Rendering) --- //
 
+    // Safety helper: Supabase JSON columns may return objects (e.g. {k, nums})
+    // instead of strings. Render them safely to avoid React error #31.
+    const safeRender = (v: unknown): string =>
+        v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+
     const renderProblemCardContent = () => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
 
@@ -699,7 +704,7 @@ export function InterviewSession({
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
-                    <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
+                    <div className="whitespace-pre-wrap font-medium">{safeRender(activeProblem.description)}</div>
                     <div className="space-y-3 lg:space-y-4 pt-2">
                         {activeProblem.examples && activeProblem.examples.map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
@@ -707,17 +712,17 @@ export function InterviewSession({
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Input:</span>
-                                        <span className="text-indigo-300 break-all">{example.input}</span>
+                                        <span className="text-indigo-300 break-all">{safeRender(example.input)}</span>
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Output:</span>
-                                        <span className="text-emerald-400 break-all">{example.output}</span>
+                                        <span className="text-emerald-400 break-all">{safeRender(example.output)}</span>
                                     </div>
                                     {example.explanation && (
                                         <div className="pt-2 mt-2 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
                                             <p className="text-zinc-400 font-sans text-[12px] lg:text-[13px] leading-normal">
                                                 <span className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
-                                                {example.explanation}
+                                                {safeRender(example.explanation)}
                                             </p>
                                         </div>
                                     )}

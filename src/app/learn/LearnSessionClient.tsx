@@ -79,6 +79,10 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
         router.push(`/interview?problemId=${problem.id}&learnSessionId=current`);
     };
 
+    // Safety helper: prevent React error #31 if fields are JSON objects
+    const safeRender = (v: unknown): string =>
+        v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+
     const renderProblemCardContent = () => {
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent">
@@ -95,7 +99,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 text-zinc-300 text-[13px] lg:text-[14px] leading-relaxed space-y-3 lg:space-y-4 min-h-0 overflow-y-auto custom-scrollbar">
-                    <div className="whitespace-pre-wrap font-medium">{problem.description}</div>
+                    <div className="whitespace-pre-wrap font-medium">{safeRender(problem.description)}</div>
                     <div className="space-y-3 pt-2">
                         {problem.examples && problem.examples.map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border border-white/5 shadow-inner group transition-colors bg-zinc-900/40">
@@ -103,11 +107,11 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                                 <div className="space-y-2 font-mono text-xs">
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0">Input:</span>
-                                        <span className="text-indigo-300 break-all">{example.input}</span>
+                                        <span className="text-indigo-300 break-all">{safeRender(example.input)}</span>
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0">Output:</span>
-                                        <span className="text-emerald-400 break-all">{example.output}</span>
+                                        <span className="text-emerald-400 break-all">{safeRender(example.output)}</span>
                                     </div>
                                 </div>
                             </div>
