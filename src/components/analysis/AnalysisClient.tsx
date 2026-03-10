@@ -618,8 +618,7 @@ export function AnalysisClient({
                     {assessment?.overallFeedback && (
                         <div className="pt-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
                             <p className="text-sm text-zinc-300 leading-relaxed line-clamp-4">
-                                {assessment.overallFeedback.slice(0, 300)}
-                                {assessment.overallFeedback.length > 300 && '...'}
+                                {assessment.overallFeedback}
                             </p>
                         </div>
                     )}
