@@ -38,6 +38,7 @@ import { CodeEditor } from './CodeEditor';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
+import { StreakMilestoneModal } from '../dashboard/StreakMilestoneModal';
 
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
@@ -109,6 +110,7 @@ export function InterviewSession({
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+    const [streakMilestone, setStreakMilestone] = useState<{days: number; isRecord: boolean; onDismiss?: () => void} | null>(null);
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
@@ -568,7 +570,7 @@ export function InterviewSession({
                                 ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                                 : durationSecs;
 
-                            const { success, error: saveError, sessionId } = await saveInterviewSession(
+                            const { success, error: saveError, sessionId, streakDays, isNewStreakRecord } = await saveInterviewSession(
                                 user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
@@ -577,7 +579,16 @@ export function InterviewSession({
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
                                 // A5: Auto-navigate to analysis page
-                                router.push(`/interview/analysis?sessionId=${sessionId}`);
+                                const targetUrl = `/interview/analysis?sessionId=${sessionId}`;
+                                if (streakDays && [3, 7, 14, 30, 50, 100].includes(streakDays)) {
+                                    setStreakMilestone({ 
+                                        days: streakDays, 
+                                        isRecord: Boolean(isNewStreakRecord),
+                                        onDismiss: () => router.push(targetUrl)
+                                    });
+                                } else {
+                                    router.push(targetUrl);
+                                }
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);
@@ -1333,6 +1344,17 @@ export function InterviewSession({
                         <p className="text-slate-400 text-sm mt-3">Problem 1 of 2 complete · Timer continues</p>
                     </div>
                 </div>
+            )}
+
+            {streakMilestone && (
+                <StreakMilestoneModal
+                    streak={streakMilestone.days}
+                    isNewRecord={streakMilestone.isRecord}
+                    onDismiss={() => {
+                        setStreakMilestone(null);
+                        streakMilestone.onDismiss?.();
+                    }}
+                />
             )}
         </div>
     );
