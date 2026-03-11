@@ -3,8 +3,9 @@ import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/learn/chat/route';
 import { getAIClient } from '@/lib/ai/client';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
-import { updateKaiMemory, getKaiMemory, recordLearnSession } from '../learn';
+import { getKaiMemory, updateKaiMemory, recordLearnSession } from '../learn';
 import { getServiceClient } from '@/lib/supabase/service';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn()
@@ -12,6 +13,10 @@ vi.mock('@/lib/supabase/service', () => ({
 
 vi.mock('@/lib/feature-flags-server', () => ({
     getGlobalFeatureFlag: vi.fn()
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: vi.fn()
 }));
 
 vi.mock('@/lib/ai/client', () => ({
@@ -37,6 +42,7 @@ describe('Learn Actions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (getServiceClient as any).mockReturnValue(mockSupabase);
+        (createServerSupabase as any).mockResolvedValue(mockSupabase);
 
         // Reset mock implementations
         mockSupabase.maybeSingle.mockReset();
