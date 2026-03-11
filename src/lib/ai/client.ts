@@ -375,7 +375,7 @@ export class UnifiedAIClient {
         const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (!apiKey) return { success: false, error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY" };
 
-        const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`;
+        const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent`;
 
         // Convert messages to Gemini format
         // System prompt is separate in v1beta
@@ -410,7 +410,11 @@ export class UnifiedAIClient {
 
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+                "x-goog-api-key": apiKey
+            },
             body: JSON.stringify(body)
         });
 
@@ -893,10 +897,13 @@ export class UnifiedAIClient {
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
         // Use v1beta for gemini-embedding-001
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent`;
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey
+            },
             body: JSON.stringify({
                 content: { parts: [{ text }] }
             })

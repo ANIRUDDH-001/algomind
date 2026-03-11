@@ -3,10 +3,10 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 
-const DAILY_LIMIT = 30; // ~3 full practice interviews per day
+const DAILY_LIMIT = 10; // Free tier: ~1 full interview per day
 
-// HACKATHON MODE: All rate limits disabled — unlimited attempts for all users
-const HACKATHON_UNLIMITED = true;
+// Production rate limits. Free tier: 10 questions/day. Owners/admins: unlimited.
+const HACKATHON_UNLIMITED = false;
 const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
 
 export interface RateLimitResult {
@@ -26,7 +26,7 @@ interface LocalUsage {
  * Admins are exempt from limits
  */
 export async function checkUserRateLimit(userId: string | null): Promise<RateLimitResult> {
-    // HACKATHON MODE: unlimited for everyone
+    // HACKATHON MODE: disabled for production
     if (HACKATHON_UNLIMITED) {
         return { allowed: true, remaining: 9999, isAdmin: false };
     }

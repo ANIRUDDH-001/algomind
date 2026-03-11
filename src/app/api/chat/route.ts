@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
                 ?? req.headers.get('x-real-ip')
                 ?? 'unknown';
-            const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 20, windowSeconds: 3600 });
+            const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 100, windowSeconds: 86400 });
             if (!ipRateLimit.success) {
                 return NextResponse.json({ error: 'Guest rate limit exceeded. Please try again later.' }, { status: 429 });
             }

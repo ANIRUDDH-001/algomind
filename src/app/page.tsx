@@ -82,7 +82,9 @@ function AnimatedCounter({ value, label }: { value: string, label: string }) {
 }
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const loading = authLoading || isRedirecting;
   const router = useRouter();
 
   // Only show onboarding animation for logged-out first-time visitors.
@@ -207,9 +209,27 @@ export default function HomePage() {
             data-tour="home-hero-cta"
           >
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (user) {
-                  router.push('/dashboard');
+                  setIsRedirecting(true);
+                  try {
+                    const res = await fetch('/api/user/account-type');
+                    if (res.ok) {
+                      const { accountType } = await res.json();
+                      switch (accountType) {
+                        case 'owner': router.push('/owner'); break;
+                        case 'admin': router.push('/admin'); break;
+                        case 'employer': router.push('/employer/dashboard'); break;
+                        default: router.push('/dashboard');
+                      }
+                    } else {
+                      router.push('/dashboard');
+                    }
+                  } catch {
+                    router.push('/dashboard');
+                  } finally {
+                    setIsRedirecting(false);
+                  }
                 } else {
                   router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
                 }
@@ -531,17 +551,38 @@ export default function HomePage() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       if (user) {
-                        router.push('/dashboard');
+                        setIsRedirecting(true);
+                        try {
+                          const res = await fetch('/api/user/account-type');
+                          if (res.ok) {
+                            const { accountType } = await res.json();
+                            switch (accountType) {
+                              case 'owner': router.push('/owner'); break;
+                              case 'admin': router.push('/admin'); break;
+                              case 'employer': router.push('/employer/dashboard'); break;
+                              default: router.push('/dashboard');
+                            }
+                          } else {
+                            router.push('/dashboard');
+                          }
+                        } catch {
+                          router.push('/dashboard');
+                        } finally {
+                          setIsRedirecting(false);
+                        }
                       } else {
                         router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
                       }
                     }}
+                    disabled={loading}
                     size="lg"
                     className="btn-primary h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"
                   >
-                    {user ? 'Go to Dashboard' : 'Get Started Free'}
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (user ? 'Go to Dashboard' : 'Get Started Free')}
                   </Button>
                 </div>
 
