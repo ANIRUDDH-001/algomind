@@ -21,11 +21,43 @@ function LoginContent() {
     useEffect(() => {
         if (user && !hasRedirected.current) {
             hasRedirected.current = true;
-            const urlRedirect = searchParams.get('redirect');
-            const target = urlRedirect || '/dashboard';
-            router.push(target);
+            
+            const performRedirect = async () => {
+                const urlRedirect = searchParams.get('redirect');
+                if (urlRedirect) {
+                    router.push(urlRedirect);
+                    return;
+                }
+
+                // Fetch account type to determine the "respective home page"
+                try {
+                    const res = await fetch('/api/user/account-type');
+                    if (res.ok) {
+                        const { accountType } = await res.json();
+                        switch (accountType) {
+                            case 'owner':
+                                router.push('/owner');
+                                break;
+                            case 'admin':
+                                router.push('/admin');
+                                break;
+                            case 'employer':
+                                router.push('/employer/dashboard');
+                                break;
+                            default:
+                                router.push('/dashboard');
+                        }
+                    } else {
+                        router.push('/dashboard');
+                    }
+                } catch {
+                    router.push('/dashboard');
+                }
+            };
+
+            performRedirect();
         }
-    }, [user, searchParams]); // removed router from deps
+    }, [user, searchParams, router]);
 
     // Show error from URL params (OAuth failure / callback error)
     useEffect(() => {

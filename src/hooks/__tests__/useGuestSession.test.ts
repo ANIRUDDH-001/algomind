@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { useGuestSession, GUEST_SESSION_LIMITS } from '../useGuestSession';
+import { useGuestSession, GUEST_SESSION_LIMITS, TURNS_PER_PROBLEM } from '../useGuestSession';
 
 describe('useGuestSession — smoke', () => {
     it('does not throw on mount', () => {
@@ -19,8 +19,12 @@ describe('useGuestSession — smoke', () => {
         expect(typeof result.current.reset).toBe('function');
     });
 
-    it('GUEST_SESSION_LIMITS are unlimited in hackathon mode', () => {
-        expect(GUEST_SESSION_LIMITS.MAX_USER_TURNS).toBe(9999);
-        expect(GUEST_SESSION_LIMITS.MAX_AI_TURNS).toBe(9999);
+    it('GUEST_SESSION_LIMITS are set to 75', () => {
+        expect(GUEST_SESSION_LIMITS.MAX_USER_TURNS).toBe(75);
+        expect(GUEST_SESSION_LIMITS.MAX_AI_TURNS).toBe(75);
+    });
+
+    it('exports TURNS_PER_PROBLEM as 15', () => {
+        expect(TURNS_PER_PROBLEM).toBe(15);
     });
 });

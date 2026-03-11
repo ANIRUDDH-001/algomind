@@ -7,6 +7,12 @@ vi.mock('@/lib/supabase/client', () => ({
     isSupabaseConfigured: vi.fn(() => true)
 }));
 
+vi.mock('@/app/actions/co-owner', () => ({
+    checkCoOwnerStatus: vi.fn()
+}));
+
+import { checkCoOwnerStatus } from '@/app/actions/co-owner';
+
 /**
  * 🚨 [SECURITY NOTE]
  * The previous rate limiter implementation had a critical silent-bypass vulnerability.
@@ -60,38 +66,75 @@ describe('User Rate Limiter', () => {
             rpc: mockRpc,
             from: buildFromMock(),
         });
+        
+        (checkCoOwnerStatus as any).mockResolvedValue(false);
     });
 
-    it('1. HACKATHON MODE: always returns unlimited for all users', async () => {
-        const result = await checkUserRateLimit('user-123');
-        expect(result).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
-        // RPC should not be called in hackathon mode
-        expect(mockRpc).not.toHaveBeenCalled();
-    });
-
-    it('2. HACKATHON MODE: blocked users still get unlimited', async () => {
+    it('1. allows user below daily limit', async () => {
+        mockRpc.mockResolvedValue({ data: [{ allowed: true, remaining: 8, is_admin_user: false }], error: null });
         const result = await checkUserRateLimit('user-123');
         expect(result.allowed).toBe(true);
+        expect(result.remaining).toBe(8);
     });
 
-    it('3. HACKATHON MODE: missing function does not block', async () => {
+    it('2. blocks user at daily limit', async () => {
+        mockRpc.mockResolvedValue({ data: [{ allowed: false, remaining: 0, is_admin_user: false }], error: null });
         const result = await checkUserRateLimit('user-123');
+        expect(result.allowed).toBe(false);
+        expect(result.remaining).toBe(0);
+    });
+
+    it('3. allows owner regardless of count', async () => {
+        const buildOwnerFromMock = () => {
+            const profileChain = {
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                        single: vi.fn().mockResolvedValue({ data: { account_type: 'owner', rate_limit_override: null }, error: null }),
+                    }),
+                }),
+            };
+            return vi.fn((table: string) => {
+                if (table === 'profiles') return profileChain;
+                return profileChain;
+            });
+        };
+        (supabaseClientModule.getSupabase as any).mockReturnValue({
+            rpc: mockRpc,
+            from: buildOwnerFromMock(),
+        });
+        const result = await checkUserRateLimit('owner-123');
         expect(result.allowed).toBe(true);
+        expect(result.isAdmin).toBe(true);
     });
 
-    it('4. HACKATHON MODE: non-admin users get unlimited too', async () => {
-        const result = await checkUserRateLimit('regular-456');
-        expect(result).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
+    it('4. allows co-owner regardless of count', async () => {
+        (checkCoOwnerStatus as any).mockResolvedValue(true);
+        const result = await checkUserRateLimit('co-owner-123');
+        expect(result.allowed).toBe(true);
+        expect(result.isAdmin).toBe(true);
     });
 
-    it('5. Guest user: checkUserRateLimit returns unlimited', async () => {
+    it('5. fails CLOSED when RPC is missing (PGRST202)', async () => {
+        mockRpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Function not found' } });
+        const result = await checkUserRateLimit('user-123');
+        expect(result.allowed).toBe(false);
+        expect(result.error).toBe(true);
+    });
+
+    it('6. fails CLOSED when DB is unreachable', async () => {
+        mockRpc.mockRejectedValue(new Error('Network error'));
+        const result = await checkUserRateLimit('user-123');
+        expect(result.allowed).toBe(false);
+        expect(result.error).toBe(true);
+    });
+
+    it('7. guest user (null userId or guest-user) is always allowed', async () => {
         const resultNull = await checkUserRateLimit(null);
-        expect(resultNull).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
+        expect(resultNull.allowed).toBe(true);
 
         const resultGuest = await checkUserRateLimit('guest-user');
-        expect(resultGuest).toEqual({ allowed: true, remaining: 9999, isAdmin: false });
+        expect(resultGuest.allowed).toBe(true);
 
-        // RPC should not be called in hackathon mode
         expect(mockRpc).not.toHaveBeenCalled();
     });
 
@@ -105,7 +148,7 @@ describe('User Rate Limiter', () => {
         });
     });
 
-    it('7. RATE_LIMIT constant exported and equals 5', () => {
-        expect(RATE_LIMIT.DAILY_LIMIT).toBe(30);
+    it('9. RATE_LIMIT constant exported and equals 10', () => {
+        expect(RATE_LIMIT.DAILY_LIMIT).toBe(10);
     });
 });

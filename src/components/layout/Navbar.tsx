@@ -55,9 +55,13 @@ export function Navbar() {
         fetchAccountType();
     }, [user?.id]);
 
-    const dashboardHref = accountType === 'employer'
-        ? '/employer/dashboard'
-        : '/dashboard';
+    const dashboardHref = accountType === 'owner'
+        ? '/owner'
+        : accountType === 'admin'
+            ? '/admin'
+            : accountType === 'employer'
+                ? '/employer/dashboard'
+                : '/dashboard';
 
     useEffect(() => {
         setIsDemo(isDemoMode());

@@ -30,7 +30,7 @@ export interface EmbeddingModelConfig {
 
 const GROQ_GPT_OSS_MODEL_ID = process.env.GROQ_GPT_OSS_MODEL_ID || "openai/gpt-oss-120b";
 const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "openai/gpt-oss-20b";
-const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-2.0-flash";
+const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-3-flash-preview";
 
 // EMERGENCY FALLBACK: Static model list used only when model_routing DB table
 // and Redis cache are both unavailable. Production routing uses model_routing table
@@ -120,44 +120,61 @@ export const CHAT_MODELS: ModelConfig[] = [
     },
 
     // --- GEMINI MODELS ---
-    // Verified Gemini models — always cross-check with https://ai.google.dev/models
     {
-        id: "gemini-1.5-pro", // Mapped from gemini-2.5-pro/3-pro
+        id: "gemini-3.1-flash-lite-preview",
         provider: 'gemini',
         tier: 10,
-        rpm: 2, // Low RPM for Pro
-        rpd: 50,
-        tpm: 32000,
-        contextWindow: 2000000,
-        supportsEmbeddings: false,
-        description: "Gemini 1.5 Pro"
-    },
-    {
-        id: "gemini-1.5-flash", // Stable high-volume model
-        provider: 'gemini',
-        tier: 11,
         rpm: 15,
-        rpd: 1500,
-        tpm: 1000000,
-        contextWindow: 1000000,
-        supportsEmbeddings: true,
-        description: "Gemini 1.5 Flash"
+        rpd: 500,
+        tpm: 250000,
+        contextWindow: 1048576,
+        supportsEmbeddings: false,
+        description: "Gemini 3.1 Flash Lite"
     },
     {
-        id: GEMINI_FREE_TIER_MODEL_ID, // Newer Experimental
+        id: GEMINI_FREE_TIER_MODEL_ID, // gemini-3-flash-preview
         provider: 'gemini',
         tier: 11,
-        rpm: 10,
-        rpd: 1500,
-        tpm: 1000000,
-        contextWindow: 1000000,
+        rpm: 5,
+        rpd: 20,
+        tpm: 250000,
+        contextWindow: 1048576,
         supportsEmbeddings: true,
-        description: "Gemini 2.0 Flash"
+        description: "Gemini 3 Flash"
     },
-    // Preview - may need verification
-    { id: "gemini-2.5-pro", provider: 'gemini', tier: 10, rpm: 12.75, rpd: 1275, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2.5 Pro" },
-    // Preview - may need verification
-    { id: "gemini-2.5-flash", provider: 'gemini', tier: 12, rpm: 4.25, rpd: 17, tpm: 10000, contextWindow: 1000000, supportsEmbeddings: false, description: "Gemini 2.5 Flash" },
+    {
+        id: "gemini-2.5-flash",
+        provider: 'gemini',
+        tier: 12,
+        rpm: 5,
+        rpd: 20,
+        tpm: 250000,
+        contextWindow: 1000000,
+        supportsEmbeddings: false,
+        description: "Gemini 2.5 Flash"
+    },
+    { 
+        id: "gemini-2.5-flash-lite", 
+        provider: 'gemini', 
+        tier: 11, 
+        rpm: 10, 
+        rpd: 20, 
+        tpm: 250000, 
+        contextWindow: 1000000, 
+        supportsEmbeddings: false, 
+        description: "Gemini 2.5 Flash Lite" 
+    },
+    {
+        id: "gemma-3-27b-it",
+        provider: 'gemini',
+        tier: 12,
+        rpm: 30,
+        rpd: 14400,
+        tpm: 15000,
+        contextWindow: 131072,
+        supportsEmbeddings: false,
+        description: "Gemma 3 27B IT"
+    },
 ];
 
 // Embedding Models
