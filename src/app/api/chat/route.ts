@@ -44,17 +44,30 @@ export async function POST(req: NextRequest) {
         // Read Hinglish feature flag once — used for language detection and prompt injection
         const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
 
-        // Detect spoken language from the most recent user turn
-        const lastUserMessage = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
-        const spokenLanguage: 'english' | 'hinglish' =
-            (hinglishEnabled && lastUserMessage)
-                ? detectSpokenLanguage(lastUserMessage.content ?? '')
-                : 'english';
-
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
         const { data: { user } } = await supabase.auth.getUser();
 
+        // Fetch user's Hinglish preference (only relevant if global flag is ON)
+        let userHinglishEnabled = false;
+        if (user) {
+            const { data: userPref } = await supabase
+                .from('user_preferences')
+                .select('hinglish_enabled')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            userHinglishEnabled = userPref?.hinglish_enabled ?? false;
+        }
+
+        // Detect spoken language from the most recent user turn
+        const lastUserMessage = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
+        
+        // Per-user preference: only activates if global flag is also ON
+        const hinglishActive = hinglishEnabled && userHinglishEnabled;
+        const spokenLanguage: 'english' | 'hinglish' =
+            (hinglishActive && lastUserMessage)
+                ? detectSpokenLanguage(lastUserMessage.content ?? '')
+                : 'english';
         if (!guestMode && !user) {
             console.warn('⛔ [Chat API] Unauthorized access attempt');
             return NextResponse.json(
