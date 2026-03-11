@@ -301,7 +301,29 @@ export async function saveInterviewSession(
             await invalidateDashboardCache(userId);
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
 
-        return { success: true, sessionId: sessionData.id };
+        // Update streak (fire-and-forget with error isolation)
+        let streakResult: { new_streak: number; longest_streak: number; is_new_record: boolean }[] | null = null;
+        try {
+            const { data: streakData, error: streakError } = await supabase
+                .rpc('update_user_streak', { p_user_id: userId });
+
+            if (streakError) {
+                console.warn('[save-session] Streak update failed (non-fatal):', streakError.message);
+            } else if (streakData && streakData[0]) {
+                streakResult = streakData;
+                const { new_streak, longest_streak: newLongest, is_new_record } = streakData[0];
+                console.log(`[save-session] Streak: ${new_streak} day(s) (longest: ${newLongest})${is_new_record ? ' (new record!)' : ''}`);
+            }
+        } catch (streakErr) {
+            console.warn('[save-session] Streak update threw (non-fatal):', streakErr);
+        }
+
+        return {
+            success: true,
+            sessionId: sessionData.id,
+            streakDays: streakResult?.[0]?.new_streak ?? null,
+            isNewStreakRecord: streakResult?.[0]?.is_new_record ?? false,
+        };
     } catch (e) {
         const error = e as unknown;
         const errorMessage = error instanceof Error ? error.message : String(error);
