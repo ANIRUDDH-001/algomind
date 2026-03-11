@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getDueReviews, getUpcomingReviews } from '@/lib/spaced-repetition/queue';
-import { SpacedRepetitionRecord } from '@/lib/spaced-repetition/sm2';
+import { SpacedRepetitionRecord } from '@/lib/spaced-repetition/types';
 import { getDueSkills, DueSkill } from '@/lib/spaced-repetition/skill-scheduler';
 import { CheckCircle2, ChevronRight, Clock, Trash2, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';

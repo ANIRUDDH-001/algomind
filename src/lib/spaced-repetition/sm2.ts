@@ -1,50 +1,15 @@
-export interface SpacedRepetitionRecord {
-    problemId: string;
-    problemTitle: string;
-    problemDifficulty: 'easy' | 'medium' | 'hard';
-    intervalDays: number;
-    easeFactor: number;
-    repetitions: number;
-    lastQuality: number | null;
-    nextReviewDate: string;
-    lastReviewedAt: string | null;
-}
+/**
+ * @deprecated SM-2 spaced repetition algorithm removed.
+ * All scheduling now uses FSRS-5. See fsrs.ts.
+ *
+ * Types and utilities have been moved to types.ts.
+ * This file is kept to prevent import errors in legacy test files
+ * during the migration period. It will be deleted in a future cleanup.
+ */
 
-export function computeNextReview(
-    current: Pick<SpacedRepetitionRecord, 'intervalDays' | 'easeFactor' | 'repetitions'>,
-    overallScore: number
-): { intervalDays: number; easeFactor: number; repetitions: number; lastQuality: number } {
-    const quality = Math.round((overallScore / 10) * 5);
-    const newEaseFactor = Math.max(1.3, current.easeFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+// Re-export from the new location so any remaining imports don't break
+export type { SpacedRepetitionRecord } from './types';
+export { formatNextReviewDate } from './types';
 
-    let newInterval: number;
-    let newRepetitions: number;
-
-    if (quality < 3) {
-        newInterval = 1;
-        newRepetitions = 0;
-    } else if (current.repetitions === 0) {
-        newInterval = 1;
-        newRepetitions = 1;
-    } else if (current.repetitions === 1) {
-        newInterval = 6;
-        newRepetitions = 2;
-    } else {
-        newInterval = Math.round(current.intervalDays * newEaseFactor);
-        newRepetitions = current.repetitions + 1;
-    }
-
-    // Cap interval at 180 days maximum.
-    newInterval = Math.min(newInterval, 180);
-
-    return {
-        intervalDays: newInterval,
-        easeFactor: newEaseFactor,
-        repetitions: newRepetitions,
-        lastQuality: quality
-    };
-}
-
-export function formatNextReviewDate(intervalDays: number): string {
-    return new Date(Date.now() + intervalDays * 86400000).toISOString().split('T')[0];
-}
+// computeNextReview is intentionally NOT re-exported.
+// The SM-2 algorithm has been removed. Use computeNextReviewFSRS from fsrs.ts.
