@@ -33,14 +33,6 @@ export async function POST(req: NextRequest) {
 
         const { sessionToken, messages, systemPrompt } = body;
 
-        // Hinglish detection — read flag and sniff last user turn
-        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
-        const lastUserMsg = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
-        const hinglishBlock = (hinglishEnabled && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
-            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
-            '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
-            : '';
-
         if (!sessionToken) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
         }
@@ -64,6 +56,26 @@ export async function POST(req: NextRequest) {
             console.error('⛔ [Assess Chat API] Invalid session token', error);
             return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
         }
+
+        // Fetch user's Hinglish preference (only relevant if global flag is ON)
+        let userHinglishEnabled = false;
+        if (payload?.sub) {
+            const { data: userPref } = await getServiceClient()
+                .from('user_preferences')
+                .select('hinglish_enabled')
+                .eq('user_id', payload.sub)
+                .maybeSingle();
+            userHinglishEnabled = userPref?.hinglish_enabled ?? false;
+        }
+
+        // Hinglish detection — read flag, user pref and sniff last user turn
+        const hinglishGlobalEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+        const hinglishActive = hinglishGlobalEnabled && userHinglishEnabled;
+        const lastUserMsg = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
+        const hinglishBlock = (hinglishActive && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
+            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
+            '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
+            : '';
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });

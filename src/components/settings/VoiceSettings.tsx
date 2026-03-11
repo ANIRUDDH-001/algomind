@@ -22,6 +22,8 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<string>('');
     const [rate, setRate] = useState<number>(1.1);
+    const [hinglishEnabled, setHinglishEnabled] = useState<boolean>(false);
+    const [isHinglishGlobalOn, setIsHinglishGlobalOn] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -87,6 +89,13 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
         async function loadPrefs() {
             setLoading(true);
             try {
+                // Check global flag first
+                const flagsRes = await fetch('/api/flags', { cache: 'no-store' });
+                if (flagsRes.ok) {
+                    const flags: Record<string, boolean> = await flagsRes.json();
+                    setIsHinglishGlobalOn(flags['ENABLE_HINGLISH_SUPPORT'] ?? false);
+                }
+
                 const prefs = await getUserPreferences(user?.id || null);
                 if (prefs.preferredVoiceName) {
                     setSelectedVoice(prefs.preferredVoiceName);
@@ -95,6 +104,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                     if (defaultVoice) setSelectedVoice(defaultVoice.name);
                 }
                 setRate(prefs.voiceRate || 1.0);
+                setHinglishEnabled(prefs.hinglishEnabled ?? false);
             } catch (e) {
                 console.error("Failed to load voice preferences", e);
             } finally {
@@ -116,7 +126,8 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
             await saveUserPreferences(user?.id || null, {
                 preferredVoiceName: selectedVoice,
                 preferredVoiceLang: voiceObj?.lang || 'en-US',
-                voiceRate: rate
+                voiceRate: rate,
+                hinglishEnabled
             });
             toast.success("Voice settings saved!");
         } catch (e) {
@@ -242,6 +253,36 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                         <span>Fast</span>
                     </div>
                 </div>
+
+                {/* Hinglish Toggle */}
+                {isHinglishGlobalOn && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                            Hinglish Mode
+                            <span className="text-[10px] bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2 py-0.5 rounded-full font-bold">🇮🇳 INDIA</span>
+                        </label>
+                        <div
+                            className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors"
+                            style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                            onClick={() => setHinglishEnabled(!hinglishEnabled)}
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-zinc-200">
+                                    {hinglishEnabled ? 'Kai speaks in Hinglish 🔊' : 'Kai speaks in English'}
+                                </p>
+                                <p className="text-[11px] text-zinc-500 mt-0.5">
+                                    {hinglishEnabled
+                                        ? 'Mix of Hindi + English — familiar and natural'
+                                        : 'Pure English — best for interview prep'}
+                                </p>
+                            </div>
+                            {/* Simple toggle switch */}
+                            <div className={`w-10 h-6 rounded-full relative transition-colors ${hinglishEnabled ? 'bg-indigo-600' : 'bg-zinc-700'}`}>
+                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${hinglishEnabled ? 'left-5' : 'left-1'}`} />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
