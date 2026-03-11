@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { upsertSpacedRepetition, getReviewQueue, getSpacedRepForProblem } from '../spaced-repetition';
 import { addToQueue } from '@/lib/spaced-repetition/queue';
 import { getServiceClient } from '@/lib/supabase/service';
-import { formatNextReviewDate } from '@/lib/spaced-repetition/sm2';
+import { formatNextReviewDate } from '@/lib/spaced-repetition/types';
 
 // Mock dependencies
 vi.mock('@/lib/supabase/service', () => ({
@@ -13,8 +13,8 @@ vi.mock('@/lib/spaced-repetition/queue', () => ({
     addToQueue: vi.fn(),
 }));
 
-vi.mock('@/lib/spaced-repetition/sm2', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@/lib/spaced-repetition/sm2')>();
+vi.mock('@/lib/spaced-repetition/types', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/lib/spaced-repetition/types')>();
     return {
         ...actual,
         formatNextReviewDate: vi.fn(actual.formatNextReviewDate), // Spy on it while keeping original behavior

@@ -439,31 +439,6 @@ export class UnifiedAIClient {
         return this.tryProvider('groq', messages, options, [], models);
     }
 
-    // --- Legacy / Compatibility Methods ---
-
-    /**
-     * Legacy chat method for backward compatibility
-     */
-    async chat(messages: Message[], options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}) {
-        const result = await this.generateCompletion(messages, {
-            preferredProvider: options.preferredTier ? 'groq' : undefined, // loose mapping
-            maxTokens: options.maxTokens,
-            temperature: options.temperature,
-            systemPrompt: options.systemPrompt
-        });
-
-        if (!result.success) {
-            throw new Error(result.error || "Chat generation failed");
-        }
-
-        // Return format expected by legacy code
-        return {
-            response: result.response,
-            modelUsed: result.modelUsed,
-            provider: result.provider
-        };
-    }
-
     // --- Smart Routing (Intent-Classified) ---
 
     /**
@@ -822,11 +797,6 @@ export class UnifiedAIClient {
         };
     }
 
-    // Kept for legacy compatibility if called directly
-    async getRateLimitStatus() {
-        return this.getRateLimiterStatus();
-    }
-
     // --- Embedding Support (Restored for RAG compatibility) ---
     // User asked for "Direct API calls". I should implement Gemini Embeddings via REST.
     // Local Embeddings can remain as compatible via Xenova.
@@ -929,14 +899,6 @@ export function getAIClient(): UnifiedAIClient {
         clientInstance = new UnifiedAIClient();
     }
     return clientInstance;
-}
-
-// Helper exports for backward compatibility and RAG imports
-export async function chat(
-    messages: Message[],
-    options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}
-) {
-    return getAIClient().chat(messages, options);
 }
 
 export async function embed(

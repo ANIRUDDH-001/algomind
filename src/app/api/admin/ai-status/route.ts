@@ -10,7 +10,7 @@ export async function GET() {
 
         // 2. Fetch Status
         const client = getAIClient();
-        const status = client.getRateLimitStatus();
+        const status = await client.getRateLimiterStatus();
 
         return NextResponse.json(status);
 

@@ -572,22 +572,6 @@ describe('UnifiedAIClient', () => {
         });
     });
 
-    // ── chat (legacy) ─────────────────────────────────────────────────────────
-
-    describe('chat() legacy method', () => {
-        it('returns response and modelUsed on success', async () => {
-            mockFetchGroqSuccess('Legacy response');
-            const result = await client.chat(userMessages);
-            expect(result.response).toBe('Legacy response');
-            expect(result.modelUsed).toBe(groqModel.id);
-        });
-
-        it('throws when all models fail', async () => {
-            mockRateLimiter.canUseModel.mockResolvedValue({ allowed: false });
-            await expect(client.chat(userMessages)).rejects.toThrow();
-        });
-    });
-
     // ── getAIClient singleton ─────────────────────────────────────────────────
 
     describe('getAIClient() singleton', () => {
