@@ -85,16 +85,11 @@ export async function POST(req: NextRequest) {
         // 3. Rate limiting (10 executions per minute per user)
         const rateLimitKey = `exec:${user.id}:rpm`;
 
-        let currentUsage = 0;
-        try {
-            currentUsage = await redisIncr(rateLimitKey, EXEC_RATE_WINDOW_SECONDS);
-        } catch (redisError) {
-            console.error('[Execute] Redis unavailable for rate limiting:', redisError);
-            // Fail open: if Redis is unavailable, rate limit is unenforced
-        }
-
+        const currentUsage = await redisIncr(rateLimitKey, EXEC_RATE_WINDOW_SECONDS);
+        // redisIncr returns 0 if Redis is unavailable — we fail open intentionally.
+        // The rate limit is advisory; code execution is not a security-critical resource.
         if (currentUsage > EXEC_RATE_LIMIT) {
-            return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 });
+            return NextResponse.json({ error: 'Rate limit exceeded. Try again in a minute.' }, { status: 429 });
         }
 
         // 4. Prepare Piston Request
