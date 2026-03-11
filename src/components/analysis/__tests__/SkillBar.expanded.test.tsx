@@ -56,4 +56,23 @@ describe('SkillBar sub-criteria expansion', () => {
         const { container } = render(<AnalysisClient session={mockSession} assessment={mockAssessment} sm2={null} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />);
         expect(container).toBeTruthy();
     });
+
+    it('3. shows 0% difficulty for pre-FSRS record (null fsrsDifficulty)', () => {
+        const sm2 = {
+            intervalDays: 5,
+            nextReview: new Date(Date.now() + 5 * 86400000).toISOString(),
+            repetitions: 3,
+            easeFactor: 2.5,
+            fsrsDifficulty: null,
+            fsrsStability: null,
+            fsrsState: null,
+            fsrsReps: null,
+            fsrsLapses: null,
+        };
+        const { getByText, getAllByText } = render(
+            <AnalysisClient session={mockSession} assessment={mockAssessment} sm2={sm2} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />
+        );
+        expect(getByText('No data')).toBeDefined();
+        expect(getAllByText('0').length).toBeGreaterThan(0); // For reps
+    });
 });

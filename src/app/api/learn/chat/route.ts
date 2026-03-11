@@ -4,6 +4,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { buildLearnSystemPrompt, buildKaiMemoryUpdatePrompt } from '@/lib/learn/system-prompt';
 import { getKaiMemory, updateKaiMemory } from '@/app/actions/learn';
 import { getServiceClient } from '@/lib/supabase/service';
+import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 
 export async function POST(req: NextRequest) {
     try {
@@ -56,6 +58,30 @@ export async function POST(req: NextRequest) {
             userPreviousScore: lastSession?.overall_score || null
         });
 
+        // --- Hinglish for Learn mode (mirrors /api/chat logic) ---
+        const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+        let userHinglishEnabled = false;
+        if (hinglishEnabled) {
+            const { data: userPref } = await supabase
+                .from('user_preferences')
+                .select('hinglish_enabled')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            userHinglishEnabled = userPref?.hinglish_enabled ?? false;
+        }
+
+        const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m.role === 'user');
+        const hinglishActive = hinglishEnabled && userHinglishEnabled;
+        const spokenLanguage: 'english' | 'hinglish' =
+            (hinglishActive && lastUserMessage)
+                ? detectSpokenLanguage(lastUserMessage.content ?? '')
+                : 'english';
+
+        const hinglishBlock = (hinglishActive && spokenLanguage === 'hinglish')
+            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
+              '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
+            : '';
+
         const client = getAIClient();
 
         // Needs Llama 3.3 70B
@@ -63,7 +89,7 @@ export async function POST(req: NextRequest) {
             preferredModel: 'groq',
             category: 'reasoning',
             maxTokens: 4096,
-            systemPrompt: systemPrompt,
+            systemPrompt: systemPrompt + hinglishBlock,
             estimatedTokens: 500,
             temperature: 0.8
         });

@@ -720,12 +720,24 @@ export function AnalysisClient({
                         // FSRS difficulty is 1-10 scale; normalize to 0-100%
                         const difficultyPct = localSm2.fsrsDifficulty != null
                             ? Math.round(localSm2.fsrsDifficulty * 10)
-                            : Math.round(((5 - localSm2.easeFactor) / 3.7) * 100); // SM2 ease 1.3-5.0 → inverted
-                        const difficultyLabel = difficultyPct <= 30 ? 'Easy' : difficultyPct <= 60 ? 'Moderate' : 'Hard';
-                        const difficultyColor = difficultyPct <= 30 ? 'text-emerald-400' : difficultyPct <= 60 ? 'text-amber-400' : 'text-red-400';
-                        const difficultyBarColor = difficultyPct <= 30 ? 'bg-emerald-500' : difficultyPct <= 60 ? 'bg-amber-500' : 'bg-red-500';
+                            : 0; // Pre-FSRS records show 0% — accepted trade-off
+                        const difficultyLabel = difficultyPct === 0
+                            ? 'No data'
+                            : difficultyPct <= 30 ? 'Easy'
+                            : difficultyPct <= 60 ? 'Moderate'
+                            : 'Hard';
+                        const difficultyColor = difficultyPct === 0
+                            ? 'text-zinc-500'
+                            : difficultyPct <= 30 ? 'text-emerald-400'
+                            : difficultyPct <= 60 ? 'text-amber-400'
+                            : 'text-red-400';
+                        const difficultyBarColor = difficultyPct === 0
+                            ? 'bg-zinc-700'
+                            : difficultyPct <= 30 ? 'bg-emerald-500'
+                            : difficultyPct <= 60 ? 'bg-amber-500'
+                            : 'bg-red-500';
                         const stabilityDays = localSm2.fsrsStability != null ? Math.round(localSm2.fsrsStability) : localSm2.intervalDays;
-                        const reps = localSm2.fsrsReps ?? localSm2.repetitions;
+                        const reps = localSm2.fsrsReps ?? 0;
                         const lapses = localSm2.fsrsLapses ?? 0;
 
                         return (
