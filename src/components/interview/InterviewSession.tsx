@@ -453,8 +453,8 @@ export function InterviewSession({
         startTimeRef.current = Date.now();
         limits.startTimer();
         startInterview({
-            problemTitle: activeProblem.title,
-            problemContent: activeProblem.description,
+            title: activeProblem.title,
+            content: activeProblem.description,
             ragContext: interviewConfig.ragContext,
             kaiMemory: interviewConfig.kaiMemory,
             problemId: activeProblem.id,
@@ -490,10 +490,10 @@ export function InterviewSession({
         setTimeout(() => {
             setSprintTransitionMsg(null);
             (limits as any).resetTurns?.();
-            limits.startTimer?.();
+            limits.startTimer();
             startInterview({
-                problemTitle: sprintProblem2.title,
-                problemContent: sprintProblem2.description ?? (sprintProblem2 as any).content,
+                title: sprintProblem2.title,
+                content: sprintProblem2.description ?? (sprintProblem2 as any).content,
                 difficulty: sprintProblem2.difficulty,
                 difficultyMode: 'sprint',
                 ragContext: advancedConfig.ragContext,

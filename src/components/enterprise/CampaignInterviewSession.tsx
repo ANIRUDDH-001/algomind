@@ -404,15 +404,21 @@ function ActiveQuestionView({
 
     // 1. Initialize interview specifically for this question
     useEffect(() => {
-        if (prevTranscript.length > 0) {
-            loadTranscript(prevTranscript as any);
-        } else {
-            // New question, send start ping
-            startInterview({
-                problemTitle: problem.title,
-                problemContent: problem.description
-            });
-        }
+        const initializeInterview = async () => {
+            if (prevTranscript.length > 0) {
+                loadTranscript(prevTranscript as any);
+            } else {
+                // New question, send start ping
+                await startInterview({
+                    title: problem.title,
+                    content: problem.description,
+                    problemId: problem.id,
+                    difficultyMode: 'practice', // Derived from useInterview config
+                    difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+                });
+            }
+        };
+        initializeInterview();
     }, []); // Run ONCE on mount
 
     // 2. Timer Loop

@@ -51,9 +51,12 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
 
             // Initialize interview context
             startInterview({
-                problemTitle: problem.title,
-                problemContent: problem.description || '',
-                problemId: problem.id
+                title: problem.title,
+                content: problem.description || '', // Keep problem.description for content as per original code's intent
+                difficultyMode: 'practice' as const,
+                difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+                problemId: problem.id,
+                language: 'typescript'
             });
 
             // Inject the first assistant message manually and speak it
