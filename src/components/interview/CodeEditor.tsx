@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Play, Loader2 } from 'lucide-react';
 import { OnMount } from '@monaco-editor/react';
+import { TestCasePanel } from './TestCasePanel';
 
 export interface ExecutionResult {
     stdout: string;
@@ -89,6 +90,7 @@ interface CodeEditorProps {
     defaultLanguage?: string;
     initialCode?: string;
     onLanguageChange?: (lang: string) => void;
+    onExecutionStart?: () => void;
     onExecutionResult?: (result: ExecutionResult) => void;
     readOnly?: boolean;
 }
@@ -101,7 +103,7 @@ const LANGUAGE_API_MAP: Record<string, string> = {
     cpp: 'cpp',
 };
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionResult, readOnly = false }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
     const [isRunning, setIsRunning] = useState(false);
@@ -139,6 +141,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
 
         setIsRunning(true);
         setExecutionResult(null);
+        onExecutionStart?.();
 
         try {
             const apiLang = LANGUAGE_API_MAP[currentLang] || currentLang;
@@ -171,9 +174,13 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                 }
             }
         } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Unknown execution error';
+            const isNetwork = msg.includes('fetch') || msg.includes('Failed to fetch') || msg.includes('Load failed');
             setExecutionResult({
                 stdout: '',
-                stderr: error instanceof Error ? error.message : 'Unknown execution error',
+                stderr: isNetwork
+                    ? 'Code execution service is unreachable. Check your connection or try again shortly.'
+                    : msg,
                 exit_code: 1,
                 runtime_ms: 0,
                 language: currentLang,

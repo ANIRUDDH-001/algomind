@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { type CognitiveSkill } from '@/types/assessment';
@@ -35,6 +35,9 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
+import type { ExecutionResult } from './CodeEditor';
+import { TestCasePanel, buildKaiExecutionContext, matchResults } from './TestCasePanel';
+import type { TestCase, TestCaseResult } from './TestCasePanel';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
@@ -106,6 +109,9 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+
+    const [lastExecResult, setLastExecResult] = useState<ExecutionResult | null>(null);
+    const [isExecRunning, setIsExecRunning] = useState(false);
 
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
@@ -185,7 +191,15 @@ export function InterviewSession({
     const [activeProblem, setActiveProblem] = useState(problem);
     const [guestDurationSecs, setGuestDurationSecs] = useState(0);
 
-
+    const testCases: TestCase[] = useMemo(() => {
+        const examples = (activeProblem as any)?.examples;
+        if (!examples || !Array.isArray(examples)) return [];
+        return examples.map((ex: any) => ({
+            input: String(ex.input ?? ''),
+            expected: String(ex.output ?? ''),
+            explanation: ex.explanation ? String(ex.explanation) : undefined,
+        }));
+    }, [activeProblem]);
 
     const handleGuestProblemSelect = useCallback((selected: typeof GUEST_PROBLEMS[number]) => {
         setActiveProblem(selected);
@@ -348,6 +362,8 @@ export function InterviewSession({
         guestSession.reset();
         observerRef.current.reset();
         setNudge(null);
+        setLastExecResult(null);
+        setIsExecRunning(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeProblem.id]);
 
@@ -1158,13 +1174,29 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
+                                        onExecutionStart={() => {
+                                            setIsExecRunning(true);
+                                            setLastExecResult(null);
+                                        }}
                                         onExecutionResult={(result) => {
-                                            if (result.stdout || result.stderr) {
-                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
-                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                            setLastExecResult(result);
+                                            setIsExecRunning(false);
+                                            if (result.stdout || result.stderr || result.exit_code !== 0) {
+                                                const testResults = matchResults(testCases, result);
+                                                const kaiCtx = buildKaiExecutionContext(userCode, codeLanguage, testCases, result, testResults);
+                                                shareCodeWithAI(kaiCtx);
                                             }
                                         }}
                                     />
+                                    {testCases.length > 0 && (
+                                        <div className="mt-2">
+                                            <TestCasePanel
+                                                testCases={testCases}
+                                                executionResult={lastExecResult}
+                                                isRunning={isExecRunning}
+                                            />
+                                        </div>
+                                    )}
                                     <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-12 shadow-lg shadow-indigo-900/20 rounded-xl">
                                         <Send className="w-4 h-4 mr-2" /> Share Code with Kai
                                     </Button>
@@ -1267,13 +1299,29 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
+                                        onExecutionStart={() => {
+                                            setIsExecRunning(true);
+                                            setLastExecResult(null);
+                                        }}
                                         onExecutionResult={(result) => {
-                                            if (result.stdout || result.stderr) {
-                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
-                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                            setLastExecResult(result);
+                                            setIsExecRunning(false);
+                                            if (result.stdout || result.stderr || result.exit_code !== 0) {
+                                                const testResults = matchResults(testCases, result);
+                                                const kaiCtx = buildKaiExecutionContext(userCode, codeLanguage, testCases, result, testResults);
+                                                shareCodeWithAI(kaiCtx);
                                             }
                                         }}
                                     />
+                                    {testCases.length > 0 && (
+                                        <div className="mt-2 shrink-0">
+                                            <TestCasePanel
+                                                testCases={testCases}
+                                                executionResult={lastExecResult}
+                                                isRunning={isExecRunning}
+                                            />
+                                        </div>
+                                    )}
                                     <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
                                         <Send className="w-3.5 h-3.5 mr-1.5" /> Share
                                     </Button>
