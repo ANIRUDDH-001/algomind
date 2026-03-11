@@ -3,7 +3,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { addToQueue } from '@/lib/spaced-repetition/queue';
-import { formatNextReviewDate } from '@/lib/spaced-repetition/sm2';
+import { formatNextReviewDate } from '@/lib/spaced-repetition/types';
 
 // ─── 1. Upsert SM2 record after interview ──────────────────────────────────
 
