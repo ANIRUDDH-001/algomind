@@ -85,21 +85,12 @@ export async function POST(req: NextRequest) {
         // 3. Rate limiting (10 executions per minute per user)
         const rateLimitKey = `exec:${user.id}:rpm`;
 
-        let currentUsage: number;
+        let currentUsage = 0;
         try {
             currentUsage = await redisIncr(rateLimitKey, EXEC_RATE_WINDOW_SECONDS);
-            if (currentUsage === 0) {
-                // Redis returned 0 — could be error or genuinely first request
-                // Treat as allowed but log for monitoring
-                console.warn('[Execute] Redis returned 0 for rate limit key — Redis may be unavailable');
-            }
         } catch (redisError) {
             console.error('[Execute] Redis unavailable for rate limiting:', redisError);
-            // Fail closed: if we can't check rate limit, deny the request
-            return NextResponse.json(
-                { error: 'Rate limiting service temporarily unavailable. Please try again in a moment.' },
-                { status: 503 }
-            );
+            // Fail open: if Redis is unavailable, rate limit is unenforced
         }
 
         if (currentUsage > EXEC_RATE_LIMIT) {
