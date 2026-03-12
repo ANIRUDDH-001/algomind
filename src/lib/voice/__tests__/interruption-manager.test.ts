@@ -207,4 +207,18 @@ describe('InterruptionManager', () => {
         // Now resumption should fire representing final phrase boundary isolated
         expect(resumptionListener).toHaveBeenCalledTimes(1);
     });
+
+    it('9. Returns INTERRUPT_IMMEDIATELY for high-confidence speech during AI talking', () => {
+        im.handleAIResponseStart();
+        vi.advanceTimersByTime(600); // Past grace
+        const decision = simulateSpeechStart(0.95);
+        expect(decision).toBe(InterruptionDecision.INTERRUPT_IMMEDIATELY);
+    });
+
+    it('10. Returns IGNORE for low-confidence VAD frame during AI talking', () => {
+        im.handleAIResponseStart();
+        vi.advanceTimersByTime(600); // Past grace
+        const decision = im.handleUserSpeechStartWithConfidence(0.3);
+        expect(decision).toBe(InterruptionDecision.IGNORE);
+    });
 });

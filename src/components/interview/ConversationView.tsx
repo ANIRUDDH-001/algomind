@@ -105,6 +105,11 @@ export function ConversationView({
                                 return safeContent;
                             })()}
 
+                            {/* Streaming cursor */}
+                            {msg.status === 'streaming' && (
+                                <span className="inline-block w-1.5 h-4 bg-indigo-400 ml-0.5 animate-pulse rounded-sm" />
+                            )}
+
                             {/* Timestamp */}
                             <div className="text-[10px] opacity-50 mt-1 text-right">
                                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

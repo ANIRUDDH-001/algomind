@@ -5,9 +5,10 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, Sparkles, ArrowRight, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
+import { Check, Sparkles, ArrowRight, TrendingUp, TrendingDown, BookOpen, Clock } from 'lucide-react';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import type { CognitiveSkill } from '@/types/assessment';
+import { AnalysisPendingBanner } from '@/components/assessment/AnalysisPendingBanner';
 
 const DIMENSION_LIST = Object.keys(SKILL_DEFINITIONS) as CognitiveSkill[];
 
@@ -24,6 +25,8 @@ export function AssessmentCompleteContent() {
     const [showScore, setShowScore] = useState(false);
     const [dimensionScores, setDimensionScores] = useState<DimensionScore[]>([]);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [submissionId, setSubmissionId] = useState<string | null>(null);
+    const [analysisAvailable, setAnalysisAvailable] = useState(true);
 
     useEffect(() => {
         const scoreParam = searchParams.get('score');
@@ -35,6 +38,13 @@ export function AssessmentCompleteContent() {
         }
 
         setShowScore(showScoreParam === 'true');
+
+        const submissionIdParam = searchParams.get('submissionId');
+        if (submissionIdParam) setSubmissionId(submissionIdParam);
+
+        const analysisAvailableParam = searchParams.get('analysisAvailable');
+        // Default to true (old sync flow); set to false only for the new async flow
+        setAnalysisAvailable(analysisAvailableParam !== 'false');
 
         if (dimensionsParam) {
             try {
@@ -81,9 +91,23 @@ export function AssessmentCompleteContent() {
                 </div>
 
                 <h1 className="text-3xl font-bold text-white mb-4" data-testid="thank-you-title">Interview Complete</h1>
-                <p className="text-slate-400 mb-8 leading-relaxed" data-testid="employer-review-note">
+                <p className="text-slate-400 mb-6 leading-relaxed" data-testid="employer-review-note">
                     Thank you for completing the assessment. Results will be reviewed by the employer. You&apos;ll hear from them directly regarding next steps.
                 </p>
+
+                {/* Analysis pending banner — shown when async edge function is processing */}
+                {!analysisAvailable && submissionId && (
+                    <div className="mb-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div className="flex items-center gap-2 mb-1 text-slate-300 text-sm font-medium">
+                            <Clock className="w-4 h-4" />
+                            Processing your results…
+                        </div>
+                        <AnalysisPendingBanner
+                            submissionId={submissionId}
+                            onComplete={() => router.refresh()}
+                        />
+                    </div>
+                )}
 
                 {/* Optional Score Gauge — only if show_score_to_candidate is true */}
                 {showScore && score !== null && (

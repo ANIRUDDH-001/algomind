@@ -4,6 +4,7 @@ import { useSTT } from '@/hooks/useSTT';
 import { useVAD } from '@/hooks/useVAD';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import type { MicIntent } from './useInterview';
+import { InterruptionManager, InterruptionDecision } from '@/lib/voice/interruption-manager';
 // Use explicit import instead of depending on types from useTTS explicitly since those might be internal
 type TTSProvider = 'elevenlabs' | 'browser';
 
@@ -59,6 +60,7 @@ export interface UseInterviewVoiceReturn {
     sendCountdownIntervalRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
     mediaStreamRef: React.MutableRefObject<MediaStream | null> | undefined;
     ttsRef: any; // Using any for ttsRef to avoid brittle typings internally
+    interruptionManager: InterruptionManager;
 }
 
 export function useInterviewVoice({
@@ -108,6 +110,22 @@ export function useInterviewVoice({
         isSpeakingRef.current = tts.isSpeaking;
     }, [tts.isSpeaking]);
 
+    // -- InterruptionManager --
+    const imRef = useRef<InterruptionManager | null>(null);
+    if (!imRef.current) {
+        imRef.current = new InterruptionManager({ graceMs: 500, debounceMs: 1000 });
+    }
+    const im = imRef.current;
+
+    // Wire TTS lifecycle to IM
+    useEffect(() => {
+        if (tts.isSpeaking) {
+            im.handleAIResponseStart();
+        } else {
+            im.handleAIResponseComplete();
+        }
+    }, [tts.isSpeaking, im]);
+
     const stt = useSTT({
         provider: provider,
         silenceMs: 15000,
@@ -131,29 +149,35 @@ export function useInterviewVoice({
     useVAD({
         enabled: provider === 'whisper',
         onSpeechStart: () => {
-            if (isSpeakingRef.current) {
+            // Delegate to InterruptionManager with confidence filtering
+            const decision = im.handleUserSpeechStartWithConfidence(0.85);
+            if (decision === InterruptionDecision.INTERRUPT_IMMEDIATELY) {
                 tts.stop();
-                smartPauseActiveRef.current = true;
-                if (smartPauseTimerRef.current) clearTimeout(smartPauseTimerRef.current);
-                smartPauseTimerRef.current = setTimeout(() => {
-                    if (smartPauseActiveRef.current) {
-                        smartPauseActiveRef.current = false;
-                        setMicStoppedManually(false);
-                        setMicIntent('auto-on');
-                    }
-                }, 1500);
+                smartPauseActiveRef.current = false;
+            } else if (decision === InterruptionDecision.WAIT || decision === InterruptionDecision.ALLOW_INPUT) {
+                // IM handles the grace timer internally
+                if (isSpeakingRef.current) {
+                    tts.stop();
+                    smartPauseActiveRef.current = true;
+                    if (smartPauseTimerRef.current) clearTimeout(smartPauseTimerRef.current);
+                    smartPauseTimerRef.current = setTimeout(() => {
+                        if (smartPauseActiveRef.current) {
+                            smartPauseActiveRef.current = false;
+                            setMicStoppedManually(false);
+                            setMicIntent('auto-on');
+                        }
+                    }, 1500);
+                }
             }
+            // IGNORE decision: do nothing (noise spike)
         },
         onSpeechEnd: (audio) => {
-            if (isSpeakingRef.current) return;
-            if (smartPauseActiveRef.current) {
-                smartPauseActiveRef.current = false;
-                if (smartPauseTimerRef.current) {
-                    clearTimeout(smartPauseTimerRef.current);
-                    smartPauseTimerRef.current = null;
-                }
-                setMicStoppedManually(false);
-                setMicIntent('auto-on');
+            if (isSpeakingRef.current) return; // echo guard
+            im.handleUserSpeechEnd();
+            smartPauseActiveRef.current = false;
+            if (smartPauseTimerRef.current) {
+                clearTimeout(smartPauseTimerRef.current);
+                smartPauseTimerRef.current = null;
             }
             stt.transcribeAudio(audio);
         },
@@ -225,6 +249,7 @@ export function useInterviewVoice({
         smartPauseTimerRef,
         sendCountdownIntervalRef,
         mediaStreamRef: stt.mediaStreamRef,
-        ttsRef: { current: tts }
+        ttsRef: { current: tts },
+        interruptionManager: im,
     };
 }

@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import * as jose from 'jose';
-import { CognitiveAnalyzer } from '@/lib/assessment/analyzer';
 import { validateEnv } from '@/lib/startup/validateEnv';
 
 validateEnv();
 
-// Vercel Hobby plan hard limit: 60 seconds.
-// CognitiveAnalyzer + Gemini typically takes 15–45 seconds.
-// If this times out: upgrade to Vercel Pro (300s limit) or implement async analysis.
-export const maxDuration = 60;
+// Reduced from 60 — now just JWT verify + DB writes before firing edge function
+export const maxDuration = 20;
 
 export async function POST(req: NextRequest) {
     try {
@@ -57,7 +54,6 @@ export async function POST(req: NextRequest) {
         }
 
         const submissionId = payload.submissionId as string;
-        const campaignId = payload.campaignId as string;
 
         // 2. Ensure submission hasn't already been completed
         const { data: submission, error: subError } = await supabaseAdmin
@@ -74,215 +70,42 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Assessment already completed' }, { status: 400 });
         }
 
-        // 3. Fetch Campaign to know who it belongs to
-        const { data: campaign } = await supabaseAdmin
-            .from('assessment_campaigns')
-            .select('created_by, problem_id')
-            .eq('id', campaignId)
-            .single();
-
-        if (!campaign) {
-            return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
-        }
-
-        // 4. Run Assessment on Each Question
-        let totalScoreSum = 0;
-        let totalWeightSum = 0;
-
-        let aggProblemDecomp = 0;
-        let aggPatternRecog = 0;
-        let aggAlgThinking = 0;
-        let aggComplexity = 0;
-        let aggCommClarity = 0;
-        let aggEdgeCase = 0;
-        let aggOptimization = 0;
-        let aggDebugging = 0;
-
-        let allFeedbacks: string[] = [];
-        let allNextSteps: string[] = [];
-
-        // For backwards compatibility and saving the interview session properly:
-        // We will combine transcripts or find the primary problem context.
-        let combinedTranscript: any[] = [];
-        let primaryProblemId = submission.assigned_problem_id || campaign.problem_id;
-        let primaryProblemTitle = "Multiple Problems";
-
-        const analyzer = new CognitiveAnalyzer();
-
-        const startTotalTime = Date.now();
-        const ANALYSIS_TIMEOUT_MS = 50_000; // 50 seconds max for Vercel Hobby limit
-        let analysisTimedOut = false;
-
-        for (const qs of questionStates) {
-            if (!qs.problem_id) continue;
-
-            const turnTranscript = qs.transcript || [];
-            if (turnTranscript.length === 0) continue; // Skip if they didn't do anything
-
-            combinedTranscript = combinedTranscript.concat(turnTranscript);
-
-            const { data: problem } = await supabaseAdmin
-                .from('problems')
-                .select('title, description, difficulty')
-                .eq('id', qs.problem_id)
-                .single();
-
-            if (!problem) continue;
-
-            primaryProblemTitle = problem.title; // Will just take the last active one if multiple, which is fine for the simplified row
-
-            const normalizedTranscript = turnTranscript.map((turn: any) => ({
-                role: (turn.speaker === 'ai' ? 'assistant' : turn.speaker) as 'user' | 'assistant' | 'system',
-                content: turn.text,
-            }));
-
-            // Generate a temporary UUID for the analyzer output format
-            const tempSessionId = crypto.randomUUID();
-            let result: any;
-
-            const timeSpent = Date.now() - startTotalTime;
-            const remainingMs = ANALYSIS_TIMEOUT_MS - timeSpent;
-
-            if (remainingMs <= 0) {
-                analysisTimedOut = true;
-                break;
-            }
-
-            try {
-                result = await Promise.race([
-                    analyzer.analyze(tempSessionId, problem, normalizedTranscript),
-                    new Promise<any>((_, reject) =>
-                        setTimeout(() => reject(new Error('Analysis timeout')), remainingMs)
-                    )
-                ]);
-            } catch (analyzeError) {
-                const isTimeout = analyzeError instanceof Error && analyzeError.message === 'Analysis timeout';
-                console.error(`[Assess Complete] analyzer failed for problem ${qs.problem_id}:`, isTimeout ? 'TIMEOUT' : analyzeError);
-                if (isTimeout) {
-                    analysisTimedOut = true;
-                    break;
-                }
-                continue; // Skip this one, keep analyzing others
-            }
-
-            // Calculate overall score for this question
-            const skillsRecord = (result as any).skills as Record<string, { score: number }>;
-            const qsScore = Object.values(skillsRecord).reduce((acc, s) => acc + s.score, 0) / Object.keys(skillsRecord).length;
-
-            // Weight can be elapsed_secs, if 0 fallback to 1 
-            const weight = Math.max(qs.elapsed_secs || 1, 1);
-
-            totalScoreSum += qsScore * weight;
-            totalWeightSum += weight;
-
-            const skills = (result as any).skills as Record<string, { score: number }>;
-            aggProblemDecomp += (skills.problem_decomposition?.score || 0) * weight;
-            aggPatternRecog += (skills.pattern_recognition?.score || 0) * weight;
-            aggAlgThinking += (skills.algorithmic_thinking?.score || 0) * weight;
-            aggComplexity += (skills.complexity_analysis?.score || 0) * weight;
-            aggCommClarity += (skills.communication_clarity?.score || 0) * weight;
-            aggEdgeCase += (skills.edge_case_awareness?.score || 0) * weight;
-            aggOptimization += (skills.optimization_mindset?.score || 0) * weight;
-            aggDebugging += (skills.debugging_approach?.score || 0) * weight;
-
-            allFeedbacks.push(`**Problem: ${problem.title}**\n${(result as any).overallFeedback}`);
-            if ((result as any).nextSteps?.length) {
-                allNextSteps = allNextSteps.concat((result as any).nextSteps);
-            }
-        }
-
-        if (analysisTimedOut) {
-            console.warn('[Assess Complete] Analysis timed out. Saving as pending_retry.');
-            // Save submission as completed even without analysis
-            // The candidate still gets credit; analysis can be re-run from the owner panel
-            await supabaseAdmin
-                .from('candidate_submissions')
-                .update({
-                    status: 'completed',
-                    analysis_status: 'pending_retry',
-                    completed_at: new Date().toISOString(),
-                })
-                .eq('id', submissionId);
-
-            return NextResponse.json({
-                success: true,
-                analysisAvailable: false,
-                message: 'Assessment submitted successfully. Analysis is being processed.',
-            });
-        }
-
-        if (totalWeightSum === 0) {
-            // Failsafe if we somehow evaluated nothing
-            totalWeightSum = 1;
-        }
-
-        const overallScore = totalScoreSum / totalWeightSum;
-
-        // 5. Insert Interview Session 
-        const { data: sessionData, error: sessionError } = await supabaseAdmin
-            .from('interview_sessions')
-            .insert({
-                user_id: null,
-                is_candidate_session: true,
-                problem_id: primaryProblemId,
-                problem_title: primaryProblemTitle,
-                transcript: combinedTranscript,
-                duration: totalDuration || 0,
-                status: 'completed',
-                overall_score: overallScore,
-                completed_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (sessionError) {
-            throw sessionError;
-        }
-
-        // 6. Insert detailed Assessment
-        const { data: _assessmentData, error: assessmentError } = await supabaseAdmin
-            .from('assessments')
-            .insert({
-                session_id: sessionData.id,
-                user_id: null,
-                overall_score: overallScore,
-                problem_decomposition: aggProblemDecomp / totalWeightSum,
-                pattern_recognition: aggPatternRecog / totalWeightSum,
-                algorithmic_thinking: aggAlgThinking / totalWeightSum,
-                complexity_analysis: aggComplexity / totalWeightSum,
-                communication_clarity: aggCommClarity / totalWeightSum,
-                edge_case_awareness: aggEdgeCase / totalWeightSum,
-                optimization_mindset: aggOptimization / totalWeightSum,
-                debugging_approach: aggDebugging / totalWeightSum,
-                overall_feedback: allFeedbacks.join('\n\n'),
-                next_steps: allNextSteps.slice(0, 5), // Keep it reasonable
-                skill_evidence: {} // We clear this out or can implement a merged version
-            })
-            .select()
-            .single();
-
-        if (assessmentError) {
-            throw assessmentError;
-        }
-
-        // 7. Update Candidate Submission status
-        const { error: finalSubError } = await supabaseAdmin
+        // 3. Mark as submitted (analysis pending)
+        const { error: pendingErr } = await supabaseAdmin
             .from('candidate_submissions')
             .update({
                 status: 'completed',
-                analysis_status: 'completed',
-                session_id: sessionData.id,
-                overall_score: overallScore,
-                integrity_flags: integrityFlags || [],
+                analysis_status: 'pending',
                 completed_at: new Date().toISOString(),
+                integrity_flags: integrityFlags ?? [],
+                // Save question states for potential retry from owner panel
+                question_states: questionStates,
             })
             .eq('id', submissionId);
 
-        if (finalSubError) {
-            throw finalSubError;
+        if (pendingErr) throw pendingErr;
+
+        // 4. Kick off async analysis (fire and forget — edge function handles its own errors)
+        const edgeFunctionSecret = process.env.INTERNAL_API_SECRET;
+        if (!edgeFunctionSecret) {
+            console.error('[Assess Complete] INTERNAL_API_SECRET not set — skipping async analysis');
+        } else {
+            // Use supabase.functions.invoke — non-blocking
+            supabaseAdmin.functions.invoke('run-assessment', {
+                body: { submissionId, questionStates, integrityFlags },
+                headers: { Authorization: `Bearer ${edgeFunctionSecret}` },
+            }).catch(err => {
+                console.error('[Assess Complete] Edge function invoke failed (non-fatal):', err);
+                // Analysis will stay as 'pending' — employer can trigger retry from owner panel
+            });
         }
 
-        return NextResponse.json({ success: true, overallScore });
+        // 5. Return immediately — candidate doesn't wait for analysis
+        return NextResponse.json({
+            success: true,
+            analysisAvailable: false,
+            message: 'Assessment submitted! Your results will be available shortly.',
+        });
 
     } catch (error: unknown) {
         console.error('[CANDIDATE_COMPLETE_ERROR]', error);

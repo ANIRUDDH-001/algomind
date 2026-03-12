@@ -6,6 +6,7 @@ import { getKaiMemory, updateKaiMemory } from '@/app/actions/learn';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { checkUserRateLimit, incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
 
 export async function POST(req: NextRequest) {
     try {
@@ -19,6 +20,12 @@ export async function POST(req: NextRequest) {
 
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Rate limit: same quota as main chat
+        const rateLimit = await checkUserRateLimit(user.id);
+        if (!rateLimit.allowed) {
+            return NextResponse.json({ error: 'Rate limit exceeded. Take a break!' }, { status: 429 });
         }
 
         if (!messages || !Array.isArray(messages)) {
@@ -128,6 +135,11 @@ export async function POST(req: NextRequest) {
                 }
             });
         }).catch(console.error);
+
+        // Increment usage after successful response
+        incrementUserUsage(user.id, supabase).catch(err =>
+            console.error('[Learn API] Failed to track usage:', err)
+        );
 
         return NextResponse.json({
             response: result.response,
