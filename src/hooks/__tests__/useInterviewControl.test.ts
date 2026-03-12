@@ -58,7 +58,19 @@ const mockVoice = {
     startListening: vi.fn(),
     stopListening: vi.fn(),
     mediaStreamRef: undefined,
-    ttsRef: { current: null }
+    ttsRef: { current: null },
+    interruptionManager: {
+        handleAIResponseStart: vi.fn(),
+        handleAIResponseComplete: vi.fn(),
+        handleUserSpeechStart: vi.fn(),
+        handleUserSpeechStartWithConfidence: vi.fn(),
+        handleUserSpeechEnd: vi.fn(),
+        handleVADFrame: vi.fn(),
+        getState: vi.fn().mockReturnValue({}),
+        reset: vi.fn(),
+        removeAllListeners: vi.fn(),
+        on: vi.fn().mockReturnValue(() => {}),
+    } as any,
 };
 
 const mockMessages = {
@@ -73,7 +85,9 @@ const mockMessages = {
 
 const mockApi = {
     fetchWithRetry: vi.fn(),
-    callChatApi: vi.fn().mockResolvedValue('Hello from AI')
+    callChatApi: vi.fn().mockResolvedValue('Hello from AI'),
+    callChatApiStreaming: vi.fn().mockResolvedValue('Hello from AI'),
+    currentStreamMsgIdRef: { current: null },
 };
 
 const mockStateMachine = {

@@ -5,7 +5,7 @@ export interface Message {
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: Date;
-    status?: 'complete' | 'interrupted' | 'cancelled';
+    status?: 'complete' | 'streaming' | 'interrupted' | 'cancelled';
     partialContent?: string;
     interruptedAt?: number;
 }

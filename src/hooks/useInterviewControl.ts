@@ -62,6 +62,12 @@ export function useInterviewControl({
             mediaStreamRef
         } = voice;
 
+        // Wire API streaming refs to real setMessages/addMessage/tts
+        const apiAny = api as any;
+        if (apiAny._setMessagesRef) apiAny._setMessagesRef.current = msgs.setMessages;
+        if (apiAny._addMessageRef) apiAny._addMessageRef.current = msgs.addMessage;
+        if (apiAny._ttsRef) apiAny._ttsRef.current = { speak: voice.speak, isSpeaking: voice.isSpeaking };
+
         const [state, setState] = useState<InterviewState>('idle');
     const [isProcessing, setIsProcessing] = useState(false);
     const [roundCount, setRoundCount] = useState(0);
@@ -189,14 +195,18 @@ export function useInterviewControl({
 
             if (typeof responseText === 'string' && responseText.includes('TERMINATE_INTERVIEW')) {
                 const cleanResponse = responseText.replace('TERMINATE_INTERVIEW', '').trim();
-                const aiMsg: Message = {
-                    id: generateMessageId(),
-                    role: 'assistant',
-                    content: cleanResponse,
-                    timestamp: new Date(),
-                    status: 'complete',
-                };
-                msgs.addMessage(aiMsg);
+                // If streaming added a message, update it; otherwise create a new one
+                const streamMsgId = (api as any).currentStreamMsgIdRef?.current;
+                if (!streamMsgId) {
+                    const aiMsg: Message = {
+                        id: generateMessageId(),
+                        role: 'assistant',
+                        content: cleanResponse,
+                        timestamp: new Date(),
+                        status: 'complete',
+                    };
+                    msgs.addMessage(aiMsg);
+                }
                 setIsProcessing(false);
                 voice.setMicIntent('off');
                 voice.stopListening();
@@ -205,9 +215,16 @@ export function useInterviewControl({
                 return;
             }
 
-            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
+            // If streaming already added and finalized the message, skip addMessage
+            const wasStreaming = (api as any).currentStreamMsgIdRef?.current === null 
+                && msgs.conversationHistoryRef.current.length > 0
+                && msgs.conversationHistoryRef.current[msgs.conversationHistoryRef.current.length - 1].role === 'assistant'
+                && msgs.conversationHistoryRef.current[msgs.conversationHistoryRef.current.length - 1].status === 'complete';
 
-            msgs.addMessage(aiMsg);
+            if (!wasStreaming) {
+                const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
+                msgs.addMessage(aiMsg);
+            }
 
             const newRoundCount = roundCount + 1;
             setRoundCount(newRoundCount);
@@ -229,10 +246,22 @@ export function useInterviewControl({
 
             console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
-            const ttsOk = await voice.speakAndWait(responseText, 3);
-            if (!ttsOk) {
-                voice.setTtsError(true);
-                console.error('[submitUserResponse] TTS failed after 3 retries');
+
+            // If streaming TTS already started, skip speakAndWait to avoid double-speak
+            const isMainEndpoint = !optionsRef.current.apiEndpoint || optionsRef.current.apiEndpoint === '/api/chat';
+            if (!isMainEndpoint || !voice.isSpeaking) {
+                const ttsOk = await voice.speakAndWait(responseText, 3);
+                if (!ttsOk) {
+                    voice.setTtsError(true);
+                    console.error('[submitUserResponse] TTS failed after 3 retries');
+                }
+            } else {
+                // Streaming path: TTS started on first chunk; wait for it to finish
+                await new Promise<void>(resolve => {
+                    const check = setInterval(() => {
+                        if (!isSpeakingRef.current) { clearInterval(check); resolve(); }
+                    }, 200);
+                });
             }
 
             if (smartPauseTimerRef.current) {
