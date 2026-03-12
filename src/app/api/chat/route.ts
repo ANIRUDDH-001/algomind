@@ -8,6 +8,7 @@ import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever'
 import type { InterviewState } from '@/lib/interview/state-machine';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 
 export async function POST(req: NextRequest) {
     try {
@@ -192,6 +193,49 @@ export async function POST(req: NextRequest) {
             .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
             .trim();
 
+        // --- SSE Streaming branch ---
+        const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
+
+        if (acceptsStream) {
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                async start(controller) {
+                    try {
+                        const chunks = chunkTextForSpeech(cleanResponse);
+                        for (const chunk of chunks) {
+                            const payload = JSON.stringify({ chunk, done: false });
+                            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+                            // Small delay so TTS can start processing chunk 1
+                            await new Promise(r => setTimeout(r, 10));
+                        }
+                        const donePayload = JSON.stringify({
+                            chunk: '',
+                            done: true,
+                            fullText: cleanResponse,
+                            modelUsed: result.modelUsed,
+                            provider: result.provider,
+                        });
+                        controller.enqueue(encoder.encode(`data: ${donePayload}\n\n`));
+                    } catch (err) {
+                        const errPayload = JSON.stringify({ error: String(err), done: true });
+                        controller.enqueue(encoder.encode(`data: ${errPayload}\n\n`));
+                    } finally {
+                        controller.close();
+                    }
+                },
+            });
+
+            return new Response(stream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no',
+                },
+            });
+        }
+
+        // --- JSON fallback (non-streaming clients) ---
         return NextResponse.json({
             response: cleanResponse,
             modelUsed: result.modelUsed,

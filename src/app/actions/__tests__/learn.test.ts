@@ -6,6 +6,12 @@ import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { getKaiMemory, updateKaiMemory, recordLearnSession } from '../learn';
 import { getServiceClient } from '@/lib/supabase/service';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { checkUserRateLimit, incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
+
+vi.mock('@/lib/rate-limit/user-rate-limiter', () => ({
+    checkUserRateLimit: vi.fn(),
+    incrementUserUsage: vi.fn().mockResolvedValue({ success: true })
+}));
 
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn()
@@ -55,6 +61,7 @@ describe('Learn Actions', () => {
     describe('Learn Chat API Route', () => {
         it('appends hinglish block when global flag ON and user preference ON', async () => {
             (getGlobalFeatureFlag as any).mockResolvedValue(true);
+            (checkUserRateLimit as any).mockResolvedValue({ allowed: true });
             
             // Order of maybeSingle calls in POST: lastSession (score), getKaiMemory (memory), user_preferences (hinglish)
             mockSupabase.maybeSingle
@@ -79,6 +86,47 @@ describe('Learn Actions', () => {
             const callArgs = mockGenerate.mock.calls[0];
             const options = callArgs[1];
             expect(options.systemPrompt).toContain('SPOKEN LANGUAGE: Candidate is speaking Hinglish');
+        });
+
+        it('returns 429 when user rate limit exceeded', async () => {
+            (checkUserRateLimit as any).mockResolvedValue({ allowed: false });
+
+            const req = new NextRequest('http://localhost/api/learn/chat', {
+                method: 'POST',
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: 'hello' }],
+                    problemId: 'prob-1'
+                })
+            });
+
+            const res = await POST(req);
+            expect(res.status).toBe(429);
+            const data = await res.json();
+            expect(data.error).toContain('Rate limit exceeded');
+        });
+
+        it('calls incrementUserUsage after successful response', async () => {
+            (checkUserRateLimit as any).mockResolvedValue({ allowed: true });
+            
+            mockSupabase.maybeSingle
+                .mockResolvedValueOnce({ data: { overall_score: 8 }, error: null }) // lastSession
+                .mockResolvedValueOnce({ data: { kai_memory: 'mem' }, error: null }); // getKaiMemory
+
+            const mockGenerate = vi.fn().mockResolvedValue({ success: true, response: 'hi', modelUsed: 'x', provider: 'y' });
+            (getAIClient as any).mockReturnValue({ generateResponse: mockGenerate });
+
+            const req = new NextRequest('http://localhost/api/learn/chat', {
+                method: 'POST',
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: 'hello' }],
+                    problemId: 'prob-1'
+                })
+            });
+
+            await POST(req);
+            
+            // Wait for fire-and-forget logic if necessary, though in tests we often just check if it was called
+            expect(incrementUserUsage).toHaveBeenCalledWith('user-123', expect.anything());
         });
     });
 

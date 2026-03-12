@@ -165,5 +165,6 @@ export function useInterview(options: UseInterviewOptions) {
             permissionState: voice.permissionState,
             sttResolvedProvider: voice.sttResolvedProvider,
         },
+        interruptionManager: voice.interruptionManager,
     };
 }

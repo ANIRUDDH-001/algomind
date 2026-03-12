@@ -18,6 +18,9 @@ vi.mock('@/lib/rate-limit/ip-rate-limiter');
 vi.mock('@/lib/ai/model-registry');
 vi.mock('@/lib/feature-flags-server');
 vi.mock('@/lib/voice/language-detector');
+vi.mock('@/lib/voice/text-chunker', () => ({
+    chunkTextForSpeech: vi.fn((text: string) => [text]),
+}));
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
@@ -240,5 +243,50 @@ describe('Chat API (/api/chat)', () => {
         await POST(req);
         
         expect(detectSpokenLanguage).toHaveBeenCalledWith('kuch hindi bolte hain');
+    });
+
+    it('13. Returns SSE stream when Accept: text/event-stream header set', async () => {
+        const req = new NextRequest('http://localhost:3000/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+            },
+            body: JSON.stringify({ messages: [{ role: 'user', content: 'hello' }] }),
+        });
+
+        const res = await POST(req);
+
+        expect(res.headers.get('Content-Type')).toBe('text/event-stream');
+        expect(res.headers.get('Cache-Control')).toBe('no-cache');
+
+        // Read the full stream
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let fullBody = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            fullBody += decoder.decode(value, { stream: true });
+        }
+
+        // Should contain at least one data event and a done event
+        const events = fullBody.split('\n\n').filter(e => e.startsWith('data: '));
+        expect(events.length).toBeGreaterThanOrEqual(2); // at least 1 chunk + done
+
+        // Last event should have done: true and fullText
+        const lastEvent = JSON.parse(events[events.length - 1].slice(6));
+        expect(lastEvent.done).toBe(true);
+        expect(lastEvent.fullText).toBe('AI response text');
+    });
+
+    it('14. Returns JSON when no stream Accept header', async () => {
+        const req = createRequest({ messages: [{ role: 'user', content: 'hello' }] });
+        const res = await POST(req);
+
+        expect(res.headers.get('Content-Type')).toContain('application/json');
+
+        const data = await res.json();
+        expect(data.response).toBe('AI response text');
     });
 });

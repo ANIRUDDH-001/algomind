@@ -15,6 +15,10 @@ import { BookOpen, Code, StopCircle, ArrowRight } from 'lucide-react';
 import type { Problem } from '@/lib/supabase/problems';
 import { recordLearnSession } from '@/app/actions/learn';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { TestCasePanel } from '@/components/interview/TestCasePanel';
+import type { TestCase } from '@/components/interview/TestCasePanel';
+import type { ExecutionResult } from '@/components/interview/CodeEditor';
+import { useCallback, useMemo } from 'react';
 
 interface LearnSessionClientProps {
     problem: Problem;
@@ -42,6 +46,44 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
         config: { mode: 'practice' } as any,
         apiEndpoint: '/api/learn/chat',
     });
+
+    const [userCode, setUserCode] = useState('');
+    const [learnLanguage, setLearnLanguage] = useState('python');
+    const [lastExecResult, setLastExecResult] = useState<ExecutionResult | null>(null);
+
+    const handleLearnExecResult = useCallback((result: ExecutionResult) => {
+        setLastExecResult(result);
+        // Narrate the result to Kai so it can give feedback
+        if (result.stdout || result.stderr) {
+            const summary = result.exit_code === 0
+                ? `My code ran successfully. Output: ${result.stdout.slice(0, 300)}`
+                : `My code failed (exit ${result.exit_code}). Error: ${result.stderr.slice(0, 300)}`;
+            submitUserResponse(summary, { title: problem.title, content: problem.description || '' });
+        }
+    }, [submitUserResponse, problem]);
+
+    // Derive test cases from problem examples
+    const testCases: TestCase[] = useMemo(() => {
+        const examples = (problem as any)?.examples;
+        if (!examples || !Array.isArray(examples)) return [];
+        return examples.map((ex: any) => ({
+            input: String(ex.input ?? ''),
+            expected: String(ex.output ?? ''),
+            explanation: ex.explanation ? String(ex.explanation) : undefined,
+        }));
+    }, [problem]);
+
+    // Keyboard shortcut for Share
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && userCode.trim() && !isProcessing) {
+                const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
+                submitUserResponse(msg, { title: problem.title, content: problem.description || '' });
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [userCode, learnLanguage, isProcessing, submitUserResponse, problem]);
 
     // Start immediately
     useEffect(() => {
@@ -104,7 +146,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                 <CardContent className="p-0 flex-1 text-zinc-300 text-[13px] lg:text-[14px] leading-relaxed space-y-3 lg:space-y-4 min-h-0 overflow-y-auto custom-scrollbar">
                     <div className="whitespace-pre-wrap font-medium">{safeRender(problem.description)}</div>
                     <div className="space-y-3 pt-2">
-                        {problem.examples && problem.examples.map((example, idx) => (
+                        {problem.examples && problem.examples.map((example: any, idx: number) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border border-white/5 shadow-inner group transition-colors bg-zinc-900/40">
                                 <p className="text-[12px] font-black uppercase tracking-wider text-zinc-500 mb-2 group-hover:text-indigo-400 transition-colors">Example {idx + 1}:</p>
                                 <div className="space-y-2 font-mono text-xs">
@@ -201,15 +243,36 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                                 <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
                                     <Code className="w-4 h-4" /> Code Visualization
                                 </div>
-                                <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-[10px]">Read-Only</Badge>
+                                <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 text-[10px]">Interactive</Badge>
                             </div>
-                            <div className="flex-1 flex flex-col p-4 opacity-70 pointer-events-none">
+                            <div className="flex-1 flex flex-col p-4">
                                 <CodeEditor
-                                    onCodeChange={() => { }}
-                                    defaultLanguage="python"
-                                    initialCode={`# Kai will help you visualize the code here.\n# Follow along with audio instructions.\n\n`}
-                                    readOnly={true}
+                                    onCodeChange={setUserCode}
+                                    defaultLanguage={learnLanguage}
+                                    initialCode={userCode || `# Kai will help you visualize the code here.\n# Follow along with audio instructions.\n\n`}
+                                    onLanguageChange={setLearnLanguage}
+                                    onExecutionResult={handleLearnExecResult}
                                 />
+                            </div>
+                            <div className="p-4 pt-0 space-y-4">
+                                {testCases.length > 0 && (
+                                    <TestCasePanel
+                                        testCases={testCases}
+                                        executionResult={lastExecResult}
+                                        isRunning={false}
+                                    />
+                                )}
+                                <Button
+                                    onClick={() => {
+                                        if (!userCode.trim()) return;
+                                        const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
+                                        submitUserResponse(msg, { title: problem.title, content: problem.description || '' });
+                                    }}
+                                    disabled={!userCode.trim() || isProcessing}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-xl"
+                                >
+                                    Share Code with Kai
+                                </Button>
                             </div>
                         </Card>
                     </div>
