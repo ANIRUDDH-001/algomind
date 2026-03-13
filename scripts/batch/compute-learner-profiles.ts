@@ -83,7 +83,7 @@ export async function updateStreaksOnly() {
                 checkDate = yesterday;
             }
 
-            let tempDate = new Date(checkDate);
+            const tempDate = new Date(checkDate);
             while (sessionDates.has(tempDate.toISOString().split('T')[0])) {
                 currentStreak++;
                 tempDate.setDate(tempDate.getDate() - 1);
@@ -135,7 +135,7 @@ async function computeProfileForUser(supabase: any, userId: string) {
         checkDate = yesterday;
     }
 
-    let tempDate = new Date(checkDate);
+    const tempDate = new Date(checkDate);
     while (sessionDates.has(tempDate.toISOString().split('T')[0])) {
         currentStreak++;
         tempDate.setDate(tempDate.getDate() - 1);

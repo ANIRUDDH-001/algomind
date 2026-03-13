@@ -73,7 +73,8 @@ export default async function AnalysisPage({
     }
 
     // Detect limited evidence from transcript turn count
-    const userTurnCount = ((session.transcript || []) as TranscriptTurn[]).filter(t => t.speaker === 'user' || t.speaker === 'USER').length;
+    const userTurnCount = ((session.transcript || []) as Array<{role?: string; speaker?: string; content?: string; text?: string}>)
+        .filter(t => t.role === 'user' || t.speaker === 'user' || t.speaker === 'USER').length;
     const isLimitedEvidence = userTurnCount <= 5;
 
     // 2. Fetch assessment

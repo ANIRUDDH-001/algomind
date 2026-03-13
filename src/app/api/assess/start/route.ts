@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
             campaignData = campaign[0];
 
             // Build questionStates based on campaign details
-            let campaignQs = campaignData.campaign_questions || [];
+            const campaignQs = campaignData.campaign_questions || [];
 
             if (campaignQs.length > 0) {
                 // Resolve random placeholders into actual UUIDs
@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Pre-fetch phase-aware RAG for employer sessions (all 6 phases upfront)
-        let employerRagContext = '';
+        const employerRagContext = '';
         try {
             // RAG context is fetched lazily per-phase in the assess/chat route.
             // Do NOT pre-fetch all 6 phases here — it adds 500–2000ms to assessment start

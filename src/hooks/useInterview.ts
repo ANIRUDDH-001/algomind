@@ -45,7 +45,7 @@ export interface UseInterviewOptions {
 export function useInterview(options: UseInterviewOptions) {
     const optionsRef = useRef(options);
     
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     useEffect(() => { optionsRef.current = options; },
         // We explicitly break exhaustive-deps to match the pre-refactor behavior where we manually watch nested dependencies
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -125,6 +125,9 @@ describe('SkillBadge integration in InterviewSession', () => {
                 roundCount: 0,
                 interviewStartTime: Date.now(),
                 isLimitReached: false,
+                enterCodingMode: vi.fn(),
+                exitCodingMode: vi.fn(),
+                shareCode: vi.fn(),
             };
         });
 

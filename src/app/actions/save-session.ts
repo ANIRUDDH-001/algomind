@@ -7,6 +7,7 @@ import { createAndSaveSession1Baseline } from '@/lib/ai/narrative-generator';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { type ConversationTurn } from '@/lib/assessment/prompts';
 import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
+import { uploadTranscript } from '@/lib/aws/s3';
 
 export async function saveInterviewSession(
     userId: string,
@@ -133,6 +134,20 @@ export async function saveInterviewSession(
             console.error('❌ [ACTION] Failed to save session:', error);
             void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
             return { success: false, error: error.message, status: 500 };
+        }
+
+        // Fire & forget S3 upload
+        if (transcript && transcript.length > 0) {
+            uploadTranscript(sessionData.id, transcript, userId).then(async (s3Key) => {
+                await supabase.from('interview_sessions')
+                    .update({ transcript_s3_key: s3Key })
+                    .eq('id', sessionData.id);
+            }).catch(err => {
+                const msg = err instanceof Error ? err.message : String(err);
+                if (msg !== 'AWS_S3_DISABLED' && msg !== 'AWS_S3_NOT_CONFIGURED') {
+                    console.error('⚠️ [ACTION] Background S3 upload failed (session saved to DB):', err);
+                }
+            });
         }
 
         // 4. Save assessment details (Requirement 6)
