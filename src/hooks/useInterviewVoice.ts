@@ -5,8 +5,7 @@ import { useVAD } from '@/hooks/useVAD';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import type { MicIntent } from './useInterview';
 import { InterruptionManager, InterruptionDecision } from '@/lib/voice/interruption-manager';
-// Use explicit import instead of depending on types from useTTS explicitly since those might be internal
-type TTSProvider = 'elevenlabs' | 'browser';
+import type { TTSProvider } from '@/lib/voice/tts-engine';
 
 export interface UseInterviewVoiceOptions {
     sttProvider?: 'whisper' | 'browser';
@@ -39,6 +38,7 @@ export interface UseInterviewVoiceReturn {
     setVadFailed: React.Dispatch<React.SetStateAction<boolean>>;
     isPushToTalk: boolean;
     sttProvider: 'whisper' | 'browser';
+    setVadEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 
     // Mic intent
     micIntent: MicIntent;
@@ -76,6 +76,7 @@ export function useInterviewVoice({
     const [transcript, setTranscript] = useState('');
     const [interimTranscript, setInterimTranscript] = useState('');
     const [vadFailed, setVadFailed] = useState(false);
+    const [vadEnabled, setVadEnabled] = useState(true);
 
     // -- Smart Pause Refs --
     const smartPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,7 +144,7 @@ export function useInterviewVoice({
     }, [stt.isListening]);
 
     useVAD({
-        enabled: provider === 'whisper',
+        enabled: vadEnabled && provider === 'whisper',
         onSpeechStart: () => {
             // Delegate to InterruptionManager with confidence filtering
             const decision = im.handleUserSpeechStartWithConfidence(0.85);
@@ -228,6 +229,7 @@ export function useInterviewVoice({
         setVadFailed,
         isPushToTalk: vadFailed || provider === 'browser',
         sttProvider: provider,
+        setVadEnabled,
 
         micIntent,
         setMicIntent,

@@ -250,21 +250,10 @@ export function useInterviewControl({
             console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
 
-            // If streaming TTS already started, skip speakAndWait to avoid double-speak
-            const isMainEndpoint = !optionsRef.current.apiEndpoint || optionsRef.current.apiEndpoint === '/api/chat';
-            if (!isMainEndpoint || !voice.isSpeaking) {
-                const ttsOk = await voice.speakAndWait(responseText, 3);
-                if (!ttsOk) {
-                    voice.setTtsError(true);
-                    console.error('[submitUserResponse] TTS failed after 3 retries');
-                }
-            } else {
-                // Streaming path: TTS started on first chunk; wait for it to finish
-                await new Promise<void>(resolve => {
-                    const check = setInterval(() => {
-                        if (!isSpeakingRef.current) { clearInterval(check); resolve(); }
-                    }, 200);
-                });
+            const ttsOk = await voice.speakAndWait(responseText, 3);
+            if (!ttsOk) {
+                voice.setTtsError(true);
+                console.error('[submitUserResponse] TTS failed after 3 retries');
             }
 
             if (smartPauseTimerRef.current) {
@@ -469,7 +458,7 @@ export function useInterviewControl({
                 voice.stopSpeaking();
                 voice.setMicIntent('paused-for-ai');
             } else {
-                if (state !== 'idle' && state !== 'completed') {
+                if (state !== 'idle' && state !== 'completed' && state !== 'solution-review') {
                     voice.setMicIntent('auto-on');
                 }
             }
@@ -567,6 +556,8 @@ export function useInterviewControl({
     }, [stateMachineRef, voice]);
 
     const exitCodingMode = useCallback(() => {
+        const currentState = stateMachineRef.current.getState();
+        if (currentState === 'completed' || currentState === 'solution-review' || currentState === 'idle') return;
         stateMachineRef.current.transition('USER_STOPPED_CODING');
         setState(stateMachineRef.current.getState());
         voice.setMicIntent('user-on');
@@ -582,6 +573,8 @@ export function useInterviewControl({
 
     const endInterview = useCallback(() => {
         if (roundCount < 1 && !timeUpRef.current) return;
+        voice.setVadEnabled(false);
+        voice.resetTranscript();
         voice.setMicIntent('off');
         voice.setMicStoppedManually(false);
         voice.setSendCountdown(null);

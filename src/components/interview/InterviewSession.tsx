@@ -512,7 +512,7 @@ export function InterviewSession({
         isSavingRef.current = true;
         setError(null);
         try {
-            const baseTranscript = messages.map(m => ({ role: m.role, content: m.content }));
+            const baseTranscript = messages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp }));
             const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
 
             const enrichedTranscript = buildEnrichedTranscript(
@@ -925,7 +925,7 @@ export function InterviewSession({
 
                 {/* Mic Controls */}
                 {!readOnly && !isLimitLocked && (
-                    <div className="shrink-0 p-4 border-t flex flex-col items-center gap-3 bg-black/10" style={{ borderColor: 'var(--surface-edge)' }}>
+                    <div className="shrink-0 p-4 border-t flex flex-col items-center gap-3 bg-black/10 relative" style={{ borderColor: 'var(--surface-edge)' }}>
                         <div className="flex items-center gap-4 relative">
                             <MicrophoneButton
                                 isListening={voice.isListening}
@@ -1040,7 +1040,7 @@ export function InterviewSession({
             {hasStarted && <VoiceOnboarding />}
 
             {/* NEW DESKTOP LAYOUT */}
-            <div className="hidden lg:flex flex-col relative w-full h-[100dvh]">
+            <div className="hidden lg:flex flex-col relative w-full h-full">
                 <InterviewTopBar
                     problemTitle={activeProblem.title}
                     difficultyMode={interviewConfig.difficultyMode}
@@ -1055,21 +1055,16 @@ export function InterviewSession({
                 
                 <div className="flex-1 w-full min-h-0">
                     <ResizablePanelGroup direction="horizontal">
-                        {!isProblemCollapsed ? (
-                            <>
-                                <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
-                                    {renderProblemPanel()}
-                                </ResizablePanel>
-                                <ResizableHandle className="w-1.5 hover:bg-indigo-500/50 transition-colors bg-zinc-800/50" />
-                            </>
-                        ) : (
-                            <>
-                                <ResizablePanel defaultSize={3} minSize={3} maxSize={3} className="min-w-[48px] max-w-[48px] transition-all duration-300">
-                                    {renderProblemPanel()}
-                                </ResizablePanel>
-                                <ResizableHandle className="w-px bg-zinc-800/50 cursor-default hover:bg-zinc-800/50 active:bg-zinc-800/50" />
-                            </>
-                        )}
+                        <ResizablePanel 
+                            defaultSize={isProblemCollapsed ? 3 : 25} 
+                            minSize={isProblemCollapsed ? 3 : 15} 
+                            maxSize={isProblemCollapsed ? 3 : 40} 
+                            key={isProblemCollapsed ? 'collapsed' : 'expanded'}
+                            className={isProblemCollapsed ? "min-w-[48px] max-w-[48px] transition-all duration-300" : ""}
+                        >
+                            {renderProblemPanel()}
+                        </ResizablePanel>
+                        <ResizableHandle className={isProblemCollapsed ? "w-px bg-zinc-800/50 cursor-default hover:bg-zinc-800/50 active:bg-zinc-800/50" : "w-1.5 hover:bg-indigo-500/50 transition-colors bg-zinc-800/50"} />
                         
                         <ResizablePanel defaultSize={45} minSize={30}>
                             {renderCodePanel()}
@@ -1120,6 +1115,7 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
+                                        onKeyDown={handleCodeKeyDown}
                                         onExecutionStart={() => {
                                             setIsExecRunning(true);
                                             setLastExecResult(null);
