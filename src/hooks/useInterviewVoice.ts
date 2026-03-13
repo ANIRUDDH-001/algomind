@@ -111,11 +111,7 @@ export function useInterviewVoice({
     }, [tts.isSpeaking]);
 
     // -- InterruptionManager --
-    const imRef = useRef<InterruptionManager | null>(null);
-    if (!imRef.current) {
-        imRef.current = new InterruptionManager({ graceMs: 500, debounceMs: 1000 });
-    }
-    const im = imRef.current;
+    const [im] = useState(() => new InterruptionManager({ graceMs: 500, debounceMs: 1000 }));
 
     // Wire TTS lifecycle to IM
     useEffect(() => {

@@ -33,9 +33,13 @@ interface SessionData {
 }
 
 interface TranscriptTurn {
-    speaker: string;
-    text: string;
-    timestamp?: number;
+    // Regular interview sessions use {role, content, timestamp}
+    role?: string;
+    content?: string;
+    // Candidate/assessment sessions use {speaker, text}
+    speaker?: string;
+    text?: string;
+    timestamp?: string | number;
 }
 
 interface AIKeyMoment {
@@ -716,11 +720,9 @@ export function AnalysisClient({
                         const now = new Date();
                         const daysUntilReview = Math.max(0, Math.ceil((reviewDate.getTime() - now.getTime()) / 86400000));
                         const isDue = daysUntilReview === 0;
-                        const difficultyVal = localSm2.fsrsDifficulty ?? localSm2.easeFactor;
-                        // FSRS difficulty is 1-10 scale; normalize to 0-100%
                         const difficultyPct = localSm2.fsrsDifficulty != null
                             ? Math.round(localSm2.fsrsDifficulty * 10)
-                            : 0; // Pre-FSRS records show 0% — accepted trade-off
+                            : 0; // Pre-FSRS session — show as unscored, not a corrupted SM-2 calculation
                         const difficultyLabel = difficultyPct === 0
                             ? 'No data'
                             : difficultyPct <= 30 ? 'Easy'

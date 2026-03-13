@@ -75,7 +75,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
         };
         engineRef.current = engine;
         return () => { engine.destroy(); engineRef.current = null; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []); // mount only
 
     // 3b. Update voice config on existing engine (no destroy/recreate)

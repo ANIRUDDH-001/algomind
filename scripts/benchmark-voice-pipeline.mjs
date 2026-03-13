@@ -164,7 +164,7 @@ async function benchmarkAIChat(prompt, complexity) {
     const status = res.status;
 
     let data = null;
-    let ttfb = null;
+    const ttfb = null;
 
     if (status === 200) {
         try {

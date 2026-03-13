@@ -93,6 +93,7 @@ interface CodeEditorProps {
     onExecutionStart?: () => void;
     onExecutionResult?: (result: ExecutionResult) => void;
     readOnly?: boolean;
+    onKeyDown?: () => void;
 }
 
 const LANGUAGE_API_MAP: Record<string, string> = {
@@ -103,7 +104,7 @@ const LANGUAGE_API_MAP: Record<string, string> = {
     cpp: 'cpp',
 };
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false, onKeyDown }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
     const [isRunning, setIsRunning] = useState(false);
@@ -175,11 +176,11 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
             }
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Unknown execution error';
-            const isNetwork = msg.includes('fetch') || msg.includes('Failed to fetch') || msg.includes('Load failed');
+            const isNetwork = msg.includes('fetch') || msg.includes('Failed to fetch') || msg.includes('Load failed') || msg.includes('network');
             setExecutionResult({
                 stdout: '',
                 stderr: isNetwork
-                    ? 'Code execution service is unreachable. Check your connection or try again shortly.'
+                    ? 'Code execution service unavailable. Please try again in a moment.'
                     : msg,
                 exit_code: 1,
                 runtime_ms: 0,
@@ -194,6 +195,9 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
     const handleEditorDidMount: OnMount = (editor, monaco) => {
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
             handleRunCode();
+        });
+        editor.onKeyDown(() => {
+            onKeyDown?.();
         });
     };
 
