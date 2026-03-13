@@ -9,7 +9,6 @@ import { useInterviewMessages } from './useInterviewMessages';
 export type { Message } from './useInterviewMessages';
 import { useInterviewVoice } from './useInterviewVoice';
 import { useInterviewApi } from './useInterviewApi';
-import { useInterviewLimits } from './useInterviewLimits';
 import { useInterviewControl } from './useInterviewControl';
 
 export type MicIntent = 'user-on' | 'auto-on' | 'paused-for-ai' | 'off';
@@ -75,12 +74,7 @@ export function useInterview(options: UseInterviewOptions) {
         optionsRef,
     });
 
-    // 4. Limits hook
-    const limits = useInterviewLimits({
-        maxDurationMs: options.config.maxDurationMs,
-        maxTurnsPerProblem: options.config.maxTurnsPerProblem,
-        isUnlimited: options.config.isUnlimited,
-    });
+    // 4. Removed unused limits hook
 
     const stableStartListening = useCallback(() => {
         voice.startListening();

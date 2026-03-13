@@ -31,6 +31,7 @@ const mockVoice = {
     resetTranscript: vi.fn(),
     vadFailed: false,
     setVadFailed: vi.fn(),
+    setVadEnabled: vi.fn(),
     isPushToTalk: false,
     sttProvider: 'browser' as const,
     micIntent: 'off' as const,

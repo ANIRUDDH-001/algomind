@@ -29,6 +29,11 @@ export function useInterviewApi({
 }: UseInterviewApiOptions): UseInterviewApiReturn {
     
     const currentStreamMsgIdRef = useRef<string | null>(null);
+    const streamAbortRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        return () => { streamAbortRef.current?.abort(); };
+    }, []);
 
     /** setMessages accessor — pulled from the messages hook via the control hook's setMessages.
      *  We store a ref that the control hook can wire up. */
@@ -76,6 +81,9 @@ export function useInterviewApi({
         endpoint: string,
         body: string
     ): Promise<string> => {
+        if (streamAbortRef.current) streamAbortRef.current.abort();
+        streamAbortRef.current = new AbortController();
+
         const res = await fetch(endpoint, {
             method: 'POST',
             headers: {
@@ -83,6 +91,7 @@ export function useInterviewApi({
                 'Accept': 'text/event-stream',
             },
             body,
+            signal: streamAbortRef.current.signal,
         });
 
         if (!res.ok || !res.body) {
@@ -169,11 +178,7 @@ export function useInterviewApi({
                                 ));
                             }
 
-                            // Start TTS on first substantial chunk — don't wait for full response
-                            if (!firstChunkSpoken && parsed.chunk.length > 20 && ttsRef.current) {
-                                firstChunkSpoken = true;
-                                ttsRef.current.speak(parsed.chunk);
-                            }
+                            // Real-time text appending done, defer TTS to control hook speakAndWait
                         }
                     } catch (parseErr) {
                         console.warn('[SSE] Parse error:', parseErr);

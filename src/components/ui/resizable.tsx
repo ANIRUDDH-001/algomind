@@ -37,6 +37,7 @@ interface GroupCtx {
     containerRef: React.RefObject<HTMLDivElement | null>
     registerPanel: (id: string, meta: PanelMeta) => void
     getIndex: (id: string) => number
+    getPanelMeta: (index: number) => PanelMeta | undefined
 }
 
 const GroupCtx = createContext<GroupCtx | null>(null)
@@ -78,6 +79,12 @@ function ResizablePanelGroup({
     }, [])
 
     const getIndex = useCallback((id: string) => orderRef.current.indexOf(id), [])
+    
+    const getPanelMeta = useCallback((index: number) => {
+        const id = orderRef.current[index];
+        if (!id) return undefined;
+        return metaRef.current.get(id);
+    }, [])
 
     // Initialise sizes after first render (all panels registered)
     useEffect(() => {
@@ -91,10 +98,10 @@ function ResizablePanelGroup({
             return d
         })
         setSizes(raw.map((s) => (s / total) * 100))
-    })
+    }, [])
 
     return (
-        <GroupCtx.Provider value={{ direction, sizes, setSizes, containerRef, registerPanel, getIndex }}>
+        <GroupCtx.Provider value={{ direction, sizes, setSizes, containerRef, registerPanel, getIndex, getPanelMeta }}>
             <div
                 ref={containerRef}
                 className={cn(
@@ -176,7 +183,7 @@ interface ResizableHandleProps {
 }
 
 function ResizableHandle({ withHandle, className }: ResizableHandleProps) {
-    const { direction, sizes, setSizes, containerRef } = useGroupCtx()
+    const { direction, sizes, setSizes, containerRef, getPanelMeta } = useGroupCtx()
     const handleRef = useRef<HTMLDivElement>(null)
     const dragState = useRef<{ startPos: number; startSizes: number[]; handleIdx: number } | null>(null)
 
@@ -223,8 +230,15 @@ function ResizableHandle({ withHandle, className }: ResizableHandleProps) {
                     if (leftIdx >= prev.length || rightIdx >= prev.length) return prev
                     const newLeft = startSizes[leftIdx] + deltaPct
                     const newRight = startSizes[rightIdx] - deltaPct
-                    // Hard floor of 5% to prevent total collapse
-                    if (newLeft < 5 || newRight < 5) return prev
+                    
+                    const leftMeta = getPanelMeta(leftIdx)
+                    const rightMeta = getPanelMeta(rightIdx)
+                    const leftMin = leftMeta?.minSize ?? 10
+                    const rightMin = rightMeta?.minSize ?? 10
+                    const leftMax = leftMeta?.maxSize ?? 90
+                    const rightMax = rightMeta?.maxSize ?? 90
+                    
+                    if (newLeft < leftMin || newRight < rightMin || newLeft > leftMax || newRight > rightMax) return prev
                     const next = [...prev]
                     next[leftIdx] = newLeft
                     next[rightIdx] = newRight

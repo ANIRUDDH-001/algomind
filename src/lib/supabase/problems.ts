@@ -18,6 +18,19 @@ export interface Problem {
     space_complexity?: string;
 }
 
+export function normalizeProblem(data: any): Problem {
+    if (!data) return data;
+    let examples = data.examples ?? [];
+    if (typeof data.examples === 'string') {
+        try {
+            examples = JSON.parse(data.examples);
+        } catch (e) {
+            examples = [];
+        }
+    }
+    return { ...data, examples };
+}
+
 export async function getRandomProblem(
     difficulty?: 'easy' | 'medium' | 'hard'
 ): Promise<Problem | null> {
@@ -51,9 +64,7 @@ export async function getRandomProblem(
         // Now fetch the full problem with all columns including external_url
         const fullProblem = await getProblemById(randomProblem.id);
 
-
-
-        return fullProblem;
+        return fullProblem ? normalizeProblem(fullProblem) : null;
     } catch (error) {
         console.error('Failed to get random problem:', error);
         return null;
@@ -81,7 +92,7 @@ export async function getAllProblems(): Promise<Problem[]> {
             return [];
         }
 
-        return data || [];
+        return (data || []).map(normalizeProblem);
     } catch (error) {
         console.error('Failed to get problems:', error);
         return [];
@@ -108,7 +119,7 @@ export async function getProblemById(id: string): Promise<Problem | null> {
             return null;
         }
 
-        return data;
+        return normalizeProblem(data);
     } catch (error) {
         console.error('Failed to get problem:', error);
         return null;
@@ -181,7 +192,7 @@ export async function getProblemsPaginated(
         const totalPages = Math.ceil(totalCount / limit);
 
         return {
-            problems: data || [],
+            problems: (data || []).map(normalizeProblem),
             totalCount,
             totalPages,
         };

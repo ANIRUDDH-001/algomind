@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Flag } from 'lucide-react';
+import { BookOpen, Flag, PanelLeftClose } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -31,11 +31,9 @@ export function InterviewTopBar({
              style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
           
             {/* Problem toggle */}
-            {!isCollapsed && (
-                <button onClick={onToggleProblem} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white rounded">
-                    <BookOpen className="w-4 h-4" />
-                </button>
-            )}
+            <button onClick={onToggleProblem} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white rounded" title={isCollapsed ? "Show problem" : "Hide problem"}>
+                {isCollapsed ? <BookOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
             
             {/* Problem title (truncated) */}
             <span className="text-xs text-zinc-500 truncate max-w-[200px] hidden md:block" title={problemTitle}>
