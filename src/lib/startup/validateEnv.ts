@@ -35,9 +35,11 @@ export function validateEnv(): void {
 
         // Operational
         { key: "CRON_SECRET", issue: "Nightly batch cron will fail to trigger" },
-        { key: "PISTON_URL", issue: "Code execution defaults to public emkc.org endpoint (throttle risk)" },
         { key: "GITHUB_TOKEN", issue: "Cron GitHub trigger will fail" },
         { key: "GITHUB_REPO", issue: "Cron GitHub trigger will fail" },
+
+        // Code execution
+        { key: "PISTON_URL", issue: "Code execution will fall back to public emkc.org endpoint which may be rate-limited" },
     ];
 
     for (const { key, issue } of highVars) {

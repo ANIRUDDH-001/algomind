@@ -29,7 +29,7 @@ function escapeSqlString(str) {
 
 async function exportTable(tableName) {
     console.log(`Exporting ${tableName}...`);
-    let allRows = [];
+    const allRows = [];
     let start = 0;
     const limit = 1000;
     while (true) {

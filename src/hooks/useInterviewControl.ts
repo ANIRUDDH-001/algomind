@@ -64,8 +64,11 @@ export function useInterviewControl({
 
         // Wire API streaming refs to real setMessages/addMessage/tts
         const apiAny = api as any;
+        // eslint-disable-next-line react-hooks/immutability
         if (apiAny._setMessagesRef) apiAny._setMessagesRef.current = msgs.setMessages;
+        // eslint-disable-next-line react-hooks/immutability
         if (apiAny._addMessageRef) apiAny._addMessageRef.current = msgs.addMessage;
+        // eslint-disable-next-line react-hooks/immutability
         if (apiAny._ttsRef) apiAny._ttsRef.current = { speak: voice.speak, isSpeaking: voice.isSpeaking };
 
         const [state, setState] = useState<InterviewState>('idle');

@@ -13,7 +13,7 @@ export async function updateKaiMemory(userId: string, sessionSummary: string) {
             .eq('user_id', userId)
             .maybeSingle();
 
-        let currentMemory = profile?.kai_memory || '';
+        const currentMemory = profile?.kai_memory || '';
         const currentCount = profile?.sessions_at_last_narrative || 0;
 
         // 2. Append new summary
