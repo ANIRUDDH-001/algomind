@@ -17,17 +17,6 @@ export default async function AssessmentHistoryPage() {
         redirect('/login');
     }
 
-
-    let leetcodeUsername = null;
-    const { data: leetcode } = await supabase
-        .from('leetcode_profiles')
-        .select('username')
-        .eq('user_id', user.id)
-        .single();
-    if (leetcode) {
-        leetcodeUsername = leetcode.username;
-    }
-
     const { data: submissions } = await supabase
         .from('candidate_submissions')
         .select(`
@@ -70,7 +59,6 @@ export default async function AssessmentHistoryPage() {
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader
                     progress={assessmentProgress as any}
-                    leetcodeUsername={leetcodeUsername}
                 />
 
                 <DashboardNav activeTab="campaigns" isLinkMode={true} />

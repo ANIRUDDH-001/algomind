@@ -116,6 +116,9 @@ vi.mock('@/components/ui/resizable', () => ({
         <div data-testid="resizable-panel">{children}</div>
     ),
     ResizableHandle: () => <div data-testid="resizable-handle" />,
+    useResizablePanelGroup: () => ({
+        setPanelSize: vi.fn(),
+    }),
 }));
 
 // ─── Supabase mock ───

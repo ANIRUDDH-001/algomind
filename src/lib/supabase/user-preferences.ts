@@ -7,13 +7,15 @@ export interface UserPreferences {
     preferredVoiceLang: string;
     voiceRate: number;
     hinglishEnabled: boolean;
+    ttsProvider: 'auto' | 'polly' | 'browser';
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
     preferredVoiceName: null, // null means use system default (English US)
     preferredVoiceLang: 'en-US',
     voiceRate: 1.1,
-    hinglishEnabled: false
+    hinglishEnabled: false,
+    ttsProvider: 'auto'
 };
 
 /**
@@ -28,7 +30,7 @@ export async function getUserPreferences(userId: string | null): Promise<UserPre
             try {
                 const { data, error } = await supabase
                     .from('user_preferences')
-                    .select('preferred_voice_name, preferred_voice_lang, voice_rate, hinglish_enabled')
+                    .select('preferred_voice_name, preferred_voice_lang, voice_rate, hinglish_enabled, tts_provider')
                     .eq('user_id', userId)
                     .maybeSingle();
 
@@ -37,7 +39,8 @@ export async function getUserPreferences(userId: string | null): Promise<UserPre
                         preferredVoiceName: data.preferred_voice_name,
                         preferredVoiceLang: data.preferred_voice_lang || 'en-US',
                         voiceRate: data.voice_rate || 1.1,
-                        hinglishEnabled: data.hinglish_enabled ?? false
+                        hinglishEnabled: data.hinglish_enabled ?? false,
+                        ttsProvider: (data.tts_provider as 'auto' | 'polly' | 'browser') ?? 'auto'
                     };
                 }
             } catch (error) {
@@ -71,6 +74,7 @@ export async function saveUserPreferences(
                         preferred_voice_lang: prefs.preferredVoiceLang,
                         voice_rate: prefs.voiceRate,
                         hinglish_enabled: prefs.hinglishEnabled,
+                        tts_provider: prefs.ttsProvider,
                         updated_at: new Date().toISOString()
                     }, {
                         onConflict: 'user_id'

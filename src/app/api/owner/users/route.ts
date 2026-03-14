@@ -32,7 +32,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ users });
+    const userIds = users.map(u => u.id);
+    const { data: prefs } = await adminSupabase
+        .from('user_preferences')
+        .select('user_id, tts_provider')
+        .in('user_id', userIds);
+
+    const prefsMap = Object.fromEntries((prefs || []).map(p => [p.user_id, p.tts_provider]));
+    const usersWithPrefs = users.map(u => ({ ...u, tts_provider: prefsMap[u.id] || 'auto' }));
+
+    return NextResponse.json({ users: usersWithPrefs });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -50,7 +59,7 @@ export async function PATCH(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { userId, accountType, suspend, rateLimitOverride } = body;
+        const { userId, accountType, suspend, rateLimitOverride, ttsProvider } = body;
 
         if (!userId) {
             return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
@@ -78,13 +87,21 @@ export async function PATCH(req: NextRequest) {
         }
         if (rateLimitOverride !== undefined) updates.rate_limit_override = rateLimitOverride;
 
-        const { error } = await adminSupabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', userId);
+        if (Object.keys(updates).length > 0) {
+            const { error } = await adminSupabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', userId);
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            if (error) {
+                return NextResponse.json({ error: error.message }, { status: 500 });
+            }
+        }
+
+        if (ttsProvider !== undefined) {
+            await adminSupabase
+                .from('user_preferences')
+                .upsert({ user_id: userId, tts_provider: ttsProvider }, { onConflict: 'user_id' });
         }
 
         return NextResponse.json({ success: true });

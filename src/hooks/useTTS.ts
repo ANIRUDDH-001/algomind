@@ -15,6 +15,7 @@ export interface UseTTSOptions {
     voiceName?: string | null;
     voiceRate?: number;
     voicePitch?: number;
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
 }
 
 export function useTTS(opts: UseTTSOptions = {}) {
@@ -33,9 +34,17 @@ export function useTTS(opts: UseTTSOptions = {}) {
             fetch('/api/flags', { signal: AbortSignal.timeout(3000) })
                 .then(r => r.ok ? r.json() : {})
                 .then((f: any) => {
-                    const polly = f['ENABLE_AWS_POLLY_TTS']?.value === true;
-                    const guestPolly = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
-                    setPollyEnabled(polly || guestPolly);
+                    const globalPollyOn = f['ENABLE_AWS_POLLY_TTS']?.value === true;
+                    const guestPollyOn = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
+                    const userPref = optsRef.current.userTtsProvider ?? 'auto';
+
+                    if (userPref === 'browser') {
+                        setPollyEnabled(false);
+                    } else if (userPref === 'polly') {
+                        setPollyEnabled(globalPollyOn || guestPollyOn);
+                    } else {
+                        setPollyEnabled(globalPollyOn || guestPollyOn);
+                    }
                 })
                 .catch(() => setPollyEnabled(false));
         };
