@@ -407,7 +407,7 @@ export default function HomePage() {
             <div className="hidden md:block absolute top-[40px] left-[10%] right-[10%] h-0.5 bg-white/10" />
 
             {[
-              { num: "01", title: "Choose a problem", desc: "Select from our curated list or sync with your LeetCode profile." },
+              { num: "01", title: "Choose a problem", desc: "Pick from 343 curated DSA problems across all difficulty levels." },
               { num: "02", title: "Start Interview", desc: "Speak naturally. Explain your brute force and optimize together." },
               { num: "03", title: "Get Feedback", desc: "Receive immediate rubric-based scoring on 8 cognitive dimensions." },
               { num: "04", title: "Track Progress", desc: "Review your weaknesses and use Spaced Repetition to master them." }

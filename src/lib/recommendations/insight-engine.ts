@@ -510,7 +510,7 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
             (s.problem_difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
     }));
 
-    const { tier, reasoning: tierReasoning } = computeDifficultyTier(null, sessionSummaries);
+    const { tier, reasoning: tierReasoning } = computeDifficultyTier(sessionSummaries);
 
     // ── Step C: Generate insight cards (Parallelized) ────────────────────────────────────────
 

@@ -165,7 +165,6 @@ export function AnalyticsTab() {
         'model_verification_failed': COLORS.chart[4],
         'db_error': COLORS.semantic.danger,
         'user_rate_limit': '#3b82f6',
-        'leetcode_fetch_failed': '#a855f7',
         'piston_error': '#f97316',
         'embedding_failed': '#ec4899',
         'cron_completed': COLORS.semantic.success,
