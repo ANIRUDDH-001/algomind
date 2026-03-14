@@ -32,7 +32,6 @@ export interface ProblemSuggestion {
 
 export interface InsightCard {
     type:
-    | 'reinforce_leetcode'
     | 'declining_trend'
     | 'unexplored_pattern'
     | 'momentum'
@@ -75,17 +74,6 @@ interface RpcSessionRow {
     optimization_mindset: number;
     debugging_approach: number;
     pattern_tags: string[] | null;
-}
-
-interface LeetCodeProfileRow {
-    contest_rating: number | null;
-    medium_solved: number;
-    hard_solved: number;
-    recent_submissions: Array<{
-        slug: string;
-        title: string;
-        accepted_at: string;
-    }> | null;
 }
 
 interface ProblemRow {
@@ -167,55 +155,6 @@ function rowToSuggestion(row: ProblemRow): ProblemSuggestion {
 }
 
 // ─── Card builders ─────────────────────────────────────────────────────────────
-
-async function buildReinforceLeetcodeCards(
-    supabase: SupabaseClient,
-    lcProfile: LeetCodeProfileRow | null,
-    sessions: RpcSessionRow[]
-): Promise<InsightCard[]> {
-    if (!lcProfile?.recent_submissions?.length) return [];
-
-    const recentSlugs = new Set(sessions.map((s) => s.problem_id));
-    const cards: InsightCard[] = [];
-
-    for (const sub of lcProfile.recent_submissions.slice(0, 5)) {
-        const daysAgo = daysBetween(sub.accepted_at);
-        if (daysAgo > 30) continue;
-
-        // Check if user has done it in AlgoMind in last 30 days
-        const alreadyPracticed = sessions.some(
-            (s) =>
-                s.problem_id === sub.slug ||
-                s.problem_title?.toLowerCase() === sub.title.toLowerCase()
-        ) || recentSlugs.has(sub.slug);
-
-        if (alreadyPracticed) continue;
-
-        // Find matching AM problem
-        let suggestion: ProblemSuggestion | undefined;
-        try {
-            const { data } = await supabase
-                .from('problems')
-                .select('id, title, difficulty, external_url, tags')
-                .or(`id.eq.${sub.slug},title.ilike.%${sub.title.replace(/'/g, "''")}%`)
-                .limit(1)
-                .maybeSingle();
-            if (data) suggestion = rowToSuggestion(data as ProblemRow);
-        } catch { /* ignore */ }
-
-        cards.push({
-            type: 'reinforce_leetcode',
-            title: `Solidify "${sub.title}" with a mock interview`,
-            body: `You solved this on LeetCode ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago. An interview simulation will lock in the pattern under pressure, not just solve-and-forget.`,
-            priority: daysAgo < 7 ? 'high' : 'medium',
-            problemSuggestions: suggestion ? [suggestion] : undefined,
-        });
-
-        if (cards.length >= 2) break; // cap at 2 reinforce cards
-    }
-
-    return cards;
-}
 
 export async function buildDecliningTrendCards(
     supabase: SupabaseClient,
@@ -559,22 +498,8 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
         }
     };
 
-    const fetchLeetcodeProfile = async () => {
-        try {
-            const { data } = await supabase
-                .from('leetcode_profiles')
-                .select('contest_rating, medium_solved, hard_solved, recent_submissions')
-                .eq('user_id', userId)
-                .maybeSingle();
-            return data as LeetCodeProfileRow | null;
-        } catch {
-            return null; // table may not exist — silently skip
-        }
-    };
-
-    const [sessions, lcProfile] = await Promise.all([
-        fetchSessions(),
-        fetchLeetcodeProfile()
+    const [sessions] = await Promise.all([
+        fetchSessions()
     ]);
 
     // ── Step B: Compute tier ───────────────────────────────────────────────────
@@ -585,22 +510,9 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
             (s.problem_difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
     }));
 
-    const lcSignal = lcProfile
-        ? {
-            contest_rating: lcProfile.contest_rating,
-            medium_solved: lcProfile.medium_solved ?? 0,
-            hard_solved: lcProfile.hard_solved ?? 0,
-        }
-        : null;
-
-    const { tier, reasoning: tierReasoning } = computeDifficultyTier(lcSignal, sessionSummaries);
+    const { tier, reasoning: tierReasoning } = computeDifficultyTier(null, sessionSummaries);
 
     // ── Step C: Generate insight cards (Parallelized) ────────────────────────────────────────
-
-    const buildLcCards = async () => {
-        try { return await buildReinforceLeetcodeCards(supabase, lcProfile, sessions); }
-        catch (err) { console.error('[insight-engine] LC card error:', err); return []; }
-    };
 
     const buildTrendCards = async () => {
         try { return await buildDecliningTrendCards(supabase, sessions, tier); }
@@ -643,7 +555,6 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
     };
 
     const [
-        lcCards,
         trendCards,
         patternCards,
         streakRiskCard,
@@ -653,7 +564,6 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
         imbalanceCard,
         typeGapCard
     ] = await Promise.all([
-        buildLcCards(),
         buildTrendCards(),
         buildPatternCards(),
         buildStreakRiskCard(),
@@ -665,7 +575,6 @@ export async function computeInsightsForUser(userId: string): Promise<InsightSna
     ]);
 
     const allCards: InsightCard[] = [
-        ...lcCards,
         ...trendCards,
         ...patternCards,
         ...consistencyCards,

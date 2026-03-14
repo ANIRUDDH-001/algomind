@@ -37,6 +37,7 @@ function InterviewContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [rateLimitInfo, setRateLimitInfo] = useState<{ allowed: boolean; remaining: number } | null>(null);
+    const [userTtsProvider, setUserTtsProvider] = useState<'auto' | 'polly' | 'browser'>('auto');
 
     // Find session if viewing history
     const session = sessionId ? history.find(s => s.sessionId === sessionId) : null;
@@ -196,7 +197,15 @@ function InterviewContent() {
                 if (!fetchedProblem) {
                     setError('No problems found. Please add problems to your database.');
                 }
-
+                
+                // Fetch TTS Prefs
+                if (userId) {
+                    import('@/lib/supabase/user-preferences').then(({ getUserPreferences }) => {
+                        getUserPreferences(userId).then(prefs => {
+                            setUserTtsProvider(prefs.ttsProvider ?? 'auto');
+                        }).catch(() => {});
+                    });
+                }
 
             } catch (e) {
                 console.error('Failed to load interview data:', e);
@@ -265,6 +274,7 @@ function InterviewContent() {
                         readOnly={!!sessionId}
                         isGuest={isGuest}
                         isReviewMode={isReviewMode}
+                        userTtsProvider={userTtsProvider}
                     />
                 )}
             </InterviewErrorBoundary>

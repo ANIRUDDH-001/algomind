@@ -23,6 +23,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
     const [selectedVoice, setSelectedVoice] = useState<string>('');
     const [rate, setRate] = useState<number>(1.1);
     const [hinglishEnabled, setHinglishEnabled] = useState<boolean>(false);
+    const [ttsProviderChoice, setTtsProviderChoice] = useState<'auto' | 'polly' | 'browser'>('auto');
     const [isHinglishGlobalOn, setIsHinglishGlobalOn] = useState<boolean>(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -105,6 +106,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                 }
                 setRate(prefs.voiceRate || 1.0);
                 setHinglishEnabled(prefs.hinglishEnabled ?? false);
+                setTtsProviderChoice(prefs.ttsProvider ?? 'auto');
             } catch (e) {
                 console.error("Failed to load voice preferences", e);
             } finally {
@@ -127,7 +129,8 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                 preferredVoiceName: selectedVoice,
                 preferredVoiceLang: voiceObj?.lang || 'en-US',
                 voiceRate: rate,
-                hinglishEnabled
+                hinglishEnabled,
+                ttsProvider: ttsProviderChoice
             });
             toast.success("Voice settings saved!");
         } catch (e) {
@@ -196,6 +199,44 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                             : `Active voice: ${selectedVoice || 'Default browser voice'}`
                         }
                     </p>
+                </div>
+
+                {/* TTS Provider Preference */}
+                <div className="mt-4">
+                    <label className="text-sm font-semibold text-zinc-200 block mb-2">
+                        Voice Engine Preference
+                    </label>
+                    <div className="flex gap-2 relative">
+                        {isGroq && (
+                            <div className="absolute inset-0 z-10 cursor-not-allowed" title="Voice parameters are controlled by Groq during Groq calls." />
+                        )}
+                        {([
+                            { value: 'auto', label: 'Auto', desc: 'Follow system setting' },
+                            { value: 'polly', label: 'AWS Polly', desc: 'High quality, Indian English' },
+                            { value: 'browser', label: 'Browser', desc: 'Built-in, always available' },
+                        ] as const).map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setTtsProviderChoice(opt.value)}
+                                disabled={isGroq}
+                                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold border transition-all text-left ${
+                                    isGroq ? 'opacity-50' : ''
+                                } ${
+                                    ttsProviderChoice === opt.value
+                                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300'
+                                        : 'border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-500'
+                                }`}
+                            >
+                                <div>{opt.label}</div>
+                                <div className="font-normal opacity-70 mt-0.5">{opt.desc}</div>
+                            </button>
+                        ))}
+                    </div>
+                    {ttsProviderChoice === 'polly' && !isGroq && (
+                        <p className="text-xs text-amber-400/80 mt-2">
+                            Polly only works when the global AWS Polly flag is enabled. Falls back to browser TTS if unavailable.
+                        </p>
+                    )}
                 </div>
 
                 {/* Voice Selection — dimmed when Groq is active */}

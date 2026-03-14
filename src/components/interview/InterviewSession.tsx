@@ -65,6 +65,7 @@ interface InterviewSessionProps {
     isReviewMode?: boolean;
     readOnly?: boolean;
     initialTranscript?: { role: string; content: string }[];
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
 
     // Employer assessment
     isAssessment?: boolean;
@@ -126,7 +127,8 @@ export function InterviewSession({
     sessionToken,
     onCampaignQuestionEnd,
     onCampaignSaveProgress,
-    campaignTimeLeftSecs
+    campaignTimeLeftSecs,
+    userTtsProvider
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -307,6 +309,7 @@ export function InterviewSession({
         sessionToken: sessionToken || (isAssessment ? assessmentSessionToken : undefined),
         onUserMessage: handleUserMessage,
         isGuest: isGuest,
+        userTtsProvider,
     });
 
     // A3: Signal coding state changes when user edits code via keystrokes

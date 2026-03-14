@@ -291,7 +291,7 @@ function ResizableHandle({ withHandle, className }: ResizableHandleProps) {
             window.addEventListener("mousemove", onMove)
             window.addEventListener("mouseup", onUp)
         },
-        [direction, sizes, setSizes, containerRef, getHandleIndex]
+        [direction, sizes, setSizes, containerRef, getHandleIndex, getPanelMeta]
     )
 
     const isHoriz = direction === "horizontal"
