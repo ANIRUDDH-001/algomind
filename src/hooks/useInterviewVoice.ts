@@ -11,6 +11,7 @@ export interface UseInterviewVoiceOptions {
     sttProvider?: 'whisper' | 'browser';
     voicePrefs?: { name: string | null; rate: number; pitch: number };
     onVADFallback: () => void;
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
 }
 
 export interface UseInterviewVoiceReturn {
@@ -65,7 +66,8 @@ export interface UseInterviewVoiceReturn {
 
 export function useInterviewVoice({
     voicePrefs,
-    onVADFallback
+    onVADFallback,
+    userTtsProvider
 }: UseInterviewVoiceOptions): UseInterviewVoiceReturn {
     // -- Mic Intent & State --
     const [micIntent, setMicIntent] = useState<MicIntent>('off');
@@ -104,6 +106,7 @@ export function useInterviewVoice({
         voiceName: voicePrefs?.name ?? null,
         voiceRate: voicePrefs?.rate ?? 1.0,
         voicePitch: voicePrefs?.pitch ?? 1.0,
+        userTtsProvider,
     });
 
     const isSpeakingRef = useRef(false);

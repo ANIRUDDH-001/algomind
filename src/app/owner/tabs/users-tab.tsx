@@ -116,6 +116,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">Tier</th>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">Joined</th>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">Limits</th>
+                                <th className="px-6 py-4 font-bold whitespace-nowrap">TTS</th>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap text-right">Actions</th>
                             </tr>
                         </thead>
@@ -156,6 +157,29 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                         ) : (
                                             <span className="text-zinc-500 text-xs">Default</span>
                                         )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <select
+                                            defaultValue={user.tts_provider || 'auto'}
+                                            onChange={async (e) => {
+                                                try {
+                                                    const res = await fetch('/api/owner/users', {
+                                                        method: 'PATCH',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ userId: user.id, ttsProvider: e.target.value }),
+                                                    });
+                                                    if (!res.ok) throw new Error('Failed to update TTS preference');
+                                                    toast.success(`TTS set to ${e.target.value}`);
+                                                } catch (err) {
+                                                    toast.error('Failed to update TTS setting');
+                                                }
+                                            }}
+                                            className="bg-[var(--surface-1)] border border-[var(--surface-edge)] rounded-lg px-2 py-1.5 text-xs text-zinc-300 w-[90px] focus:outline-none focus:border-indigo-500/50"
+                                        >
+                                            <option value="auto">Auto</option>
+                                            <option value="polly">Polly</option>
+                                            <option value="browser">Browser</option>
+                                        </select>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">

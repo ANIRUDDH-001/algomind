@@ -12,7 +12,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 
 import { VoiceSettings } from './VoiceSettings';
-import { LeetCodeSettings } from './LeetCodeSettings';
 
 export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
@@ -240,9 +239,6 @@ export function SettingsPanel() {
                     </div>
                 </div>
             </div>
-
-            {/* LeetCode Integration */}
-            <LeetCodeSettings />
 
             {/* Danger Zone */}
             <div className="space-y-2 pb-16">

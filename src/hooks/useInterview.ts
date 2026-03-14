@@ -39,6 +39,7 @@ export interface UseInterviewOptions {
     sessionToken?: string;
     onUserMessage?: (msg: Message, count: number) => void;
     isGuest?: boolean;
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
 }
 
 export function useInterview(options: UseInterviewOptions) {
@@ -46,9 +47,8 @@ export function useInterview(options: UseInterviewOptions) {
     
      
     useEffect(() => { optionsRef.current = options; },
-        // We explicitly break exhaustive-deps to match the pre-refactor behavior where we manually watch nested dependencies
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.config, options.isTimeUp, options.turnsRemaining, options.timeRemaining, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
+        [options.config, options.isTimeUp, options.turnsRemaining, options.timeRemaining, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest, options.userTtsProvider]
     );
 
     // Shared state / refs
@@ -64,6 +64,7 @@ export function useInterview(options: UseInterviewOptions) {
     const voice = useInterviewVoice({
         voicePrefs: options.voicePrefs,
         onVADFallback: () => {},
+        userTtsProvider: options.userTtsProvider,
     });
 
     // 3. API hook
