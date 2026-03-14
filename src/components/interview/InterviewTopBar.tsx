@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Flag, PanelLeftClose } from 'lucide-react';
+import { BookOpen, Flag, PanelLeftClose, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -13,6 +13,7 @@ interface InterviewTopBarProps {
     readOnly: boolean;
     roundCount: number;
     timerNode?: React.ReactNode;
+    onBack?: () => void;
 }
 
 export function InterviewTopBar({
@@ -25,11 +26,23 @@ export function InterviewTopBar({
     readOnly,
     roundCount,
     timerNode,
+    onBack,
 }: InterviewTopBarProps) {
     return (
         <div className="h-11 shrink-0 flex items-center gap-3 px-3 border-b"
              style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
           
+            {/* Back button (optional) */}
+            {onBack && (
+                <button 
+                    onClick={onBack} 
+                    className="flex items-center gap-1.5 text-zinc-500 hover:text-white transition-colors mr-2"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Back</span>
+                </button>
+            )}
+
             {/* Problem toggle */}
             <button onClick={onToggleProblem} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-white rounded" title={isCollapsed ? "Show problem" : "Hide problem"}>
                 {isCollapsed ? <BookOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}

@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight, Code2, FileText } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle, useResizablePanelGroup } from '@/components/ui/resizable';
 import { InterviewTopBar } from './InterviewTopBar';
 
 // Assessment & Core
@@ -72,10 +72,43 @@ interface InterviewSessionProps {
     assessmentApiEndpoint?: string;
     startTimeOffsetSeconds?: number;
     onAssessmentComplete?: (duration: number, transcript: any[], flags?: string[]) => Promise<void>;
+    // Campaign Overrides
+    apiEndpoint?: string;
+    sessionToken?: string;
+    onCampaignQuestionEnd?: (transcript: any[], code: string, elapsedSecs: number) => void;
+    onCampaignSaveProgress?: (transcript: any[], code: string, elapsedSecs: number) => void;
+    campaignTimeLeftSecs?: number;
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
 type MobileTab = typeof mobileTabs[number];
+
+/**
+ * Invisible controller rendered inside ResizablePanelGroup.
+ * Calls setPanelSize programmatically when isProblemCollapsed changes,
+ * so the problem panel actually resizes without remounting (no ghost IDs).
+ */
+function ThreePanelCollapseController({ isProblemCollapsed }: { isProblemCollapsed: boolean }) {
+    const { setPanelSize } = useResizablePanelGroup();
+    const isFirstRender = React.useRef(true);
+
+    React.useEffect(() => {
+        // Skip the very first render — let defaultSize initialise sizes normally
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        if (isProblemCollapsed) {
+            // Collapse to 3% (48px at typical viewport widths)
+            setPanelSize('problem-panel', 3);
+        } else {
+            // Expand back to 25%
+            setPanelSize('problem-panel', 25);
+        }
+    }, [isProblemCollapsed, setPanelSize]);
+
+    return null;
+}
 
 export function InterviewSession({
     problem,
@@ -88,7 +121,12 @@ export function InterviewSession({
     assessmentSessionToken,
     assessmentApiEndpoint,
     startTimeOffsetSeconds,
-    onAssessmentComplete
+    onAssessmentComplete,
+    apiEndpoint,
+    sessionToken,
+    onCampaignQuestionEnd,
+    onCampaignSaveProgress,
+    campaignTimeLeftSecs
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -127,7 +165,7 @@ export function InterviewSession({
 
     // Mobile Swipe Navigation State
     const [activeTab, setActiveTab] = useState<MobileTab>('interview');
-    const { handlers: swipeHandlers, currentIndex } = useSwipeNavigation({
+    const { handlers: swipeHandlers, currentIndex, dragOffset } = useSwipeNavigation({
         tabs: mobileTabs,
         activeTab: activeTab,
         onTabChange: (tab) => setActiveTab(tab as MobileTab),
@@ -263,10 +301,10 @@ export function InterviewSession({
         isTimeUp: limits.isTimeUp,
         turnsRemaining: limits.turnsRemaining,
         timeRemaining: limits.timeRemaining,
-        voicePrefs,
+        voicePrefs: { name: voicePrefs.name, rate: voicePrefs.rate, pitch: voicePrefs.pitch },
         isReviewMode,
-        apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
-        sessionToken: isAssessment ? assessmentSessionToken : undefined,
+        apiEndpoint: apiEndpoint || (isAssessment ? assessmentApiEndpoint : undefined),
+        sessionToken: sessionToken || (isAssessment ? assessmentSessionToken : undefined),
         onUserMessage: handleUserMessage,
         isGuest: isGuest,
     });
@@ -503,20 +541,36 @@ export function InterviewSession({
          
     }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem]);
 
+    // A5: Consolidated completion logic
     const handleFinish = async () => {
         if (isSavingRef.current) return; // Prevent double-click save
+
+        // 1. Calculate final state
+        const finalTranscript = messages.map(m => ({
+            speaker: m.role === 'assistant' ? 'ai' : m.role,
+            text: m.content,
+            timestamp: m.timestamp
+        }));
+
+        // 2. If in campaign mode, delegate to onComplete callback
+        if (onCampaignQuestionEnd) {
+            const elapsed = interviewStartTime ? Math.floor((Date.now() - interviewStartTime) / 1000) : 0;
+            onCampaignQuestionEnd(finalTranscript, userCode, elapsed);
+            return;
+        }
+
         if (messages.length < 2) {
             setError("Please interact with the AI at least once before ending the session to get a valid analysis.");
             return;
         }
         isSavingRef.current = true;
         setError(null);
+
         try {
-            const baseTranscript = messages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp }));
-            const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
+            const durationSecsValue = Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000) + (startTimeOffsetSeconds || 0);
 
             const enrichedTranscript = buildEnrichedTranscript(
-                baseTranscript,
+                messages,
                 userCode,
                 codeLanguage,
                 activeProblem.title
@@ -524,9 +578,9 @@ export function InterviewSession({
 
             // Detect Integrity Flags
             const flags: string[] = [];
-            if (durationSecs < 120) flags.push('fast_solution');
+            if (durationSecsValue < 120) flags.push('fast_solution');
 
-            const userMessages = baseTranscript.filter(m => m.role === 'user');
+            const userMessages = messages.filter(m => m.role === 'user');
             const hasMeaningfulTalk = userMessages.some(m => m.content.split(/\s+/).length > 10);
             if (!hasMeaningfulTalk && userCode.trim().length > 50) {
                 flags.push('no_verbal_discussion');
@@ -535,24 +589,30 @@ export function InterviewSession({
             if (isAssessment && onAssessmentComplete) {
                 try {
                     await onAssessmentComplete(
-                        durationSecs,
+                        durationSecsValue,
                         enrichedTranscript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })),
                         flags
                     );
                 } catch (err: unknown) {
                     console.error("❌ Assessment error:", err);
+                    voice.setVadEnabled(true);
                     setError(err instanceof Error ? err.message : "Failed to submit assessment.");
                 }
             } else {
                 try {
-                    // BUG-C3 fix: Capture guest duration BEFORE analysis (excludes AI wait time)
+                    // BUG-C3 fix: Capture actual duration for result display
                     const interviewDuration = startTimeRef.current
                         ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                         : 0;
 
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
-                        { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty, difficultyMode: interviewConfig.difficultyMode },
+                        { 
+                            title: activeProblem.title, 
+                            description: activeProblem.description || '', 
+                            difficulty: activeProblem.difficulty, 
+                            difficultyMode: interviewConfig.difficultyMode 
+                        },
                         enrichedTranscript
                     );
                     if (!assessment) {
@@ -560,31 +620,20 @@ export function InterviewSession({
                         return;
                     }
 
-                    // Set guest duration (captured before analysis)
                     if (isGuest) {
                         setGuestDurationSecs(interviewDuration);
                     }
-                    // ✅ FIX: Save immediately after analysis — don't wait for state machine
+
                     if (user && !isGuest) {
                         try {
-                            const fullTranscript = messages.map(msg => ({
-                                role: msg.role,
-                                content: msg.content,
-                                timestamp: msg.timestamp
-                            }));
-                            const duration = startTimeRef.current
-                                ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-                                : durationSecs;
-
                             const { success, error: saveError, sessionId, streakDays, isNewStreakRecord } = await saveInterviewSession(
-                                user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
+                                user.id, activeProblem.id, activeProblem.title, messages, interviewDuration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
                             if (!success) {
                                 console.error('Failed to save session:', saveError);
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
-                                // A5: Auto-navigate to analysis page
                                 const targetUrl = `/interview/analysis?sessionId=${sessionId}`;
                                 if (streakDays && [3, 7, 14, 30, 50, 100].includes(streakDays)) {
                                     setStreakMilestone({ 
@@ -601,7 +650,8 @@ export function InterviewSession({
                         }
                     }
                 } catch (err: unknown) {
-                    console.error("❌ Assessment error:", err);
+                    console.error("❌ Analysis error:", err);
+                    voice.setVadEnabled(true);
                     setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
                 }
             }
@@ -642,7 +692,24 @@ export function InterviewSession({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isHalfTime, limits.isTurnsUp]);
 
-    // A5: Derived flag — all interactive inputs are locked after limit
+    // A5.2: Periodic Save (Practice only, or Campaign if callback provided)
+    useEffect(() => {
+        if (!hasStarted || readOnly || !interviewStartTime) return;
+        
+        const interval = setInterval(() => {
+            const finalTranscript = messages.map(m => ({
+                speaker: m.role === 'assistant' ? 'ai' : m.role,
+                text: m.content
+            }));
+            const elapsed = Math.floor((Date.now() - interviewStartTime) / 1000);
+
+            if (onCampaignSaveProgress) {
+                onCampaignSaveProgress(finalTranscript, userCode, elapsed);
+            }
+        }, 30000); // 30s auto-save
+
+        return () => clearInterval(interval);
+    }, [hasStarted, readOnly, messages, userCode, onCampaignSaveProgress, interviewStartTime]);
     const isLimitLocked = isAutoSubmitting || showLimitModal || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));
 
     useEffect(() => {
@@ -651,6 +718,7 @@ export function InterviewSession({
             return () => clearTimeout(timer);
         }
     }, [showBadge]);
+
 
     if (result) {
         if (isGuest) {
@@ -670,8 +738,8 @@ export function InterviewSession({
                 />
             );
         }
-        // A5: Logged-in users get redirected to /interview/analysis after save (line ~519).
-        // This fallback shows briefly while the redirect is pending, or if save failed.
+        // A5: Logged-in users get redirected to /interview/analysis after save (handled in handleFinish).
+        // This fallback shows briefly while the redirect is pending.
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
@@ -871,29 +939,15 @@ export function InterviewSession({
                     </div>
                 </div>
                 
-                {/* Chat History */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 custom-scrollbar flex flex-col justify-end">
-                    {/* Spacer to push content to bottom */}
-                    <div className="flex-1 min-h-0"></div>
-                    {isGuest && hasStarted && !isAssessment && (
-                        <GuestModeBanner turnsUsed={guestSession.userTurns} timeRemaining={limits.timeRemaining} onSignUp={() => { window.location.href = '/login'; }} />
-                    )}
-                    {messages.slice(-3).map((msg, i) => (
-                        <div key={msg.id || i} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
-                            <div className={cn("max-w-[88%] p-3 rounded-xl text-[13px] leading-relaxed", msg.role === 'user' ? "bg-zinc-800/80 text-white" : "bg-zinc-900/60 border-l-2 border-indigo-500/60 text-zinc-300")}>
-                                {msg.content}
-                            </div>
-                        </div>
-                    ))}
-                    {isProcessing && (
-                         <div className="flex justify-start">
-                             <div className="bg-zinc-900/60 border-l-2 border-indigo-500/60 p-3 rounded-xl flex items-center gap-1">
-                                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                 <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                             </div>
-                         </div>
-                    )}
+                {/* Chat History (Universal full view replace slice(-3)) */}
+                <div className="flex-1 overflow-y-auto p-3 min-h-0 custom-scrollbar flex flex-col">
+                    <div className="flex-1 min-h-0">
+                        <ConversationView 
+                            messages={messages} 
+                            isAISpeaking={voice.isSpeaking} 
+                            isProcessing={isProcessing} 
+                        />
+                    </div>
                 </div>
 
                 {/* Live Transcript */}
@@ -1055,12 +1109,13 @@ export function InterviewSession({
                 
                 <div className="flex-1 w-full min-h-0">
                     <ResizablePanelGroup direction="horizontal">
-                        <ResizablePanel 
-                            defaultSize={isProblemCollapsed ? 3 : 25} 
-                            minSize={isProblemCollapsed ? 3 : 15} 
-                            maxSize={isProblemCollapsed ? 3 : 40} 
-                            key={isProblemCollapsed ? 'collapsed' : 'expanded'}
-                            className={isProblemCollapsed ? "min-w-[48px] max-w-[48px] transition-all duration-300" : ""}
+                        <ThreePanelCollapseController isProblemCollapsed={isProblemCollapsed} />
+                        <ResizablePanel
+                            id="problem-panel"
+                            defaultSize={25}
+                            minSize={15}
+                            maxSize={40}
+                            className={isProblemCollapsed ? "min-w-[48px] max-w-[48px]" : ""}
                         >
                             {renderProblemPanel()}
                         </ResizablePanel>
@@ -1083,7 +1138,11 @@ export function InterviewSession({
             <div
                 className="lg:hidden flex-1 w-full h-full relative"
                 {...swipeHandlers}
-                style={{ touchAction: 'pan-y' }}
+                style={{
+                    touchAction: 'pan-y',
+                    transform: `translateX(${dragOffset}px)`,
+                    transition: dragOffset === 0 ? 'transform 180ms ease-out' : 'none',
+                }}
             >
                 <div className="absolute inset-0 flex flex-col overflow-hidden pb-14">
                     {activeTab === 'problem' && (
@@ -1099,7 +1158,7 @@ export function InterviewSession({
                     )}
 
                     {activeTab === 'code' && (
-                        <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-bottom-4" onPointerDown={(e) => e.stopPropagation()}>
                             <Card className="h-full flex flex-col shadow-xl rounded-2xl overflow-hidden border" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
                                 <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--surface-edge)' }}>
                                     <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-[12px]">

@@ -1,19 +1,21 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { useMediaQuery } from '@/hooks/use-media-query'; // Ensure this hook exists or create it
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Drawer,
     DrawerContent,
     DrawerHeader,
     DrawerTitle,
+    DrawerDescription,
     DrawerFooter,
     DrawerClose
 } from '@/components/ui/drawer';
@@ -106,6 +108,9 @@ export function VoiceOnboarding() {
                 <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
                     <DialogHeader className="shrink-0">
                         <DialogTitle className="text-2xl">Welcome to Voice Interviews! 🎤</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            Learn how to interact with Kai using your voice for a natural interview experience.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="py-2 overflow-y-auto flex-1 px-1">
                         {onboardingContent}
@@ -126,6 +131,9 @@ export function VoiceOnboarding() {
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
                         <DrawerTitle className="text-2xl">Welcome to Voice Interviews! 🎤</DrawerTitle>
+                        <DrawerDescription className="text-zinc-400">
+                            Learn how to interact with Kai using your voice for a natural interview experience.
+                        </DrawerDescription>
                     </DrawerHeader>
                     <div className="p-4 pb-0 max-h-[60vh] overflow-y-auto">
                         {onboardingContent}

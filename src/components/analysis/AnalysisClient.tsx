@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, ChevronUp, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, ChevronRight, ChevronDown, ChevronUp, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
@@ -855,14 +855,12 @@ export function AnalysisClient({
                             </Button>
                         </Link>
 
-                        {flags.enableLearnMode && (
-                            <Link href={`/learn?problemId=${session.problemId}`} className="block">
-                                <Button variant="outline" className="w-full text-zinc-300 hover:text-white"
-                                    style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                    data-testid="learn-button"
-                                >
-                                    <BookOpen className="w-4 h-4 mr-2" /> Learn This Concept
-                                </Button>
+                        {flags.enableLearnMode && session?.problemId && (
+                            <Link href={`/learn?problemId=${session.problemId}&fromSessionId=${session.id}`} className="block">
+                                <a className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-sm font-bold transition-all" data-testid="learn-button">
+                                    <span>🧠</span>
+                                    Deep Dive with Kai
+                                </a>
                             </Link>
                         )}
 

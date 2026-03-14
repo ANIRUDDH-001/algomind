@@ -38,6 +38,8 @@ interface GroupCtx {
     registerPanel: (id: string, meta: PanelMeta) => void
     getIndex: (id: string) => number
     getPanelMeta: (index: number) => PanelMeta | undefined
+    /** Programmatically resize a panel by its id. The adjacent panel absorbs the delta. */
+    setPanelSize: (id: string, targetPct: number) => void
 }
 
 const GroupCtx = createContext<GroupCtx | null>(null)
@@ -86,6 +88,27 @@ function ResizablePanelGroup({
         return metaRef.current.get(id);
     }, [])
 
+    const setPanelSize = useCallback((id: string, targetPct: number) => {
+        const idx = orderRef.current.indexOf(id);
+        if (idx === -1) return;
+        setSizes((prev) => {
+            if (idx >= prev.length) return prev;
+            const clamped = Math.max(0, Math.min(100, targetPct));
+            const delta = clamped - prev[idx];
+            // Absorb the delta from the next panel if it exists, else the previous
+            const neighborIdx = idx + 1 < prev.length ? idx + 1 : idx - 1;
+            if (neighborIdx < 0 || neighborIdx >= prev.length) return prev;
+            const neighborNew = prev[neighborIdx] - delta;
+            const neighborMeta = metaRef.current.get(orderRef.current[neighborIdx]);
+            const neighborMin = neighborMeta?.minSize ?? 5;
+            if (neighborNew < neighborMin) return prev; // don't collapse neighbor below minimum
+            const next = [...prev];
+            next[idx] = clamped;
+            next[neighborIdx] = neighborNew;
+            return next;
+        });
+    }, [])
+
     // Initialise sizes after first render (all panels registered)
     useEffect(() => {
         if (initialised.current || orderRef.current.length === 0) return
@@ -101,7 +124,7 @@ function ResizablePanelGroup({
     }, [])
 
     return (
-        <GroupCtx.Provider value={{ direction, sizes, setSizes, containerRef, registerPanel, getIndex, getPanelMeta }}>
+        <GroupCtx.Provider value={{ direction, sizes, setSizes, containerRef, registerPanel, getIndex, getPanelMeta, setPanelSize }}>
             <div
                 ref={containerRef}
                 className={cn(
@@ -145,7 +168,7 @@ function ResizablePanel({
 }: ResizablePanelProps) {
     const autoId = useId()
     const id = idProp ?? autoId
-    const { registerPanel, getIndex, sizes, direction } = useGroupCtx()
+    const { registerPanel, getIndex, sizes, direction, setPanelSize: setPanelSizeCtx } = useGroupCtx()
 
     // Register synchronously during first render — only once
     useState(() => {
@@ -175,6 +198,16 @@ function ResizablePanel({
 }
 
 // ─── ResizableHandle ─────────────────────────────────────────────────────────
+
+/**
+ * Access the parent ResizablePanelGroup's programmatic resize API.
+ * Must be called inside a component that is a descendant of ResizablePanelGroup.
+ */
+export function useResizablePanelGroup() {
+    const ctx = useContext(GroupCtx)
+    if (!ctx) throw new Error("useResizablePanelGroup must be used inside ResizablePanelGroup")
+    return { setPanelSize: ctx.setPanelSize }
+}
 
 interface ResizableHandleProps {
     withHandle?: boolean
