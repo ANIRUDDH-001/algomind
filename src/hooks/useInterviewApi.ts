@@ -111,7 +111,6 @@ export function useInterviewApi({
         const decoder = new TextDecoder();
         let fullText = '';
         let buffer = '';
-        let firstChunkSpoken = false;
 
         // Add a placeholder AI message that we'll update progressively
         const streamMsgId = generateMessageId();

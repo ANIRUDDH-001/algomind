@@ -148,7 +148,16 @@ export class TTSEngine {
                 if (id !== this.invId) { resolve(anySuccess); return; }
                 const ok = await this.speakSingleChunk(chunk, id);
                 if (ok) anySuccess = true;
-                else if (!anySuccess) { resolve(false); return; } // First chunk failed
+                else if (!anySuccess) { 
+                    if (id === this.invId) {
+                        console.warn('[TTS] First chunk failed, retrying once...');
+                        const retryOk = await this.speakSingleChunk(chunk, id);
+                        if (retryOk) anySuccess = true;
+                        else { resolve(false); return; }
+                    } else {
+                        resolve(false); return; 
+                    }
+                }
             }
             resolve(anySuccess);
         });
