@@ -14,6 +14,7 @@ import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { isMobileDevice } from '@/lib/utils/device-detection';
 import { toast } from 'sonner';
+import { InterviewSession } from '@/components/interview/InterviewSession';
 
 export interface ProblemWithTiming {
     id: string;
@@ -320,311 +321,89 @@ export function CampaignInterviewSession({
     const activeState = questionStates[activeQuestionIdx!];
 
     return (
-        <ActiveQuestionView
-            problem={activeQuestion}
-            state={activeState}
-            sessionToken={sessionToken}
-            onBack={() => setActiveQuestionIdx(null)}
-            onSubmit={(transcript, code, elapsed) => handleQuestionSubmit(activeQuestionIdx!, transcript, code, elapsed)}
-            onExpire={(transcript, code, elapsed) => handleQuestionExpire(activeQuestionIdx!, transcript, code, elapsed)}
-            onSaveProgress={(transcript, code, elapsed) => {
-                const nextStates = [...questionStates];
-                nextStates[activeQuestionIdx!] = {
-                    ...nextStates[activeQuestionIdx!],
-                    elapsed_secs: elapsed,
-                    transcript,
-                    final_code: code
-                };
-                setQuestionStates(nextStates);
-                saveProgress(nextStates, activeQuestionIdx);
-            }}
-            showNextQuestionBanner={showNextQuestionBanner}
-            nextQuestionCountdown={nextQuestionCountdown}
-            onSkipBanner={() => {
-                setShowNextQuestionBanner(false);
-                setActiveQuestionIdx(null);
-                if (isMobileDevice()) setActiveTabMobile('questions');
-            }}
-        />
-    );
-}
-
-
-// --- ACTIVE QUESTION COMPONENT ---
-
-function ActiveQuestionView({
-    problem,
-    state,
-    sessionToken,
-    onBack,
-    onSubmit,
-    onExpire,
-    onSaveProgress,
-    showNextQuestionBanner,
-    nextQuestionCountdown,
-    onSkipBanner
-}: {
-    problem: ProblemWithTiming;
-    state: QuestionState;
-    sessionToken: string;
-    onBack: () => void;
-    onSubmit: (transcript: any[], code: string, elapsed: number) => void;
-    onExpire: (transcript: any[], code: string, elapsed: number) => void;
-    onSaveProgress: (transcript: any[], code: string, elapsed: number) => void;
-    showNextQuestionBanner: boolean;
-    nextQuestionCountdown: number;
-    onSkipBanner: () => void;
-}) {
-    const [timeLeftSecs, setTimeLeftSecs] = useState(() => {
-        return Math.max(0, (state.time_limit_mins * 60) - state.elapsed_secs);
-    });
-    const [userCode, setUserCode] = useState(state.final_code || '');
-    const [codeLanguage, setCodeLanguage] = useState('python');
-    const [showCodeEditor, setShowCodeEditor] = useState(false);
-    const [isMobileTextMode, setIsMobileTextMode] = useState(false);
-
-    const prevTranscript = state.transcript.map(t => ({
-        role: t.speaker === 'ai' ? 'assistant' : t.speaker,
-        content: t.text
-    }));
-
-    const {
-        state: interviewState,
-        messages,
-        isProcessing,
-        startInterview,
-        submitUserResponse,
-        loadTranscript,
-        voice
-    } = useInterview({
-        config: { mode: 'employer', difficultyMode: 'practice' } as any, // Disabled for simplicity in multi-question, or hook up settings
-        apiEndpoint: '/api/assess/chat',
-        sessionToken: sessionToken
-    });
-
-    // 1. Initialize interview specifically for this question
-    useEffect(() => {
-        const initializeInterview = async () => {
-            if (prevTranscript.length > 0) {
-                loadTranscript(prevTranscript as any);
-            } else {
-                // New question, send start ping
-                await startInterview({
-                    title: problem.title,
-                    content: problem.description,
-                    problemId: problem.id,
-                    difficultyMode: 'practice', // Derived from useInterview config
-                    difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
-                });
-            }
-        };
-        initializeInterview();
-    }, []); // Run ONCE on mount
-
-    // 2. Timer Loop
-    useEffect(() => {
-        if (showNextQuestionBanner || timeLeftSecs <= 0) return;
-
-        const interval = setInterval(() => {
-            setTimeLeftSecs(prev => {
-                if (prev <= 1) {
-                    clearInterval(interval);
-                    onExpire(
-                        messages.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : m.role, text: m.content })),
-                        userCode,
-                        state.time_limit_mins * 60
-                    );
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [showNextQuestionBanner, timeLeftSecs, messages, userCode]);
-
-    // 3. Auto-save every 30s
-    useEffect(() => {
-        if (showNextQuestionBanner || timeLeftSecs <= 0) return;
-        const interval = setInterval(() => {
-            const currentElapsed = (state.time_limit_mins * 60) - timeLeftSecs;
-            onSaveProgress(
-                messages.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : m.role, text: m.content })),
-                userCode,
-                currentElapsed
-            );
-        }, 30000);
-        return () => clearInterval(interval);
-    }, [timeLeftSecs, messages, userCode]);
-
-
-    const formatTime = (secs: number) => {
-        const m = Math.floor(secs / 60);
-        const s = secs % 60;
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
-
-    const handleShareCode = () => {
-        if (!userCode.trim()) return;
-        const msg = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${userCode}\n\`\`\``;
-        submitUserResponse(msg, { title: problem.title, content: problem.description });
-        setShowCodeEditor(false);
-    };
-
-    const isTimerWarning = timeLeftSecs <= 300 && timeLeftSecs > 120; // < 5 mins
-    const isTimerCritical = timeLeftSecs <= 120; // < 2 mins
-
-    return (
         <div className="flex flex-col h-screen bg-slate-950 overflow-hidden">
-            {/* Header */}
-            <header className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
+            {/* Header: Unified with Campaign controls */}
+            <header className="h-14 bg-slate-950 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 z-50">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={onBack} className="text-slate-400 hover:text-white shrink-0">
-                        ← Back
+                    <Button variant="ghost" size="sm" onClick={() => setActiveQuestionIdx(null)} className="text-zinc-400 hover:text-white shrink-0">
+                        ← Back to Questions
                     </Button>
-                    <div className="h-4 w-px bg-slate-800"></div>
-                    <span className="text-white font-bold truncate max-w-[200px] hidden sm:block">{problem.title}</span>
+                    <div className="h-4 w-px bg-zinc-800 hidden sm:block"></div>
+                    <span className="text-white font-bold truncate max-w-[200px] hidden sm:block">{activeQuestion.title}</span>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-mono font-bold transition-colors",
-                        isTimerCritical ? "bg-red-500/10 border-red-500/50 text-red-400 animate-pulse" :
-                            isTimerWarning ? "bg-amber-500/10 border-amber-500/50 text-amber-400" :
-                                "bg-slate-900 border-slate-700 text-slate-300"
-                    )}>
-                        <Clock className="w-4 h-4" />
-                        {formatTime(timeLeftSecs)}
-                    </div>
                     <Button
                         onClick={() => {
-                            const currentElapsed = (state.time_limit_mins * 60) - timeLeftSecs;
-                            onSubmit(
-                                messages.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : m.role, text: m.content })),
-                                userCode,
-                                currentElapsed
-                            );
+                            // Manual submission handled by the Finish logic in InterviewSession, 
+                            // but here it's triggered from the Campaign header.
+                            // We use a ref or an event to trigger handleFinish inside InterviewSession if needed,
+                            // but for now, we'll let the user use the "End Interview" button inside the session or this one.
+                            // To make this button's behavior consistent, we'll rely on InterviewSession's onCampaignQuestionEnd.
+                            toast.info("Please use the 'End Interview' button in the chat panel to submit.");
                         }}
-                        className="bg-green-600 hover:bg-green-500 text-white font-bold"
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold border border-zinc-700"
                         size="sm"
                     >
-                        Submit & Continue
+                        Submit Question
                     </Button>
                 </div>
             </header>
 
+            <div className="flex-1 relative overflow-hidden">
+                <InterviewSession
+                    problem={{
+                        id: activeQuestion.id,
+                        title: activeQuestion.title,
+                        description: activeQuestion.description,
+                        difficulty: activeQuestion.difficulty as any,
+                        examples: activeQuestion.examples
+                    } as any}
+                    interviewConfig={{
+                        mode: 'employer',
+                        difficultyMode: 'practice',
+                        maxTurnsPerProblem: 20
+                    } as any}
+                    sessionToken={sessionToken}
+                    initialTranscript={activeState.transcript.map(t => ({
+                        role: t.speaker === 'ai' ? 'assistant' : t.speaker,
+                        content: t.text
+                    }))}
+                    apiEndpoint="/api/assess/chat"
+                    onCampaignQuestionEnd={(transcript: any[], code: string, elapsed: number) => handleQuestionSubmit(activeQuestionIdx!, transcript, code, elapsed)}
+                    onCampaignSaveProgress={(transcript: any[], code: string, elapsed: number) => {
+                        const nextStates = [...questionStates];
+                        nextStates[activeQuestionIdx!] = {
+                            ...nextStates[activeQuestionIdx!],
+                            elapsed_secs: elapsed,
+                            transcript,
+                            final_code: code
+                        };
+                        setQuestionStates(nextStates);
+                        saveProgress(nextStates, activeQuestionIdx);
+                    }}
+                    campaignTimeLeftSecs={Math.max(0, (activeState.time_limit_mins * 60) - activeState.elapsed_secs)}
+                />
+            </div>
+
             {showNextQuestionBanner && (
-                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <Card className="text-center p-8 bg-slate-900 border-red-500/50 max-w-sm w-full">
+                <div className="absolute inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <Card className="text-center p-8 bg-zinc-900 border-red-500/50 max-w-sm w-full">
                         <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                         <h2 className="text-xl font-bold text-white mb-2">Time's Up!</h2>
-                        <p className="text-slate-400 mb-6">You've reached the time limit for this question. Moving to the next...</p>
+                        <p className="text-zinc-400 mb-6">You've reached the time limit for this question. Moving to the next...</p>
                         <div className="text-4xl font-mono text-red-400 font-bold mb-6">
                             {nextQuestionCountdown}
                         </div>
-                        <Button onClick={onSkipBanner} className="w-full bg-slate-800 hover:bg-slate-700 text-white">
+                        <Button onClick={() => {
+                            setShowNextQuestionBanner(false);
+                            setActiveQuestionIdx(null);
+                        }} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white">
                             Continue Now
                         </Button>
                     </Card>
                 </div>
             )}
-
-            {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Desktop Sidebyside */}
-                <div className="hidden lg:flex w-full h-full gap-4 p-4">
-                    {/* Problem Panel */}
-                    <Card className="w-1/3 bg-slate-900 border-slate-800 flex flex-col min-h-0">
-                        <CardHeader className="py-4 border-b border-slate-800 shrink-0">
-                            <div className="flex justify-between items-start gap-4">
-                                <CardTitle className="text-lg text-white whitespace-normal break-words flex-1 min-w-0">{problem.title}</CardTitle>
-                                <Badge variant="outline" className={cn(
-                                    "shrink-0 mt-0.5",
-                                    problem.difficulty === 'easy' && "text-green-400 border-green-400/30",
-                                    problem.difficulty === 'medium' && "text-amber-400 border-amber-400/30",
-                                    problem.difficulty === 'hard' && "text-red-400 border-red-400/30"
-                                )}>{problem.difficulty}</Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-y-auto p-4 text-slate-300 text-sm whitespace-pre-wrap">
-                            {problem.description}
-
-                            {problem.examples && problem.examples.length > 0 && (
-                                <div className="mt-6 space-y-4">
-                                    <h3 className="font-bold text-slate-400 uppercase tracking-wider text-xs">Examples</h3>
-                                    {problem.examples.map((ex, i) => (
-                                        <div key={i} className="bg-slate-950 p-3 rounded border border-slate-800 font-mono text-xs space-y-2">
-                                            <div><span className="text-slate-500">Input:</span> <span className="text-blue-300">{ex.input}</span></div>
-                                            <div><span className="text-slate-500">Output:</span> <span className="text-emerald-400">{ex.output}</span></div>
-                                            {ex.explanation && (
-                                                <div className="text-slate-400 mt-2 pt-2 border-t border-slate-800 font-sans">{ex.explanation}</div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Interview / Code Panel */}
-                    <Card className="flex-1 bg-slate-900 border-slate-800 flex flex-col min-h-0 relative">
-                        <div className="absolute top-4 left-4 z-10 flex bg-slate-950 border border-slate-800 p-1 rounded-lg">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn("px-4 py-1.5 h-auto text-xs font-bold", !showCodeEditor ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white")}
-                                onClick={() => setShowCodeEditor(false)}
-                            ><Mic className="w-3.5 h-3.5 mr-1.5" /> Interview</Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn("px-4 py-1.5 h-auto text-xs font-bold", showCodeEditor ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white")}
-                                onClick={() => setShowCodeEditor(true)}
-                            ><Code className="w-3.5 h-3.5 mr-1.5" /> Editor</Button>
-                        </div>
-
-                        {showCodeEditor ? (
-                            <div className="flex-1 flex flex-col p-4 pt-16">
-                                <CodeEditor
-                                    onCodeChange={setUserCode}
-                                    defaultLanguage={codeLanguage}
-                                    initialCode={userCode}
-                                    onLanguageChange={setCodeLanguage}
-                                />
-                                <Button
-                                    onClick={handleShareCode}
-                                    disabled={!userCode.trim() || isProcessing || voice.isSpeaking}
-                                    className="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold"
-                                >
-                                    <Send className="w-4 h-4 mr-2" /> Share Code with AI
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col relative">
-                                <ConversationView messages={messages as any} isAISpeaking={voice.isSpeaking} isProcessing={isProcessing} />
-
-                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                                    <MicrophoneButton
-                                        isListening={voice.isListening}
-                                        onClick={() => {
-                                            if (voice.isListening) voice.stopListening();
-                                            else if (!isProcessing && !voice.isSpeaking) voice.startListening();
-                                        }}
-                                        disabled={isProcessing || voice.isSpeaking}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </Card>
-                </div>
-
-                {/* Mobile View (omitted for brevity, assume tabbed structure similar to request) */}
-                <div className="lg:hidden w-full h-full flex flex-col">
-                    <div className="flex-1 overflow-auto p-4">
-                        <p className="text-slate-400 italic">Please use a desktop browser for the optimal coding assessment experience.</p>
-                        {/* Mobile view could be implemented by showing different components based on activeTabMobile state */}
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

@@ -132,6 +132,7 @@ export function Navbar() {
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
                                     { href: '/practice', label: 'Practice', authOnly: false },
+                                    { href: '/learn', label: 'Learn', authOnly: true },
                                     ...(user ? [
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         ...(accountType === 'employer'

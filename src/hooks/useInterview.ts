@@ -158,6 +158,8 @@ export function useInterview(options: UseInterviewOptions) {
             error: voice.voiceError,
             permissionState: voice.permissionState,
             sttResolvedProvider: voice.sttResolvedProvider,
+            setVadEnabled: voice.setVadEnabled,
+            resetTranscript: voice.resetTranscript,
         },
         interruptionManager: voice.interruptionManager,
     };
