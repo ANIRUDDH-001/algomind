@@ -20,44 +20,15 @@ export interface SessionSummary {
     problem_difficulty: 'easy' | 'medium' | 'hard';
 }
 
-export interface LeetCodeSignal {
-    contest_rating: number | null;
-    medium_solved: number;
-    hard_solved: number;
-}
-
 export function computeDifficultyTier(
-    lc: LeetCodeSignal | null,
     sessions: SessionSummary[]
 ): { tier: DifficultyTier; reasoning: string } {
-    let lcTier = 5; // Default to highest if missing so AM signal dominates the min()
-
-    if (lc) {
-        const r = lc.contest_rating || 0;
-        const m = lc.medium_solved;
-        const h = lc.hard_solved;
-
-        if (r >= 1800) {
-            lcTier = 5;
-        } else if (r >= 1600 && r < 1800) {
-            lcTier = 4;
-        } else if ((r >= 1200 && r < 1600) || h >= 20) {
-            lcTier = 3; // "3-4" mapped to 3 as conservative
-        } else if ((r > 0 && r < 1200) || (m >= 50 && h < 20)) {
-            lcTier = 2; // "2-3" mapped to 2 as conservative
-        } else if (m >= 20 && h < 5) {
-            lcTier = 2;
-        } else {
-            lcTier = 1;
-        }
-    }
-
     let amTier = 1;
     const count = sessions.length;
     const avgScore = count > 0 ? sessions.reduce((acc, s) => acc + s.overall_score, 0) / count : 0;
 
     if (count === 0) {
-        amTier = lc ? 5 : 1; // If LC exists, don't drag down the tier for new AlgoMind users
+        amTier = 1;
     } else if (count >= 1 && count <= 4) {
         if (avgScore < 6) amTier = 1;
         else amTier = 2;
@@ -75,21 +46,13 @@ export function computeDifficultyTier(
         else amTier = 5;
     }
 
-    // Final tier is the minimum of both signals (conservative)
-    // If LC is null, lcTier is 5, so min(5, amTier) securely gives amTier.
-    const finalTierValue = Math.min(lcTier, amTier) as 1 | 2 | 3 | 4 | 5;
+    const finalTierValue = amTier as 1 | 2 | 3 | 4 | 5;
     const tierObj = DIFFICULTY_TIERS.find(t => t.tier === finalTierValue)!;
 
-    // Build reasoning string
     let reasoning = '';
     const amText = count > 0 ? `${count} AlgoMind session${count === 1 ? '' : 's'} with avg score ${avgScore.toFixed(1)}` : '';
-    const lcText = lc ? (lc.contest_rating ? `LeetCode rating (${Math.round(lc.contest_rating)})` : `LeetCode experience (${lc.medium_solved} medium solved)`) : '';
 
-    if (lcText && amText) {
-        reasoning = `Based on your ${lcText} and ${amText}, you're calibrated at ${tierObj.label} level.`;
-    } else if (lcText) {
-        reasoning = `Based on your ${lcText}, you're calibrated at ${tierObj.label} level.`;
-    } else if (amText) {
+    if (amText) {
         reasoning = `Based on your ${amText}, you're calibrated at ${tierObj.label} level.`;
     } else {
         reasoning = `Based on your initial profile, you're calibrated at ${tierObj.label} level.`;

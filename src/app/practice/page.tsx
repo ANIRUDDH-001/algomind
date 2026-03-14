@@ -237,7 +237,7 @@ export default function PracticePage() {
                         <Brain className="w-16 h-16 text-indigo-400 mx-auto mb-4 relative z-10" />
                         <h2 className="text-white font-black text-2xl md:text-3xl mb-3 relative z-10">Access the full library</h2>
                         <p className="text-zinc-400 text-base mb-8 max-w-md relative z-10">
-                            Create a free account to unlock 300+ LeetCode style problems, track your progress, and review past interviews.
+                            Create a free account to unlock 300+ curated DSA problems, track your progress, and review past interviews.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 relative z-10">
                             <Button className="btn-primary" onClick={() => router.push('/login?tab=register')}>

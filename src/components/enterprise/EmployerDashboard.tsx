@@ -52,6 +52,8 @@ interface SubmissionData {
     question_states: any[];
     current_problem_id: string | null;
     rank?: number;
+    analysis_status?: string | null;
+    analysis_error?: string | null;
 
     // Joined from assessments
     hire_decision?: string | null;
@@ -571,9 +573,19 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                     <div className="text-xs text-slate-500">{sub.candidate_email || 'No email provided'}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`px-2 py-1 rounded font-bold ${getScoreColor(sub.overall_score)}`}>
-                                                        {sub.overall_score ? sub.overall_score.toFixed(1) : '-'}
-                                                    </span>
+                                                    {sub.analysis_status === 'pending' && !sub.overall_score ? (
+                                                        <span className="px-2 py-1 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                                                            Analyzing…
+                                                        </span>
+                                                    ) : sub.analysis_status === 'failed' ? (
+                                                        <span className="px-2 py-1 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20" title={sub.analysis_error || 'Analysis failed'}>
+                                                            Failed
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`px-2 py-1 rounded font-bold ${getScoreColor(sub.overall_score)}`}>
+                                                            {sub.overall_score ? sub.overall_score.toFixed(1) : '—'}
+                                                        </span>
+                                                    )}
                                                 </td>
 
                                                 {['problem_decomposition', 'pattern_recognition', 'algorithmic_thinking', 'complexity_analysis', 'communication_clarity', 'edge_case_awareness', 'optimization_mindset', 'debugging_approach'].map((skill) => {
