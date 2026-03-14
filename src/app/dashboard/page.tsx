@@ -260,6 +260,28 @@ function DashboardContent() {
                                         <ReviewQueueWidget userId={progress.userId} />
                                     )}
 
+                                    {/* Kai's Cognitive Narrative */}
+                                    {progress?.narrative && (
+                                        <div className="rounded-2xl border border-white/5 p-5 bg-slate-900/40">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-black shrink-0">
+                                                    K
+                                                </div>
+                                                <span className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                                                    Kai's Assessment
+                                                </span>
+                                                {progress.narrativeGeneratedAt && (
+                                                    <span className="text-[10px] text-zinc-600 ml-auto">
+                                                        Updated {new Date(progress.narrativeGeneratedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                                {progress.narrative}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />
                                 </>
                             )}

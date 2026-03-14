@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
         // 2. Fetch submissions matching the campaign
         let query = supabase
             .from('candidate_submissions')
-            .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at, updated_at, question_states, current_problem_id')
+            .select('id, session_id, candidate_name, candidate_email, status, overall_score, created_at, updated_at, question_states, current_problem_id, analysis_status, analysis_error')
             .eq('campaign_id', campaignId)
             .order('overall_score', { ascending: false, nullsFirst: false });
 
@@ -99,6 +99,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 updated_at: sub.updated_at,
                 question_states: sub.question_states,
                 current_problem_id: sub.current_problem_id,
+                analysis_status: sub.analysis_status,
+                analysis_error: sub.analysis_error,
                 rank,
                 feedback: assessment?.overall_feedback || null,
                 // Flatten skill scores directly onto the object

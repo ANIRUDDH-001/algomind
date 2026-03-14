@@ -1,13 +1,17 @@
-// @ts-nocheck
 // Deno edge function — runs on Supabase Edge (not Node.js).
 // TypeScript IDE errors about 'Deno' and 'esm.sh' imports are EXPECTED
 // and harmless — this file is never compiled by the Next.js/Node.js tsconfig.
 // It runs in the Supabase Deno runtime. Deploy with:
 //   supabase functions deploy run-assessment --no-verify-jwt
+
+// @ts-expect-error: Deno is not defined in Next.js tsconfig
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// @ts-expect-error: Deno is not defined in Next.js tsconfig
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+// @ts-expect-error: Deno is not defined in Next.js tsconfig
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// @ts-expect-error: Deno is not defined in Next.js tsconfig
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -22,9 +26,11 @@ interface AnalysisRequest {
     integrityFlags?: string[];
 }
 
+// @ts-expect-error: Deno is not defined in Next.js tsconfig
 Deno.serve(async (req: Request) => {
     // Security: verify the request came from our Next.js app
     const authHeader = req.headers.get('Authorization');
+    // @ts-expect-error: Deno is not defined in Next.js tsconfig
     const expectedSecret = Deno.env.get('INTERNAL_API_SECRET');
     if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
