@@ -70,7 +70,7 @@ export async function GET() {
                 } else if (t === 'model_429' || t === 'model_deprecated' || t === 'model_error' || t === 'model_verification_failed') {
                     eventsSummary.modelErrors24h++;
                     eventsSummary.errors24h++;
-                } else if (t === 'cron_failed' || t === 'piston_error' || t === 'leetcode_fetch_failed' || t === 'embedding_failed') {
+                } else if (t === 'cron_failed' || t === 'piston_error' || t === 'embedding_failed') {
                     eventsSummary.errors24h++;
                 }
             }
