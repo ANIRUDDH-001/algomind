@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getInsightSnapshot, InsightSnapshot } from '@/lib/recommendations/insight-engine';
-import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink, Activity, Sparkles, TrendingDown, Clock, Map, BarChart2, TrendingUp, Scale, AlertCircle } from 'lucide-react';
+import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink, Activity, TrendingDown, Clock, Map, BarChart2, TrendingUp, Scale, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -12,7 +12,6 @@ interface InsightsPanelProps {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-    reinforce_leetcode: <Sparkles className="w-4 h-4 text-amber-400" />,
     declining_trend: <TrendingDown className="w-4 h-4 text-red-400" />,
     unexplored_pattern: <Map className="w-4 h-4 text-emerald-400" />,
     momentum: <Activity className="w-4 h-4 text-blue-400" />,

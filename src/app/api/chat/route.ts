@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
             'user-thinking': 'approach',
             'ai-clarifying': 'approach',
             'user-solving': 'coding',
+            'user-coding': 'coding',
             'ai-feedback': 'coding',
             'solution-review': 'wrap-up',
             'assessment': 'wrap-up',
