@@ -332,22 +332,7 @@ export function CampaignInterviewSession({
                     <span className="text-white font-bold truncate max-w-[200px] hidden sm:block">{activeQuestion.title}</span>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <Button
-                        onClick={() => {
-                            // Manual submission handled by the Finish logic in InterviewSession, 
-                            // but here it's triggered from the Campaign header.
-                            // We use a ref or an event to trigger handleFinish inside InterviewSession if needed,
-                            // but for now, we'll let the user use the "End Interview" button inside the session or this one.
-                            // To make this button's behavior consistent, we'll rely on InterviewSession's onCampaignQuestionEnd.
-                            toast.info("Please use the 'End Interview' button in the chat panel to submit.");
-                        }}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold border border-zinc-700"
-                        size="sm"
-                    >
-                        Submit Question
-                    </Button>
-                </div>
+
             </header>
 
             <div className="flex-1 relative overflow-hidden">
@@ -362,7 +347,8 @@ export function CampaignInterviewSession({
                     interviewConfig={{
                         mode: 'employer',
                         difficultyMode: 'practice',
-                        maxTurnsPerProblem: 20
+                        maxTurnsPerProblem: 20,
+                        maxDurationMs: Math.max(60_000, (activeState.time_limit_mins * 60 - activeState.elapsed_secs) * 1000),
                     } as any}
                     sessionToken={sessionToken}
                     initialTranscript={activeState.transcript.map(t => ({
@@ -382,7 +368,6 @@ export function CampaignInterviewSession({
                         setQuestionStates(nextStates);
                         saveProgress(nextStates, activeQuestionIdx);
                     }}
-                    campaignTimeLeftSecs={Math.max(0, (activeState.time_limit_mins * 60) - activeState.elapsed_secs)}
                 />
             </div>
 
