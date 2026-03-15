@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 import { isDemoMode } from '@/lib/demo/manager';
@@ -322,6 +322,7 @@ export function Navbar() {
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
                                         { href: '/practice', label: 'Practice', icon: BookOpen },
+                                        { href: '/learn', label: 'Learn', icon: Sparkles },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },
                                     ])
