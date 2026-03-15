@@ -78,7 +78,6 @@ interface InterviewSessionProps {
     sessionToken?: string;
     onCampaignQuestionEnd?: (transcript: any[], code: string, elapsedSecs: number) => void;
     onCampaignSaveProgress?: (transcript: any[], code: string, elapsedSecs: number) => void;
-    campaignTimeLeftSecs?: number;
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
@@ -127,7 +126,6 @@ export function InterviewSession({
     sessionToken,
     onCampaignQuestionEnd,
     onCampaignSaveProgress,
-    campaignTimeLeftSecs,
     userTtsProvider
 }: InterviewSessionProps) {
     const { user } = useAuth();
