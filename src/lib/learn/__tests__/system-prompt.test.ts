@@ -12,8 +12,16 @@ describe('Learn Mode System Prompts', () => {
             userPreviousScore: null as number | null,
         };
 
-        it('should include core Hinglish rules', () => {
+        it('should include English-only rules by default (hinglishActive=false)', () => {
             const prompt = buildLearnSystemPrompt(baseParams);
+            expect(prompt).toContain('You are Kai, a warm and patient DSA tutor');
+            expect(prompt).toContain('Respond in clear English only');
+            expect(prompt).not.toContain('Hinglish');
+            expect(prompt).not.toContain('Samjha?');
+        });
+
+        it('should include Hinglish rules when hinglishActive=true', () => {
+            const prompt = buildLearnSystemPrompt({ ...baseParams, hinglishActive: true });
             expect(prompt).toContain('You are Kai, a warm and patient DSA tutor');
             expect(prompt).toContain('Hinglish');
             expect(prompt).toContain('Samjha?');
@@ -52,10 +60,10 @@ describe('Learn Mode System Prompts', () => {
     });
 
     describe('buildKaiMemoryUpdatePrompt', () => {
-        it('should return a valid summarization prompt', () => {
+        it('should return a structured coaching memory prompt', () => {
             const prompt = buildKaiMemoryUpdatePrompt();
-            expect(prompt).toContain('Summarize');
-            expect(prompt).toContain('DSA concepts');
+            expect(prompt).toContain('memory');
+            expect(prompt).toContain('third person');
             expect(typeof prompt).toBe('string');
             expect(prompt.length).toBeGreaterThan(50);
         });
