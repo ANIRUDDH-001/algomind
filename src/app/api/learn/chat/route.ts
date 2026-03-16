@@ -56,15 +56,6 @@ export async function POST(req: NextRequest) {
         // Fetch Kai memory
         const kaiMemory = await getKaiMemory(user.id);
 
-        const systemPrompt = buildLearnSystemPrompt({
-            problemTitle: problem.title,
-            problemDifficulty: problem.difficulty,
-            problemDescription: problem.description,
-            conceptTags: problem.tags || [],
-            kaiMemory,
-            userPreviousScore: lastSession?.overall_score || null
-        });
-
         // --- Hinglish for Learn mode (mirrors /api/chat logic) ---
         const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
         let userHinglishEnabled = false;
@@ -88,6 +79,16 @@ export async function POST(req: NextRequest) {
             ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
               '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
             : '';
+
+        const systemPrompt = buildLearnSystemPrompt({
+            problemTitle: problem.title,
+            problemDifficulty: problem.difficulty,
+            problemDescription: problem.description,
+            conceptTags: problem.tags || [],
+            kaiMemory,
+            userPreviousScore: lastSession?.overall_score || null,
+            hinglishActive,
+        });
 
         const client = getAIClient();
 

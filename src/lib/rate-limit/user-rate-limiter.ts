@@ -2,6 +2,7 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
+import { redisGet, redisSet } from '@/lib/upstash/client';
 
 const DAILY_LIMIT = 10; // Free tier: ~1 full interview per day
 
@@ -47,7 +48,21 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         // Check if user is owner or co-owner — they get unlimited access
         // co_owners check via server action to bypass RLS (A6 fix)
         const { data: profile } = await supabase.from('profiles').select('account_type, rate_limit_override').eq('id', userId).single();
-        const isCoOwner = await checkCoOwnerStatus(userId);
+        // Cache co-owner status in Redis for 5 minutes — this is called on every chat request
+        let isCoOwner = false;
+        try {
+            const cacheKey = `coowner:${userId}`;
+            const cached = await redisGet(cacheKey);
+            if (cached !== null) {
+                isCoOwner = cached === 'true';
+            } else {
+                isCoOwner = await checkCoOwnerStatus(userId);
+                await redisSet(cacheKey, String(isCoOwner), 300); // 5-minute TTL
+            }
+        } catch {
+            // Redis unavailable — fall through to direct check
+            isCoOwner = await checkCoOwnerStatus(userId);
+        }
 
         if (profile?.account_type === 'owner' || isCoOwner) {
             return { allowed: true, remaining: 999, isAdmin: true };
