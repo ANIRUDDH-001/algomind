@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
             ? cleaned.slice(0, MAX_TEXT_LENGTH)
             : cleaned;
 
+        if (!truncated.trim()) {
+            return NextResponse.json({ error: 'Empty text after preprocessing' }, { status: 400 });
+        }
+
         const audioBuffer = await synthesizeWithPolly(truncated, voice || 'Kajal');
 
         // Log usage for budget tracking (fire-and-forget)

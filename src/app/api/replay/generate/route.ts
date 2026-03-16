@@ -65,8 +65,14 @@ export async function POST(req: NextRequest) {
 
         // 3. Generate annotations using AI
         const aiClient = getAIClient();
-        const transcriptText = JSON.stringify(session.transcript).slice(0, 8000);
-        const turnCount = Array.isArray(session.transcript) ? session.transcript.length : 10;
+        const turns = Array.isArray(session.transcript) ? session.transcript : [];
+        const turnCount = turns.length;
+        // Select representative turns: first 3 (problem intro + early approach) + last 4 (solution + wrap-up)
+        // This gives annotation coverage across the full session, not just the start
+        const representativeTurns = turnCount > 7
+            ? [...turns.slice(0, 3), ...turns.slice(-4)]
+            : turns;
+        const transcriptText = JSON.stringify(representativeTurns).slice(0, 8000);
 
         const prompt = `Analyze this technical interview transcript and produce exactly 6-8 timestamp annotations.
 The interview has ${turnCount} total turns. Each turn represents approximately 30 seconds.

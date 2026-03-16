@@ -4,6 +4,8 @@ import { CognitiveAnalyzer } from '@/lib/assessment/analyzer';
 import type { ConversationTurn } from '@/lib/assessment/prompts';
 import type { DifficultyMode } from '@/lib/interview/interview-config';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
+import { checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 
 /**
  * POST /api/interview/analyze
@@ -17,8 +19,22 @@ export async function POST(req: NextRequest) {
         const supabase = await createServerSupabase();
         const { data: { user } } = await supabase.auth.getUser();
 
-        // Guest users can also get assessments (limited)
-        // but we still validate the request structure
+        // Rate limiting: authenticated users use their daily quota, guests use IP limit
+        if (user) {
+            const rateLimit = await checkUserRateLimit(user.id);
+            if (!rateLimit.allowed) {
+                return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+            }
+        } else {
+            const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+                ?? req.headers.get('x-real-ip')
+                ?? 'unknown';
+            const ipLimit = await checkIpRateLimit(ip, { maxRequests: 20, windowSeconds: 86400 });
+            if (!ipLimit.success) {
+                return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+            }
+        }
+
         const body = await req.json().catch(() => null);
         if (!body) {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });

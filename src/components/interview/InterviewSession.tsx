@@ -177,6 +177,7 @@ export function InterviewSession({
     const [sprintTransitionMsg, setSprintTransitionMsg] = useState<string | null>(null);
     const [sprintProblem2, setSprintProblem2] = useState<Problem | null>(null);
     const [sprintCurrentIndex, setSprintCurrentIndex] = useState<0 | 1>(0);
+    const sprintP1TranscriptRef = useRef<typeof messages>([]);
 
     // Sprint: fetch problem 2 upfront so it's ready when problem 1 ends
     useEffect(() => {
@@ -491,7 +492,7 @@ export function InterviewSession({
             difficultyMode: isGuest ? 'practice' : interviewConfig.difficultyMode,
             difficulty: activeProblem.difficulty,
             kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
-            language: (activeProblem as any).language,
+            language: codeLanguage,
             optimalApproach: (activeProblem as any).solution ?? undefined,
         });
     };
@@ -510,6 +511,8 @@ export function InterviewSession({
 
     const handleSprintAdvance = useCallback(() => {
         if (!sprintProblem2) return;
+        // Save P1 transcript before startInterview wipes messages
+        sprintP1TranscriptRef.current = [...messages];
         setShowLimitModal(false);
         setSprintCurrentIndex(1);
         setSprintTransitionMsg('Starting Problem 2...');
@@ -518,7 +521,7 @@ export function InterviewSession({
 
         setTimeout(() => {
             setSprintTransitionMsg(null);
-            (limits as any).resetTurns?.();
+            limits.resetTurnsOnly();
             limits.startTimer();
             startInterview({
                 title: sprintProblem2.title,
@@ -528,7 +531,7 @@ export function InterviewSession({
                 ragContext: advancedConfig.ragContext,
                 kaiMemory: interviewConfig.kaiMemory,
                 kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
-                language: (activeProblem as any).language,
+                language: codeLanguage,
                 optimalApproach: (sprintProblem2 as any).solution ?? undefined,
                 sprintProblemIndex: 1,
                 secondProblem: {
@@ -540,14 +543,17 @@ export function InterviewSession({
             });
         }, 1500);
          
-    }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem]);
+    }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem, messages, codeLanguage]);
 
     // A5: Consolidated completion logic
     const handleFinish = async () => {
         if (isSavingRef.current) return; // Prevent double-click save
 
-        // 1. Calculate final state
-        const finalTranscript = messages.map(m => ({
+        // 1. Calculate final state — for sprint, prepend P1 transcript
+        const allMessages = sprintP1TranscriptRef.current.length > 0
+            ? [...sprintP1TranscriptRef.current, ...messages]
+            : messages;
+        const finalTranscript = allMessages.map(m => ({
             speaker: m.role === 'assistant' ? 'ai' : m.role,
             text: m.content,
             timestamp: m.timestamp
@@ -698,7 +704,10 @@ export function InterviewSession({
         if (!hasStarted || readOnly || !interviewStartTime) return;
         
         const interval = setInterval(() => {
-            const finalTranscript = messages.map(m => ({
+            const allMsgs = sprintP1TranscriptRef.current.length > 0
+                ? [...sprintP1TranscriptRef.current, ...messages]
+                : messages;
+            const finalTranscript = allMsgs.map(m => ({
                 speaker: m.role === 'assistant' ? 'ai' : m.role,
                 text: m.content
             }));
