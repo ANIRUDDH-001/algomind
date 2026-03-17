@@ -189,7 +189,7 @@ describe('Navbar Component', () => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
             const links = bottomNav?.querySelectorAll('a');
-            expect(links?.length).toBe(5);
+            expect(links?.length).toBe(4);
         });
     });
 

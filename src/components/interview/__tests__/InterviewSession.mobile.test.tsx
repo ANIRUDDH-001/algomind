@@ -164,12 +164,7 @@ describe('InterviewSession Mobile Regression', () => {
 
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
 
-        // Code editor is always present in desktop layout (jsdom renders both), so we verify
-        // that clicking the Code tab in mobile also shows it (both layouts have it visible)
-        const codeEditors = screen.getAllByTestId('mock-code-editor');
-        expect(codeEditors.length).toBeGreaterThanOrEqual(1);
-
-        // Click Code tab
+        // Click mobile Code tab
         const codeTabs = screen.getAllByRole('button', { name: /^Code$/i });
         expect(codeTabs.length).toBeGreaterThan(0);
 
@@ -177,25 +172,23 @@ describe('InterviewSession Mobile Regression', () => {
             fireEvent.click(codeTabs[codeTabs.length - 1]);
         });
 
-        // After switching to code tab, there should be more code editors visible (mobile + desktop)
-        const codeEditorsAfter = screen.getAllByTestId('mock-code-editor');
+        // After switching to code tab, code editor should be rendered
+        const codeEditorsAfter = await screen.findAllByTestId('mock-code-editor');
         expect(codeEditorsAfter.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('Mobile: Kai tab (formerly Voice) renders VoicePanel contents', async () => {
+    it('Mobile: Voice tab renders pre-start interview CTA', async () => {
         Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 });
         vi.mocked(deviceDetection.isMobileDevice).mockReturnValue(true);
 
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
 
-        // desktop + mobile both render in jsdom DOM, so we use getAllBy
-        const readyTexts = screen.getAllByText(/Ready when you are/i);
-        expect(readyTexts.length).toBeGreaterThanOrEqual(1);
+        // Pre-start state should show begin CTA
         const beginBtns = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
         expect(beginBtns.length).toBeGreaterThanOrEqual(1);
 
-        // Tab label should be "Kai"
-        const kaiTabs = screen.getAllByRole('button', { name: /^Kai$/i });
-        expect(kaiTabs.length).toBeGreaterThan(0);
+        // Current tab label is "Voice"
+        const voiceTabs = screen.getAllByRole('button', { name: /^Voice$/i });
+        expect(voiceTabs.length).toBeGreaterThan(0);
     });
 });

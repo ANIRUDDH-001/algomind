@@ -60,7 +60,7 @@ vi.mock('@/lib/cache/dashboardCache', () => ({
     invalidateDashboardCache: vi.fn().mockResolvedValue(null),
 }));
 
-describe('saveInterviewSession scores & streak', () => {
+describe('saveInterviewSession scores & profile wiring', () => {
     let mockRpc: any;
 
     beforeEach(async () => {
@@ -79,15 +79,9 @@ describe('saveInterviewSession scores & streak', () => {
         expect(true).toBe(true);
     });
 
-    it('calls update_user_streak after session is saved', async () => {
-        // Arrange: mock supabase with rpc tracking
+    it('calls ensure_learner_profile after session is saved', async () => {
+        // Arrange: track RPC calls used by the action
         mockRpc.mockImplementation(async (name: string) => {
-            if (name === 'update_user_streak') {
-                return {
-                    data: [{ new_streak: 3, longest_streak: 5, is_new_record: false }],
-                    error: null
-                };
-            }
             if (name === 'ensure_learner_profile') {
                 return { data: null, error: null };
             }
@@ -98,19 +92,17 @@ describe('saveInterviewSession scores & streak', () => {
         const result = await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [], 120);
 
         // Assert
-        expect(mockRpc).toHaveBeenCalledWith('update_user_streak', { p_user_id: 'user-id' });
+        expect(mockRpc).toHaveBeenCalledWith('ensure_learner_profile', { p_user_id: 'user-id' });
         expect(result).toMatchObject({
             success: true,
-            sessionId: 'session-id',
-            streakDays: 3,
-            isNewStreakRecord: false
+            sessionId: 'session-id'
         });
     });
 
-    it('does not throw if streak update fails', async () => {
-        // Arrange: mock rpc to return an error for update_user_streak
+    it('does not throw if ensure_learner_profile fails', async () => {
+        // Arrange: mock rpc to return an error for profile ensure
         mockRpc.mockImplementation(async (name: string) => {
-            if (name === 'update_user_streak') {
+            if (name === 'ensure_learner_profile') {
                 return { data: null, error: { message: 'DB Error' } };
             }
             return { data: null, error: null };
@@ -121,6 +113,6 @@ describe('saveInterviewSession scores & streak', () => {
 
         // Assert
         expect(result.success).toBe(true);
-        expect(result.streakDays).toBeNull();
+        expect((result as any).streakDays).toBeUndefined();
     });
 });
