@@ -3,6 +3,7 @@ import { getAIClient } from '@/lib/ai/client';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
+import { logSystemEvent } from '@/lib/monitoring/events';
 import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
@@ -205,12 +206,34 @@ export async function POST(req: NextRequest) {
         // Fire-and-forget: Save transcript to DB so it persists on refresh
         const newTranscript = [...messages, { role: 'assistant', content: cleanResponse }];
         const supabaseAdmin = getServiceClient();
-        supabaseAdmin.from('candidate_submissions')
-            .update({ current_transcript: newTranscript })
-            .eq('id', submissionId)
-            .then(({ error }) => {
-                if (error) console.error('[Assess Chat API] Failed to update transcript', error);
-            });
+
+        const saveTranscriptWithRetry = async (): Promise<void> => {
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                const { error } = await supabaseAdmin
+                    .from('candidate_submissions')
+                    .update({ current_transcript: newTranscript })
+                    .eq('id', submissionId);
+
+                if (!error) return;
+
+                console.warn(
+                    `[Assess Chat] Transcript save attempt ${attempt}/3 failed:`,
+                    error.message
+                );
+
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 200 * attempt));
+                } else {
+                    console.error('[Assess Chat] Transcript save failed after 3 retries — logging event');
+                    void logSystemEvent({
+                        type: 'transcript_save_failed',
+                        metadata: { submissionId, attempts: 3, errorCode: error.code }
+                    });
+                }
+            }
+        };
+
+        void saveTranscriptWithRetry();
 
         return response;
 

@@ -223,7 +223,7 @@ Problem: ${problem.title} (${problem.difficulty})
 ${problem.description?.slice(0, 800) ?? ''}
 
 Transcript:
-${transcriptText.slice(0, 6000)}
+${transcriptText.slice(0, 14000)}
 
 Respond ONLY with valid JSON matching this schema exactly:
 {
