@@ -38,6 +38,46 @@ export interface UseInterviewControlReturn {
     limitReason: 'rounds' | 'time' | null;
 }
 
+/**
+ * Updates only the dynamic <session_state> block in a cached system prompt.
+ * This avoids re-running the full generateSystemPrompt() on every turn.
+ */
+export function updateSystemPromptForTurn(
+    cachedPrompt: string,
+    turnsRemaining: number | undefined,
+    timeRemaining: number | undefined,
+    sessionMinutes: number = 30
+): string {
+    if (!cachedPrompt) return cachedPrompt;
+
+    const lines: string[] = [];
+    if (turnsRemaining !== undefined) {
+        const note =
+            turnsRemaining <= 1 ? ' - FINAL TURN: deliver feedback after this exchange' :
+                turnsRemaining <= 3 ? ' - session ending soon' : '';
+        lines.push(`Turns remaining: ${turnsRemaining}${note}`);
+    }
+    if (timeRemaining !== undefined) {
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = (timeRemaining % 60).toString().padStart(2, '0');
+        const pct = (timeRemaining / 60 / sessionMinutes) * 100;
+        const note =
+            pct <= 10 ? ' - FINAL MINUTES: wrap up now' :
+                pct <= 25 ? ' - approaching end' : '';
+        lines.push(`Time remaining: ${mins}:${secs}${note}`);
+    }
+
+    if (lines.length === 0) return cachedPrompt;
+
+    const newBlock = `<session_state>\n${lines.join('\n')}\n</session_state>`;
+    const sessionStateRegex = /<session_state>[\s\S]*?<\/session_state>/;
+    if (sessionStateRegex.test(cachedPrompt)) {
+        return cachedPrompt.replace(sessionStateRegex, newBlock);
+    }
+
+    return `${cachedPrompt}\n\n${newBlock}`;
+}
+
 function generateMessageId(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
@@ -87,6 +127,7 @@ export function useInterviewControl({
     const INTERVIEW_MAX_MS = optionsRef.current.config?.maxDurationMs ?? 1200000;
 
     const currentAiTextRef = useRef('');
+    const cachedSystemPromptRef = useRef<string>('');
 
     const submitUserResponseRef = useRef<((text: string, ctx: ProblemContext) => Promise<void>) | null>(null);
 
@@ -177,28 +218,79 @@ export function useInterviewControl({
 
         const detectedLang = detectSpokenLanguage(safeUserText);
 
-        const currentSysPrompt = generateSystemPrompt({
-            problem: {
-                id: currentProblemRef.current?.problemId ?? '',
-                title: currentProblemRef.current?.problemTitle ?? '',
-                content: currentProblemRef.current?.problemContent ?? '',
-                description: currentProblemRef.current?.problemContent ?? '',
+        const currentProblemTitle = currentProblemRef.current?.problemTitle ?? '';
+        const currentProblemContent = currentProblemRef.current?.problemContent ?? '';
+
+        let currentSysPrompt: string;
+
+        if (!cachedSystemPromptRef.current) {
+            currentSysPrompt = generateSystemPrompt({
+                problem: {
+                    id: currentProblemRef.current?.problemId ?? '',
+                    title: currentProblemTitle,
+                    content: currentProblemContent,
+                    description: currentProblemContent,
+                    difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+                } as Problem,
                 difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
-            } as Problem,
-            difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
-            difficultyMode: currentProblemRef.current?.difficultyMode as SystemPromptOptions['difficultyMode'],
-            ragContext: currentProblemRef.current?.ragContext ?? '',
-            kaiMemory: currentProblemRef.current?.kaiMemory ?? '',
-            kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured ?? undefined,
-            language: currentProblemRef.current?.language,
-            optimalApproach: currentProblemRef.current?.optimalApproach,
-            turnsRemaining: optionsRef.current.turnsRemaining,
-            timeRemaining: optionsRef.current.timeRemaining,
-            isGuest: optionsRef.current.isGuest ?? false,
-            sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
-            secondProblem: currentProblemRef.current?.secondProblem,
-            spokenLanguage: detectedLang,
-        });
+                difficultyMode: currentProblemRef.current?.difficultyMode as SystemPromptOptions['difficultyMode'],
+                ragContext: currentProblemRef.current?.ragContext ?? '',
+                kaiMemory: currentProblemRef.current?.kaiMemory ?? '',
+                kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured ?? undefined,
+                language: currentProblemRef.current?.language,
+                optimalApproach: currentProblemRef.current?.optimalApproach,
+                turnsRemaining: optionsRef.current.turnsRemaining,
+                timeRemaining: optionsRef.current.timeRemaining,
+                isGuest: optionsRef.current.isGuest ?? false,
+                sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
+                secondProblem: currentProblemRef.current?.secondProblem,
+                spokenLanguage: detectedLang,
+            });
+            cachedSystemPromptRef.current = currentSysPrompt;
+        } else if (detectedLang === 'hinglish' && !cachedSystemPromptRef.current.includes('SPOKEN LANGUAGE')) {
+            currentSysPrompt = generateSystemPrompt({
+                problem: {
+                    id: currentProblemRef.current?.problemId ?? '',
+                    title: currentProblemTitle,
+                    content: currentProblemContent,
+                    description: currentProblemContent,
+                    difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+                } as Problem,
+                difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
+                difficultyMode: currentProblemRef.current?.difficultyMode as SystemPromptOptions['difficultyMode'],
+                ragContext: currentProblemRef.current?.ragContext ?? '',
+                kaiMemory: currentProblemRef.current?.kaiMemory ?? '',
+                kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured ?? undefined,
+                language: currentProblemRef.current?.language,
+                optimalApproach: currentProblemRef.current?.optimalApproach,
+                turnsRemaining: optionsRef.current.turnsRemaining,
+                timeRemaining: optionsRef.current.timeRemaining,
+                isGuest: optionsRef.current.isGuest ?? false,
+                sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
+                secondProblem: currentProblemRef.current?.secondProblem,
+                spokenLanguage: 'hinglish',
+            });
+            cachedSystemPromptRef.current = currentSysPrompt;
+        } else {
+            const modeSessionMinutes = (() => {
+                const mode = currentProblemRef.current?.difficultyMode ?? 'practice';
+                const minutes: Record<string, number> = {
+                    'warm-up': 20,
+                    'practice': 30,
+                    'crunch': 25,
+                    'sprint': 45,
+                    'employer': 45,
+                };
+                return minutes[mode] ?? 30;
+            })();
+
+            currentSysPrompt = updateSystemPromptForTurn(
+                cachedSystemPromptRef.current,
+                optionsRef.current.turnsRemaining,
+                optionsRef.current.timeRemaining,
+                modeSessionMinutes
+            );
+        }
 
         try {
             const responseText = await api.callChatApi(prompt, currentSysPrompt, problemContext);
@@ -346,7 +438,9 @@ export function useInterviewControl({
 
     // Core Logic
     const startInterview = useCallback(async (opts: ProblemContext) => {
-        const { title: problemTitle, content: problemContent, ragContext, kaiMemory, problemId, difficultyMode, difficulty, kaiMemoryStructured } = opts as any;
+        const { ragContext, kaiMemory, problemId, difficultyMode, difficulty, kaiMemoryStructured } = opts as any;
+        const problemTitle = opts.problemTitle ?? '';
+        const problemContent = opts.problemContent ?? '';
 
         if (stateMachineRef.current.getState() === 'completed') {
             stateMachineRef.current.reset();
@@ -355,8 +449,8 @@ export function useInterviewControl({
         resetMessages();
         voice.resetTranscript();
         currentProblemRef.current = {
-            title: problemTitle,
-            content: problemContent,
+            problemTitle,
+            problemContent,
             ragContext,
             kaiMemory,
             problemId,
@@ -396,6 +490,9 @@ export function useInterviewControl({
             secondProblem: opts.secondProblem,
             spokenLanguage: 'english', 
         });
+
+        // Cache for reuse across turns - only <session_state> block changes per turn
+        cachedSystemPromptRef.current = sysPrompt;
 
         const introTrigger = generateInterviewOpeningTrigger(
             problemTitle,
@@ -488,7 +585,7 @@ export function useInterviewControl({
         if (typeof window !== 'undefined' && testHooksEnabled) {
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
                 const safeMsg = message.slice(0, MAX_USER_INPUT);
-                submitUserResponse(safeMsg, currentProblemRef.current || { title: 'Test', content: 'Test' } as any);
+                submitUserResponse(safeMsg, currentProblemRef.current || { problemTitle: 'Test', problemContent: 'Test' } as any);
             };
             return () => {
                 delete (window as any).__TRIGGER_AI_CALL__;
@@ -499,6 +596,7 @@ export function useInterviewControl({
     const resetInterview = useCallback(() => {
         const { resetMessages } = msgs;
         resetMessages();
+        cachedSystemPromptRef.current = '';
         setState('idle');
         stateMachineRef.current.reset();
         voice.resetTranscript();

@@ -29,6 +29,8 @@ export interface CompletionOptions {
     systemPrompt?: string; // Legacy support
     // Disables LLM intent classification pass when routing is smart
     enableLLMPass?: boolean;
+    /** Optional external cancellation signal */
+    signal?: AbortSignal;
     /** OpenAI-compatible response_format for structured output (e.g. { type: 'json_object' }) */
     responseFormat?: { type: string; [key: string]: unknown };
 }
@@ -295,6 +297,14 @@ export class UnifiedAIClient {
             }
             return { success: false, error: "Unsupported provider" };
         } catch (error) {
+            if (error instanceof Error && error.name === 'TimeoutError') {
+                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id });
+                return {
+                    success: false,
+                    error: `Request timeout after ${model.provider === 'groq' ? '15' : model.provider === 'gemini' ? '25' : '30'}s`
+                };
+            }
+
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorCodeMatch = errorMessage.match(/\((\d{3})\)/);
             const errorCode = errorCodeMatch ? errorCodeMatch[1] : undefined;
@@ -348,7 +358,8 @@ export class UnifiedAIClient {
                 "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: options.signal ?? AbortSignal.timeout(15000),
         });
 
         if (!response.ok) {
@@ -411,7 +422,8 @@ export class UnifiedAIClient {
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: options.signal ?? AbortSignal.timeout(25000),
         });
 
         if (!response.ok) {
@@ -546,6 +558,7 @@ export class UnifiedAIClient {
                 systemPrompt: options.systemPrompt,
                 estimatedTokens: options.estimatedTokens,
                 category: options.category,
+                signal: options.signal,
             });
 
             return {
@@ -585,6 +598,7 @@ export class UnifiedAIClient {
             systemPrompt: options.systemPrompt,
             estimatedTokens: options.estimatedTokens,
             category: options.category,
+            signal: options.signal,
         });
 
         // Fallback: if routed provider failed, try the alternate (only if it was gemini)
@@ -600,6 +614,7 @@ export class UnifiedAIClient {
                 systemPrompt: options.systemPrompt,
                 estimatedTokens: options.estimatedTokens,
                 category: options.category,
+                signal: options.signal,
             });
         }
 
@@ -899,7 +914,8 @@ export class UnifiedAIClient {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 content: { parts: [{ text }] }
-            })
+            }),
+            signal: AbortSignal.timeout(20000),
         });
 
         if (!response.ok) {
