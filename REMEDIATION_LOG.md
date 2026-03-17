@@ -314,6 +314,57 @@ Status:      ALL TESTS PASSING
 - [x] Timeout errors handled gracefully in AI client
 - [x] Unit tests added for prompt update logic
 
+---
+
+## Phase 5 - Observability and Operational Hardening: Executed 2026-03-17
+
+### Summary
+- Enhanced health endpoint now checks DB, Redis, and stuck analyses in parallel.
+- Added BetterStack Logtail forwarding to system event logger (fire-and-forget, additive).
+- Added migration version-control scaffolding under `supabase/migrations` with baseline SQL files.
+
+### Changes Deployed
+
+#### 1) Enhanced Health Endpoint
+- **File modified**: `src/app/api/health/route.ts`
+- Added:
+  - `export const dynamic = 'force-dynamic'`
+  - parallel checks via `Promise.allSettled` for DB, Redis, stuck analyses
+  - status model: `healthy | degraded | unhealthy`
+  - DB result: `db: ok | down`
+  - Redis result: `redis: ok | unconfigured | down`
+  - `stuck_analyses` count with `-1` fallback on query failure
+  - process metrics: `memory_mb`, `uptime_s`, `timestamp`
+- HTTP behavior:
+  - `503` only when DB is down (`unhealthy`)
+  - `200` for both `healthy` and `degraded`
+
+#### 2) BetterStack Integration
+- **File modified**: `src/lib/monitoring/events.ts`
+- Added non-blocking forwarding to BetterStack endpoint (`https://in.logs.betterstack.com`)
+- Triggered only when `BETTERSTACK_SOURCE_TOKEN` is present
+- Never blocks request flow (`fetch(...).catch(() => {})`)
+- Existing Supabase insert logging remains unchanged
+
+#### 3) Migration Version Control Scaffolding
+- **Files created**:
+  - `supabase/migrations/README.md`
+  - `supabase/migrations/20260316_001_co_owners_unique_email.sql`
+  - `supabase/migrations/20260316_002_missing_updated_at_triggers.sql`
+  - `supabase/migrations/20260316_003_drop_redundant_entry_code_index.sql`
+  - `supabase/migrations/20260316_004_stuck_analysis_cron.sql`
+
+### Verification Checklist
+- [x] Health route checks DB + Redis + stuck analyses in parallel
+- [x] Health route returns HTTP 200 for degraded status
+- [x] Health route returns HTTP 503 only when DB is down
+- [x] BetterStack integration is fire-and-forget and guarded by env token
+- [x] `supabase/migrations` directory contains migration docs and SQL files
+- [ ] BetterStack token added in deployment environment (manual)
+- [ ] BetterStack event appearance verified in dashboard (manual)
+- [ ] cron-job.org uptime monitor configured (manual)
+- [ ] pg_cron migration executed and verified in Supabase SQL Editor (manual)
+
 ### Phase 1 Completion Checklist
 - [x] `ASSESSMENT_JWT_SECRET` added to environment (pending Vercel UI deployment)
 - [x] src/lib/assess/jwt.ts created
