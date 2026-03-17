@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
+import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
@@ -16,7 +17,6 @@ export async function POST(req: NextRequest) {
         interface ChatRequestBody {
             sessionToken: string;
             messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
-            systemPrompt?: string;
             problemContext?: {
                 title?: string;
                 content?: string;
@@ -31,21 +31,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
-        const { sessionToken, messages, systemPrompt } = body;
+        const { sessionToken, messages } = body;
 
         if (!sessionToken) {
             return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT. This is a deployment configuration error.');
-            return NextResponse.json(
-                { error: 'Server misconfiguration. Contact administrator.' },
-                { status: 500 }
-            );
+        let secret: Uint8Array;
+        try {
+            secret = encodeAssessmentSecret();
+        } catch {
+            return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
-        const secret = new TextEncoder().encode(jwtSecret);
 
         // 🔒 Validate candidate JWT securely
         let payload;
@@ -170,7 +167,7 @@ export async function POST(req: NextRequest) {
 
         const client = getAIClient();
 
-        let enhancedSystemPrompt = systemPrompt || '';
+        let enhancedSystemPrompt = '';
 
         // Add minimal instructions prioritizing standard assessment style
         enhancedSystemPrompt += '\n\n## CANDIDATE INTERVIEW GUIDELINES\nYou are conducting a technical interview. Keep your answers concise, ask probing questions about space/time complexity, and do not write the code for the candidate.';

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
+import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 // RAG context is now fetched lazily per-phase in assess/chat, not pre-fetched here
 
 validateEnv();
@@ -15,12 +17,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'campaignToken and candidateName are required' }, { status: 400 });
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to sign assessment JWT. This is a deployment configuration error.');
+        let secret: Uint8Array;
+        try {
+            secret = encodeAssessmentSecret();
+        } catch {
             return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
-        const secret = new TextEncoder().encode(jwtSecret);
 
         const supabase = await createServerSupabase();
 
@@ -216,7 +218,7 @@ export async function POST(req: NextRequest) {
                 Date.now() + (totalAssessmentMinsTemp + 120) * 60 * 1000
             ).toISOString();
 
-            const { data: newSubmission, error: submissionError } = await supabase
+            const { data: newSubmission, error: submissionError } = await (user ? supabase : getServiceClient())
                 .from('candidate_submissions')
                 .insert({
                     campaign_id: campaignData.id,

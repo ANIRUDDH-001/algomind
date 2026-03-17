@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { getServiceClient } from '@/lib/supabase/service';
+import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 
 validateEnv();
 
@@ -17,15 +18,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT');
-            return NextResponse.json(
-                { saved: false },
-                { status: 500 }
-            );
+        let secret: Uint8Array;
+        try {
+            secret = encodeAssessmentSecret();
+        } catch {
+            return NextResponse.json({ saved: false }, { status: 500 });
         }
-        const secret = new TextEncoder().encode(jwtSecret);
 
         // 1. Validate candidate JWT securely
         let payload;
