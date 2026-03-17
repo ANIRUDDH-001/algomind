@@ -239,6 +239,81 @@ Status:      ALL TESTS PASSING
 1. Check 9 in-progress sessions still accessible with old JWT tokens
 2. Verify no orphaned slots (claim_campaign_slot without submission)
 
+---
+
+## Phase 4 - Performance and Token Optimization (P1): Executed 2026-03-17
+
+### Summary
+- Implemented client-side system prompt caching in interview control flow.
+- Added dynamic `<session_state>` hot-swap helper to avoid full prompt regeneration per turn.
+- Added Redis-backed prompt cache hydration in `/api/chat` with safe fallback behavior.
+- Added timeout guards to provider fetch calls and edge Gemini analysis call.
+- Added unit coverage for prompt cache updater behavior.
+
+### Changes Deployed
+
+#### 1) Client Prompt Caching
+- **File modified**: `src/hooks/useInterviewControl.ts`
+- Added module-level helper: `updateSystemPromptForTurn(...)` (exported)
+- Added `cachedSystemPromptRef` and set cache in `startInterview` after initial system prompt generation.
+- `submitUserResponse` now uses:
+  - cache-miss full rebuild path,
+  - hinglish switch one-time rebuild path,
+  - session_state replacement hot-swap path for normal turns.
+- `resetInterview` now clears `cachedSystemPromptRef`.
+
+#### 2) Chat Route Server Prompt Cache
+- **File modified**: `src/app/api/chat/route.ts`
+- Added Redis integration via `redisGet/redisSet`.
+- Added request support for:
+  - `sessionToken` fallback,
+  - `systemPromptTurnLayer` (dynamic turn-only suffix).
+- Cache strategy:
+  - key: `ai:chat:system-prompt:<scope>:<sessionId>`
+  - TTL: 7200s
+  - fail-open fallback to request prompt when cache unavailable.
+
+#### 3) Client Payload Optimization for Chat
+- **File modified**: `src/hooks/useInterviewApi.ts`
+- Added `sessionId` to chat payload for cache lookup.
+- Added compact `systemPromptTurnLayer` extraction (`<session_state>` + spoken-language line).
+- Sends full `systemPrompt` only on first exchange for `/api/chat`, then sends turn layer for subsequent turns.
+
+#### 4) AI Fetch Timeouts
+- **File modified**: `src/lib/ai/client.ts`
+- Added timeout signals:
+  - `callGroq`: `AbortSignal.timeout(15000)`
+  - `callGemini`: `AbortSignal.timeout(25000)`
+  - `embedWithGemini`: `AbortSignal.timeout(20000)`
+- Added timeout-specific handling in `callModel` catch path returning controlled timeout errors and logging `model_timeout`.
+- Propagated `signal` from `GenerateResponseOptions` into completion calls.
+
+#### 5) Edge Function Timeout
+- **File modified**: `supabase/functions/run-assessment/index.ts`
+- Added Gemini analysis fetch timeout (`AbortSignal.timeout(45000)` when available).
+
+#### 6) Unit Tests
+- **File created**: `src/hooks/__tests__/prompt-caching.test.ts`
+- Added tests for:
+  - session_state replacement,
+  - urgency notes (3 turns, final turn, final minutes),
+  - unchanged behavior when no dynamic values,
+  - append behavior when block missing,
+  - content preservation outside dynamic block.
+
+### Verification Checklist
+- [x] `cachedSystemPromptRef` added and used in `startInterview`/`submitUserResponse`/`resetInterview`
+- [x] `updateSystemPromptForTurn` implemented and exported at module level
+- [x] Submit flow reuses cached prompt for normal turns (full rebuild avoided)
+- [x] Hinglish switch path rebuilds and refreshes cache
+- [x] `/api/chat` supports Redis prompt cache with fallback behavior
+- [x] `callGroq` timeout added (15s)
+- [x] `callGemini` timeout added (25s)
+- [x] `embedWithGemini` timeout added (20s)
+- [x] Edge `runGeminiAnalysis` timeout added (45s)
+- [x] Timeout errors handled gracefully in AI client
+- [x] Unit tests added for prompt update logic
+
 ### Phase 1 Completion Checklist
 - [x] `ASSESSMENT_JWT_SECRET` added to environment (pending Vercel UI deployment)
 - [x] src/lib/assess/jwt.ts created

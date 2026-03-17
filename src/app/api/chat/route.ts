@@ -9,6 +9,7 @@ import type { InterviewState } from '@/lib/interview/state-machine';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
+import { redisGet, redisSet } from '@/lib/upstash/client';
 
 export async function POST(req: NextRequest) {
     try {
@@ -26,6 +27,8 @@ export async function POST(req: NextRequest) {
             companyPersona?: string;
             interviewState?: InterviewState;
             sessionId?: string;
+            sessionToken?: string;
+            systemPromptTurnLayer?: string;
         }
 
         let body: ChatRequestBody = { messages: [] };
@@ -40,7 +43,17 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        const { messages, systemPrompt, problemContext, guestMode, companyPersona, interviewState, sessionId: clientSessionId } = body;
+        const {
+            messages,
+            systemPrompt,
+            systemPromptTurnLayer,
+            problemContext,
+            guestMode,
+            companyPersona,
+            interviewState,
+            sessionId: clientSessionId,
+            sessionToken,
+        } = body;
 
         // Read Hinglish feature flag once — used for language detection and prompt injection
         const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
@@ -145,8 +158,36 @@ export async function POST(req: NextRequest) {
 
         const client = getAIClient();
 
+        const effectiveSessionId = clientSessionId || sessionToken || null;
+        const callerScope = user?.id || (guestMode ? (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'guest') : 'anon');
+        const promptCacheKey = effectiveSessionId
+            ? `ai:chat:system-prompt:${callerScope}:${effectiveSessionId}`
+            : null;
+
         // Enhance system prompt with RAG context and Company Persona
-        let enhancedSystemPrompt = systemPrompt || '';
+        let baseSystemPrompt = systemPrompt || '';
+
+        if (promptCacheKey && !baseSystemPrompt) {
+            const cached = await redisGet(promptCacheKey);
+            if (cached) {
+                baseSystemPrompt = cached;
+            }
+        }
+
+        if (promptCacheKey && systemPrompt) {
+            await redisSet(promptCacheKey, systemPrompt, 7200);
+        }
+
+        if (promptCacheKey && systemPromptTurnLayer) {
+            const cached = await redisGet(promptCacheKey);
+            if (cached) {
+                baseSystemPrompt = `${cached}\n\n${systemPromptTurnLayer}`;
+            } else if (baseSystemPrompt) {
+                baseSystemPrompt = `${baseSystemPrompt}\n\n${systemPromptTurnLayer}`;
+            }
+        }
+
+        let enhancedSystemPrompt = baseSystemPrompt;
 
         if (companyPersona) {
             enhancedSystemPrompt += `\n\n<company_persona>\n${companyPersona}\n</company_persona>`;

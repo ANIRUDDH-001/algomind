@@ -243,6 +243,10 @@ Respond ONLY with valid JSON matching this schema exactly:
 }`;
 
     try {
+        const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? AbortSignal.timeout(45000)
+            : undefined;
+
         const resp = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
@@ -252,6 +256,7 @@ Respond ONLY with valid JSON matching this schema exactly:
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
                 }),
+                signal: timeoutSignal,
             }
         );
 
