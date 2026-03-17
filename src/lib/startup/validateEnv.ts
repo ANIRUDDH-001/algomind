@@ -126,7 +126,6 @@ export async function validateDB(): Promise<void> {
             'admin_users',
             'user_preferences',
             'system_events',
-            'company_profiles',
             'global_feature_flags',  // DB-002: must exist for all feature flags to work
             'profiles',              // Core user table
             'interview_sessions',    // Core session storage

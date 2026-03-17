@@ -81,6 +81,22 @@ export async function POST(req: NextRequest) {
 
         // ── Per-session message rate limit ────────────────────────────────────
         const submissionId = payload.submissionId as string;
+        let sessionMessageLimit = MESSAGE_LIMIT;
+        const { data: subForLimit } = await getServiceClient()
+            .from('candidate_submissions')
+            .select('campaign_id')
+            .eq('id', submissionId)
+            .single();
+        if (subForLimit?.campaign_id) {
+            const { data: campForLimit } = await getServiceClient()
+                .from('assessment_campaigns')
+                .select('max_turns')
+                .eq('id', subForLimit.campaign_id)
+                .single();
+            if (campForLimit?.max_turns) {
+                sessionMessageLimit = campForLimit.max_turns;
+            }
+        }
         const redis = getRedis();
         let currentCount = 0;
 
@@ -145,20 +161,15 @@ export async function POST(req: NextRequest) {
                 currentCount = dbMessageCount + 1;
                 // Persist the increment to DB so at least it's tracked
                 // Non-fatal: persist increment to DB so at least it's tracked
-                const { error: dbErr } = await getServiceClient()
-                    .from('candidate_submissions')
-                    .update({ message_count: currentCount })
-                    .eq('id', submissionId);
-                if (dbErr) console.warn('[Assess Chat] DB fallback update failed:', dbErr.message);
             }
 
-            if (currentCount > MESSAGE_LIMIT) {
+            if (currentCount > sessionMessageLimit) {
                 return NextResponse.json(
                     {
                         error: 'Message limit reached for this assessment session.',
                         limitReached: true,
                         messagesUsed: currentCount - 1,
-                        messageLimit: MESSAGE_LIMIT,
+                        messageLimit: sessionMessageLimit,
                     },
                     { status: 429 }
                 );
@@ -200,7 +211,7 @@ export async function POST(req: NextRequest) {
         // Expose usage counters to the frontend (headers are visible via fetch)
         if (currentCount > 0) {
             response.headers.set('X-Messages-Used', String(currentCount));
-            response.headers.set('X-Messages-Limit', String(MESSAGE_LIMIT));
+            response.headers.set('X-Messages-Limit', String(sessionMessageLimit));
         }
 
         // Fire-and-forget: Save transcript to DB so it persists on refresh
