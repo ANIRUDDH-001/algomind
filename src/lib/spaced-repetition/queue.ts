@@ -1,6 +1,6 @@
 import { getSupabase } from '@/lib/supabase/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { SpacedRepetitionRecord, computeNextReview } from './sm2';
+import { SpacedRepetitionRecord } from './sm2';
 import { computeNextReviewFSRS, createNewFSRSCardData } from './fsrs';
 import { getServiceClient } from '@/lib/supabase/service';
 

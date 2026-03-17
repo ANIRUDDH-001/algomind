@@ -93,8 +93,8 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
 
             // Initialize interview context
             startInterview({
-                title: problem.title,
-                content: problem.description || '', // Keep problem.description for content as per original code's intent
+                problemTitle: problem.title,
+                problemContent: problem.description || '', // Keep problem.description for content as per original code's intent
                 difficultyMode: 'practice' as const,
                 difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
                 problemId: problem.id,

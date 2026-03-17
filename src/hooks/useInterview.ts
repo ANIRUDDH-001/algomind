@@ -34,7 +34,7 @@ export interface Message {
     content: string;
     timestamp: Date;
     /** Message delivery status. */
-    status?: 'complete' | 'interrupted' | 'cancelled';
+    status?: 'complete' | 'streaming' | 'interrupted' | 'cancelled';
     /** What the AI said before the user interrupted (subset of content). */
     partialContent?: string;
     /** Unix timestamp of when the interruption occurred. */
@@ -44,7 +44,7 @@ export interface Message {
 // Phase 2a: micIntent state machine replaces boolean isMicEnabled
 export type MicIntent = 'user-on' | 'auto-on' | 'paused-for-ai' | 'off';
 
-interface ProblemContext {
+export interface ProblemContext {
     title: string;
     content: string;
     ragContext?: string;
@@ -58,7 +58,7 @@ interface ProblemContext {
     secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
 }
 
-export function useInterview(options: {
+export interface UseInterviewOptions {
     config: InterviewConfig;
     isTimeUp?: boolean;
     turnsRemaining?: number;
@@ -69,7 +69,9 @@ export function useInterview(options: {
     sessionToken?: string;
     onUserMessage?: (msg: Message, count: number) => void;
     isGuest?: boolean;
-}) {
+}
+
+export function useInterview(options: UseInterviewOptions) {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
