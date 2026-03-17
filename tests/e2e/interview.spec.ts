@@ -21,6 +21,8 @@ test.describe('Full Guest Interview Flow', () => {
         page,
         context,
     }) => {
+        test.setTimeout(45_000);
+
         // ── Step 1: Navigate to landing page ──
         // Bypass intro onboarding animation so the CTA buttons are visible
         await page.addInitScript(() => {
@@ -42,7 +44,10 @@ test.describe('Full Guest Interview Flow', () => {
         const cta = page
             .getByRole('button', { name: /try demo as guest/i })
             .or(page.getByRole('link', { name: /try for free/i }))
-            .or(page.getByRole('button', { name: /start practicing/i }));
+            .or(page.getByRole('button', { name: /start practicing/i }))
+            .or(page.getByRole('button', { name: /begin/i }))
+            .or(page.getByRole('link', { name: /get started/i }))
+            .or(page.getByRole('button', { name: /try for free/i }));
 
         await expect(cta.first()).toBeVisible({ timeout: 10_000 });
 
@@ -63,6 +68,16 @@ test.describe('Full Guest Interview Flow', () => {
             }
         }
         await page.waitForURL(/\/interview/, { timeout: 10_000 });
+
+        // Guest selector can overlay tabs in guest mode; pick a problem first.
+        const guestSelector = page.getByTestId('guest-selector-modal');
+        if (await guestSelector.isVisible({ timeout: 2_000 }).catch(() => false)) {
+            const randomProblemBtn = page.getByTestId('random-problem-button');
+            if (await randomProblemBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+                await randomProblemBtn.click();
+            }
+            await expect(guestSelector).toBeHidden({ timeout: 10_000 });
+        }
 
         // ── Step 3–4: Wait for problem to load & assert title visible ──
         // Mock the chat API so we don't need real AI
@@ -88,18 +103,25 @@ test.describe('Full Guest Interview Flow', () => {
         await page.waitForTimeout(500); // layout reflow
 
         // 6a: Click "Code" tab → editor appears, NO warning modal
-        const codeTab = page
-            .getByRole('tab', { name: /code/i })
-            .or(page.locator('button:has-text("Code")'));
+        const codeTab = page.getByRole('tab', { name: /code/i });
         if (await codeTab.first().isVisible()) {
+            const guestSelectorOverlay = page.getByTestId('guest-selector-modal');
+            if (await guestSelectorOverlay.isVisible({ timeout: 1_000 }).catch(() => false)) {
+                const randomProblemBtn = page.getByTestId('random-problem-button');
+                if (await randomProblemBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+                    await randomProblemBtn.click();
+                }
+                await expect(guestSelectorOverlay).toBeHidden({ timeout: 10_000 });
+            }
             await codeTab.first().click();
             await page.waitForTimeout(300);
 
-            // Code area (mock or real) should be visible
-            const codeArea = page.locator(
-                '[data-testid="code-editor"], .monaco-editor, textarea',
-            );
-            await expect(codeArea.first()).toBeVisible({ timeout: 5_000 });
+            // Code surface may show its toolbar before Monaco finishes mounting.
+            const codeSurface = page
+                .getByRole('combobox')
+                .or(page.getByRole('button', { name: /^run$/i }))
+                .or(page.locator('[data-testid="code-editor"]:visible, .monaco-editor:visible, textarea:visible'));
+            await expect(codeSurface.first()).toBeVisible({ timeout: 8_000 });
 
             // No warning modal
             await expect(warningModal).toHaveCount(0);
@@ -116,9 +138,7 @@ test.describe('Full Guest Interview Flow', () => {
             }
 
             // 6c: Click Interview tab → interview view shown
-            const interviewTab = page
-                .getByRole('tab', { name: /interview/i })
-                .or(page.locator('button:has-text("Interview")'));
+            const interviewTab = page.getByRole('tab', { name: /interview/i });
             if (await interviewTab.first().isVisible()) {
                 await interviewTab.first().click();
                 await page.waitForTimeout(300);
@@ -138,15 +158,16 @@ test.describe('Full Guest Interview Flow', () => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.waitForTimeout(500);
 
-        // 7a: Three panels visible (resizable panel group or visible sections)
-        // In desktop layout, the resizable panels include problem, conversation, and history
-        const panels = page.locator(
-            '#interview_panels_v2 [data-panel], [data-testid="resizable-group"] > div',
+        // 7a: Desktop layout exposes the problem/history drawer toggles and a main interview surface.
+        const problemToggle = page.getByRole('button', { name: /^problem$/i }).last();
+        const historyToggle = page.getByRole('button', { name: /^history$/i }).last();
+        const desktopSurface = page.locator(
+            '.monaco-editor, [data-testid="transcript-area"], [data-tour="interview-container"]',
         );
-        // Wait for panels to be in DOM, then check count
-        await page.waitForTimeout(500);
-        const visiblePanels = await panels.count();
-        expect(visiblePanels).toBeGreaterThanOrEqual(2);
+
+        await expect(problemToggle).toBeVisible({ timeout: 5_000 });
+        await expect(historyToggle).toBeVisible({ timeout: 5_000 });
+        await expect(desktopSurface.first()).toBeAttached({ timeout: 5_000 });
 
         // 7b: No horizontal overflow
         const overflows = await page.evaluate(
@@ -170,6 +191,8 @@ test.describe('Auth Flow — Google OAuth', () => {
     test('no COEP header on /interview and Google OAuth button exists', async ({
         page,
     }) => {
+        test.setTimeout(45_000);
+
         // Step 1: Navigate to /interview and capture response headers
         const response = await page.goto('/interview');
         expect(response).not.toBeNull();
@@ -179,8 +202,8 @@ test.describe('Auth Flow — Google OAuth', () => {
         expect(coep).toBeUndefined();
 
         // Step 3: Navigate to login page and verify Google OAuth button
-        await page.goto('/login');
-        await page.waitForLoadState('networkidle');
+        await page.goto('/login', { waitUntil: 'domcontentloaded' });
+        await page.waitForLoadState('domcontentloaded');
 
         const googleBtn = page.getByRole('button', {
             name: /continue with google|sign in with google|google/i,

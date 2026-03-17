@@ -58,7 +58,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
             const summary = result.exit_code === 0
                 ? `My code ran successfully. Output: ${result.stdout.slice(0, 300)}`
                 : `My code failed (exit ${result.exit_code}). Error: ${result.stderr.slice(0, 300)}`;
-            submitUserResponse(summary, { title: problem.title, content: problem.description || '' });
+            submitUserResponse(summary, { problemTitle: problem.title, problemContent: problem.description || '' });
         }
     }, [submitUserResponse, problem]);
 
@@ -78,7 +78,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
         const handler = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && userCode.trim() && !isProcessing) {
                 const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
-                submitUserResponse(msg, { title: problem.title, content: problem.description || '' });
+                submitUserResponse(msg, { problemTitle: problem.title, problemContent: problem.description || '' });
             }
         };
         window.addEventListener('keydown', handler);
@@ -93,8 +93,8 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
 
             // Initialize interview context
             startInterview({
-                title: problem.title,
-                content: problem.description || '', // Keep problem.description for content as per original code's intent
+                problemTitle: problem.title,
+                problemContent: problem.description || '',
                 difficultyMode: 'practice' as const,
                 difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
                 problemId: problem.id,
@@ -266,7 +266,7 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                                     onClick={() => {
                                         if (!userCode.trim()) return;
                                         const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
-                                        submitUserResponse(msg, { title: problem.title, content: problem.description || '' });
+                                        submitUserResponse(msg, { problemTitle: problem.title, problemContent: problem.description || '' });
                                     }}
                                     disabled={!userCode.trim() || isProcessing}
                                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-xl"

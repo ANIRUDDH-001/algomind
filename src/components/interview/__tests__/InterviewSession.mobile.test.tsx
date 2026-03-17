@@ -165,7 +165,7 @@ describe('InterviewSession Mobile Regression', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
 
         // Click mobile Code tab
-        const codeTabs = screen.getAllByRole('button', { name: /^Code$/i });
+        const codeTabs = screen.getAllByRole('tab', { name: /Code tab/i });
         expect(codeTabs.length).toBeGreaterThan(0);
 
         await act(async () => {
@@ -188,7 +188,7 @@ describe('InterviewSession Mobile Regression', () => {
         expect(beginBtns.length).toBeGreaterThanOrEqual(1);
 
         // Current tab label is "Voice"
-        const voiceTabs = screen.getAllByRole('button', { name: /^Voice$/i });
+        const voiceTabs = screen.getAllByRole('tab', { name: /Voice tab/i });
         expect(voiceTabs.length).toBeGreaterThan(0);
     });
 });

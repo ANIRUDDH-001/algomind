@@ -60,6 +60,7 @@ export function MicrophoneButton({
                     onClick={error && onRetry ? onRetry : onClick}
                     disabled={disabled}
                     data-testid="mic-button"
+                    aria-label={isListening ? 'Disable microphone' : 'Enable microphone'}
                     whileTap={{ scale: 0.92 }}
                     whileHover={{ scale: 1.05 }}
                     className={cn(

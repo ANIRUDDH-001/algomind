@@ -124,6 +124,13 @@ export function useInterviewControl({
         }
         lastUserMsgRef.current = { text: safeUserText.trim(), time: now };
 
+        // Guard against concurrent invocations — isProcessingRef is synchronous
+        // so this check is safe even in concurrent scenarios
+        if (isProcessingRef.current) {
+            console.warn('[useInterviewControl] Concurrent submission blocked — already processing');
+            return;
+        }
+
         voice.setTtsError(false);
 
         if (smartPauseTimerRef.current) {
@@ -160,8 +167,8 @@ export function useInterviewControl({
 
         const prompt = generateTurnPrompt({
             state: stateMachineRef.current.getState(),
-            problemTitle: problemContext.title,
-            problemContent: problemContext.content,
+            problemTitle: problemContext.problemTitle,
+            problemContent: problemContext.problemContent,
             transcript: safeUserText,
             interruptionContext: interruptionCtx,
             turnsRemaining: optionsRef.current.turnsRemaining,
@@ -173,9 +180,9 @@ export function useInterviewControl({
         const currentSysPrompt = generateSystemPrompt({
             problem: {
                 id: currentProblemRef.current?.problemId ?? '',
-                title: currentProblemRef.current?.title ?? '',
-                content: currentProblemRef.current?.content ?? '',
-                description: currentProblemRef.current?.content ?? '',
+                title: currentProblemRef.current?.problemTitle ?? '',
+                content: currentProblemRef.current?.problemContent ?? '',
+                description: currentProblemRef.current?.problemContent ?? '',
                 difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
             } as Problem,
             difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',

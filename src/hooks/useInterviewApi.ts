@@ -207,8 +207,8 @@ export function useInterviewApi({
                 ],
                 systemPrompt,
                 problemContext: {
-                    title: currentProblemParams.title ?? '',
-                    content: currentProblemParams.content ?? '',
+                    title: currentProblemParams.problemTitle ?? '',
+                    content: currentProblemParams.problemContent ?? '',
                     ragContext: optionsRef.current.config?.ragContext,
                     tags: currentProblemParams.tags ?? [],
                 },

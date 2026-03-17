@@ -23,7 +23,7 @@ describe('getAssessmentSecret', () => {
 
     it('throws when neither secret is set', () => {
         delete process.env.ASSESSMENT_JWT_SECRET;
-        delete process.env.SUPABASE_JWT_SECRET;
+        process.env.SUPABASE_JWT_SECRET = '';
         expect(() => getAssessmentSecret()).toThrow('[Assessment JWT]');
     });
 
