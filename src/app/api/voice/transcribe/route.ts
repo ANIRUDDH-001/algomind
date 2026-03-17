@@ -4,47 +4,23 @@ import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 
 export const dynamic = 'force-dynamic';
 
-// Phase 3e: Simple in-memory rate limiter for guest IP tracking
-const guestRateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkGuestRateLimit(key: string, maxRequests: number, windowSeconds: number): boolean {
-    const now = Date.now();
-    const entry = guestRateLimits.get(key);
-
-    if (!entry || now > entry.resetAt) {
-        guestRateLimits.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
-        return false;
-    }
-
-    entry.count++;
-    if (entry.count > maxRequests) {
-        return true; // Rate limited
-    }
-    return false;
-}
-
-// Periodically clean up stale entries (every 5 minutes)
-if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
-        const now = Date.now();
-        for (const [key, entry] of guestRateLimits.entries()) {
-            if (now > entry.resetAt) guestRateLimits.delete(key);
-        }
-    }, 5 * 60 * 1000);
-}
-
 export async function POST(req: NextRequest) {
     // Auth check
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        // Phase 3e: Allow guest usage but enforce rate limiting by IP
-        const ip = req.headers.get('x-forwarded-for') ||
-            req.headers.get('x-real-ip') || 'unknown';
-        const rateLimitKey = `whisper_guest_${ip}`;
-        const isRateLimited = checkGuestRateLimit(rateLimitKey, 20, 60);
-        if (isRateLimited) {
+        const ip =
+            req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+            req.headers.get('x-real-ip') ||
+            'unknown';
+        const { checkIpRateLimit } = await import('@/lib/rate-limit/ip-rate-limiter');
+        const rateCheck = await checkIpRateLimit(ip, {
+            maxRequests: 20,
+            windowSeconds: 60,
+            endpoint: 'whisper_guest',
+        });
+        if (!rateCheck.success) {
             return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
         }
     }
