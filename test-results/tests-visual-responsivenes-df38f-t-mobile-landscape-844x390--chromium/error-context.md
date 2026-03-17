@@ -1,0 +1,125 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e12] [cursor=pointer]:
+            - /url: /learn
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /dashboard
+            - text: Dashboard
+          - link "Assessments" [ref=e15] [cursor=pointer]:
+            - /url: /dashboard/interview-history
+        - button "T test" [ref=e17]:
+          - generic [ref=e19]: T
+          - generic [ref=e21]: test
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - paragraph [ref=e29]: Welcome back
+            - heading "test — keep pushing." [level=1] [ref=e30]
+          - generic [ref=e31]:
+            - generic [ref=e32]:
+              - generic [ref=e33]: Sessions
+              - generic [ref=e34]: "0"
+            - generic [ref=e35]:
+              - generic [ref=e36]: Avg Score
+              - generic [ref=e37]: 0.0/10
+            - generic [ref=e38]:
+              - generic [ref=e39]: Last Practice
+              - generic [ref=e40]: —
+        - generic [ref=e41]:
+          - button "Download Report" [disabled]:
+            - img
+            - text: Download Report
+          - link "Start Practice" [ref=e42] [cursor=pointer]:
+            - /url: /practice
+            - button "Start Practice" [ref=e43]:
+              - img
+              - text: Start Practice
+      - navigation [ref=e45]:
+        - button "Overview" [ref=e46]:
+          - img [ref=e47]
+          - generic [ref=e52]: Overview
+        - button "Skills" [ref=e53]:
+          - img [ref=e54]
+          - generic [ref=e56]: Skills
+        - button "History" [ref=e57]:
+          - img [ref=e58]
+          - generic [ref=e62]: History
+        - button "Insights" [ref=e63]:
+          - img [ref=e64]
+          - generic [ref=e66]: Insights
+        - button "Assessments" [ref=e67]:
+          - img [ref=e68]
+          - generic [ref=e70]: Assessments
+      - generic [ref=e71]:
+        - img [ref=e73]
+        - heading "Your journey hasn't started yet!" [level=3] [ref=e78]
+        - paragraph [ref=e79]: Complete your first voice-enabled interview to see your cognitive skill profile here.
+        - button "Start My First Session" [ref=e80]:
+          - img
+          - text: Start My First Session
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - img [ref=e84]
+          - heading "What's Coming to AlgoMind" [level=3] [ref=e87]
+        - generic [ref=e88]:
+          - button "Q2 2026 🏗️ System Design Interviews Design WhatsApp, YouTube, Uber — walk through your architecture Whiteboard-style system design prep with AI interviewer Get notified when this launches →" [ref=e89]:
+            - generic [ref=e90]: Q2 2026
+            - generic [ref=e91]:
+              - img [ref=e93]
+              - heading "🏗️ System Design Interviews" [level=4] [ref=e95]
+            - paragraph [ref=e96]: Design WhatsApp, YouTube, Uber — walk through your architecture
+            - paragraph [ref=e97]: Whiteboard-style system design prep with AI interviewer
+            - generic [ref=e98]: Get notified when this launches →
+          - button "Q3 2026 ⚡ Full Stack Debugging Find and fix bugs in React/Node.js code under time pressure Debug real codebases, explain your process out loud Get notified when this launches →" [ref=e99]:
+            - generic [ref=e100]: Q3 2026
+            - generic [ref=e101]:
+              - img [ref=e103]
+              - heading "⚡ Full Stack Debugging" [level=4] [ref=e112]
+            - paragraph [ref=e113]: Find and fix bugs in React/Node.js code under time pressure
+            - paragraph [ref=e114]: Debug real codebases, explain your process out loud
+            - generic [ref=e115]: Get notified when this launches →
+          - button "Q2 2026 📊 Resume Analyzer AI scores your resume against target job descriptions ATS optimization, keyword gaps, achievement quantification Get notified when this launches →" [ref=e116]:
+            - generic [ref=e117]: Q2 2026
+            - generic [ref=e118]:
+              - img [ref=e120]
+              - heading "📊 Resume Analyzer" [level=4] [ref=e123]
+            - paragraph [ref=e124]: AI scores your resume against target job descriptions
+            - paragraph [ref=e125]: ATS optimization, keyword gaps, achievement quantification
+            - generic [ref=e126]: Get notified when this launches →
+          - button "Q3 2026 📱 WhatsApp Practice Bot Daily problems sent to WhatsApp. Reply with voice notes. Practice wherever you are — no app needed Get notified when this launches →" [ref=e127]:
+            - generic [ref=e128]: Q3 2026
+            - generic [ref=e129]:
+              - img [ref=e131]
+              - heading "📱 WhatsApp Practice Bot" [level=4] [ref=e133]
+            - paragraph [ref=e134]: Daily problems sent to WhatsApp. Reply with voice notes.
+            - paragraph [ref=e135]: Practice wherever you are — no app needed
+            - generic [ref=e136]: Get notified when this launches →
+  - region "Notifications alt+T"
+  - generic [ref=e141] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e142]:
+      - img [ref=e143]
+    - generic [ref=e146]:
+      - button "Open issues overlay" [ref=e147]:
+        - generic [ref=e148]:
+          - generic [ref=e149]: "0"
+          - generic [ref=e150]: "1"
+        - generic [ref=e151]: Issue
+      - button "Collapse issues badge" [ref=e152]:
+        - img [ref=e153]
+  - alert [ref=e155]
+```

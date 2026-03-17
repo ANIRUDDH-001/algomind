@@ -375,7 +375,7 @@ export class UnifiedAIClient {
         const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (!apiKey) return { success: false, error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY" };
 
-        const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent`;
+        const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`;
 
         // Convert messages to Gemini format
         // System prompt is separate in v1beta
@@ -410,11 +410,7 @@ export class UnifiedAIClient {
 
         const response = await fetch(url, {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`,
-                "x-goog-api-key": apiKey
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
@@ -437,6 +433,31 @@ export class UnifiedAIClient {
     async tryAllGroqModels(messages: Message[], options: CompletionOptions) {
         const models = await getActiveModels();
         return this.tryProvider('groq', messages, options, [], models);
+    }
+
+    // --- Legacy / Compatibility Methods ---
+
+    /**
+     * Legacy chat method for backward compatibility
+     */
+    async chat(messages: Message[], options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}) {
+        const result = await this.generateCompletion(messages, {
+            preferredProvider: options.preferredTier ? 'groq' : undefined, // loose mapping
+            maxTokens: options.maxTokens,
+            temperature: options.temperature,
+            systemPrompt: options.systemPrompt
+        });
+
+        if (!result.success) {
+            throw new Error(result.error || "Chat generation failed");
+        }
+
+        // Return format expected by legacy code
+        return {
+            response: result.response,
+            modelUsed: result.modelUsed,
+            provider: result.provider
+        };
     }
 
     // --- Smart Routing (Intent-Classified) ---
@@ -797,6 +818,11 @@ export class UnifiedAIClient {
         };
     }
 
+    // Kept for legacy compatibility if called directly
+    async getRateLimitStatus() {
+        return this.getRateLimiterStatus();
+    }
+
     // --- Embedding Support (Restored for RAG compatibility) ---
     // User asked for "Direct API calls". I should implement Gemini Embeddings via REST.
     // Local Embeddings can remain as compatible via Xenova.
@@ -867,13 +893,10 @@ export class UnifiedAIClient {
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
         // Use v1beta for gemini-embedding-001
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "x-goog-api-key": apiKey
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 content: { parts: [{ text }] }
             })
@@ -899,6 +922,14 @@ export function getAIClient(): UnifiedAIClient {
         clientInstance = new UnifiedAIClient();
     }
     return clientInstance;
+}
+
+// Helper exports for backward compatibility and RAG imports
+export async function chat(
+    messages: Message[],
+    options: { preferredTier?: string; maxTokens?: number; temperature?: number; systemPrompt?: string } = {}
+) {
+    return getAIClient().chat(messages, options);
 }
 
 export async function embed(

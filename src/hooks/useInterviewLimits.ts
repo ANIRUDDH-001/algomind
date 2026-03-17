@@ -23,7 +23,6 @@ export interface InterviewLimits {
     stopTimer: () => void;
     incrementTurn: () => void;
     reset: () => void;
-    resetTurnsOnly: () => void;
 }
 
 export function useInterviewLimits(options?: {
@@ -96,10 +95,6 @@ export function useInterviewLimits(options?: {
         }
     }, []);
 
-    const resetTurnsOnly = useCallback(() => {
-        setTurnsUsed(0);
-    }, []);
-
     // Derived values
     const timeRemaining = Math.max(0, Math.floor(maxDurationMs / 1000) - elapsedTime);
     const turnsRemaining = isUnlimited ? 9999 : Math.max(0, effectiveMaxTurns - turnsUsed);
@@ -132,8 +127,7 @@ export function useInterviewLimits(options?: {
         startTimer,
         stopTimer,
         incrementTurn,
-        reset,
-        resetTurnsOnly
+        reset
     };
 }
 

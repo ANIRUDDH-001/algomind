@@ -1,6 +1,6 @@
 import { getSupabase } from '@/lib/supabase/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { SpacedRepetitionRecord } from './types';
+import { SpacedRepetitionRecord, computeNextReview } from './sm2';
 import { computeNextReviewFSRS, createNewFSRSCardData } from './fsrs';
 import { getServiceClient } from '@/lib/supabase/service';
 
@@ -165,9 +165,7 @@ export async function getDueReviews(userId: string): Promise<SpacedRepetitionRec
 
     const now = new Date().toISOString();
 
-    // FSRS-primary query: all new records use FSRS (use_fsrs=true).
-    // Legacy SM-2 fallback paths (use_fsrs=false / null) kept for pre-migration records.
-    // SM-2 algorithm (computeNextReview) was removed — these paths are read-only display.
+    // Fetch reviews due now supporting both FSRS and SM2
     const { data, error } = await supabase
         .from('spaced_repetition')
         .select('*')
@@ -199,9 +197,6 @@ export async function getUpcomingReviews(userId: string, days: number = 7): Prom
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + days);
 
-    // FSRS-primary query: all new records use FSRS (use_fsrs=true).
-    // Legacy SM-2 fallback paths (use_fsrs=false / null) kept for pre-migration records.
-    // SM-2 algorithm (computeNextReview) was removed — these paths are read-only display.
     const { data, error } = await supabase
         .from('spaced_repetition')
         .select('*')
