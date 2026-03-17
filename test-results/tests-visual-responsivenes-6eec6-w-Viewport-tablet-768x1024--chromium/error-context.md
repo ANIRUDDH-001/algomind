@@ -1,0 +1,113 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e12] [cursor=pointer]:
+            - /url: /learn
+        - button "Sign In" [ref=e14]
+  - main [ref=e16]:
+    - generic [ref=e18]:
+      - generic [ref=e20]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: K
+          - paragraph [ref=e25]: Ready when you are
+          - button "Begin Interview Experience" [ref=e26]
+        - generic [ref=e27]:
+          - button "Problem" [ref=e28]:
+            - img [ref=e29]
+            - generic [ref=e31]: Problem
+          - button "Kai" [ref=e32]:
+            - img [ref=e33]
+            - generic [ref=e36]: Kai
+          - button "Code" [ref=e38]:
+            - img [ref=e39]
+            - generic [ref=e42]: Code
+          - button "Chat" [ref=e43]:
+            - img [ref=e44]
+            - generic [ref=e46]: Chat
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]: Guest Mode
+          - heading "Choose Your Problem" [level=1] [ref=e52]
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - img [ref=e55]
+              - text: 10 rounds with Kai
+            - generic [ref=e58]:
+              - img [ref=e59]
+              - text: 10 minute session
+        - generic [ref=e62]:
+          - button "Two Sum Easy Array Hash Table" [ref=e63]:
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - generic [ref=e66]: Two Sum
+                - generic [ref=e67]: Easy
+              - generic [ref=e68]:
+                - generic [ref=e69]: Array
+                - generic [ref=e70]: Hash Table
+            - img [ref=e71]
+          - button "Valid Parentheses Easy String Stack" [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]:
+                - generic [ref=e76]: Valid Parentheses
+                - generic [ref=e77]: Easy
+              - generic [ref=e78]:
+                - generic [ref=e79]: String
+                - generic [ref=e80]: Stack
+            - img [ref=e81]
+          - button "Reverse Linked List Easy Linked List Recursion" [ref=e83]:
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e86]: Reverse Linked List
+                - generic [ref=e87]: Easy
+              - generic [ref=e88]:
+                - generic [ref=e89]: Linked List
+                - generic [ref=e90]: Recursion
+            - img [ref=e91]
+          - button "Maximum Subarray Medium Array Dynamic Programming Divide and Conquer" [ref=e93]:
+            - generic [ref=e94]:
+              - generic [ref=e95]:
+                - generic [ref=e96]: Maximum Subarray
+                - generic [ref=e97]: Medium
+              - generic [ref=e98]:
+                - generic [ref=e99]: Array
+                - generic [ref=e100]: Dynamic Programming
+                - generic [ref=e101]: Divide and Conquer
+            - img [ref=e102]
+          - button "Climbing Stairs Easy Dynamic Programming Math Memoization" [ref=e104]:
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - generic [ref=e107]: Climbing Stairs
+                - generic [ref=e108]: Easy
+              - generic [ref=e109]:
+                - generic [ref=e110]: Dynamic Programming
+                - generic [ref=e111]: Math
+                - generic [ref=e112]: Memoization
+            - img [ref=e113]
+        - button "Surprise Me — Pick Random" [ref=e115]:
+          - img
+          - text: Surprise Me — Pick Random
+        - paragraph [ref=e116]:
+          - text: Results are not saved in guest mode.
+          - link "Sign up free" [ref=e117] [cursor=pointer]:
+            - /url: /login
+          - text: to save your progress.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e123] [cursor=pointer]:
+    - img [ref=e124]
+  - alert [ref=e127]
+  - generic [ref=e128]:
+    - alert
+    - alert
+```

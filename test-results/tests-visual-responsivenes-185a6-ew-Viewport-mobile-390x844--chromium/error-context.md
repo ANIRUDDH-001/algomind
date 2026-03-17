@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - button "Sign In" [ref=e10]
+  - main [ref=e12]:
+    - generic [ref=e14]:
+      - generic [ref=e16]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: K
+          - paragraph [ref=e21]: Ready when you are
+          - button "Begin Interview Experience" [ref=e22]
+        - generic [ref=e23]:
+          - button "Problem" [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: Problem
+          - button "Kai" [ref=e28]:
+            - img [ref=e29]
+            - generic [ref=e32]: Kai
+          - button "Code" [ref=e34]:
+            - img [ref=e35]
+            - generic [ref=e38]: Code
+          - button "Chat" [ref=e39]:
+            - img [ref=e40]
+            - generic [ref=e42]: Chat
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]: Guest Mode
+          - heading "Choose Your Problem" [level=1] [ref=e48]
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - text: 10 rounds with Kai
+            - generic [ref=e54]:
+              - img [ref=e55]
+              - text: 10 minute session
+        - generic [ref=e58]:
+          - button "Two Sum Easy Array Hash Table" [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - generic [ref=e62]: Two Sum
+                - generic [ref=e63]: Easy
+              - generic [ref=e64]:
+                - generic [ref=e65]: Array
+                - generic [ref=e66]: Hash Table
+            - img [ref=e67]
+          - button "Valid Parentheses Easy String Stack" [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - generic [ref=e72]: Valid Parentheses
+                - generic [ref=e73]: Easy
+              - generic [ref=e74]:
+                - generic [ref=e75]: String
+                - generic [ref=e76]: Stack
+            - img [ref=e77]
+          - button "Reverse Linked List Easy Linked List Recursion" [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]: Reverse Linked List
+                - generic [ref=e83]: Easy
+              - generic [ref=e84]:
+                - generic [ref=e85]: Linked List
+                - generic [ref=e86]: Recursion
+            - img [ref=e87]
+          - button "Maximum Subarray Medium Array Dynamic Programming Divide and Conquer" [ref=e89]:
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e92]: Maximum Subarray
+                - generic [ref=e93]: Medium
+              - generic [ref=e94]:
+                - generic [ref=e95]: Array
+                - generic [ref=e96]: Dynamic Programming
+                - generic [ref=e97]: Divide and Conquer
+            - img [ref=e98]
+          - button "Climbing Stairs Easy Dynamic Programming Math Memoization" [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - generic [ref=e103]: Climbing Stairs
+                - generic [ref=e104]: Easy
+              - generic [ref=e105]:
+                - generic [ref=e106]: Dynamic Programming
+                - generic [ref=e107]: Math
+                - generic [ref=e108]: Memoization
+            - img [ref=e109]
+        - button "Surprise Me — Pick Random" [ref=e111]:
+          - img
+          - text: Surprise Me — Pick Random
+        - paragraph [ref=e112]:
+          - text: Results are not saved in guest mode.
+          - link "Sign up free" [ref=e113] [cursor=pointer]:
+            - /url: /login
+          - text: to save your progress.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e119] [cursor=pointer]:
+    - img [ref=e120]
+  - alert [ref=e123]
+  - generic [ref=e124]:
+    - alert
+    - alert
+```

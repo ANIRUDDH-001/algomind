@@ -55,13 +55,9 @@ export function Navbar() {
         fetchAccountType();
     }, [user?.id]);
 
-    const dashboardHref = accountType === 'owner'
-        ? '/owner'
-        : accountType === 'admin'
-            ? '/admin'
-            : accountType === 'employer'
-                ? '/employer/dashboard'
-                : '/dashboard';
+    const dashboardHref = accountType === 'employer'
+        ? '/employer/dashboard'
+        : '/dashboard';
 
     useEffect(() => {
         setIsDemo(isDemoMode());
@@ -132,7 +128,6 @@ export function Navbar() {
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
                                     { href: '/practice', label: 'Practice', authOnly: false },
-                                    { href: '/learn', label: 'Learn', authOnly: true },
                                     ...(user ? [
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         ...(accountType === 'employer'
@@ -322,7 +317,6 @@ export function Navbar() {
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
                                         { href: '/practice', label: 'Practice', icon: BookOpen },
-                                        { href: '/learn', label: 'Learn', icon: BookOpen },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },
                                     ])

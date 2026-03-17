@@ -1,0 +1,128 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+            - text: Home
+          - link "Practice" [ref=e12] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e13] [cursor=pointer]:
+            - /url: /learn
+        - button "Sign In" [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e24]: A
+          - heading "AI-Powered Technical Interview Practice" [level=1] [ref=e31]:
+            - generic [ref=e32]: AI-Powered Technical
+            - generic [ref=e33]: Interview Practice
+          - paragraph [ref=e34]: Practice with an AI interviewer trained on FAANG interview standards. Get real-time voice feedback, cognitive analysis, and ace your DSA rounds.
+          - button "Try for Free" [ref=e36]:
+            - text: Try for Free
+            - img
+        - generic [ref=e38]: Swipe to explore
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - heading "Master every angle" [level=2] [ref=e44]
+          - paragraph [ref=e45]: Beyond just writing code. Prove how you think.
+        - generic [ref=e46]:
+          - generic [ref=e50]:
+            - img [ref=e52]
+            - heading "Voice Interview" [level=3] [ref=e55]
+            - paragraph [ref=e56]: Converse naturally with our AI. It responds in real-time, asking probing follow-ups based on your exact approach.
+          - generic [ref=e69]:
+            - img [ref=e71]
+            - heading "Cognitive Analysis" [level=3] [ref=e79]
+            - paragraph [ref=e80]: We track 8 distinct cognitive skills—from pattern recognition to edge-case awareness—to find exactly what's holding you back.
+            - img [ref=e82]
+          - generic [ref=e91]:
+            - img [ref=e93]
+            - heading "Interview Modes" [level=3] [ref=e94]
+            - paragraph [ref=e95]: Choose between Warm-up, Practice, Crunch, and Sprint modes to match your preparation intensity.
+            - generic [ref=e96]:
+              - generic [ref=e97]: Warm-up
+              - generic [ref=e98]: Practice
+              - generic [ref=e99]: Crunch
+              - generic [ref=e100]: Sprint
+      - generic [ref=e102]:
+        - heading "Your path to an offer" [level=2] [ref=e104]
+        - generic [ref=e105]:
+          - generic [ref=e108]:
+            - generic [ref=e109]: "01"
+            - generic [ref=e110]:
+              - heading "Choose a problem" [level=4] [ref=e111]
+              - paragraph [ref=e112]: Pick from 343 curated DSA problems across all difficulty levels.
+          - generic [ref=e114]:
+            - generic [ref=e115]: "02"
+            - generic [ref=e116]:
+              - heading "Start Interview" [level=4] [ref=e117]
+              - paragraph [ref=e118]: Speak naturally. Explain your brute force and optimize together.
+          - generic [ref=e120]:
+            - generic [ref=e121]: "03"
+            - generic [ref=e122]:
+              - heading "Get Feedback" [level=4] [ref=e123]
+              - paragraph [ref=e124]: Receive immediate rubric-based scoring on 8 cognitive dimensions.
+          - generic [ref=e126]:
+            - generic [ref=e127]: "04"
+            - generic [ref=e128]:
+              - heading "Track Progress" [level=4] [ref=e129]
+              - paragraph [ref=e130]: Review your weaknesses and use Spaced Repetition to master them.
+      - generic [ref=e131]:
+        - heading "The platform built for success" [level=2] [ref=e133]
+        - generic [ref=e134]:
+          - generic [ref=e137]:
+            - generic [ref=e138]: 300+
+            - generic [ref=e139]: Leetcode Style Problems
+          - generic [ref=e142]:
+            - generic [ref=e143]: "8"
+            - generic [ref=e144]: Cognitive Skills Tracked
+          - generic [ref=e147]:
+            - generic [ref=e148]: 24/7
+            - generic [ref=e149]: Voice AI Feedback
+      - generic [ref=e151]:
+        - generic [ref=e153]:
+          - heading "Available Everywhere" [level=2] [ref=e154]
+          - paragraph [ref=e155]: Install AlgoMind as a PWA on any device for a native-like experience.
+        - generic [ref=e179]:
+          - generic [ref=e181]:
+            - img [ref=e183]
+            - generic [ref=e185]:
+              - heading "One-Tap Access" [level=4] [ref=e186]
+              - paragraph [ref=e187]: Launch instantly from your home screen or dock.
+          - generic [ref=e189]:
+            - img [ref=e191]
+            - generic [ref=e194]:
+              - heading "Native Experience" [level=4] [ref=e195]
+              - paragraph [ref=e196]: Smooth transitions and immersive full-screen mode.
+          - generic [ref=e198]:
+            - img [ref=e200]
+            - generic [ref=e208]:
+              - heading "Offline Readiness" [level=4] [ref=e209]
+              - paragraph [ref=e210]: Access core resources even with spotty connectivity.
+      - generic [ref=e211]:
+        - generic [ref=e216]:
+          - heading "Ready to ace your next interview?" [level=2] [ref=e217]
+          - paragraph [ref=e218]: Stop grinding silently. Start practicing how you'll actually perform.
+          - button "Get Started Free" [ref=e220]
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - img [ref=e223]
+              - text: Free forever tier
+            - generic [ref=e226]:
+              - img [ref=e227]
+              - text: No payments required
+        - paragraph [ref=e231]: © 2026 AlgoMind. All rights reserved.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e237] [cursor=pointer]:
+    - img [ref=e238]
+  - alert [ref=e241]
+```

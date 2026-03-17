@@ -1,0 +1,257 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+            - text: Practice
+          - link "Learn" [ref=e13] [cursor=pointer]:
+            - /url: /learn
+          - link "Dashboard" [ref=e14] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Assessments" [ref=e15] [cursor=pointer]:
+            - /url: /dashboard/interview-history
+        - button "T test" [ref=e17]:
+          - generic [ref=e19]: T
+          - generic [ref=e21]: test
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - heading "Practice Problems" [level=1] [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]: 343 problems available
+            - generic [ref=e32]: 0 attempted
+        - button "Random Problem" [ref=e33]:
+          - img
+          - text: Random Problem
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - button "🟢 Warm-Up Basic patterns, 20 mins Encouraging interviewer, hints available" [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]: 🟢
+              - generic [ref=e39]: Warm-Up
+            - paragraph [ref=e40]: Basic patterns, 20 mins
+            - paragraph [ref=e41]: Encouraging interviewer, hints available
+          - button "Default 🟡 Practice Standard interview pace, 30 mins Balanced feedback and guidance" [ref=e42]:
+            - generic [ref=e43]: Default
+            - generic [ref=e44]:
+              - generic [ref=e45]: 🟡
+              - generic [ref=e46]: Practice
+            - paragraph [ref=e47]: Standard interview pace, 30 mins
+            - paragraph [ref=e48]: Balanced feedback and guidance
+          - button "🔴 Crunch Time-pressured, 25 mins Strict interviewer, minimal hints" [ref=e49]:
+            - generic [ref=e50]:
+              - generic [ref=e51]: 🔴
+              - generic [ref=e52]: Crunch
+            - paragraph [ref=e53]: Time-pressured, 25 mins
+            - paragraph [ref=e54]: Strict interviewer, minimal hints
+          - button "⚡ Sprint 2 problems, 45 mins Simulate back-to-back real interviews" [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: ⚡
+              - generic [ref=e58]: Sprint
+            - paragraph [ref=e59]: 2 problems, 45 mins
+            - paragraph [ref=e60]: Simulate back-to-back real interviews
+        - button "Show company context" [ref=e61]:
+          - img [ref=e62]
+          - text: Show company context
+          - img [ref=e66]
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - img [ref=e71]
+          - textbox "Search problems (e.g., 'Two Sum')" [ref=e74]
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - combobox [ref=e77] [cursor=pointer]:
+              - option "All Topics" [selected]
+              - option "Array"
+              - option "String"
+              - option "Hash Table"
+              - option "Dynamic Programming"
+              - option "Math"
+              - option "Sorting"
+              - option "Greedy"
+              - option "Depth-First Search"
+              - option "Binary Search"
+              - option "Matrix"
+              - option "Tree"
+              - option "Heap"
+              - option "Graph"
+              - option "Two Pointers"
+              - option "Binary Tree"
+              - option "Backtracking"
+              - option "Stack"
+              - option "Linked List"
+              - option "Sliding Window"
+            - img
+          - generic [ref=e78]:
+            - combobox [ref=e79] [cursor=pointer]:
+              - option "All Problems" [selected]
+              - option "🔥 Blind 75"
+              - option "💪 Grind 75"
+              - option "🎯 NeetCode 150"
+              - option "📚 Striver A-Z"
+            - img
+          - generic [ref=e80]:
+            - combobox [ref=e81] [cursor=pointer]:
+              - option "All Levels" [selected]
+              - option "🟢 Easy"
+              - option "🟡 Medium"
+              - option "🔴 Hard"
+            - img
+          - generic [ref=e82]:
+            - combobox [ref=e83] [cursor=pointer]:
+              - option "All Status" [selected]
+              - option "✓ Attempted"
+              - option "New Problems"
+            - img
+      - generic [ref=e84]:
+        - generic [ref=e86] [cursor=pointer]:
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e90]: Easy
+              - heading "Add Binary" [level=3] [ref=e91]
+            - button "Practice" [ref=e92]
+          - generic [ref=e93]:
+            - generic [ref=e94]: math
+            - generic [ref=e95]: string
+            - generic [ref=e96]: bit-manipulation
+            - generic [ref=e97]: simulation
+        - generic [ref=e99] [cursor=pointer]:
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e103]: Easy
+              - heading "Assign Cookies" [level=3] [ref=e104]
+            - button "Practice" [ref=e105]
+          - generic [ref=e106]:
+            - generic [ref=e107]: array
+            - generic [ref=e108]: greedy
+            - generic [ref=e109]: sorting
+            - generic [ref=e110]: two-pointers
+        - generic [ref=e112] [cursor=pointer]:
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - generic [ref=e116]: Easy
+              - heading "Backspace String Compare" [level=3] [ref=e117]
+            - button "Practice" [ref=e118]
+          - generic [ref=e119]:
+            - generic [ref=e120]: two-pointers
+            - generic [ref=e121]: string
+            - generic [ref=e122]: stack
+            - generic [ref=e123]: simulation
+        - generic [ref=e125] [cursor=pointer]:
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e129]: Easy
+              - heading "Balanced Binary Tree" [level=3] [ref=e130]
+            - button "Practice" [ref=e131]
+          - generic [ref=e132]:
+            - generic [ref=e133]: tree
+            - generic [ref=e134]: depth-first-search
+            - generic [ref=e135]: binary-tree
+        - generic [ref=e137] [cursor=pointer]:
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - generic [ref=e141]: Easy
+              - heading "Binary Tree Inorder Traversal" [level=3] [ref=e142]
+            - button "Practice" [ref=e143]
+          - generic [ref=e144]:
+            - generic [ref=e145]: tree
+            - generic [ref=e146]: depth-first-search
+            - generic [ref=e147]: stack
+            - generic [ref=e148]: binary-tree
+        - generic [ref=e150] [cursor=pointer]:
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - generic [ref=e154]: Easy
+              - heading "Binary Tree Postorder Traversal" [level=3] [ref=e155]
+            - button "Practice" [ref=e156]
+          - generic [ref=e157]:
+            - generic [ref=e158]: stack
+            - generic [ref=e159]: tree
+            - generic [ref=e160]: depth-first-search
+            - generic [ref=e161]: binary-tree
+        - generic [ref=e163] [cursor=pointer]:
+          - generic [ref=e164]:
+            - generic [ref=e165]:
+              - generic [ref=e167]: Easy
+              - heading "Binary Tree Preorder Traversal" [level=3] [ref=e168]
+            - button "Practice" [ref=e169]
+          - generic [ref=e170]:
+            - generic [ref=e171]: stack
+            - generic [ref=e172]: tree
+            - generic [ref=e173]: depth-first-search
+            - generic [ref=e174]: binary-tree
+        - generic [ref=e176] [cursor=pointer]:
+          - generic [ref=e177]:
+            - generic [ref=e178]:
+              - generic [ref=e180]: Easy
+              - heading "Climbing Stairs" [level=3] [ref=e181]
+            - button "Practice" [ref=e182]
+          - generic [ref=e183]:
+            - generic [ref=e184]: Blind 75
+            - generic [ref=e185]: NeetCode 150
+            - generic [ref=e186]: Dynamic Programming
+        - generic [ref=e188] [cursor=pointer]:
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - generic [ref=e192]: Easy
+              - heading "Contains Duplicate" [level=3] [ref=e193]
+            - button "Practice" [ref=e194]
+          - generic [ref=e195]:
+            - generic [ref=e196]: array
+            - generic [ref=e197]: hash-table
+            - generic [ref=e198]: sorting
+        - generic [ref=e200] [cursor=pointer]:
+          - generic [ref=e201]:
+            - generic [ref=e202]:
+              - generic [ref=e204]: Easy
+              - heading "Convert Sorted Array to Binary Search Tree" [level=3] [ref=e205]
+            - button "Practice" [ref=e206]
+          - generic [ref=e207]:
+            - generic [ref=e208]: array
+            - generic [ref=e209]: tree
+            - generic [ref=e210]: binary-search-tree
+            - generic [ref=e211]: divide-and-conquer
+      - generic [ref=e213]:
+        - button "First" [disabled] [ref=e214]:
+          - img [ref=e215]
+          - text: First
+        - button "Prev" [disabled] [ref=e218]:
+          - img [ref=e219]
+          - text: Prev
+        - generic [ref=e222]:
+          - button "1" [ref=e223]
+          - button "2" [ref=e224]
+          - button "3" [ref=e225]
+          - button "4" [ref=e226]
+          - button "5" [ref=e227]
+        - button "Next" [ref=e229]:
+          - text: Next
+          - img [ref=e230]
+        - button "Last" [ref=e232]:
+          - text: Last
+          - img [ref=e233]
+  - region "Notifications alt+T"
+  - generic [ref=e240] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e241]:
+      - img [ref=e242]
+    - generic [ref=e245]:
+      - button "Open issues overlay" [ref=e246]:
+        - generic [ref=e247]:
+          - generic [ref=e248]: "0"
+          - generic [ref=e249]: "1"
+        - generic [ref=e250]: Issue
+      - button "Collapse issues badge" [ref=e251]:
+        - img [ref=e252]
+  - alert [ref=e254]
+```

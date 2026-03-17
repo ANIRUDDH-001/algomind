@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Clock, RotateCcw, ChevronRight, ChevronDown, ChevronUp, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
@@ -33,13 +33,9 @@ interface SessionData {
 }
 
 interface TranscriptTurn {
-    // Regular interview sessions use {role, content, timestamp}
-    role?: string;
-    content?: string;
-    // Candidate/assessment sessions use {speaker, text}
-    speaker?: string;
-    text?: string;
-    timestamp?: string | number;
+    speaker: string;
+    text: string;
+    timestamp?: number;
 }
 
 interface AIKeyMoment {
@@ -303,73 +299,6 @@ function formatDuration(seconds: number): string {
     const m = Math.floor(seconds / 60);
     return m < 1 ? 'less than a minute' : `${m} minute${m !== 1 ? 's' : ''}`;
 }
-// ─── Moment Card (with expand/collapse for long quotes) ─────────────────────
-
-function MomentCard({ moment, idx, typeConfig, isLongQuote }: {
-    moment: AIKeyMoment; idx: number;
-    typeConfig: { icon: string; label: string; color: string };
-    isLongQuote: boolean;
-}) {
-    const [expanded, setExpanded] = useState(false);
-    const displayQuote = isLongQuote && !expanded
-        ? moment.quote.slice(0, 120) + '…'
-        : moment.quote;
-
-    return (
-        <motion.div
-            className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 + idx * 0.1 }}
-        >
-            {/* Timeline dot */}
-            <div
-                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
-                style={{
-                    background: typeConfig.color + '20',
-                    border: `2px solid ${typeConfig.color}`,
-                }}
-            >
-                {typeConfig.icon}
-            </div>
-
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider"
-                        style={{ color: typeConfig.color }}
-                    >
-                        {typeConfig.label}
-                    </span>
-                    {moment.dimension && (
-                        <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
-                            {SKILL_DEFINITIONS[moment.dimension as CognitiveSkill]?.name || moment.dimension}
-                        </span>
-                    )}
-                </div>
-
-                <div className="text-xs text-zinc-200 font-mono bg-zinc-900/50 rounded px-2 py-1 mb-1 break-words">
-                    <span>&ldquo;{displayQuote}&rdquo;</span>
-                    {isLongQuote && (
-                        <button
-                            onClick={() => setExpanded(!expanded)}
-                            className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
-                        >
-                            {expanded ? (
-                                <><ChevronUp className="w-3 h-3" /> Less</>
-                            ) : (
-                                <><ChevronDown className="w-3 h-3" /> More</>
-                            )}
-                        </button>
-                    )}
-                </div>
-
-                <p className="text-[10px] text-zinc-500 leading-relaxed">
-                    {moment.significance}
-                </p>
-            </div>
-        </motion.div>
-    );
-}
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -398,7 +327,7 @@ export function AnalysisClient({
                 problemId: session.problemId,
                 problemTitle: session.problemTitle,
                 problemDifficulty: session.problemDifficulty,
-                overallScore: session.overallScore || (assessment?.overallScore ?? 0),
+                overallScore: session.overallScore || assessment?.overallScore || 5,
             });
             if (result) {
                 setLocalSm2({
@@ -421,18 +350,14 @@ export function AnalysisClient({
         }
     }, [session, assessment]);
 
-    // Extract first actionable sentence from feedback (prefer sentences with action words)
+    // Extract first actionable sentence from feedback
     const oneThingFeedback = (() => {
         if (!assessment?.overallFeedback) return null;
         const sentences = assessment.overallFeedback
             .split(/[.!]\s+/)
             .map(s => s.trim())
             .filter(s => s.length > 20);
-        // Prefer a sentence with actionable language
-        const actionWords = ['focus', 'practice', 'improve', 'work on', 'try', 'consider', 'strengthen', 'develop', 'revisit', 'should'];
-        const actionable = sentences.find(s => actionWords.some(w => s.toLowerCase().includes(w)));
-        const picked = actionable || sentences[0];
-        return picked ? picked + '.' : null;
+        return sentences[0] ? sentences[0] + '.' : null;
     })();
 
     const difficultyColors: Record<string, string> = {
@@ -449,9 +374,9 @@ export function AnalysisClient({
                 {...ANIM.fadeUp}
                 transition={TRANSITIONS.page}
             >
-                <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                </button>
+                <Link href="/practice" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
+                    <ArrowLeft className="w-4 h-4" /> Back to Practice
+                </Link>
                 <h1 className="text-2xl font-black text-white tracking-tight">
                     Interview Analysis
                 </h1>
@@ -622,7 +547,8 @@ export function AnalysisClient({
                     {assessment?.overallFeedback && (
                         <div className="pt-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
                             <p className="text-sm text-zinc-300 leading-relaxed line-clamp-4">
-                                {assessment.overallFeedback}
+                                {assessment.overallFeedback.slice(0, 300)}
+                                {assessment.overallFeedback.length > 300 && '...'}
                             </p>
                         </div>
                     )}
@@ -665,16 +591,49 @@ export function AnalysisClient({
                             {aiMoments.map((moment, idx) => {
                                 const typeKey = moment.type || (moment.sentiment === 'positive' ? 'impressive' : moment.sentiment === 'negative' ? 'gap' : 'notable');
                                 const typeConfig = MOMENT_TYPE_CONFIG[typeKey] || MOMENT_TYPE_CONFIG.notable;
-                                const isLongQuote = moment.quote.length > 120;
 
                                 return (
-                                    <MomentCard
-                                        key={idx}
-                                        moment={moment}
-                                        idx={idx}
-                                        typeConfig={typeConfig}
-                                        isLongQuote={isLongQuote}
-                                    />
+                                <motion.div
+                                    key={idx}
+                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors relative"
+                                    initial={{ opacity: 0, x: -12 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 + idx * 0.1 }}
+                                >
+                                    {/* Timeline dot */}
+                                    <div
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs z-10"
+                                        style={{
+                                            background: typeConfig.color + '20',
+                                            border: `2px solid ${typeConfig.color}`,
+                                        }}
+                                    >
+                                        {typeConfig.icon}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider"
+                                                style={{ color: typeConfig.color }}
+                                            >
+                                                {typeConfig.label}
+                                            </span>
+                                            {moment.dimension && (
+                                                <span className="text-[8px] font-bold text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
+                                                    {SKILL_DEFINITIONS[moment.dimension as CognitiveSkill]?.name || moment.dimension}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <p className="text-xs text-zinc-200 font-mono bg-zinc-900/50 rounded px-2 py-1 mb-1 break-words">
+                                            &ldquo;{moment.quote}&rdquo;
+                                        </p>
+
+                                        <p className="text-[10px] text-zinc-500 leading-relaxed">
+                                            {moment.significance}
+                                        </p>
+                                    </div>
+                                </motion.div>
                                 );
                             })}
                         </div>
@@ -720,26 +679,16 @@ export function AnalysisClient({
                         const now = new Date();
                         const daysUntilReview = Math.max(0, Math.ceil((reviewDate.getTime() - now.getTime()) / 86400000));
                         const isDue = daysUntilReview === 0;
+                        const difficultyVal = localSm2.fsrsDifficulty ?? localSm2.easeFactor;
+                        // FSRS difficulty is 1-10 scale; normalize to 0-100%
                         const difficultyPct = localSm2.fsrsDifficulty != null
                             ? Math.round(localSm2.fsrsDifficulty * 10)
-                            : 0; // Pre-FSRS session — show as unscored, not a corrupted SM-2 calculation
-                        const difficultyLabel = difficultyPct === 0
-                            ? 'No data'
-                            : difficultyPct <= 30 ? 'Easy'
-                            : difficultyPct <= 60 ? 'Moderate'
-                            : 'Hard';
-                        const difficultyColor = difficultyPct === 0
-                            ? 'text-zinc-500'
-                            : difficultyPct <= 30 ? 'text-emerald-400'
-                            : difficultyPct <= 60 ? 'text-amber-400'
-                            : 'text-red-400';
-                        const difficultyBarColor = difficultyPct === 0
-                            ? 'bg-zinc-700'
-                            : difficultyPct <= 30 ? 'bg-emerald-500'
-                            : difficultyPct <= 60 ? 'bg-amber-500'
-                            : 'bg-red-500';
+                            : Math.round(((5 - localSm2.easeFactor) / 3.7) * 100); // SM2 ease 1.3-5.0 → inverted
+                        const difficultyLabel = difficultyPct <= 30 ? 'Easy' : difficultyPct <= 60 ? 'Moderate' : 'Hard';
+                        const difficultyColor = difficultyPct <= 30 ? 'text-emerald-400' : difficultyPct <= 60 ? 'text-amber-400' : 'text-red-400';
+                        const difficultyBarColor = difficultyPct <= 30 ? 'bg-emerald-500' : difficultyPct <= 60 ? 'bg-amber-500' : 'bg-red-500';
                         const stabilityDays = localSm2.fsrsStability != null ? Math.round(localSm2.fsrsStability) : localSm2.intervalDays;
-                        const reps = localSm2.fsrsReps ?? 0;
+                        const reps = localSm2.fsrsReps ?? localSm2.repetitions;
                         const lapses = localSm2.fsrsLapses ?? 0;
 
                         return (
@@ -855,20 +804,22 @@ export function AnalysisClient({
                             </Button>
                         </Link>
 
-                        {flags.enableLearnMode && session?.problemId && (
-                            <Link href={`/learn?problemId=${session.problemId}&fromSessionId=${session.id}`} className="block">
-                                <a className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-sm font-bold transition-all" data-testid="learn-button">
-                                    <span>🧠</span>
-                                    Deep Dive with Kai
-                                </a>
+                        {flags.enableLearnMode && (
+                            <Link href={`/learn?problemId=${session.problemId}`} className="block">
+                                <Button variant="outline" className="w-full text-zinc-300 hover:text-white"
+                                    style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
+                                    data-testid="learn-button"
+                                >
+                                    <BookOpen className="w-4 h-4 mr-2" /> Learn This Concept
+                                </Button>
                             </Link>
                         )}
 
-                        <button onClick={() => window.history.back()} className="block w-full">
+                        <Link href="/practice" className="block">
                             <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300">
-                                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
                             </Button>
-                        </button>
+                        </Link>
 
                         {assessment && (
                             <ExportReportButton sessionData={{

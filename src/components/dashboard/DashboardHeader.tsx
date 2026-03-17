@@ -11,9 +11,10 @@ import { useAuth } from '@/components/auth/AuthProvider';
 
 interface DashboardHeaderProps {
     progress: UserProgress | null;
+    leetcodeUsername?: string | null;
 }
 
-export function DashboardHeader({ progress }: DashboardHeaderProps) {
+export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderProps) {
     const { user } = useAuth();
     const latestSession = progress?.sessions?.[0];
     const avgScore = progress?.averageScore || 0;
@@ -34,12 +35,14 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                     </h1>
                 </div>
 
+                {/* Stats row — horizontal scroll on mobile */}
                 <div className="flex gap-3 overflow-x-auto pb-1 mobile-scroll-container -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
-                    {([
+                    {[
                         { label: 'Sessions', value: totalSessions, sub: null },
                         { label: 'Avg Score', value: `${avgScore.toFixed(1)}`, sub: '/10', accent: true },
                         { label: 'Last Practice', value: lastDate, sub: null },
-                    ] as Array<{ label: string; value: string | number; sub: string | null; accent?: boolean; action?: string | null }>).map((stat) => {
+                        { label: 'LeetCode', value: leetcodeUsername || '—', sub: null, action: !leetcodeUsername ? '/settings' : null },
+                    ].map((stat) => {
                         const content = (
                             <>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{stat.label}</span>

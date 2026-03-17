@@ -1,0 +1,126 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e12] [cursor=pointer]:
+            - /url: /learn
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Assessments" [ref=e14] [cursor=pointer]:
+            - /url: /dashboard/interview-history
+        - button "T test" [ref=e16]:
+          - generic [ref=e18]: T
+          - generic [ref=e20]: test
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - link "Back to Dashboard" [ref=e24] [cursor=pointer]:
+        - /url: /
+        - img [ref=e25]
+        - text: Back to Dashboard
+      - heading "Settings" [level=1] [ref=e27]
+      - paragraph [ref=e28]: Manage your profile, preferences, and connected services.
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - heading "Profile Outline" [level=2] [ref=e31]
+          - generic [ref=e33]:
+            - generic [ref=e34]: T
+            - generic [ref=e35]:
+              - paragraph [ref=e36]: AlgoMind User
+              - paragraph [ref=e37]: test@example.com
+        - generic [ref=e38]:
+          - heading "AI Interviewer Voice" [level=2] [ref=e39]
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - text: TTS Provider
+              - generic [ref=e43]: Browser Voice
+              - paragraph [ref=e45]: "Active voice: Default browser voice"
+            - generic [ref=e46]:
+              - generic [ref=e47]: Voice Engine Preference
+              - generic [ref=e48]:
+                - button "Auto Follow system setting" [ref=e49]:
+                  - generic [ref=e50]: Auto
+                  - generic [ref=e51]: Follow system setting
+                - button "AWS Polly High quality, Indian English" [ref=e52]:
+                  - generic [ref=e53]: AWS Polly
+                  - generic [ref=e54]: High quality, Indian English
+                - button "Browser Built-in, always available" [ref=e55]:
+                  - generic [ref=e56]: Browser
+                  - generic [ref=e57]: Built-in, always available
+            - generic [ref=e58]:
+              - text: Browser Voice Model
+              - combobox [ref=e59]:
+                - generic: Select a voice
+                - img [ref=e60]
+              - paragraph [ref=e62]: Voice quality depends on your browser when using Browser mode
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: Speaking Rate
+                - generic [ref=e66]: 1.1x
+              - slider [ref=e71]
+              - generic [ref=e72]:
+                - generic [ref=e73]: Slow
+                - generic [ref=e74]: Normal
+                - generic [ref=e75]: Fast
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - text: Hinglish Mode
+                - generic [ref=e78]: 🇮🇳 INDIA
+              - generic [ref=e80] [cursor=pointer]:
+                - paragraph [ref=e81]: Kai speaks in English
+                - paragraph [ref=e82]: Pure English — best for interview prep
+            - generic [ref=e85]:
+              - button "Test Voice" [ref=e86]:
+                - img
+                - text: Test Voice
+              - button "Save Settings" [ref=e87]
+        - generic [ref=e88]:
+          - heading "Data Storage" [level=2] [ref=e89]
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - img [ref=e92]
+              - generic [ref=e94]: Cloud Sync Enabled
+            - paragraph [ref=e95]: Your data is securely stored in the cloud and syncs across devices.
+        - generic [ref=e96]:
+          - heading "Application Info" [level=2] [ref=e97]
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - generic [ref=e100]:
+                - img [ref=e102]
+                - generic [ref=e104]:
+                  - heading "Interactive Demo" [level=3] [ref=e105]
+                  - paragraph [ref=e106]: Experience AlgoMind with sample data and tour
+              - button "Start Demo Tour" [ref=e107]
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - paragraph [ref=e110]: AlgoMind
+                - paragraph [ref=e111]: Built with Next.js 15, Gemini AI, and Groq
+              - paragraph [ref=e112]: v1.1.0
+        - generic [ref=e113]:
+          - heading "Danger Zone" [level=2] [ref=e114]
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - generic [ref=e117]:
+                - paragraph [ref=e118]: Sign Out
+                - paragraph [ref=e119]: Disconnect your account from this device.
+              - button "Sign Out" [ref=e120]
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - paragraph [ref=e123]: Clear All Data
+                - paragraph [ref=e124]: Permanently delete all sessions and assessments.
+              - button "Clear Data" [ref=e125]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e131] [cursor=pointer]:
+    - img [ref=e132]
+  - alert [ref=e135]
+```

@@ -1,0 +1,44 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e12] [cursor=pointer]:
+            - /url: /learn
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Assessments" [ref=e14] [cursor=pointer]:
+            - /url: /dashboard/interview-history
+        - button "T test" [ref=e16]:
+          - generic [ref=e18]: T
+          - generic [ref=e20]: test
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - paragraph [ref=e25]: Daily limit reached (0/5 questions). Try again tomorrow!
+      - paragraph [ref=e26]: You've used all your daily questions. Come back tomorrow!
+  - region "Notifications alt+T"
+  - generic [ref=e31] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e32]:
+      - img [ref=e33]
+    - generic [ref=e36]:
+      - button "Open issues overlay" [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: "1"
+          - generic [ref=e40]: "2"
+        - generic [ref=e41]:
+          - text: Issue
+          - generic [ref=e42]: s
+      - button "Collapse issues badge" [ref=e43]:
+        - img [ref=e44]
+  - alert [ref=e46]
+```

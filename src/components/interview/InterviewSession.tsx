@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';
 import { type CognitiveSkill } from '@/types/assessment';
@@ -7,9 +7,11 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
+import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { InterviewLimitBar } from './InterviewLimitBar';
+import { TextInterviewMode } from './TextInterviewMode';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -22,11 +24,9 @@ import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight, Code2, FileText } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle, useResizablePanelGroup } from '@/components/ui/resizable';
-import { InterviewTopBar } from './InterviewTopBar';
 
 // Assessment & Core
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
@@ -37,13 +37,9 @@ import { SkillBadge } from '@/components/assessment/SkillBadge';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
 import { CodeEditor } from './CodeEditor';
-import type { ExecutionResult } from './CodeEditor';
-import { TestCasePanel, buildKaiExecutionContext, matchResults } from './TestCasePanel';
-import type { TestCase, TestCaseResult } from './TestCasePanel';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
-import { StreakMilestoneModal } from '../dashboard/StreakMilestoneModal';
 
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
@@ -56,7 +52,7 @@ import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/inter
 import type { KaiMemoryStructured } from '@/types/kai-memory';
 import { getSupabase } from '@/lib/supabase/client';
 import { getProblemById } from '@/lib/supabase/problems';
-// (GUEST_INTRO_BANNER import removed — was unused)
+import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -65,7 +61,6 @@ interface InterviewSessionProps {
     isReviewMode?: boolean;
     readOnly?: boolean;
     initialTranscript?: { role: string; content: string }[];
-    userTtsProvider?: 'auto' | 'polly' | 'browser';
 
     // Employer assessment
     isAssessment?: boolean;
@@ -73,42 +68,10 @@ interface InterviewSessionProps {
     assessmentApiEndpoint?: string;
     startTimeOffsetSeconds?: number;
     onAssessmentComplete?: (duration: number, transcript: any[], flags?: string[]) => Promise<void>;
-    // Campaign Overrides
-    apiEndpoint?: string;
-    sessionToken?: string;
-    onCampaignQuestionEnd?: (transcript: any[], code: string, elapsedSecs: number) => void;
-    onCampaignSaveProgress?: (transcript: any[], code: string, elapsedSecs: number) => void;
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
 type MobileTab = typeof mobileTabs[number];
-
-/**
- * Invisible controller rendered inside ResizablePanelGroup.
- * Calls setPanelSize programmatically when isProblemCollapsed changes,
- * so the problem panel actually resizes without remounting (no ghost IDs).
- */
-function ThreePanelCollapseController({ isProblemCollapsed }: { isProblemCollapsed: boolean }) {
-    const { setPanelSize } = useResizablePanelGroup();
-    const isFirstRender = React.useRef(true);
-
-    React.useEffect(() => {
-        // Skip the very first render — let defaultSize initialise sizes normally
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-        if (isProblemCollapsed) {
-            // Collapse to 3% (48px at typical viewport widths)
-            setPanelSize('problem-panel', 3);
-        } else {
-            // Expand back to 25%
-            setPanelSize('problem-panel', 25);
-        }
-    }, [isProblemCollapsed, setPanelSize]);
-
-    return null;
-}
 
 export function InterviewSession({
     problem,
@@ -121,12 +84,7 @@ export function InterviewSession({
     assessmentSessionToken,
     assessmentApiEndpoint,
     startTimeOffsetSeconds,
-    onAssessmentComplete,
-    apiEndpoint,
-    sessionToken,
-    onCampaignQuestionEnd,
-    onCampaignSaveProgress,
-    userTtsProvider
+    onAssessmentComplete
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -145,16 +103,14 @@ export function InterviewSession({
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+    const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
 
-    const [lastExecResult, setLastExecResult] = useState<ExecutionResult | null>(null);
-    const [isExecRunning, setIsExecRunning] = useState(false);
-
     // Desktop Layout State
-    const [isProblemCollapsed, setIsProblemCollapsed] = useState(false);
-    const [streakMilestone, setStreakMilestone] = useState<{days: number; isRecord: boolean; onDismiss?: () => void} | null>(null);
+    const [showProblemPanel, setShowProblemPanel] = useState(true);
+    const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
@@ -165,19 +121,40 @@ export function InterviewSession({
 
     // Mobile Swipe Navigation State
     const [activeTab, setActiveTab] = useState<MobileTab>('interview');
-    const { handlers: swipeHandlers, currentIndex, dragOffset } = useSwipeNavigation({
+    const { handlers: swipeHandlers, currentIndex } = useSwipeNavigation({
         tabs: mobileTabs,
         activeTab: activeTab,
         onTabChange: (tab) => setActiveTab(tab as MobileTab),
         disabled: showLimitModal || showLoginModal || isAssessment && activeTab === 'problem', // Optional conditional disablings
     });
 
+    // Handle screen resize fallback properly
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                // Reset tab stuff if resized to desktop
+                if (showCodeEditor && activeTab !== 'code') setShowCodeEditor(true);
+                if (!showCodeEditor && activeTab === 'code') setShowCodeEditor(false);
+            } else {
+                // Sync state when resizing to mobile
+                if (showCodeEditor) setActiveTab('code');
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [showCodeEditor, activeTab]);
 
+    // Handle screen resize fallback properly
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            if (activeTab === 'code' && !showCodeEditor) setShowCodeEditor(true);
+            if (activeTab !== 'code' && showCodeEditor) setShowCodeEditor(false);
+        }
+    }, [activeTab, showCodeEditor]);
 
     const [sprintTransitionMsg, setSprintTransitionMsg] = useState<string | null>(null);
     const [sprintProblem2, setSprintProblem2] = useState<Problem | null>(null);
     const [sprintCurrentIndex, setSprintCurrentIndex] = useState<0 | 1>(0);
-    const sprintP1TranscriptRef = useRef<typeof messages>([]);
 
     // Sprint: fetch problem 2 upfront so it's ready when problem 1 ends
     useEffect(() => {
@@ -208,15 +185,7 @@ export function InterviewSession({
     const [activeProblem, setActiveProblem] = useState(problem);
     const [guestDurationSecs, setGuestDurationSecs] = useState(0);
 
-    const testCases: TestCase[] = useMemo(() => {
-        const examples = (activeProblem as any)?.examples;
-        if (!examples || !Array.isArray(examples)) return [];
-        return examples.map((ex: any) => ({
-            input: String(ex.input ?? ''),
-            expected: String(ex.output ?? ''),
-            explanation: ex.explanation ? String(ex.explanation) : undefined,
-        }));
-    }, [activeProblem]);
+
 
     const handleGuestProblemSelect = useCallback((selected: typeof GUEST_PROBLEMS[number]) => {
         setActiveProblem(selected);
@@ -302,38 +271,24 @@ export function InterviewSession({
         isTimeUp: limits.isTimeUp,
         turnsRemaining: limits.turnsRemaining,
         timeRemaining: limits.timeRemaining,
-        voicePrefs: { name: voicePrefs.name, rate: voicePrefs.rate, pitch: voicePrefs.pitch },
+        voicePrefs,
         isReviewMode,
-        apiEndpoint: apiEndpoint || (isAssessment ? assessmentApiEndpoint : undefined),
-        sessionToken: sessionToken || (isAssessment ? assessmentSessionToken : undefined),
+        apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
+        sessionToken: isAssessment ? assessmentSessionToken : undefined,
         onUserMessage: handleUserMessage,
         isGuest: isGuest,
-        userTtsProvider,
     });
 
-    // A3: Signal coding state changes when user edits code via keystrokes
-    const lastKeystrokeRef = useRef<number>(0);
-    const codingModeActiveRef = useRef(false);
-    const CODING_IDLE_TIMEOUT_MS = 8000;
-
-    const handleCodeKeyDown = useCallback(() => {
-        lastKeystrokeRef.current = Date.now();
-        if (!codingModeActiveRef.current && hasStarted) {
-            codingModeActiveRef.current = true;
-            enterCodingMode();
-        }
-    }, [hasStarted, enterCodingMode]);
-
+    // A3: Signal coding state changes when code editor visibility changes
+    const prevShowCodeEditorRef = useRef(showCodeEditor);
     useEffect(() => {
-        if (!hasStarted) return;
-        const interval = setInterval(() => {
-            if (codingModeActiveRef.current && Date.now() - lastKeystrokeRef.current > CODING_IDLE_TIMEOUT_MS) {
-                codingModeActiveRef.current = false;
-                exitCodingMode();
-            }
-        }, 2000);
-        return () => clearInterval(interval);
-    }, [hasStarted, exitCodingMode]);
+        if (showCodeEditor && !prevShowCodeEditorRef.current && hasStarted) {
+            enterCodingMode();
+        } else if (!showCodeEditor && prevShowCodeEditorRef.current && hasStarted) {
+            exitCodingMode();
+        }
+        prevShowCodeEditorRef.current = showCodeEditor;
+    }, [showCodeEditor, hasStarted, enterCodingMode, exitCodingMode]);
 
     // Added an effect to sync AI turns
     useEffect(() => {
@@ -393,8 +348,6 @@ export function InterviewSession({
         guestSession.reset();
         observerRef.current.reset();
         setNudge(null);
-        setLastExecResult(null);
-        setIsExecRunning(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeProblem.id]);
 
@@ -484,15 +437,15 @@ export function InterviewSession({
         startTimeRef.current = Date.now();
         limits.startTimer();
         startInterview({
-            title: activeProblem.title,
-            content: activeProblem.description,
+            problemTitle: activeProblem.title,
+            problemContent: activeProblem.description,
             ragContext: interviewConfig.ragContext,
             kaiMemory: interviewConfig.kaiMemory,
             problemId: activeProblem.id,
             difficultyMode: isGuest ? 'practice' : interviewConfig.difficultyMode,
             difficulty: activeProblem.difficulty,
             kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
-            language: codeLanguage,
+            language: (activeProblem as any).language,
             optimalApproach: (activeProblem as any).solution ?? undefined,
         });
     };
@@ -504,6 +457,7 @@ export function InterviewSession({
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
         submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
         shareCode(code); // A3: transition state machine back to ai-feedback
+        setShowCodeEditor(false);
         setActiveTab('interview');
     }, [codeLanguage, activeProblem, submitUserResponse, shareCode]);
 
@@ -511,8 +465,6 @@ export function InterviewSession({
 
     const handleSprintAdvance = useCallback(() => {
         if (!sprintProblem2) return;
-        // Save P1 transcript before startInterview wipes messages
-        sprintP1TranscriptRef.current = [...messages];
         setShowLimitModal(false);
         setSprintCurrentIndex(1);
         setSprintTransitionMsg('Starting Problem 2...');
@@ -521,17 +473,17 @@ export function InterviewSession({
 
         setTimeout(() => {
             setSprintTransitionMsg(null);
-            limits.resetTurnsOnly();
-            limits.startTimer();
+            (limits as any).resetTurns?.();
+            limits.startTimer?.();
             startInterview({
-                title: sprintProblem2.title,
-                content: sprintProblem2.description ?? (sprintProblem2 as any).content,
+                problemTitle: sprintProblem2.title,
+                problemContent: sprintProblem2.description ?? (sprintProblem2 as any).content,
                 difficulty: sprintProblem2.difficulty,
                 difficultyMode: 'sprint',
                 ragContext: advancedConfig.ragContext,
                 kaiMemory: interviewConfig.kaiMemory,
                 kaiMemoryStructured: interviewConfig.kaiMemoryStructured ?? undefined,
-                language: codeLanguage,
+                language: (activeProblem as any).language,
                 optimalApproach: (sprintProblem2 as any).solution ?? undefined,
                 sprintProblemIndex: 1,
                 secondProblem: {
@@ -542,42 +494,23 @@ export function InterviewSession({
                 },
             });
         }, 1500);
-         
-    }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem, messages, codeLanguage]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem]);
 
-    // A5: Consolidated completion logic
     const handleFinish = async () => {
         if (isSavingRef.current) return; // Prevent double-click save
-
-        // 1. Calculate final state — for sprint, prepend P1 transcript
-        const allMessages = sprintP1TranscriptRef.current.length > 0
-            ? [...sprintP1TranscriptRef.current, ...messages]
-            : messages;
-        const finalTranscript = allMessages.map(m => ({
-            speaker: m.role === 'assistant' ? 'ai' : m.role,
-            text: m.content,
-            timestamp: m.timestamp
-        }));
-
-        // 2. If in campaign mode, delegate to onComplete callback
-        if (onCampaignQuestionEnd) {
-            const elapsed = interviewStartTime ? Math.floor((Date.now() - interviewStartTime) / 1000) : 0;
-            onCampaignQuestionEnd(finalTranscript, userCode, elapsed);
-            return;
-        }
-
         if (messages.length < 2) {
             setError("Please interact with the AI at least once before ending the session to get a valid analysis.");
             return;
         }
         isSavingRef.current = true;
         setError(null);
-
         try {
-            const durationSecsValue = Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000) + (startTimeOffsetSeconds || 0);
+            const baseTranscript = messages.map(m => ({ role: m.role, content: m.content }));
+            const durationSecs = Math.floor((Date.now() - startTimeRef.current) / 1000) + (startTimeOffsetSeconds || 0);
 
             const enrichedTranscript = buildEnrichedTranscript(
-                messages,
+                baseTranscript,
                 userCode,
                 codeLanguage,
                 activeProblem.title
@@ -585,9 +518,9 @@ export function InterviewSession({
 
             // Detect Integrity Flags
             const flags: string[] = [];
-            if (durationSecsValue < 120) flags.push('fast_solution');
+            if (durationSecs < 120) flags.push('fast_solution');
 
-            const userMessages = messages.filter(m => m.role === 'user');
+            const userMessages = baseTranscript.filter(m => m.role === 'user');
             const hasMeaningfulTalk = userMessages.some(m => m.content.split(/\s+/).length > 10);
             if (!hasMeaningfulTalk && userCode.trim().length > 50) {
                 flags.push('no_verbal_discussion');
@@ -596,30 +529,19 @@ export function InterviewSession({
             if (isAssessment && onAssessmentComplete) {
                 try {
                     await onAssessmentComplete(
-                        durationSecsValue,
+                        durationSecs,
                         enrichedTranscript.map(m => ({ speaker: m.role === 'assistant' ? 'ai' : 'user', text: m.content })),
                         flags
                     );
                 } catch (err: unknown) {
                     console.error("❌ Assessment error:", err);
-                    voice.setVadEnabled(true);
                     setError(err instanceof Error ? err.message : "Failed to submit assessment.");
                 }
             } else {
                 try {
-                    // BUG-C3 fix: Capture actual duration for result display
-                    const interviewDuration = startTimeRef.current
-                        ? Math.floor((Date.now() - startTimeRef.current) / 1000)
-                        : 0;
-
                     const assessment = await analyzeSession(
                         `sess-${Date.now()}`,
-                        { 
-                            title: activeProblem.title, 
-                            description: activeProblem.description || '', 
-                            difficulty: activeProblem.difficulty, 
-                            difficultyMode: interviewConfig.difficultyMode 
-                        },
+                        { title: activeProblem.title, description: activeProblem.description || '', difficulty: activeProblem.difficulty, difficultyMode: interviewConfig.difficultyMode },
                         enrichedTranscript
                     );
                     if (!assessment) {
@@ -627,38 +549,42 @@ export function InterviewSession({
                         return;
                     }
 
+                    // Capture duration for guest results overlay
                     if (isGuest) {
-                        setGuestDurationSecs(interviewDuration);
+                        const elapsed = startTimeRef.current
+                            ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                            : 0;
+                        setGuestDurationSecs(elapsed);
                     }
-
+                    // ✅ FIX: Save immediately after analysis — don't wait for state machine
                     if (user && !isGuest) {
                         try {
-                            const { success, error: saveError, sessionId, streakDays, isNewStreakRecord } = await saveInterviewSession(
-                                user.id, activeProblem.id, activeProblem.title, messages, interviewDuration, assessment,
+                            const fullTranscript = messages.map(msg => ({
+                                role: msg.role,
+                                content: msg.content,
+                                timestamp: msg.timestamp
+                            }));
+                            const duration = startTimeRef.current
+                                ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+                                : durationSecs;
+
+                            const { success, error: saveError, sessionId } = await saveInterviewSession(
+                                user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
                             if (!success) {
                                 console.error('Failed to save session:', saveError);
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
-                                const targetUrl = `/interview/analysis?sessionId=${sessionId}`;
-                                if (streakDays && [3, 7, 14, 30, 50, 100].includes(streakDays)) {
-                                    setStreakMilestone({ 
-                                        days: streakDays, 
-                                        isRecord: Boolean(isNewStreakRecord),
-                                        onDismiss: () => router.push(targetUrl)
-                                    });
-                                } else {
-                                    router.push(targetUrl);
-                                }
+                                // A5: Auto-navigate to analysis page
+                                router.push(`/interview/analysis?sessionId=${sessionId}`);
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);
                         }
                     }
                 } catch (err: unknown) {
-                    console.error("❌ Analysis error:", err);
-                    voice.setVadEnabled(true);
+                    console.error("❌ Assessment error:", err);
                     setError(err instanceof Error ? err.message : "Failed to analyze interview. Please try again.");
                 }
             }
@@ -667,9 +593,6 @@ export function InterviewSession({
             isSavingRef.current = false;
         }
     };
-
-    // Auto-finish ref to prevent double triggers (BUG-H4: declared before usage)
-    const limitAutoFinishRef = useRef(false);
 
     useEffect(() => {
         if (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp)) {
@@ -689,8 +612,6 @@ export function InterviewSession({
                 if (!isSavingRef.current && !limitAutoFinishRef.current) {
                     limitAutoFinishRef.current = true;
                     setIsAutoSubmitting(true);
-                    // BUG-C4 fix: endInterview() is a state dispatch; handleFinish reads
-                    // messages immediately, so sequence them properly
                     endInterview();
                     handleFinish();
                 }
@@ -699,27 +620,10 @@ export function InterviewSession({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasStarted, readOnly, limits.isTimeUp, limits.isHalfTime, limits.isTurnsUp]);
 
-    // A5.2: Periodic Save (Practice only, or Campaign if callback provided)
-    useEffect(() => {
-        if (!hasStarted || readOnly || !interviewStartTime) return;
-        
-        const interval = setInterval(() => {
-            const allMsgs = sprintP1TranscriptRef.current.length > 0
-                ? [...sprintP1TranscriptRef.current, ...messages]
-                : messages;
-            const finalTranscript = allMsgs.map(m => ({
-                speaker: m.role === 'assistant' ? 'ai' : m.role,
-                text: m.content
-            }));
-            const elapsed = Math.floor((Date.now() - interviewStartTime) / 1000);
+    // Auto-finish ref to prevent double triggers
+    const limitAutoFinishRef = useRef(false);
 
-            if (onCampaignSaveProgress) {
-                onCampaignSaveProgress(finalTranscript, userCode, elapsed);
-            }
-        }, 30000); // 30s auto-save
-
-        return () => clearInterval(interval);
-    }, [hasStarted, readOnly, messages, userCode, onCampaignSaveProgress, interviewStartTime]);
+    // A5: Derived flag — all interactive inputs are locked after limit
     const isLimitLocked = isAutoSubmitting || showLimitModal || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));
 
     useEffect(() => {
@@ -728,7 +632,6 @@ export function InterviewSession({
             return () => clearTimeout(timer);
         }
     }, [showBadge]);
-
 
     if (result) {
         if (isGuest) {
@@ -748,8 +651,8 @@ export function InterviewSession({
                 />
             );
         }
-        // A5: Logged-in users get redirected to /interview/analysis after save (handled in handleFinish).
-        // This fallback shows briefly while the redirect is pending.
+        // A5: Logged-in users get redirected to /interview/analysis after save (line ~519).
+        // This fallback shows briefly while the redirect is pending, or if save failed.
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
@@ -765,11 +668,6 @@ export function InterviewSession({
     }
 
     // --- Sub-components (Visual Rendering) --- //
-
-    // Safety helper: Supabase JSON columns may return objects (e.g. {k, nums})
-    // instead of strings. Render them safely to avoid React error #31.
-    const safeRender = (v: unknown): string =>
-        v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 
     const renderProblemCardContent = () => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
@@ -799,7 +697,7 @@ export function InterviewSession({
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
-                    <div className="whitespace-pre-wrap font-medium">{safeRender(activeProblem.description)}</div>
+                    <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
                     <div className="space-y-3 lg:space-y-4 pt-2">
                         {activeProblem.examples && activeProblem.examples.map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
@@ -807,17 +705,17 @@ export function InterviewSession({
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Input:</span>
-                                        <span className="text-indigo-300 break-all">{safeRender(example.input)}</span>
+                                        <span className="text-indigo-300 break-all">{example.input}</span>
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Output:</span>
-                                        <span className="text-emerald-400 break-all">{safeRender(example.output)}</span>
+                                        <span className="text-emerald-400 break-all">{example.output}</span>
                                     </div>
                                     {example.explanation && (
                                         <div className="pt-2 mt-2 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
                                             <p className="text-zinc-400 font-sans text-[12px] lg:text-[13px] leading-normal">
                                                 <span className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Explanation</span>
-                                                {safeRender(example.explanation)}
+                                                {example.explanation}
                                             </p>
                                         </div>
                                     )}
@@ -830,212 +728,293 @@ export function InterviewSession({
         );
     };
 
-    const renderTopBarTimer = () => {
-        if (!isAssessment && state !== 'idle' && state !== 'completed' && interviewStartTime) {
-            return (
-                <div className="scale-90 origin-right">
-                    <InterviewLimitBar startTime={interviewStartTime} maxMs={interviewConfig.maxDurationMs} roundCount={roundCount} maxRounds={interviewConfig.maxTurnsPerProblem} isLimitReached={isLimitReached} limitReason={limitReason} />
-                </div>
-            );
-        }
-        return (
-            <div className={cn("bg-zinc-900/80 px-2 py-1.5 rounded-lg border text-[10px] flex items-center gap-1.5", limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" : limits.timeRemaining <= 300 ? "border-amber-500/50 text-amber-400" : "border-zinc-800 text-zinc-400")}>
-                <Clock className="w-3 h-3" />
-                <span className="font-mono font-bold">{limits.formattedElapsed}</span>
-                <span className="text-zinc-600">/</span>
-                <span className="font-mono">{limits.formattedTotal}</span>
-            </div>
-        );
-    };
+    const renderInteractionArea = (isMobile: boolean) => (
+        <div className="flex-1 h-full min-h-0 container mx-auto relative flex flex-col items-center justify-center px-4" style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.05) 0%, transparent 70%)' }}>
+            <div className="w-full h-full flex flex-col relative max-w-4xl mx-auto">
+                <SilentObserverNudge nudge={nudge} onDismiss={() => setNudge(null)} />
 
-    const renderProblemPanel = () => {
-        if (isProblemCollapsed) {
-            return (
-                <div className="h-full flex flex-col items-center py-3 gap-4 border-r" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                    <button onClick={() => setIsProblemCollapsed(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800 transition-colors">
-                        <BookOpen className="w-4 h-4 text-zinc-400 hover:text-white" />
-                    </button>
-                </div>
-            );
-        }
-        return (
-            <div className="h-full flex flex-col border-r" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                    {renderProblemCardContent()}
-                </div>
-            </div>
-        );
-    };
-
-    const renderCodePanel = () => (
-        <div className="h-full flex flex-col" style={{ background: 'var(--surface-1)' }}>
-            <div className="flex-1 min-h-0 relative">
-                {!hasStarted && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                        <span className="text-zinc-500 text-sm font-medium">Start interview to write code</span>
+                {/* Status Float Chip */}
+                {hasStarted && !readOnly && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300">
+                        <div className="bg-zinc-900/80 backdrop-blur-xl px-4 py-2 rounded-full border border-zinc-800 shadow-xl flex items-center gap-2">
+                            <div className={cn(
+                                "w-2 h-2 rounded-full animate-pulse",
+                                voice.isListening ? "bg-indigo-500" : isProcessing ? "bg-amber-400" : voice.isSpeaking ? "bg-purple-500" : "bg-emerald-500"
+                            )} />
+                            <span className="text-[10px] font-black tracking-widest text-zinc-300 uppercase">
+                                {voice.isListening ? "Listening" : isProcessing ? "Thinking" : voice.isSpeaking ? "Speaking" : "Ready"}
+                            </span>
+                        </div>
                     </div>
                 )}
-                <CodeEditor
-                    onCodeChange={setUserCode}
-                    defaultLanguage={codeLanguage}
-                    initialCode={userCode}
-                    onLanguageChange={setCodeLanguage}
-                    readOnly={!hasStarted || readOnly}
-                    onKeyDown={handleCodeKeyDown}
-                    onExecutionStart={() => {
-                        setIsExecRunning(true);
-                        setLastExecResult(null);
-                    }}
-                    onExecutionResult={(result) => {
-                        setLastExecResult(result);
-                        setIsExecRunning(false);
-                        if (result.stdout || result.stderr || result.exit_code !== 0) {
-                            const testResults = matchResults(testCases, result);
-                            const kaiCtx = buildKaiExecutionContext(userCode, codeLanguage, testCases, result, testResults);
-                            shareCodeWithAI(kaiCtx);
-                        }
-                    }}
-                />
-            </div>
-            {testCases.length > 0 && (
-                <div className="shrink-0 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
-                    <TestCasePanel testCases={testCases} executionResult={lastExecResult} isRunning={isExecRunning} />
-                </div>
-            )}
-            {hasStarted && !readOnly && (
-                <div className="shrink-0 p-3 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
-                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs rounded-xl shadow-lg border-t border-white/10">
-                        <Send className="w-3.5 h-3.5 mr-2" /> Share Code with Kai
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
 
-    const renderStatusChip = () => (
-        <div className="bg-zinc-900/80 backdrop-blur-xl px-2.5 py-1 rounded-full border border-zinc-800 flex items-center gap-2">
-            <div className={cn("w-2 h-2 rounded-full animate-pulse", voice.isListening ? "bg-indigo-500" : isProcessing ? "bg-amber-400" : voice.isSpeaking ? "bg-purple-500" : "bg-emerald-500")} />
-            <span className="text-[9px] font-black tracking-widest text-zinc-300 uppercase">
-                {voice.isListening ? "Listening" : isProcessing ? "Thinking" : voice.isSpeaking ? "Speaking" : "Ready"}
-            </span>
-        </div>
-    );
-
-    const renderVoicePanel = () => {
-        if (!hasStarted) {
-            return (
-                <div className="h-full flex flex-col items-center justify-center p-6 border-l" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-6 max-w-xs w-full">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-2xl" style={{ background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)' }}>
-                            K
+                {/* Mode Toggle as small pill if not started (desktop uses main CTA, mobile might toggle code) */}
+                {hasStarted && !readOnly && !isMobile && (
+                    <div className="mt-4 absolute top-4 right-4 z-40 hidden lg:block">
+                        <div className="flex p-0.5 rounded-full border bg-zinc-900/80 backdrop-blur-sm border-zinc-800">
+                            <button onClick={() => setShowCodeEditor(false)} className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", !showCodeEditor ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white")}>Voice</button>
+                            <button onClick={() => setShowCodeEditor(true)} className={cn("px-4 py-1.5 rounded-full text-xs font-bold transition-all", showCodeEditor ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white")}>Code</button>
                         </div>
-                        <p className="text-zinc-400 text-sm text-center">Ready when you are</p>
-                        <Button onClick={handleStart} size="lg" className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 h-12 font-bold rounded-xl text-white shadow-lg" data-tour="begin-button">
+                    </div>
+                )}
+
+                {!hasStarted ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-8">
+                        <Button
+                            size="lg"
+                            className="w-full max-w-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(99,102,241,0.2)] transition-all duration-300 rounded-2xl"
+                            onClick={handleStart}
+                            data-tour="begin-button"
+                        >
                             Begin Interview Experience
                         </Button>
-                    </motion.div>
-                </div>
-            );
-        }
+                    </div>
+                ) : (
+                    <>
+                        {/* Voice Interaction Mode */}
+                        {(!showCodeEditor || isMobile) && (
+                            <div className="flex-1 relative flex flex-col items-center justify-center p-4 lg:p-10 h-full w-full">
+                                <div className="relative z-20 flex flex-col items-center gap-6 lg:gap-8 w-full max-w-md mx-auto h-full justify-center">
 
-        return (
-            <div className="h-full flex flex-col relative border-l" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                {/* Header */}
-                <div className="h-11 shrink-0 border-b flex items-center justify-between px-3 bg-black/10" style={{ borderColor: 'var(--surface-edge)' }}>
-                    {renderStatusChip()}
-                    <div className="flex gap-2 items-center">
-                        {isReviewMode && <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Review</span>}
-                        {isGuest && !isAssessment && <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Trial ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} left)</span>}
-                    </div>
-                </div>
-                
-                {/* Chat History (Universal full view replace slice(-3)) */}
-                <div className="flex-1 overflow-y-auto p-3 min-h-0 custom-scrollbar flex flex-col">
-                    <div className="flex-1 min-h-0">
-                        <ConversationView 
-                            messages={messages} 
-                            isAISpeaking={voice.isSpeaking} 
-                            isProcessing={isProcessing} 
-                        />
-                    </div>
-                </div>
+                                    {/* Top-left Timer Display */}
+                                    <div className="absolute top-2 left-2 z-30 flex flex-col gap-1">
+                                        {(!isAssessment && state !== 'idle' && state !== 'completed' && interviewStartTime) ? (
+                                            <InterviewLimitBar
+                                                startTime={interviewStartTime}
+                                                maxMs={interviewConfig.maxDurationMs}
+                                                roundCount={roundCount}
+                                                maxRounds={interviewConfig.maxTurnsPerProblem}
+                                                isLimitReached={isLimitReached}
+                                                limitReason={limitReason}
+                                            />
+                                        ) : (
+                                            <div className={cn(
+                                                "bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2",
+                                                limits.timeRemaining <= 60 ? "border-red-500/50 text-red-400" :
+                                                    limits.timeRemaining <= 300 ? "border-amber-500/50 text-amber-400" :
+                                                        "border-zinc-800 text-zinc-300"
+                                            )}>
+                                                <Clock className="w-3 h-3" />
+                                                <span className="font-mono font-bold">{limits.formattedElapsed}</span>
+                                                <span className="text-zinc-500">/</span>
+                                                <span className="font-mono text-zinc-500">
+                                                    {limits.formattedTotal}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {isGuest && !isAssessment && (
+                                            <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
+                                                🌟 Trial Mode ({GUEST_SESSION_LIMITS.MAX_USER_TURNS - guestSession.userTurns} turns left)
+                                            </div>
+                                        )}
+                                        {limits.shouldShowTurnWarning && !isGuest && !isAssessment && (
+                                            <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-lg text-orange-400 text-[10px] font-bold flex items-center gap-1.5 animate-pulse">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                {limits.turnsRemaining} turns remaining
+                                            </div>
+                                        )}
+                                        {isReviewMode && (
+                                            <div className="bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 text-[10px] font-bold">
+                                                🔄 Review Mode
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Spacer when no messages yet */}
+                                    {messages.length === 0 && <div className="flex-1 min-h-0" />}
 
-                {/* Live Transcript */}
-                <div className="shrink-0 px-2 py-2 border-t h-28 overflow-hidden bg-black/20" style={{ borderColor: 'var(--surface-edge)' }}>
-                    <div className="flex justify-between items-center px-1 mb-1">
-                        <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-black">Live Tracker</label>
-                    </div>
-                    <div className="h-full relative">
-                        <div className="absolute inset-0 pb-6">
-                            <ZoomTranscript
-                                lastAiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content}
-                                isSpeaking={voice.isSpeaking}
-                                isProcessing={isProcessing}
-                                transcript={voice.transcript}
-                                interimTranscript={voice.interimTranscript}
-                                isListening={voice.isListening}
-                                micStoppedManually={micStoppedManually}
-                                isPushToTalk={isPushToTalk}
-                                isTranscribing={voice.isTranscribing}
-                            />
-                        </div>
-                    </div>
-                    {ttsError && (
-                        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1 text-red-400 text-[10px] font-bold whitespace-nowrap z-20">
-                            Playback failed. Read above.
-                        </div>
-                    )}
-                </div>
+                                    {/* Microphone / Interactions */}
+                                    {!readOnly && !isLimitLocked && (
+                                        <div className="flex flex-col items-center justify-center pb-6 gap-3">
+                                            <div className="flex items-center justify-center gap-4 relative">
+                                                <MicrophoneButton
+                                                    isListening={voice.isListening}
+                                                    error={voice.error?.message}
+                                                    onClick={() => {
+                                                        if (voice.isSpeaking) {
+                                                            // Interrupt AI speech — mic will auto-activate after
+                                                            voice.stopSpeaking();
+                                                            handleInterruption();
+                                                            return;
+                                                        }
+                                                        if (voice.isListening) {
+                                                            voice.stopListening();
+                                                        } else if (!isProcessing) {
+                                                            voice.startListening();
+                                                        }
+                                                    }}
+                                                    onRetry={() => {
+                                                        setVoiceErrorDismissed(false);
+                                                        voice.startListening();
+                                                    }}
+                                                    disabled={isProcessing}
+                                                />
+                                                <div className="absolute top-1/2 -translate-y-1/2 -right-16">
+                                                    <MicPulse
+                                                        size="compact"
+                                                        state={voice.isListening ? 'listening' : isProcessing ? 'processing' : voice.isSpeaking ? 'speaking' : 'idle'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
-                {/* Mic Controls */}
-                {!readOnly && !isLimitLocked && (
-                    <div className="shrink-0 p-4 border-t flex flex-col items-center gap-3 bg-black/10 relative" style={{ borderColor: 'var(--surface-edge)' }}>
-                        <div className="flex items-center gap-4 relative">
-                            <MicrophoneButton
-                                isListening={voice.isListening}
-                                error={voice.error?.message}
-                                onClick={() => {
-                                    if (voice.isSpeaking) {
-                                        voice.stopSpeaking();
-                                        handleInterruption();
-                                        return;
-                                    }
-                                    if (voice.isListening) {
-                                        voice.stopListening();
-                                    } else if (!isProcessing) {
-                                        voice.startListening();
-                                    }
-                                }}
-                                onRetry={() => {
-                                    setVoiceErrorDismissed(false);
-                                    voice.startListening();
-                                }}
-                                disabled={isProcessing}
-                            />
-                            <div className="absolute top-1/2 -translate-y-1/2 -right-16">
-                                <MicPulse size="compact" state={voice.isListening ? 'listening' : isProcessing ? 'processing' : voice.isSpeaking ? 'speaking' : 'idle'} />
+                                    {readOnly && (
+                                        <div className="flex justify-center pb-6">
+                                            <div className="bg-zinc-800/80 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 text-sm font-medium flex items-center gap-2">
+                                                <BookOpen className="w-4 h-4" />
+                                                Session Completed
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Stop AI Speaking Button */}
+                                    {voice.isSpeaking && (
+                                        <div className="z-50 w-full flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                            <Button
+                                                size="lg"
+                                                onClick={voice.stopSpeaking}
+                                                className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 shadow-xl shadow-red-900/40 transition-all px-8 rounded-full"
+                                            >
+                                                <StopCircle className="mr-2 h-5 w-5" /> Stop Speaking
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Transcript Area */}
+                                    <div className="w-full space-y-2 px-1 flex-none flex flex-col min-h-45 h-[35vh] max-h-70 mb-4">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] font-black">Live Transcript</label>
+                                            {(voice.transcript || voice.interimTranscript) && (
+                                                <Badge variant="outline" className="text-[8px] border-emerald-500/30 bg-emerald-500/5 text-emerald-400 h-4">Active</Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 bg-zinc-900/40 rounded-xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col relative" data-testid="transcript-area">
+                                            <div className="absolute inset-0 p-1">
+                                                <ZoomTranscript
+                                                    lastAiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content}
+                                                    isSpeaking={voice.isSpeaking}
+                                                    isProcessing={isProcessing}
+                                                    transcript={voice.transcript}
+                                                    interimTranscript={voice.interimTranscript}
+                                                    isListening={voice.isListening}
+                                                    micStoppedManually={micStoppedManually}
+                                                    isPushToTalk={isPushToTalk}
+                                                    isTranscribing={voice.isTranscribing}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* TTS error banner */}
+                                        {ttsError && (
+                                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5 text-red-400 text-[10px] font-bold flex items-center gap-1.5">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                Voice playback failed. AI response is shown in chat history.
+                                            </div>
+                                        )}
+
+                                        {/* Send button: shown when mic is manually stopped AND there is content (or Whisper is in-flight) */}
+                                        {micStoppedManually && (voice.transcript || voice.isTranscribing) && (
+                                            <Button
+                                                className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                onClick={() => {
+                                                    const content = voice.transcript;
+                                                    if (content) {
+                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
+                                                    }
+                                                }}
+                                                disabled={isProcessing || voice.isTranscribing}
+                                                title="Send your response"
+                                            >
+                                                <Send className="w-3 h-3 mr-2" />
+                                                {voice.isTranscribing ? 'Transcribing…' : sendCountdown !== null ? `Sending in ${sendCountdown}s…` : 'Send Message'}
+                                            </Button>
+                                        )}
+
+                                        {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
+                                        {isMobile && hasStarted && !readOnly && (
+                                            <div className="w-full mt-2 shrink-0">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => { endInterview(); handleFinish(); }}
+                                                    disabled={roundCount < 1 || isProcessing || isAnalyzing}
+                                                    title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
+                                                    className="w-full h-10 text-[11px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
+                                                >
+                                                    <Flag className="w-4 h-4 mr-1.5" /> End & Analyze
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        {voice.isSpeaking && (
-                            <Button onClick={voice.stopSpeaking} variant="outline" size="sm" className="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border-red-500/30 text-[11px] uppercase tracking-wider font-bold rounded-full px-4 h-8 transition-colors absolute top-4 right-4 z-40">
-                                <StopCircle className="w-3.5 h-3.5 mr-1.5" /> Stop Kai
-                            </Button>
                         )}
-
-                        {(voice.transcript || voice.isTranscribing) && !isProcessing && (
-                            <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-9 text-xs mt-1 rounded-lg"
-                                onClick={() => { if (voice.transcript) submitUserResponse(voice.transcript, { title: activeProblem.title, content: activeProblem.description }); }}
-                                disabled={voice.isTranscribing}>
-                                <Send className="w-3 h-3 mr-1.5" />
-                                {voice.isTranscribing ? 'Transcribing...' : sendCountdown !== null ? `Sending in ${sendCountdown}s...` : 'Send Message'}
-                            </Button>
-                        )}
-                    </div>
+                    </>
                 )}
             </div>
-        );
-    };
+        </div>
+    );
+
+    const renderControlsCard = () => (
+        <div className="shrink-0 w-full">
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Status</span>
+                    <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-400 capitalize text-[10px] px-2 py-0 h-5">
+                        {state.replace('-', ' ')}
+                    </Badge>
+                </div>
+                {(hasStarted || readOnly) && (
+                    !readOnly ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { endInterview(); handleFinish(); }}
+                            disabled={roundCount < 1 || isProcessing || isAnalyzing}
+                            title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
+                            className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
+                        >
+                            <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/dashboard?tab=history')}
+                            className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-zinc-800 border-zinc-700 transition-all duration-300 rounded-xl"
+                        >
+                            <ArrowLeft className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> Back
+                        </Button>
+                    )
+                )}
+            </div>
+        </div>
+    );
+
+    const renderHistoryArea = () => (
+        <div className="flex flex-col h-full w-full">
+            <div className="mb-2 flex justify-between items-center px-1">
+                <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Interview History</h2>
+                {messages.length > 0 && (
+                    <Badge variant="secondary" className="bg-zinc-800/50 text-zinc-400 text-[9px]">{messages.length} turns</Badge>
+                )}
+            </div>
+            <div className="rounded-2xl border flex flex-col flex-1 overflow-hidden min-h-[200px]" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                {/* Guest Mode Banner — shown after interview starts, guides user */}
+                {isGuest && hasStarted && !isAssessment && (
+                    <GuestModeBanner
+                        turnsUsed={guestSession.userTurns}
+                        timeRemaining={limits.timeRemaining}
+                        onSignUp={() => { window.location.href = '/login'; }}
+                    />
+                )}
+                <ConversationView
+                    messages={messages}
+                    isAISpeaking={voice.isSpeaking}
+                    isProcessing={isProcessing}
+                />
+            </div>
+        </div>
+    );
 
     // --- MAIN RETURN --- //
 
@@ -1104,43 +1083,127 @@ export function InterviewSession({
             {hasStarted && <VoiceOnboarding />}
 
             {/* NEW DESKTOP LAYOUT */}
-            <div className="hidden lg:flex flex-col relative w-full h-full">
-                <InterviewTopBar
-                    problemTitle={activeProblem.title}
-                    difficultyMode={interviewConfig.difficultyMode}
-                    isCollapsed={isProblemCollapsed}
-                    onToggleProblem={() => setIsProblemCollapsed(!isProblemCollapsed)}
-                    onEnd={() => { endInterview(); handleFinish(); }}
-                    hasStarted={hasStarted}
-                    readOnly={readOnly}
-                    roundCount={roundCount}
-                    timerNode={renderTopBarTimer()}
-                />
-                
-                <div className="flex-1 w-full min-h-0">
-                    <ResizablePanelGroup direction="horizontal">
-                        <ThreePanelCollapseController isProblemCollapsed={isProblemCollapsed} />
-                        <ResizablePanel
-                            id="problem-panel"
-                            defaultSize={25}
-                            minSize={15}
-                            maxSize={40}
-                            className={isProblemCollapsed ? "min-w-[48px] max-w-[48px]" : ""}
+            <div className="hidden lg:flex flex-1 relative min-h-0 w-full overflow-hidden">
+                {/* Left Drawer (Problem) */}
+                <AnimatePresence>
+                    {showProblemPanel && (
+                        <motion.div
+                            initial={{ x: -400, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -400, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                            className="absolute left-0 top-0 bottom-0 w-[380px] z-30 flex flex-col shadow-2xl"
+                            style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)' }}
                         >
-                            {renderProblemPanel()}
-                        </ResizablePanel>
-                        <ResizableHandle className={isProblemCollapsed ? "w-px bg-zinc-800/50 cursor-default hover:bg-zinc-800/50 active:bg-zinc-800/50" : "w-1.5 hover:bg-indigo-500/50 transition-colors bg-zinc-800/50"} />
-                        
-                        <ResizablePanel defaultSize={45} minSize={30}>
-                            {renderCodePanel()}
-                        </ResizablePanel>
-                        
-                        <ResizableHandle className="w-1.5 hover:bg-indigo-500/50 transition-colors bg-zinc-800/50" />
-                        
-                        <ResizablePanel defaultSize={30} minSize={20} maxSize={45}>
-                            {renderVoicePanel()}
-                        </ResizablePanel>
-                    </ResizablePanelGroup>
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
+                                <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2"><BookOpen className="w-4 h-4" /> Problem</span>
+                                <button onClick={() => setShowProblemPanel(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
+                                    ×
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                                {renderProblemCardContent()}
+                            </div>
+                            <div className="p-3 border-t bg-black/20 backdrop-blur-xl" style={{ borderColor: 'var(--surface-edge)' }}>
+                                {renderControlsCard()}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col min-h-0 transition-all duration-300 relative w-full"
+                    style={{
+                        marginLeft: showProblemPanel ? '380px' : '0',
+                        marginRight: showHistoryPanel ? '340px' : '0',
+                    }}>
+
+                    {!showCodeEditor ? renderInteractionArea(false) : (
+                        <div className="flex-1 w-full h-full p-6 animate-in fade-in zoom-in-95 duration-200">
+                            <Card className="h-full flex flex-col shadow-2xl rounded-2xl overflow-hidden border" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                                <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--surface-edge)' }}>
+                                    <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+                                        <Code className="w-4 h-4" /> Code Editor
+                                    </div>
+                                    <button onClick={() => setShowCodeEditor(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
+                                        ×
+                                    </button>
+                                </div>
+                                <div className="flex-1 flex flex-col gap-3 p-4">
+                                    <CodeEditor
+                                        onCodeChange={setUserCode}
+                                        defaultLanguage={codeLanguage}
+                                        initialCode={userCode}
+                                        onLanguageChange={setCodeLanguage}
+                                        onExecutionResult={(result) => {
+                                            if (result.stdout || result.stderr) {
+                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
+                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
+                                            }
+                                        }}
+                                    />
+                                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-12 shadow-lg shadow-indigo-900/20 rounded-xl">
+                                        <Send className="w-4 h-4 mr-2" /> Share Code with Kai
+                                    </Button>
+                                </div>
+                            </Card>
+                        </div>
+                    )}
+
+                </div>
+
+                {/* Right Drawer (History) */}
+                <AnimatePresence>
+                    {showHistoryPanel && (
+                        <motion.div
+                            initial={{ x: 340, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 340, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                            className="absolute right-0 top-0 bottom-0 w-[340px] z-30 flex flex-col shadow-2xl"
+                            style={{ background: 'var(--surface-1)', borderLeft: '1px solid var(--surface-edge)' }}
+                        >
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
+                                <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Conversation</span>
+                                <button onClick={() => setShowHistoryPanel(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
+                                    ×
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+                                {renderHistoryArea()}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Floating sidebar toggles (always visible) */}
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2">
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowProblemPanel(v => !v)}
+                        className="w-8 h-24 rounded-xl flex flex-col items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest font-bold transition-all shadow-xl"
+                        style={{
+                            background: showProblemPanel ? 'var(--accent-primary)' : 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            color: showProblemPanel ? 'white' : '#71717a',
+                            writingMode: 'vertical-rl',
+                        }}>
+                        <BookOpen className="w-3.5 h-3.5" style={{ writingMode: 'initial' }} />
+                        Problem
+                    </motion.button>
+                </div>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-40">
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowHistoryPanel(v => !v)}
+                        className="w-8 h-24 rounded-xl flex flex-col items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest font-bold transition-all shadow-xl"
+                        style={{
+                            background: showHistoryPanel ? 'var(--accent-primary)' : 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            color: showHistoryPanel ? 'white' : '#71717a',
+                            writingMode: 'vertical-rl',
+                        }}>
+                        <MessageSquare className="w-3.5 h-3.5" style={{ writingMode: 'initial' }} />
+                        History
+                    </motion.button>
                 </div>
             </div>
 
@@ -1148,27 +1211,24 @@ export function InterviewSession({
             <div
                 className="lg:hidden flex-1 w-full h-full relative"
                 {...swipeHandlers}
-                style={{
-                    touchAction: 'pan-y',
-                    transform: `translateX(${dragOffset}px)`,
-                    transition: dragOffset === 0 ? 'transform 180ms ease-out' : 'none',
-                }}
+                style={{ touchAction: 'pan-y' }}
             >
                 <div className="absolute inset-0 flex flex-col overflow-hidden pb-14">
                     {activeTab === 'problem' && (
                         <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-left-4">
                             <div className="flex-1">{renderProblemCardContent()}</div>
+                            <div className="mt-4 shrink-0">{renderControlsCard()}</div>
                         </div>
                     )}
 
                     {activeTab === 'interview' && (
                         <div className="flex-1 w-full h-full animate-in fade-in zoom-in-95">
-                            {renderVoicePanel()}
+                            {renderInteractionArea(true)}
                         </div>
                     )}
 
                     {activeTab === 'code' && (
-                        <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-bottom-4" onPointerDown={(e) => e.stopPropagation()}>
+                        <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-bottom-4">
                             <Card className="h-full flex flex-col shadow-xl rounded-2xl overflow-hidden border" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
                                 <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--surface-edge)' }}>
                                     <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-[12px]">
@@ -1184,30 +1244,13 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
-                                        onKeyDown={handleCodeKeyDown}
-                                        onExecutionStart={() => {
-                                            setIsExecRunning(true);
-                                            setLastExecResult(null);
-                                        }}
                                         onExecutionResult={(result) => {
-                                            setLastExecResult(result);
-                                            setIsExecRunning(false);
-                                            if (result.stdout || result.stderr || result.exit_code !== 0) {
-                                                const testResults = matchResults(testCases, result);
-                                                const kaiCtx = buildKaiExecutionContext(userCode, codeLanguage, testCases, result, testResults);
-                                                shareCodeWithAI(kaiCtx);
+                                            if (result.stdout || result.stderr) {
+                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
+                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
                                             }
                                         }}
                                     />
-                                    {testCases.length > 0 && (
-                                        <div className="mt-2 shrink-0">
-                                            <TestCasePanel
-                                                testCases={testCases}
-                                                executionResult={lastExecResult}
-                                                isRunning={isExecRunning}
-                                            />
-                                        </div>
-                                    )}
                                     <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
                                         <Send className="w-3.5 h-3.5 mr-1.5" /> Share
                                     </Button>
@@ -1218,26 +1261,7 @@ export function InterviewSession({
 
                     {activeTab === 'history' && (
                         <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-right-4">
-                            <div className="mb-2 flex justify-between items-center px-1">
-                                <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Interview History</h2>
-                                {messages.length > 0 && (
-                                    <Badge variant="secondary" className="bg-zinc-800/50 text-zinc-400 text-[9px]">{messages.length} turns</Badge>
-                                )}
-                            </div>
-                            <div className="rounded-2xl border flex flex-col flex-1 overflow-hidden min-h-[200px]" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                                {isGuest && hasStarted && !isAssessment && (
-                                    <GuestModeBanner
-                                        turnsUsed={guestSession.userTurns}
-                                        timeRemaining={limits.timeRemaining}
-                                        onSignUp={() => { window.location.href = '/login'; }}
-                                    />
-                                )}
-                                <ConversationView
-                                    messages={messages}
-                                    isAISpeaking={voice.isSpeaking}
-                                    isProcessing={isProcessing}
-                                />
-                            </div>
+                            {renderHistoryArea()}
                         </div>
                     )}
 
@@ -1251,7 +1275,7 @@ export function InterviewSession({
                     >
                         {([
                             { id: 'problem', label: 'Problem', icon: BookOpen },
-                            { id: 'interview', label: 'Kai', icon: Mic },
+                            { id: 'interview', label: 'Voice', icon: Mic },
                             { id: 'code', label: 'Code', icon: Code },
                             { id: 'history', label: 'Chat', icon: MessageSquare },
                         ] as const).map(({ id, label, icon: Icon }) => (
@@ -1297,17 +1321,6 @@ export function InterviewSession({
                         <p className="text-slate-400 text-sm mt-3">Problem 1 of 2 complete · Timer continues</p>
                     </div>
                 </div>
-            )}
-
-            {streakMilestone && (
-                <StreakMilestoneModal
-                    streak={streakMilestone.days}
-                    isNewRecord={streakMilestone.isRecord}
-                    onDismiss={() => {
-                        setStreakMilestone(null);
-                        streakMilestone.onDismiss?.();
-                    }}
-                />
             )}
         </div>
     );
