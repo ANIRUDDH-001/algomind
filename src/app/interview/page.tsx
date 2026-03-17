@@ -274,7 +274,6 @@ function InterviewContent() {
                         readOnly={!!sessionId}
                         isGuest={isGuest}
                         isReviewMode={isReviewMode}
-                        userTtsProvider={userTtsProvider}
                     />
                 )}
             </InterviewErrorBoundary>

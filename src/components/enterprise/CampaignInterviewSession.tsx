@@ -350,24 +350,16 @@ export function CampaignInterviewSession({
                         maxTurnsPerProblem: 20,
                         maxDurationMs: Math.max(60_000, (activeState.time_limit_mins * 60 - activeState.elapsed_secs) * 1000),
                     } as any}
-                    sessionToken={sessionToken}
+                    isAssessment
+                    assessmentSessionToken={sessionToken}
+                    assessmentApiEndpoint="/api/assess/chat"
                     initialTranscript={activeState.transcript.map(t => ({
                         role: t.speaker === 'ai' ? 'assistant' : t.speaker,
                         content: t.text
                     }))}
-                    apiEndpoint="/api/assess/chat"
-                    onCampaignQuestionEnd={(transcript: any[], code: string, elapsed: number) => handleQuestionSubmit(activeQuestionIdx!, transcript, code, elapsed)}
-                    onCampaignSaveProgress={(transcript: any[], code: string, elapsed: number) => {
-                        const nextStates = [...questionStates];
-                        nextStates[activeQuestionIdx!] = {
-                            ...nextStates[activeQuestionIdx!],
-                            elapsed_secs: elapsed,
-                            transcript,
-                            final_code: code
-                        };
-                        setQuestionStates(nextStates);
-                        saveProgress(nextStates, activeQuestionIdx);
-                    }}
+                    onAssessmentComplete={(elapsed: number, transcript: any[]) =>
+                        handleQuestionSubmit(activeQuestionIdx!, transcript, activeState.final_code ?? '', elapsed)
+                    }
                 />
             </div>
 

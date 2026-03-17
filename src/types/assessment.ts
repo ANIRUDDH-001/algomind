@@ -37,6 +37,7 @@ export interface SessionHistory {
     sessionId: string;
     userId: string;
     problemId: string;
+    problemTitle?: string;
     problemDifficulty: 'easy' | 'medium' | 'hard';
     timestamp: Date;
     duration: number; // seconds
