@@ -67,4 +67,23 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
     )
         .then(() => { })
         .catch(() => { });
+
+    // BetterStack Logtail — fire-and-forget, never blocks
+    const betterStackToken = process.env.BETTERSTACK_SOURCE_TOKEN;
+    if (betterStackToken) {
+        fetch('https://in.logs.betterstack.com', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${betterStackToken}`,
+            },
+            body: JSON.stringify({
+                dt: new Date().toISOString(),
+                level: ['model_error', 'db_error', 'cron_failed', 'transcript_save_failed']
+                    .includes(event.type) ? 'error' : 'info',
+                ...payload,
+                env: process.env.NODE_ENV ?? 'unknown',
+            }),
+        }).catch(() => { });
+    }
 }
