@@ -21,7 +21,8 @@ export type SystemEventType =
     | 'tts_fallback'
     | 'stt_fallback'
     | 'vad_fallback'
-    | 'admin_action';
+    | 'admin_action'
+    | 'transcript_save_failed';
 
 export interface SystemEventPayload {
     type: SystemEventType;
