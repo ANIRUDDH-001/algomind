@@ -44,7 +44,7 @@ export class SupabaseProgressStore {
                     // Don't pass id - let Supabase generate UUID
                     user_id: userId,
                     problem_id: session.problemId,
-                    problem_title: session.problemTitle || session.problemId,
+                    problem_title: session.problemId,
                     problem_difficulty: session.problemDifficulty,
                     duration: session.duration,
                     status: 'completed',

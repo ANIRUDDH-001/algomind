@@ -357,9 +357,9 @@ export function CampaignInterviewSession({
                         role: t.speaker === 'ai' ? 'assistant' : t.speaker,
                         content: t.text
                     }))}
-                    onAssessmentComplete={(elapsed: number, transcript: any[]) =>
-                        handleQuestionSubmit(activeQuestionIdx!, transcript, activeState.final_code ?? '', elapsed)
-                    }
+                    onAssessmentComplete={async (elapsed: number, transcript: any[]) => {
+                        await handleQuestionSubmit(activeQuestionIdx!, transcript, activeState.final_code || '', elapsed);
+                    }}
                 />
             </div>
 

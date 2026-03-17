@@ -1,0 +1,36 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getAssessmentSecret, encodeAssessmentSecret } from '@/lib/assess/jwt';
+
+describe('getAssessmentSecret', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+        vi.resetModules();
+        process.env = { ...originalEnv };
+    });
+
+    it('prefers ASSESSMENT_JWT_SECRET over SUPABASE_JWT_SECRET', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'new-secret';
+        process.env.SUPABASE_JWT_SECRET = 'old-secret';
+        expect(getAssessmentSecret()).toBe('new-secret');
+    });
+
+    it('falls back to SUPABASE_JWT_SECRET when ASSESSMENT_JWT_SECRET missing', () => {
+        delete process.env.ASSESSMENT_JWT_SECRET;
+        process.env.SUPABASE_JWT_SECRET = 'fallback-secret';
+        expect(getAssessmentSecret()).toBe('fallback-secret');
+    });
+
+    it('throws when neither secret is set', () => {
+        delete process.env.ASSESSMENT_JWT_SECRET;
+        process.env.SUPABASE_JWT_SECRET = '';
+        expect(() => getAssessmentSecret()).toThrow('[Assessment JWT]');
+    });
+
+    it('encodeAssessmentSecret returns Uint8Array', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'test-secret';
+        const encoded = encodeAssessmentSecret();
+        expect(encoded).toBeInstanceOf(Uint8Array);
+        expect(encoded.length).toBeGreaterThan(0);
+    });
+});

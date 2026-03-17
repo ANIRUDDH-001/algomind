@@ -19,9 +19,11 @@ export function ErrorBanner({ message, className, onClose, autoCloseMs = 5000, .
     return (
         <div className={cn(
             // Solid floating banner - NO transparency, always on top
-            "fixed top-20 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-lg animate-in fade-in slide-in-from-top-4 duration-300",
+            "fixed top-20 left-1/2 -translate-x-1/2 z-9999 w-[calc(100%-2rem)] max-w-lg animate-in fade-in slide-in-from-top-4 duration-300",
             className
         )}
+            role="alert"
+            aria-live="assertive"
             {...props}
         >
             {/* Solid red background - fully opaque */}
@@ -32,6 +34,7 @@ export function ErrorBanner({ message, className, onClose, autoCloseMs = 5000, .
                 </div>
                 <button
                     onClick={onClose}
+                    aria-label="Dismiss error"
                     className="p-1.5 bg-red-700 hover:bg-red-800 rounded-lg transition-colors text-white"
                 >
                     <X className="w-4 h-4" />

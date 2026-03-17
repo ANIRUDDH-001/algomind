@@ -455,7 +455,7 @@ export function InterviewSession({
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
         const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
-        submitUserResponse(codeMessage, { title: activeProblem.title, content: activeProblem.description });
+        submitUserResponse(codeMessage, { problemTitle: activeProblem.title, problemContent: activeProblem.description });
         shareCode(code); // A3: transition state machine back to ai-feedback
         setShowCodeEditor(false);
         setActiveTab('interview');
@@ -765,6 +765,7 @@ export function InterviewSession({
                             className="w-full max-w-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-14 lg:h-16 text-base lg:text-lg shadow-[0_0_20px_rgba(99,102,241,0.2)] transition-all duration-300 rounded-2xl"
                             onClick={handleStart}
                             data-tour="begin-button"
+                            data-testid="begin-interview-btn"
                         >
                             Begin Interview Experience
                         </Button>
@@ -906,7 +907,11 @@ export function InterviewSession({
 
                                         {/* TTS error banner */}
                                         {ttsError && (
-                                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5 text-red-400 text-[10px] font-bold flex items-center gap-1.5">
+                                            <div
+                                                role="alert"
+                                                aria-live="assertive"
+                                                className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5 text-red-400 text-[10px] font-bold flex items-center gap-1.5"
+                                            >
                                                 <AlertTriangle className="w-3 h-3" />
                                                 Voice playback failed. AI response is shown in chat history.
                                             </div>
@@ -919,7 +924,7 @@ export function InterviewSession({
                                                 onClick={() => {
                                                     const content = voice.transcript;
                                                     if (content) {
-                                                        submitUserResponse(content, { title: activeProblem.title, content: activeProblem.description });
+                                                        submitUserResponse(content, { problemTitle: activeProblem.title, problemContent: activeProblem.description });
                                                     }
                                                 }}
                                                 disabled={isProcessing || voice.isTranscribing}
@@ -1266,7 +1271,10 @@ export function InterviewSession({
                     )}
 
                     {/* ✅ FIXED: Visible clickable tab bar (replaces useless swipe dots) */}
-                    <div className="absolute bottom-0 left-0 right-0 z-50 flex border-t"
+                    <div
+                        role="tablist"
+                        aria-label="Interview mobile panels"
+                        className="absolute bottom-0 left-0 right-0 z-50 flex border-t"
                         style={{
                             background: 'var(--surface-1)',
                             borderColor: 'var(--surface-edge)',
@@ -1282,6 +1290,9 @@ export function InterviewSession({
                             <button
                                 key={id}
                                 onClick={() => setActiveTab(id as MobileTab)}
+                                role="tab"
+                                aria-label={`${label} tab`}
+                                aria-selected={activeTab === id}
                                 className={cn(
                                     "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all text-[10px] font-bold uppercase tracking-wider",
                                     activeTab === id

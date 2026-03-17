@@ -40,7 +40,13 @@ function buildSupabaseMock(overrides: Record<string, any> = {}) {
 
             const updateResult = td.updateResult || { error: null };
             const updateChain: any = {};
-            updateChain.eq = vi.fn().mockResolvedValue(updateResult);
+            updateChain.eq = vi.fn().mockReturnValue(updateChain);
+            updateChain.select = vi.fn().mockReturnValue(updateChain);
+            updateChain.single = vi.fn().mockResolvedValue(
+                updateResult.error
+                    ? { data: null, error: updateResult.error }
+                    : { data: { id: 'sub-123' }, error: null }
+            );
 
             return {
                 select: readChain.select,

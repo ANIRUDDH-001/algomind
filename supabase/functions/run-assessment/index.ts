@@ -45,6 +45,20 @@ Deno.serve(async (req: Request) => {
 
     const { submissionId, questionStates, integrityFlags } = body;
 
+    // Idempotency guard: if analysis already completed, return immediately
+    const { data: currentStatus } = await supabase
+        .from('candidate_submissions')
+        .select('analysis_status')
+        .eq('id', submissionId)
+        .single();
+
+    if (currentStatus?.analysis_status === 'completed') {
+        return new Response(
+            JSON.stringify({ success: true, idempotent: true, message: 'Analysis already completed' }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+
     if (!submissionId || !Array.isArray(questionStates)) {
         return new Response(JSON.stringify({ error: 'Missing submissionId or questionStates' }), { status: 400 });
     }
@@ -209,7 +223,7 @@ Problem: ${problem.title} (${problem.difficulty})
 ${problem.description?.slice(0, 800) ?? ''}
 
 Transcript:
-${transcriptText.slice(0, 6000)}
+${transcriptText.slice(0, 14000)}
 
 Respond ONLY with valid JSON matching this schema exactly:
 {
@@ -229,6 +243,10 @@ Respond ONLY with valid JSON matching this schema exactly:
 }`;
 
     try {
+        const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? AbortSignal.timeout(45000)
+            : undefined;
+
         const resp = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
@@ -238,6 +256,7 @@ Respond ONLY with valid JSON matching this schema exactly:
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
                 }),
+                signal: timeoutSignal,
             }
         );
 

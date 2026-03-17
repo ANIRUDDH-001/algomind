@@ -1,32 +1,71 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
+import { getRedis } from '@/lib/upstash/client';
+
+export const dynamic = 'force-dynamic';
+
+interface HealthResult {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    db: 'ok' | 'down';
+    redis: 'ok' | 'unconfigured' | 'down';
+    stuck_analyses: number;
+    memory_mb: number;
+    uptime_s: number;
+    timestamp: string;
+}
 
 export async function GET() {
-    try {
-        const supabase = await createServerSupabase();
-
-        // Lightweight DB ping instead of calling LLMs
-        const { error } = await supabase
+    const [dbResult, redisResult, stuckResult] = await Promise.allSettled([
+        getServiceClient()
             .from('global_feature_flags')
             .select('key')
-            .limit(1);
+            .limit(1),
 
-        if (error) throw error;
+        (async () => {
+            const redis = getRedis();
+            if (!redis) return 'unconfigured';
+            await redis.ping();
+            return 'ok';
+        })(),
 
-        return NextResponse.json({
-            status: 'healthy',
-            database: 'connected',
-            timestamp: new Date().toISOString(),
-            metrics: {
-                memoryUsage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-                uptime: Math.round(process.uptime()) + 's'
-            }
-        });
-    } catch (error) {
-        console.error('Health check failed:', error);
-        return NextResponse.json(
-            { status: 'unhealthy', error: 'Database connection failed' },
-            { status: 503 }
-        );
+        getServiceClient()
+            .from('candidate_submissions')
+            .select('id', { count: 'exact', head: true })
+            .eq('analysis_status', 'pending')
+            .lt('completed_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()),
+    ]);
+
+    const db: HealthResult['db'] =
+        dbResult.status === 'fulfilled' && !dbResult.value.error ? 'ok' : 'down';
+
+    let redis: HealthResult['redis'];
+    if (redisResult.status === 'fulfilled') {
+        redis = redisResult.value as HealthResult['redis'];
+    } else {
+        redis = 'down';
     }
+
+    const stuck_analyses: number =
+        stuckResult.status === 'fulfilled'
+            ? (stuckResult.value.count ?? 0)
+            : -1;
+
+    const status: HealthResult['status'] =
+        db === 'down' ? 'unhealthy'
+            : redis === 'down' ? 'degraded'
+                : 'healthy';
+
+    const result: HealthResult = {
+        status,
+        db,
+        redis,
+        stuck_analyses,
+        memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        uptime_s: Math.round(process.uptime()),
+        timestamp: new Date().toISOString(),
+    };
+
+    return NextResponse.json(result, {
+        status: status === 'unhealthy' ? 503 : 200,
+    });
 }
