@@ -135,7 +135,7 @@ describe('useInterviewControl', () => {
         const stateMachineRef = { current: mockStateMachine };
         const currentProblemRef = { current: null };
         const optionsRef = { current: mockOptions } as any;
-        const timeUpRef = { current: true }; // Force time up to bypass round count check
+        const timeUpRef = { current: true };
 
         const { result } = renderHook(() => useInterviewControl({
             voice: mockVoice,
@@ -146,6 +146,11 @@ describe('useInterviewControl', () => {
             optionsRef,
             timeUpRef
         }));
+
+        // Move out of idle so the guard does not block endInterview
+        act(() => {
+            result.current.setState('user-thinking');
+        });
 
         act(() => {
             result.current.endInterview();

@@ -572,7 +572,7 @@ export function useInterviewControl({
     }, [stateMachineRef, voice]);
 
     const endInterview = useCallback(() => {
-        if (roundCount < 1 && !timeUpRef.current) return;
+        if (state === 'idle') return;
         voice.setVadEnabled(false);
         voice.resetTranscript();
         voice.setMicIntent('off');
@@ -588,7 +588,7 @@ export function useInterviewControl({
         if (sendCountdownIntervalRef.current) { clearInterval(sendCountdownIntervalRef.current); sendCountdownIntervalRef.current = null; }
         stateMachineRef.current.transition('SUBMIT_SOLUTION');
         setState(stateMachineRef.current.getState());
-    }, [roundCount, timeUpRef, voice, stateMachineRef]);
+    }, [state, voice, stateMachineRef]);
 
     return {
         state,

@@ -45,6 +45,20 @@ Deno.serve(async (req: Request) => {
 
     const { submissionId, questionStates, integrityFlags } = body;
 
+    // Idempotency guard: if analysis already completed, return immediately
+    const { data: currentStatus } = await supabase
+        .from('candidate_submissions')
+        .select('analysis_status')
+        .eq('id', submissionId)
+        .single();
+
+    if (currentStatus?.analysis_status === 'completed') {
+        return new Response(
+            JSON.stringify({ success: true, idempotent: true, message: 'Analysis already completed' }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+
     if (!submissionId || !Array.isArray(questionStates)) {
         return new Response(JSON.stringify({ error: 'Missing submissionId or questionStates' }), { status: 400 });
     }

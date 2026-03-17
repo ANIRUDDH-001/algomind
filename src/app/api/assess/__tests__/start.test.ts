@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../start/route';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import { NextRequest } from 'next/server';
 import * as jose from 'jose';
 
 vi.mock('@/lib/supabase/server');
+vi.mock('@/lib/supabase/service');
 vi.mock('@/lib/startup/validateEnv', () => ({
     validateEnv: vi.fn(),
 }));
@@ -59,6 +61,7 @@ describe('Assess Start API (/api/assess/start)', () => {
         });
 
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase);
+        vi.mocked(getServiceClient).mockReturnValue(mockSupabase);
     });
 
     afterEach(() => {

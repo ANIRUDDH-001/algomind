@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
+import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 
 validateEnv();
 
@@ -30,15 +31,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!jwtSecret) {
-            console.error('[Security] SUPABASE_JWT_SECRET is not set — refusing to verify assessment JWT. This is a deployment configuration error.');
-            return NextResponse.json(
-                { error: 'Server misconfiguration. Contact administrator.' },
-                { status: 500 }
-            );
+        let secret: Uint8Array;
+        try {
+            secret = encodeAssessmentSecret();
+        } catch {
+            return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
-        const secret = new TextEncoder().encode(jwtSecret);
 
         const supabase = await createServerSupabase();
         const supabaseAdmin = getServiceClient();
@@ -70,8 +68,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Assessment already completed' }, { status: 400 });
         }
 
-        // 3. Mark as submitted (analysis pending)
-        const { error: pendingErr } = await supabaseAdmin
+        // 3. Mark as submitted (analysis pending) — atomic guard prevents double-completion
+        const { data: updated, error: pendingErr } = await supabaseAdmin
             .from('candidate_submissions')
             .update({
                 status: 'completed',
@@ -81,9 +79,21 @@ export async function POST(req: NextRequest) {
                 // Save question states for potential retry from owner panel
                 question_states: questionStates,
             })
-            .eq('id', submissionId);
+            .eq('id', submissionId)
+            .eq('status', 'in_progress')
+            .select('id')
+            .single();
 
-        if (pendingErr) throw pendingErr;
+        if (pendingErr && pendingErr.code !== 'PGRST116') throw pendingErr;
+
+        if (!updated) {
+            // Already completed — idempotent success, do not re-trigger edge function
+            return NextResponse.json({
+                success: true,
+                alreadyCompleted: true,
+                message: 'Assessment was already marked as completed.',
+            });
+        }
 
         // 4. Kick off async analysis (fire and forget — edge function handles its own errors)
         const edgeFunctionSecret = process.env.INTERNAL_API_SECRET;
