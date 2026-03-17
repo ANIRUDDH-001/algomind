@@ -24,6 +24,7 @@ interface AnalysisRequest {
         elapsed_secs: number;
     }>;
     integrityFlags?: string[];
+    candidateId?: string | null;
 }
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
@@ -43,7 +44,7 @@ Deno.serve(async (req: Request) => {
         return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
     }
 
-    const { submissionId, questionStates, integrityFlags } = body;
+    const { submissionId, questionStates, integrityFlags, candidateId } = body;
 
     // Idempotency guard: if analysis already completed, return immediately
     const { data: currentStatus } = await supabase
@@ -125,7 +126,7 @@ Deno.serve(async (req: Request) => {
         const { data: sessionData, error: sessionErr } = await supabase
             .from('interview_sessions')
             .insert({
-                user_id: null,
+                user_id: candidateId ?? null,
                 is_candidate_session: true,
                 problem_id: primaryProblemId,
                 problem_title: primaryProblemTitle,
@@ -227,7 +228,7 @@ ${transcriptText.slice(0, 14000)}
 
 Respond ONLY with valid JSON matching this schema exactly:
 {
-  "overallScore": <number 0-100>,
+    "overallScore": <number 0-10>,
   "overallFeedback": "<2-3 sentence assessment>",
   "nextSteps": ["<step 1>", "<step 2>", "<step 3>"],
   "skills": {

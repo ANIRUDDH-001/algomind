@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         // 2. Ensure submission hasn't already been completed
         const { data: submission, error: subError } = await supabaseAdmin
             .from('candidate_submissions')
-            .select('status, campaign_id, assigned_problem_id')
+            .select('status, campaign_id, assigned_problem_id, candidate_id')
             .eq('id', submissionId)
             .single();
 
@@ -101,8 +101,13 @@ export async function POST(req: NextRequest) {
             console.error('[Assess Complete] INTERNAL_API_SECRET not set — skipping async analysis');
         } else {
             // Use supabase.functions.invoke — non-blocking
+            await supabaseAdmin
+                .from('candidate_submissions')
+                .update({ assess_async_trigger_at: new Date().toISOString() })
+                .eq('id', submissionId);
+
             supabaseAdmin.functions.invoke('run-assessment', {
-                body: { submissionId, questionStates, integrityFlags },
+                body: { submissionId, questionStates, integrityFlags, candidateId: submission.candidate_id ?? null },
                 headers: { Authorization: `Bearer ${edgeFunctionSecret}` },
             }).catch(err => {
                 console.error('[Assess Complete] Edge function invoke failed (non-fatal):', err);

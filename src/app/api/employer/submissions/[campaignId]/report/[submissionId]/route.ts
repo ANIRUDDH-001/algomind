@@ -115,9 +115,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 debugging_approach: assessment.debugging_approach
             } : null,
             overallFeedback: assessment?.overall_feedback || null,
-            nextSteps: assessment?.learning_recommendations && Array.isArray(assessment.learning_recommendations)
-                ? assessment.learning_recommendations.map((lr: any) => lr.topic || lr)
-                : []
+            nextSteps: Array.isArray(assessment?.next_steps) ? assessment.next_steps : []
         };
 
         return NextResponse.json(report);
