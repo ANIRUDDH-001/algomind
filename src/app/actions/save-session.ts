@@ -7,7 +7,6 @@ import { createAndSaveSession1Baseline } from '@/lib/ai/narrative-generator';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { type ConversationTurn } from '@/lib/assessment/prompts';
 import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
-import { uploadTranscript } from '@/lib/aws/s3';
 
 export async function saveInterviewSession(
     userId: string,
@@ -134,20 +133,6 @@ export async function saveInterviewSession(
             console.error('❌ [ACTION] Failed to save session:', error);
             void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
             return { success: false, error: error.message, status: 500 };
-        }
-
-        // Fire & forget S3 upload
-        if (transcript && transcript.length > 0) {
-            uploadTranscript(sessionData.id, transcript, userId).then(async (s3Key) => {
-                await supabase.from('interview_sessions')
-                    .update({ transcript_s3_key: s3Key })
-                    .eq('id', sessionData.id);
-            }).catch(err => {
-                const msg = err instanceof Error ? err.message : String(err);
-                if (msg !== 'AWS_S3_DISABLED' && msg !== 'AWS_S3_NOT_CONFIGURED') {
-                    console.error('⚠️ [ACTION] Background S3 upload failed (session saved to DB):', err);
-                }
-            });
         }
 
         // 4. Save assessment details (Requirement 6)
@@ -316,29 +301,7 @@ export async function saveInterviewSession(
             await invalidateDashboardCache(userId);
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
 
-        // Update streak (fire-and-forget with error isolation)
-        let streakResult: { new_streak: number; longest_streak: number; is_new_record: boolean }[] | null = null;
-        try {
-            const { data: streakData, error: streakError } = await supabase
-                .rpc('update_user_streak', { p_user_id: userId });
-
-            if (streakError) {
-                console.warn('[save-session] Streak update failed (non-fatal):', streakError.message);
-            } else if (streakData && streakData[0]) {
-                streakResult = streakData;
-                const { new_streak, longest_streak: newLongest, is_new_record } = streakData[0];
-                console.log(`[save-session] Streak: ${new_streak} day(s) (longest: ${newLongest})${is_new_record ? ' (new record!)' : ''}`);
-            }
-        } catch (streakErr) {
-            console.warn('[save-session] Streak update threw (non-fatal):', streakErr);
-        }
-
-        return {
-            success: true,
-            sessionId: sessionData.id,
-            streakDays: streakResult?.[0]?.new_streak ?? null,
-            isNewStreakRecord: streakResult?.[0]?.is_new_record ?? false,
-        };
+        return { success: true, sessionId: sessionData.id };
     } catch (e) {
         const error = e as unknown;
         const errorMessage = error instanceof Error ? error.message : String(error);

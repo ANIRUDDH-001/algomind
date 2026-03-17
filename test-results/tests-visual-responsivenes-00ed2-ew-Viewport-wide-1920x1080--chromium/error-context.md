@@ -1,0 +1,221 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - generic [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Practice" [ref=e11] [cursor=pointer]:
+            - /url: /practice
+          - link "Learn" [ref=e12] [cursor=pointer]:
+            - /url: /learn
+        - button "Sign In" [ref=e14]
+  - main [ref=e16]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - button "Hide problem" [ref=e21]:
+            - img [ref=e22]
+          - generic "Valid Parentheses" [ref=e25]
+          - generic [ref=e26]: practice
+          - generic [ref=e27]:
+            - img [ref=e28]
+            - generic [ref=e31]: 00:00
+            - generic [ref=e32]: /
+            - generic [ref=e33]: 20:00
+        - generic [ref=e35]:
+          - generic [ref=e39]:
+            - generic [ref=e41]:
+              - generic [ref=e42]:
+                - generic [ref=e43]: Valid Parentheses
+                - generic [ref=e44]: easy
+              - link "🔗 Practice on LeetCode" [ref=e45] [cursor=pointer]:
+                - /url: https://leetcode.com/problems/valid-parentheses/
+            - generic [ref=e46]:
+              - generic [ref=e47]: "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid. An input string is valid if: 1. Open brackets must be closed by the same type of brackets. 2. Open brackets must be closed in the correct order. 3. Every close bracket has a corresponding open bracket of the same type."
+              - generic [ref=e48]:
+                - generic [ref=e49]:
+                  - paragraph [ref=e50]: "Example 1:"
+                  - generic [ref=e51]:
+                    - generic [ref=e52]:
+                      - generic [ref=e53]: "Input:"
+                      - generic [ref=e54]: s = "()"
+                    - generic [ref=e55]:
+                      - generic [ref=e56]: "Output:"
+                      - generic [ref=e57]: "true"
+                - generic [ref=e58]:
+                  - paragraph [ref=e59]: "Example 2:"
+                  - generic [ref=e60]:
+                    - generic [ref=e61]:
+                      - generic [ref=e62]: "Input:"
+                      - generic [ref=e63]: "s = \"()[]{}\""
+                    - generic [ref=e64]:
+                      - generic [ref=e65]: "Output:"
+                      - generic [ref=e66]: "true"
+                - generic [ref=e67]:
+                  - paragraph [ref=e68]: "Example 3:"
+                  - generic [ref=e69]:
+                    - generic [ref=e70]:
+                      - generic [ref=e71]: "Input:"
+                      - generic [ref=e72]: s = "(]"
+                    - generic [ref=e73]:
+                      - generic [ref=e74]: "Output:"
+                      - generic [ref=e75]: "false"
+          - separator [ref=e76]
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e81]: Start interview to write code
+              - generic [ref=e82]:
+                - generic [ref=e83]:
+                  - generic [ref=e84]:
+                    - generic [ref=e85]: "Lang:"
+                    - combobox [ref=e86]:
+                      - option "Python" [selected]
+                      - option "JavaScript"
+                      - option "TypeScript"
+                      - option "Java"
+                      - option "C++"
+                  - generic [ref=e87]:
+                    - button "Run" [disabled] [ref=e88]:
+                      - img [ref=e89]
+                      - text: Run
+                    - button "Clear" [ref=e92]
+                    - button "Copy" [ref=e93]
+                - code [ref=e97]:
+                  - generic [ref=e98]:
+                    - textbox "Editor content"
+                    - textbox [ref=e99]
+                    - generic [ref=e104]: "1"
+            - generic [ref=e112]:
+              - button "Test Cases" [ref=e113]:
+                - generic [ref=e115]: Test Cases
+                - img [ref=e116]
+              - generic [ref=e118]:
+                - generic [ref=e120]:
+                  - img [ref=e122]
+                  - generic [ref=e124]:
+                    - paragraph [ref=e125]: Case 1
+                    - generic [ref=e126]:
+                      - generic [ref=e127]:
+                        - paragraph [ref=e128]: Input
+                        - paragraph [ref=e129]: s = "()"
+                      - generic [ref=e130]:
+                        - paragraph [ref=e131]: Expected
+                        - paragraph [ref=e132]: "true"
+                      - generic [ref=e133]:
+                        - paragraph [ref=e134]: Your output
+                        - paragraph [ref=e135]: —
+                - generic [ref=e137]:
+                  - img [ref=e139]
+                  - generic [ref=e141]:
+                    - paragraph [ref=e142]: Case 2
+                    - generic [ref=e143]:
+                      - generic [ref=e144]:
+                        - paragraph [ref=e145]: Input
+                        - paragraph [ref=e146]: "s = \"()[]{}\""
+                      - generic [ref=e147]:
+                        - paragraph [ref=e148]: Expected
+                        - paragraph [ref=e149]: "true"
+                      - generic [ref=e150]:
+                        - paragraph [ref=e151]: Your output
+                        - paragraph [ref=e152]: —
+                - generic [ref=e154]:
+                  - img [ref=e156]
+                  - generic [ref=e158]:
+                    - paragraph [ref=e159]: Case 3
+                    - generic [ref=e160]:
+                      - generic [ref=e161]:
+                        - paragraph [ref=e162]: Input
+                        - paragraph [ref=e163]: s = "(]"
+                      - generic [ref=e164]:
+                        - paragraph [ref=e165]: Expected
+                        - paragraph [ref=e166]: "false"
+                      - generic [ref=e167]:
+                        - paragraph [ref=e168]: Your output
+                        - paragraph [ref=e169]: —
+          - separator [ref=e170]
+          - generic [ref=e173]:
+            - generic [ref=e174]: K
+            - paragraph [ref=e175]: Ready when you are
+            - button "Begin Interview Experience" [ref=e176]
+      - generic [ref=e178]:
+        - generic [ref=e179]:
+          - generic [ref=e180]: Guest Mode
+          - heading "Choose Your Problem" [level=1] [ref=e182]
+          - generic [ref=e183]:
+            - generic [ref=e184]:
+              - img [ref=e185]
+              - text: 10 rounds with Kai
+            - generic [ref=e188]:
+              - img [ref=e189]
+              - text: 10 minute session
+        - generic [ref=e192]:
+          - button "Two Sum Easy Array Hash Table" [ref=e193]:
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]: Two Sum
+                - generic [ref=e197]: Easy
+              - generic [ref=e198]:
+                - generic [ref=e199]: Array
+                - generic [ref=e200]: Hash Table
+            - img [ref=e201]
+          - button "Valid Parentheses Easy String Stack" [ref=e203]:
+            - generic [ref=e204]:
+              - generic [ref=e205]:
+                - generic [ref=e206]: Valid Parentheses
+                - generic [ref=e207]: Easy
+              - generic [ref=e208]:
+                - generic [ref=e209]: String
+                - generic [ref=e210]: Stack
+            - img [ref=e211]
+          - button "Reverse Linked List Easy Linked List Recursion" [ref=e213]:
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e216]: Reverse Linked List
+                - generic [ref=e217]: Easy
+              - generic [ref=e218]:
+                - generic [ref=e219]: Linked List
+                - generic [ref=e220]: Recursion
+            - img [ref=e221]
+          - button "Maximum Subarray Medium Array Dynamic Programming Divide and Conquer" [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - generic [ref=e226]: Maximum Subarray
+                - generic [ref=e227]: Medium
+              - generic [ref=e228]:
+                - generic [ref=e229]: Array
+                - generic [ref=e230]: Dynamic Programming
+                - generic [ref=e231]: Divide and Conquer
+            - img [ref=e232]
+          - button "Climbing Stairs Easy Dynamic Programming Math Memoization" [ref=e234]:
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e237]: Climbing Stairs
+                - generic [ref=e238]: Easy
+              - generic [ref=e239]:
+                - generic [ref=e240]: Dynamic Programming
+                - generic [ref=e241]: Math
+                - generic [ref=e242]: Memoization
+            - img [ref=e243]
+        - button "Surprise Me — Pick Random" [ref=e245]:
+          - img
+          - text: Surprise Me — Pick Random
+        - paragraph [ref=e246]:
+          - text: Results are not saved in guest mode.
+          - link "Sign up free" [ref=e247] [cursor=pointer]:
+            - /url: /login
+          - text: to save your progress.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e253] [cursor=pointer]:
+    - img [ref=e254]
+  - alert [ref=e257]
+  - generic [ref=e258]:
+    - alert
+    - alert
+```

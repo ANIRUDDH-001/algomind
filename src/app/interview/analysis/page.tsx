@@ -73,8 +73,7 @@ export default async function AnalysisPage({
     }
 
     // Detect limited evidence from transcript turn count
-    const userTurnCount = ((session.transcript || []) as Array<{role?: string; speaker?: string; content?: string; text?: string}>)
-        .filter(t => t.role === 'user' || t.speaker === 'user' || t.speaker === 'USER').length;
+    const userTurnCount = ((session.transcript || []) as TranscriptTurn[]).filter(t => t.speaker === 'user' || t.speaker === 'USER').length;
     const isLimitedEvidence = userTurnCount <= 5;
 
     // 2. Fetch assessment
@@ -161,7 +160,7 @@ export default async function AnalysisPage({
                                     timestampIndex: 0,
                                     momentType: score >= 6 ? 'impressive_statement' : score <= 3 ? 'missed_opportunity' : 'approach_identified',
                                     type,
-                                    quote: typeof q === 'string' ? q : '',
+                                    quote: typeof q === 'string' ? q.slice(0, 60) : '',
                                     significance: `Evidence from ${dim.replace(/-/g, ' ')}`,
                                     dimension: dim,
                                     sentiment,

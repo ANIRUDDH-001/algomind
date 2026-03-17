@@ -9,6 +9,7 @@ export type SystemEventType =
     | 'db_error'
     | 'embedding_failed'
     | 'user_rate_limit'
+    | 'leetcode_fetch_failed'
     | 'piston_error'
     | 'cron_completed'
     | 'cron_failed'
