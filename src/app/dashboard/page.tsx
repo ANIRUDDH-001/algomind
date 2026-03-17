@@ -335,7 +335,7 @@ function DashboardContent() {
                                                             {session.overallScore.toFixed(1)}
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemTitle || session.problemId.replace(/-/g, ' ')}</h4>
+                                                            <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemId.replace(/-/g, ' ')}</h4>
                                                             <p className="text-xs text-zinc-500">{format(new Date(session.timestamp), 'PPP p')}</p>
                                                         </div>
                                                     </div>

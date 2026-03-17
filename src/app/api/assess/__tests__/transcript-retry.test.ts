@@ -13,9 +13,11 @@ describe('Transcript save retry logic', () => {
         // This tests the retry pattern logic — verify delays and attempt counts
         const delays: number[] = [];
         const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation(
-            (fn: any, delay: number) => {
-                delays.push(delay);
-                fn();
+            (fn: Parameters<typeof setTimeout>[0], delay?: number) => {
+                delays.push(delay ?? 0);
+                if (typeof fn === 'function') {
+                    fn();
+                }
                 return 0 as any;
             }
         );

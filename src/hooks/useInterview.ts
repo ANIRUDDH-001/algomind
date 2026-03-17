@@ -34,7 +34,7 @@ export interface Message {
     content: string;
     timestamp: Date;
     /** Message delivery status. */
-    status?: 'complete' | 'interrupted' | 'cancelled';
+    status?: 'streaming' | 'complete' | 'interrupted' | 'cancelled';
     /** What the AI said before the user interrupted (subset of content). */
     partialContent?: string;
     /** Unix timestamp of when the interruption occurred. */
@@ -44,9 +44,9 @@ export interface Message {
 // Phase 2a: micIntent state machine replaces boolean isMicEnabled
 export type MicIntent = 'user-on' | 'auto-on' | 'paused-for-ai' | 'off';
 
-interface ProblemContext {
-    title: string;
-    content: string;
+export interface ProblemContext {
+    problemTitle: string;
+    problemContent: string;
     ragContext?: string;
     kaiMemory?: string;
     problemId?: string;
@@ -58,7 +58,7 @@ interface ProblemContext {
     secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
 }
 
-export function useInterview(options: {
+export interface UseInterviewOptions {
     config: InterviewConfig;
     isTimeUp?: boolean;
     turnsRemaining?: number;
@@ -69,7 +69,9 @@ export function useInterview(options: {
     sessionToken?: string;
     onUserMessage?: (msg: Message, count: number) => void;
     isGuest?: boolean;
-}) {
+}
+
+export function useInterview(options: UseInterviewOptions) {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -311,8 +313,8 @@ export function useInterview(options: {
                     ],
                     systemPrompt,
                     problemContext: {
-                        title: currentProblemRef.current?.title ?? '',
-                        content: currentProblemRef.current?.content ?? '',
+                        title: currentProblemRef.current?.problemTitle ?? '',
+                        content: currentProblemRef.current?.problemContent ?? '',
                         ragContext: optionsRef.current.config.ragContext,
                         tags: (currentProblemRef.current as any)?.tags ?? [],
                     },
@@ -391,8 +393,8 @@ export function useInterview(options: {
 
         const prompt = generateTurnPrompt({
             state: stateMachine.current.getState(),
-            problemTitle: problemContext.title,
-            problemContent: problemContext.content,
+            problemTitle: problemContext.problemTitle,
+            problemContent: problemContext.problemContent,
             transcript: safeUserText,
             interruptionContext: interruptionCtx,
             turnsRemaining: optionsRef.current.turnsRemaining,
@@ -406,9 +408,9 @@ export function useInterview(options: {
         const currentSysPrompt = generateSystemPrompt({
             problem: {
                 id: currentProblemRef.current?.problemId ?? '',
-                title: currentProblemRef.current?.title ?? '',
-                content: currentProblemRef.current?.content ?? '',
-                description: currentProblemRef.current?.content ?? '',
+                title: currentProblemRef.current?.problemTitle ?? '',
+                content: currentProblemRef.current?.problemContent ?? '',
+                description: currentProblemRef.current?.problemContent ?? '',
                 difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
             } as Problem,
             difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
@@ -598,8 +600,8 @@ export function useInterview(options: {
         setMessages([]);
         resetTranscript();
         currentProblemRef.current = {
-            title: problemTitle,
-            content: problemContent,
+            problemTitle,
+            problemContent,
             ragContext,
             kaiMemory,
             problemId,
@@ -775,7 +777,7 @@ export function useInterview(options: {
         if (typeof window !== 'undefined' && testHooksEnabled) {
             (window as any).__TRIGGER_AI_CALL__ = (message: string) => {
                 const safeMsg = message.slice(0, MAX_USER_INPUT);
-                submitUserResponse(safeMsg, currentProblemRef.current || { title: 'Test', content: 'Test' });
+                submitUserResponse(safeMsg, currentProblemRef.current || { problemTitle: 'Test', problemContent: 'Test' });
             };
             return () => {
                 delete (window as any).__TRIGGER_AI_CALL__;
