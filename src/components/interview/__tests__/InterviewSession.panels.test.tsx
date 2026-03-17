@@ -247,17 +247,25 @@ describe('InterviewSession 3-Panel Desktop Layout', () => {
         expect(titleElements.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('2. Renders the resizable panel group (3-panel layout)', () => {
+    it('2. Renders the desktop drawer layout shell', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        expect(screen.getByTestId('resizable-group')).toBeDefined();
-        // At min: 3 panels (problem, code, voice)
-        const panels = screen.getAllByTestId('resizable-panel');
-        expect(panels.length).toBeGreaterThanOrEqual(3);
+        expect(screen.getAllByText('Problem').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('History').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('3. Code editor is always visible in desktop mode', () => {
+    it('3. Code editor is shown after start and Code toggle', async () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        expect(screen.getByTestId('mock-code-editor')).toBeDefined();
+        const beginButtons = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
+        await act(async () => {
+            fireEvent.click(beginButtons[0]);
+        });
+
+        const codeButtons = screen.getAllByRole('button', { name: /^Code$/i });
+        await act(async () => {
+            fireEvent.click(codeButtons[0]);
+        });
+
+        expect(screen.getAllByTestId('mock-code-editor').length).toBeGreaterThanOrEqual(1);
     });
 
     it('4. Voice panel shows "Begin Interview Experience" before start', () => {
@@ -267,11 +275,10 @@ describe('InterviewSession 3-Panel Desktop Layout', () => {
         expect(beginBtns.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('5. "Ready when you are" text visible before interview starts', () => {
+    it('5. "Begin Interview Experience" is visible before interview starts', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // desktop + mobile both render in jsdom, so we use getAllBy
-        const readyTexts = screen.getAllByText('Ready when you are');
-        expect(readyTexts.length).toBeGreaterThanOrEqual(1);
+        const beginButtons = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
+        expect(beginButtons.length).toBeGreaterThanOrEqual(1);
     });
 
     it('6. Problem panel contains problem title and description', () => {
@@ -287,27 +294,21 @@ describe('InterviewSession 3-Panel Desktop Layout', () => {
         expect(titles.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('8. Problem panel collapse toggle changes isProblemCollapsed state', async () => {
+    it('8. Problem panel toggle hides problem card content', async () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // When un-collapsed: 3 panels with regular sizes exist
-        const panelsBefore = screen.getAllByTestId('resizable-panel');
-        expect(panelsBefore.length).toBeGreaterThanOrEqual(3);
+        expect(screen.getAllByText(/Practice on LeetCode/i).length).toBeGreaterThanOrEqual(1);
 
-        // The BookOpen button in the TopBar should toggle the collapse
-        const bookOpenBtn = document.querySelector('.h-11 button');
-        if (bookOpenBtn) {
-            await act(async () => { fireEvent.click(bookOpenBtn); });
-            // After collapse, panels still render but problem panel is the icon-only strip
-            const panelsAfter = screen.getAllByTestId('resizable-panel');
-            expect(panelsAfter.length).toBeGreaterThanOrEqual(3);
-        }
+        const problemToggleButtons = screen.getAllByRole('button', { name: /Problem/i });
+        await act(async () => {
+            fireEvent.click(problemToggleButtons[0]);
+        });
+
+        expect(screen.queryByText(/Practice on LeetCode/i)).toBeNull();
     });
 
-    it('9. No mobile UI visible on desktop', () => {
+    it('9. Desktop shell is present on desktop width', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // Mobile tab is hidden via lg:hidden (CSS only in jsdom, DOM still present)
-        // But mobile-only tab bar buttons — we should not see "Kai" or swipe dots
-        // Just verify the desktop features are present
-        expect(screen.getByTestId('resizable-group')).toBeDefined();
+        expect(screen.getAllByText('Problem').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('History').length).toBeGreaterThanOrEqual(1);
     });
 });
