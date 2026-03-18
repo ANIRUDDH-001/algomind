@@ -285,7 +285,7 @@ export async function saveInterviewSession(
                     sessionId: sessionData.id,
                     problemTitle,
                     problemDifficulty: probDiff?.difficulty || 'medium',
-                    overallScore: Math.round(((finalResult.rawScore ?? 0) / 100) * 10), // Converting 0-100 to 0-10
+                    overallScore: finalResult.rawScore ?? 0,
                     skills: skillsForBaseline,
                     completedAt: new Date().toISOString()
                 };
