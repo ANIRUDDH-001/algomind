@@ -64,6 +64,7 @@ export interface UseInterviewOptions {
     turnsRemaining?: number;
     timeRemaining?: number;
     voicePrefs?: { name: string | null; rate: number; pitch: number };
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
     isReviewMode?: boolean;
     apiEndpoint?: string;
     sessionToken?: string;
@@ -75,7 +76,7 @@ export function useInterview(options: UseInterviewOptions) {
     const optionsRef = useRef(options);
     useEffect(() => { optionsRef.current = options; },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [options.config, options.isTimeUp, options.turnsRemaining, options.timeRemaining, options.voicePrefs, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
+        [options.config, options.isTimeUp, options.turnsRemaining, options.timeRemaining, options.voicePrefs, options.userTtsProvider, options.isReviewMode, options.apiEndpoint, options.sessionToken, options.onUserMessage, options.isGuest]
     );
 
     // State
@@ -148,6 +149,7 @@ export function useInterview(options: UseInterviewOptions) {
         voiceName: optionsRef.current.voicePrefs?.name ?? null,
         voiceRate: optionsRef.current.voicePrefs?.rate ?? 1.0,
         voicePitch: optionsRef.current.voicePrefs?.pitch ?? 1.0,
+        userTtsProvider: optionsRef.current.userTtsProvider ?? 'auto',
     });
 
     const stt = useSTT({

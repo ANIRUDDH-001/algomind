@@ -4,10 +4,11 @@ import React from 'react';
 import { UserProgress } from '@/types/assessment';
 import { Button } from '@/components/ui/button';
 import { ExportReportButton } from './ExportReportButton';
-import { Brain, PlusCircle, Calendar, ArrowRight } from 'lucide-react';
+import { Brain, PlusCircle, Calendar, ArrowRight, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 interface DashboardHeaderProps {
     progress: UserProgress | null;
@@ -16,6 +17,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderProps) {
     const { user } = useAuth();
+    const learnModeEnabled = useGlobalFeatureFlag('ENABLE_LEARN_MODE', false);
     const latestSession = progress?.sessions?.[0];
     const avgScore = progress?.averageScore || 0;
     const lastDate = latestSession ? format(new Date(latestSession.timestamp), 'MMM d, h:mm a') : '—';
@@ -74,6 +76,14 @@ export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderP
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0 md:pb-1">
                 <ExportReportButton progress={progress} />
+                {learnModeEnabled && latestSession?.problemId && (
+                    <Link href={`/learn?problemId=${latestSession.problemId}&fromSessionId=${latestSession.sessionId}`}>
+                        <Button variant="outline" className="border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 font-bold h-11 px-6 w-full sm:w-auto transition-all active:scale-95">
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Learn Mode
+                        </Button>
+                    </Link>
+                )}
                 <Link href="/practice">
                     <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 px-6 sm:px-8 shadow-xl shadow-indigo-900/20 transition-all active:scale-95 w-full sm:w-auto">
                         <PlusCircle className="w-4 h-4 mr-2" />

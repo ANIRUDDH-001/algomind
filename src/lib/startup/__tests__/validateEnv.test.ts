@@ -132,6 +132,8 @@ describe('validateEnv', () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
         SUPABASE_JWT_SECRET: 'test-jwt-secret',
+        INTERNAL_API_SECRET: 'test-internal-api-secret',
+        ASSESSMENT_JWT_SECRET: 'test-assessment-jwt-secret',
         UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
         UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
     };

@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
         // Save assessment
         const { error: assessErr } = await supabase.from('assessments').insert({
             session_id: sessionData.id,
-            user_id: null,
+            user_id: candidateId ?? null,
             overall_score: overallScore,
             overall_feedback: allFeedbacks.join('\n\n'),
             next_steps: allNextSteps.slice(0, 5),

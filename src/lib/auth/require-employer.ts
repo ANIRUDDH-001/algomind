@@ -12,7 +12,7 @@ export async function requireEmployer(): Promise<{ user: User | null; error: str
 
     const accountType = await getAccountType(user.id);
 
-    if (accountType !== 'employer' && accountType !== 'admin') {
+    if (accountType !== 'employer' && accountType !== 'admin' && accountType !== 'owner') {
         return { user: null, error: 'Forbidden: Employer access required', status: 403 };
     }
 

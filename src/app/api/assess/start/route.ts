@@ -304,6 +304,7 @@ export async function POST(req: NextRequest) {
         })
             .setProtectedHeader({ alg })
             .setIssuedAt()
+            .setSubject(user?.id ?? '')
             .setExpirationTime(exp)
             .sign(secret);
 

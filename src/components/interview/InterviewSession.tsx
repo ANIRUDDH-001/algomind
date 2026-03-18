@@ -61,6 +61,7 @@ interface InterviewSessionProps {
     isReviewMode?: boolean;
     readOnly?: boolean;
     initialTranscript?: { role: string; content: string }[];
+    userTtsProvider?: 'auto' | 'polly' | 'browser';
 
     // Employer assessment
     isAssessment?: boolean;
@@ -84,7 +85,8 @@ export function InterviewSession({
     assessmentSessionToken,
     assessmentApiEndpoint,
     startTimeOffsetSeconds,
-    onAssessmentComplete
+    onAssessmentComplete,
+    userTtsProvider = 'auto',
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
@@ -272,6 +274,7 @@ export function InterviewSession({
         turnsRemaining: limits.turnsRemaining,
         timeRemaining: limits.timeRemaining,
         voicePrefs,
+        userTtsProvider,
         isReviewMode,
         apiEndpoint: isAssessment ? assessmentApiEndpoint : undefined,
         sessionToken: isAssessment ? assessmentSessionToken : undefined,
