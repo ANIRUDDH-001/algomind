@@ -182,14 +182,14 @@ describe('Navbar Component', () => {
         expect(links?.length).toBe(2);
     });
 
-    it('4. Bottom nav has 4 items for candidate account type', async () => {
+    it('4. Bottom nav has 5 items for candidate account type', async () => {
         window.innerWidth = 375;
         const { container } = render(<Navbar />);
         await waitFor(() => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
             const links = bottomNav?.querySelectorAll('a');
-            expect(links?.length).toBe(4);
+            expect(links?.length).toBe(5);
         });
     });
 

@@ -10,6 +10,7 @@ import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
 import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
 import dynamic from 'next/dynamic';
 import type { CognitiveSkill } from '@/types/assessment';
+import { ConceptImpactBadge, type ConceptImpact } from '@/components/interview/ConceptImpactBadge';
 
 const ExportReportButton = dynamic(
     () => import('@/components/dashboard/ExportReportButton').then(m => ({ default: m.ExportReportButton })),
@@ -318,6 +319,29 @@ export function AnalysisClient({
     const isIncompleteSession = session.status === 'incomplete' || session.isLimitedEvidence;
     const [queueStatus, setQueueStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
     const [localReviewData, setLocalReviewData] = useState(reviewData);
+    const [conceptImpacts, setConceptImpacts] = useState<ConceptImpact[]>([]);
+
+    useEffect(() => {
+        if (!session.id) return;
+
+        let cancelled = false;
+        fetch(`/api/knowledge/session-impacts?sessionId=${session.id}`)
+            .then((response) => response.json())
+            .then((data) => {
+                if (!cancelled) {
+                    setConceptImpacts(Array.isArray(data.impacts) ? data.impacts : []);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setConceptImpacts([]);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [session.id]);
 
     const handleAddToQueue = useCallback(async () => {
         setQueueStatus('adding');
@@ -449,6 +473,12 @@ export function AnalysisClient({
                         <Clock className="w-3.5 h-3.5" />
                         Completed in {formatDuration(session.duration)}
                     </div>
+
+                    {conceptImpacts.length > 0 && (
+                        <div className="mt-2 pt-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
+                            <ConceptImpactBadge impacts={conceptImpacts} />
+                        </div>
+                    )}
 
                     {/* 8 Skill Bars */}
                     {skills && (

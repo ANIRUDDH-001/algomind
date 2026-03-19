@@ -27,7 +27,13 @@ vi.mock('@/lib/ai/memory-generator', () => ({
 
 // Mock spaced repetition
 vi.mock('@/lib/spaced-repetition/queue', () => ({
-    addToQueue: vi.fn().mockResolvedValue({ success: true })
+    addToQueue: vi.fn().mockResolvedValue({ success: true }),
+    updateSkillRepetition: vi.fn().mockResolvedValue({ success: true })
+}));
+
+// Mock cache invalidation
+vi.mock('@/lib/cache/dashboardCache', () => ({
+    invalidateDashboardCache: vi.fn().mockResolvedValue(undefined)
 }));
 
 describe('saveInterviewSession Action', () => {

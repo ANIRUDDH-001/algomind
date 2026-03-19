@@ -22,7 +22,7 @@ import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
 import { LiveTranscript } from '@/components/voice/LiveTranscript';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
@@ -41,6 +41,7 @@ import { CodeEditor } from './CodeEditor';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
+import { InterviewHeader } from './InterviewHeader';
 
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
@@ -727,24 +728,20 @@ export function InterviewSession({
 
     const renderProblemCardContent = () => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
+        const headerMode = interviewConfig.mode === 'employer'
+            ? 'employer'
+            : interviewConfig.difficultyMode;
 
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent" data-tour="problem-panel">
                 <CardHeader className="bg-black/20 rounded-2xl border py-3 shrink-0 mb-4" style={{ borderColor: 'var(--surface-edge)' }}>
                     <div className="flex flex-col gap-2">
-                        <div className="flex items-start justify-between gap-3">
-                            <CardTitle className="text-sm font-bold text-white whitespace-normal break-words flex-1">
-                                {activeProblem.title}
-                            </CardTitle>
-                            <Badge className={cn(
-                                "text-[10px] px-2 py-0 h-5 shrink-0 border mt-0.5",
-                                activeProblem.difficulty === 'easy' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-                                activeProblem.difficulty === 'medium' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                                activeProblem.difficulty === 'hard' && 'bg-red-500/15 text-red-400 border-red-500/25'
-                            )}>
-                                {activeProblem.difficulty}
-                            </Badge>
-                        </div>
+                        <InterviewHeader
+                            problemTitle={activeProblem.title}
+                            difficulty={activeProblem.difficulty}
+                            mode={headerMode}
+                            conceptTags={activeProblem.tags ?? []}
+                        />
                         <a href={leetcodeUrl} target="_blank" rel="noopener noreferrer"
                             className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-lg text-[11px] font-bold text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-indigo-500/10"
                         >

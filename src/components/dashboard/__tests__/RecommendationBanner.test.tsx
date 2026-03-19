@@ -14,7 +14,9 @@ vi.mock('next/navigation', () => ({
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
-    motion: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    motion: {
+        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    },
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
