@@ -8,7 +8,6 @@ import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import AnalysisPage from '../analysis/page';
 import * as serverSupabase from '@/lib/supabase/server';
 import * as featureFlags from '@/lib/feature-flags-server';
-import * as sm2Actions from '@/app/actions/spaced-repetition';
 import { redirect } from 'next/navigation';
 
 // Mock Next.js navigation
@@ -28,7 +27,7 @@ vi.mock('@/lib/feature-flags-server', () => ({
 }));
 
 vi.mock('@/app/actions/spaced-repetition', () => ({
-    getSpacedRepForProblem: vi.fn(),
+    getSpacedReviewForProblem: vi.fn(),
 }));
 
 // Helper to assert elements
@@ -75,7 +74,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={mockSession}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={[]}
                 flags={{ enableComparative: false, enableLearnMode: false }}
             />
@@ -101,7 +100,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={{ ...mockSession, transcript: [] }}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={[]}
                 flags={{ enableComparative: false, enableLearnMode: false }}
             />
@@ -115,7 +114,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={mockSession}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={[]}
                 flags={{ enableComparative: false, enableLearnMode: true }}
             />
@@ -127,7 +126,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={mockSession}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={[]}
                 flags={{ enableComparative: false, enableLearnMode: false }}
             />
@@ -145,7 +144,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={mockSession}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={previousAttempts}
                 flags={{ enableComparative: true, enableLearnMode: false }}
             />
@@ -157,7 +156,7 @@ describe('AnalysisClient Component', () => {
             <AnalysisClient
                 session={mockSession}
                 assessment={mockAssessment}
-                sm2={null}
+                reviewData={null}
                 previousAttempts={previousAttempts}
                 flags={{ enableComparative: false, enableLearnMode: false }}
             />

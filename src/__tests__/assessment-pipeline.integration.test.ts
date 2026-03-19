@@ -49,7 +49,7 @@ describe('Complete assessment pipeline (integration)', () => {
 
     it('FSRS problem queue is updated after session', async () => {
         // Assert: spaced_repetition row exists for problem
-        // Assert: use_fsrs = true
+        // Assert: fsrs_due is set
         expect(true).toBe(true);
     });
 
