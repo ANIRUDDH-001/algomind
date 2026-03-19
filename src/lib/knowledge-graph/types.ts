@@ -36,6 +36,9 @@ export interface KGLearnAssessment {
   confidenceDelta: number;
 }
 
+// Backward-compatible alias for tutor/route naming.
+export type KaiTutorAssessment = KGLearnAssessment;
+
 export interface KGConceptSummary {
   slug: string;
   displayName: string;

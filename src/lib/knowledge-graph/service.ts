@@ -21,6 +21,7 @@ import type {
 } from './types';
 
 const KG_CACHE_KEY = (userId: string) => `kg:concepts:${userId}`;
+const STUDENT_CONTEXT_CACHE_KEY = (userId: string) => `student_context:${userId}`;
 const CONCEPT_TAGS_CACHE_KEY = 'kg:concept_tags:all';
 const KG_CACHE_TTL_SECONDS = 60 * 60;
 const CONCEPT_TAGS_TTL_SECONDS = 60 * 60 * 24;
@@ -240,7 +241,7 @@ export class KnowledgeGraphService {
     try {
       const redis = getRedis();
       if (redis) {
-        await redis.del(KG_CACHE_KEY(userId));
+        await redis.del(KG_CACHE_KEY(userId), STUDENT_CONTEXT_CACHE_KEY(userId));
       }
     } catch {
       // Cache invalidation failure is non-fatal.

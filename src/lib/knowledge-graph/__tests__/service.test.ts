@@ -242,7 +242,7 @@ describe('KnowledgeGraphService', () => {
     it('invalidates Redis cache after write', async () => {
       await service.initializeFromDiagnostic('user-1', []);
 
-      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1');
+      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1', 'student_context:user-1');
     });
 
     it('throws and logs event on RPC failure', async () => {
@@ -298,7 +298,7 @@ describe('KnowledgeGraphService', () => {
         confidenceDelta: 0,
       });
 
-      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1');
+      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1', 'student_context:user-1');
     });
   });
 
@@ -404,7 +404,7 @@ describe('KnowledgeGraphService', () => {
     it('calls Redis.del with correct key', async () => {
       await service.invalidateCache('user-123');
 
-      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-123');
+      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-123', 'student_context:user-123');
     });
 
     it('does not throw when Redis fails', async () => {
