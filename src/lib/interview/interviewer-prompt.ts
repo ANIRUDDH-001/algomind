@@ -48,6 +48,8 @@
 
 import { Problem } from '@/types/problem';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
+import { buildStudentContextPromptBlock } from '@/lib/kai-context';
+import type { StudentContext } from '@/lib/kai-context';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GUEST INTRO — SINGLE SOURCE OF TRUTH
@@ -125,6 +127,10 @@ export interface InterviewConfig {
      * Populate from problem.solution.
      */
     optimalApproach?: string;
+    /**
+     * Assembled per-user personalization context. Optional for graceful degradation.
+     */
+    studentContext?: StudentContext;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -385,6 +391,7 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         sprintProblemIndex,
         secondProblem,
         spokenLanguage,
+        studentContext,
     } = config;
 
     const difficultyMode = config.difficultyMode ?? 'practice';
@@ -418,6 +425,10 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         ? `\n<rag_context>\n${ragContext.trim()}\n</rag_context>`
         : '';
 
+    const studentContextBlock = studentContext
+        ? `\n\n${buildStudentContextPromptBlock(studentContext)}`
+        : '';
+
     let prompt = `# ROLE: Kai — Technical Interviewer, AlgoMind
 
 OUTPUT FORMAT: Plain conversational speech only. Never include XML tags, markdown headers, code blocks, or reasoning blocks in your response. Speak as if in a live voice call.
@@ -427,7 +438,7 @@ Your goal is to assess problem-solving ability, algorithmic thinking, communicat
 
 ${guestNote}
 
-${hinglishBlock}
+${hinglishBlock}${studentContextBlock}
 
 ${modeConfig.behaviourBlock}
 

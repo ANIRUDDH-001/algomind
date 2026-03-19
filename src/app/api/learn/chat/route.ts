@@ -1,3 +1,9 @@
+/**
+ * @deprecated This route is deprecated in AlgoMind 2.0.
+ * Use /api/learn/concept instead.
+ * This file is kept for reference only and will be removed in a future cleanup.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, UnifiedAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';

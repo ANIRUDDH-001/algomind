@@ -10,6 +10,8 @@ import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
+import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
+import type { StudentContext } from '@/lib/kai-context';
 
 export async function POST(req: NextRequest) {
     try {
@@ -188,6 +190,23 @@ export async function POST(req: NextRequest) {
         }
 
         let enhancedSystemPrompt = baseSystemPrompt;
+
+        const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
+        const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
+            || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
+
+        let studentContext: StudentContext | undefined;
+        if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
+            try {
+                studentContext = await buildStudentContext(user.id);
+            } catch {
+                // Student context build is non-fatal.
+            }
+        }
+
+        if (studentContext) {
+            enhancedSystemPrompt += `\n\n${buildStudentContextPromptBlock(studentContext)}`;
+        }
 
         if (companyPersona) {
             enhancedSystemPrompt += `\n\n<company_persona>\n${companyPersona}\n</company_persona>`;
