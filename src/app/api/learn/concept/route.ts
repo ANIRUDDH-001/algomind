@@ -12,8 +12,7 @@ import { getAIClient } from '@/lib/ai/client';
 import { buildKaiTutorSystemPrompt } from '@/lib/learn/tutor-prompt';
 import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
-import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/user-rate-limiter';
-import { isSessionGatingEnabled } from '@/lib/config/system-config';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
@@ -69,20 +68,17 @@ export async function POST(req: NextRequest) {
     const isFirstTurn = action === 'start' || !sessionId;
 
     if (isFirstTurn) {
-      const gatingEnabled = await isSessionGatingEnabled();
-      if (gatingEnabled) {
-        const limitCheck = await checkWeeklySessionLimit(user.id);
-        if (!limitCheck.allowed) {
-          return NextResponse.json(
-            {
-              error: 'Weekly session limit reached',
-              code: 'LIMIT_REACHED',
-              sessionsUsed: limitCheck.sessionsUsed,
-              limit: limitCheck.limit,
-            },
-            { status: 429 }
-          );
-        }
+      const limitCheck = await checkWeeklySessionLimit(user.id);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: 'Weekly session limit reached',
+            code: 'LIMIT_REACHED',
+            sessionsUsed: limitCheck.sessionsUsed,
+            limit: limitCheck.limit,
+          },
+          { status: 429 }
+        );
       }
 
       const { data: newSession, error: sessionError } = await getServiceClient()

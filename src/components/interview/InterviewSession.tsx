@@ -71,6 +71,14 @@ interface InterviewSessionProps {
     onAssessmentComplete?: (duration: number, transcript: any[], flags?: string[]) => Promise<void>;
 }
 
+interface WeeklyLimitStatus {
+    allowed: boolean;
+    sessionsUsed: number;
+    limit: number;
+    sessionsRemaining?: number | null;
+    status?: 'free' | 'premium' | 'college';
+}
+
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
 type MobileTab = typeof mobileTabs[number];
 
@@ -109,6 +117,7 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+    const [weeklyLimitStatus, setWeeklyLimitStatus] = useState<WeeklyLimitStatus | null>(null);
 
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
@@ -413,8 +422,51 @@ export function InterviewSession({
             transcriptLoadedRef.current = true;
         }
     }, [readOnly, initialTranscript, loadTranscript]);
+    const openUpgradeModal = useCallback((payload?: { reason?: string; sessionsUsed?: number; limit?: number }) => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
+            detail: {
+                source: 'interview',
+                reason: payload?.reason,
+                sessionsUsed: payload?.sessionsUsed,
+                limit: payload?.limit,
+            },
+        }));
+    }, []);
+
+    const fetchWeeklyLimitStatus = useCallback(async (): Promise<WeeklyLimitStatus | null> => {
+        if (isGuest || readOnly) return null;
+        try {
+            const res = await fetch('/api/knowledge/session-limit', { method: 'GET' });
+            if (!res.ok) {
+                return null;
+            }
+            const data = await res.json() as WeeklyLimitStatus;
+            setWeeklyLimitStatus(data);
+            return data;
+        } catch {
+            return null;
+        }
+    }, [isGuest, readOnly]);
+
+    useEffect(() => {
+        void fetchWeeklyLimitStatus();
+    }, [fetchWeeklyLimitStatus]);
 
     const handleStart = async () => {
+        if (!isGuest && !readOnly && !isAssessment) {
+            const latest = await fetchWeeklyLimitStatus();
+            if (latest && !latest.allowed) {
+                setError('Weekly session limit reached. Upgrade to continue.');
+                openUpgradeModal({
+                    reason: 'Weekly free session quota reached for interview mode.',
+                    sessionsUsed: latest.sessionsUsed,
+                    limit: latest.limit,
+                });
+                return;
+            }
+        }
+
         // Phase 5a: Pre-interview microphone permission check
         try {
             const perm = await navigator.permissions.query({
@@ -790,6 +842,16 @@ export function InterviewSession({
                                                 maxRounds={interviewConfig.maxTurnsPerProblem}
                                                 isLimitReached={isLimitReached}
                                                 limitReason={limitReason}
+                                                weeklyUsage={weeklyLimitStatus && weeklyLimitStatus.limit > 0 ? {
+                                                    sessionsUsed: weeklyLimitStatus.sessionsUsed,
+                                                    limit: weeklyLimitStatus.limit,
+                                                    allowed: weeklyLimitStatus.allowed,
+                                                } : undefined}
+                                                onUpgrade={() => openUpgradeModal({
+                                                    reason: 'Upgrade to keep practicing with unlimited sessions.',
+                                                    sessionsUsed: weeklyLimitStatus?.sessionsUsed,
+                                                    limit: weeklyLimitStatus?.limit,
+                                                })}
                                             />
                                         ) : (
                                             <div className={cn(

@@ -7,8 +7,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getAIClient } from '@/lib/ai/client';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
-import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/user-rate-limiter';
-import { isSessionGatingEnabled } from '@/lib/config/system-config';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -33,13 +32,9 @@ vi.mock('@/lib/kai-context', () => ({
   buildStudentContextPromptBlock: vi.fn(() => '<student_context />'),
 }));
 
-vi.mock('@/lib/rate-limit/user-rate-limiter', () => ({
+vi.mock('@/lib/rate-limit/weekly-session-limiter', () => ({
   checkWeeklySessionLimit: vi.fn(),
   incrementWeeklyUsage: vi.fn(),
-}));
-
-vi.mock('@/lib/config/system-config', () => ({
-  isSessionGatingEnabled: vi.fn(),
 }));
 
 vi.mock('@/lib/monitoring/events', () => ({
@@ -81,11 +76,11 @@ describe('POST /api/learn/concept', () => {
 
     vi.mocked(buildStudentContext).mockResolvedValue({ userId: 'user-1' } as never);
 
-    vi.mocked(isSessionGatingEnabled).mockResolvedValue(true);
     vi.mocked(checkWeeklySessionLimit).mockResolvedValue({
       allowed: true,
       sessionsUsed: 1,
       limit: 5,
+      gatingEnabled: true,
     });
 
     vi.mocked(getAIClient).mockReturnValue({
@@ -209,6 +204,7 @@ describe('POST /api/learn/concept', () => {
         allowed: false,
         sessionsUsed: 5,
         limit: 5,
+        gatingEnabled: true,
       });
 
       const res = await POST(createRequest({
