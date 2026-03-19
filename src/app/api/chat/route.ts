@@ -191,6 +191,7 @@ export async function POST(req: NextRequest) {
         }
 
         let enhancedSystemPrompt = baseSystemPrompt;
+    const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
 
         const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
         const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
@@ -222,7 +223,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        if (studentContext) {
+        if (studentContext && !hasStudentContextBlock) {
             enhancedSystemPrompt += `\n\n${buildStudentContextPromptBlock(studentContext)}`;
         }
 

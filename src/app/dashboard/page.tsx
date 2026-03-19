@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProgress } from '@/hooks/useProgress';
@@ -35,12 +35,13 @@ function DashboardContent() {
     const searchParams = useSearchParams();
     const { progress, isLoading, error } = useProgress();
 
-    // Initialize tab from URL or default to overview
-    const initialTab = (searchParams.get('tab') as string) || 'overview';
     const validTabs = ['overview', 'skills', 'history', 'insights'] as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const defaultTab: typeof validTabs[number] = validTabs.includes(initialTab as any) ? (initialTab as any) : 'overview';
-    const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(defaultTab);
+    type DashboardTab = typeof validTabs[number];
+    const isValidTab = (tab: string | null): tab is DashboardTab => {
+        return tab !== null && (validTabs as readonly string[]).includes(tab);
+    };
+    const tabParam = searchParams.get('tab');
+    const activeTab: DashboardTab = isValidTab(tabParam) ? tabParam : 'overview';
     const [direction, setDirection] = useState(1);
     const { count: reviewDueCount } = useReviewCount();
 
@@ -56,30 +57,12 @@ function DashboardContent() {
         return new RecommendationEngine().analyze(progress);
     }, [progress]);
 
-    // Sync tab state with URL parameters
-    useEffect(() => {
-        const tabParam = searchParams.get('tab');
-        if (tabParam && ['overview', 'skills', 'history', 'insights'].includes(tabParam)) {
-            setActiveTab((current) => {
-                if (current !== tabParam) {
-                    const tempValidTabs = ['overview', 'skills', 'history', 'insights'];
-                    setDirection(tempValidTabs.indexOf(tabParam) >= tempValidTabs.indexOf(current) ? 1 : -1);
-                    return tabParam as 'overview' | 'skills' | 'history' | 'insights';
-                }
-                return current;
-            });
-        }
-    }, [searchParams]);
-
     // Update URL when tab changes
     const handleTabChange = (tab: string) => {
-        setActiveTab((current) => {
-            if (current !== tab) {
-                const tempValidTabs = ['overview', 'skills', 'history', 'insights'];
-                setDirection(tempValidTabs.indexOf(tab) >= tempValidTabs.indexOf(current) ? 1 : -1);
-            }
-            return tab as 'overview' | 'skills' | 'history' | 'insights';
-        });
+        if (activeTab !== tab) {
+            const tempValidTabs = ['overview', 'skills', 'history', 'insights'];
+            setDirection(tempValidTabs.indexOf(tab) >= tempValidTabs.indexOf(activeTab) ? 1 : -1);
+        }
         router.push(`?tab=${tab}`, { scroll: false });
     };
 

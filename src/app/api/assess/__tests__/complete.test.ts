@@ -6,10 +6,14 @@ import * as jose from 'jose';
 
 vi.mock('@/lib/supabase/server');
 vi.mock('@/lib/supabase/service');
+vi.mock('@/lib/kai-context', () => ({
+    invalidateStudentContext: vi.fn(),
+}));
 vi.mock('@/lib/startup/validateEnv', () => ({
     validateEnv: vi.fn(),
 }));
 import { getServiceClient } from '@/lib/supabase/service';
+import { invalidateStudentContext } from '@/lib/kai-context';
 
 // Helper: build a table-aware Supabase mock so each .from(table) returns
 // an independent chain that resolves to table-specific data.
@@ -45,7 +49,7 @@ function buildSupabaseMock(overrides: Record<string, any> = {}) {
             updateChain.single = vi.fn().mockResolvedValue(
                 updateResult.error
                     ? { data: null, error: updateResult.error }
-                    : { data: { id: 'sub-123' }, error: null }
+                    : { data: { id: 'sub-123', candidate_id: 'user-123' }, error: null }
             );
 
             return {
@@ -136,6 +140,8 @@ describe('Assess Complete API (/api/assess/complete)', () => {
                 body: expect.objectContaining({ submissionId: 'sub-123' }),
             })
         );
+
+        expect(invalidateStudentContext).toHaveBeenCalledWith('user-123');
     });
 
     it('3. Still returns 200 if edge function invoke fails (non-fatal)', async () => {

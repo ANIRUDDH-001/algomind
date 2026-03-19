@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Square, ArrowRight, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Square, Volume2 } from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
 
@@ -23,7 +23,6 @@ export default function LearnSessionPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const [showUpgrade, setShowUpgrade] = useState(false);
   const [micActive, setMicActive] = useState(false);
 
   // TTS integration — speak Kai's messages
@@ -48,21 +47,12 @@ export default function LearnSessionPage() {
     }
   }, []);
 
-  // Handle limit reached error
-  useEffect(() => {
-    if (session.error === 'LIMIT_REACHED') {
-      setShowUpgrade(true);
-    }
-  }, [session.error]);
+  const showUpgrade = session.error === 'LIMIT_REACHED';
 
   // Auto-scroll transcript
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session.transcript]);
-
-  const handleVoiceInput = (transcript: string) => {
-    session.sendMessage(transcript);
-  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col">
@@ -226,7 +216,9 @@ export default function LearnSessionPage() {
       {/* Upgrade modal */}
       <UpgradeModal
         open={showUpgrade}
-        onOpenChange={(open) => { setShowUpgrade(open); if (!open) router.push('/learn'); }}
+        onOpenChange={(open) => {
+          if (!open) router.push('/learn');
+        }}
         payload={{ reason: "limit_reached" }}
       />
     </div>

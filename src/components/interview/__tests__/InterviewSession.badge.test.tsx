@@ -95,6 +95,8 @@ const mockProblem = {
 const mockConfig = {
     problem: mockProblem,
     difficulty: 'easy',
+    difficultyMode: 'practice' as const,
+    mode: 'practice' as const,
     maxDurationMs: 600000
 };
 

@@ -1,6 +1,20 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { LiveTranscript } from '../LiveTranscript';
+
+afterEach(cleanup);
+
+// Mock framer-motion
+vi.mock('framer-motion', () => ({
+    motion: {
+        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+        span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+    },
+    AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
 
 describe('LiveTranscript', () => {
   it('renders nothing when no entries', () => {
