@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
@@ -194,6 +195,23 @@ export async function POST(req: NextRequest) {
         const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
         const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
             || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
+
+        if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
+            const weeklyLimit = await checkWeeklySessionLimit(user.id);
+            if (!weeklyLimit.allowed) {
+                return NextResponse.json(
+                    {
+                        error: 'Weekly session limit reached',
+                        code: 'LIMIT_REACHED',
+                        sessionsUsed: weeklyLimit.sessionsUsed,
+                        limit: weeklyLimit.limit,
+                    },
+                    { status: 429 }
+                );
+            }
+
+            void incrementWeeklyUsage(user.id, 'interview');
+        }
 
         let studentContext: StudentContext | undefined;
         if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
