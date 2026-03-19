@@ -1366,6 +1366,8 @@ export type Database = {
           id: string
           is_suspended: boolean | null
           rate_limit_override: number | null
+          subscription_expires_at: string | null
+          subscription_status: "free" | "premium" | "college"
           suspended_at: string | null
           suspended_reason: string | null
           updated_at: string | null
@@ -1381,6 +1383,8 @@ export type Database = {
           id: string
           is_suspended?: boolean | null
           rate_limit_override?: number | null
+          subscription_expires_at?: string | null
+          subscription_status?: "free" | "premium" | "college"
           suspended_at?: string | null
           suspended_reason?: string | null
           updated_at?: string | null
@@ -1396,6 +1400,8 @@ export type Database = {
           id?: string
           is_suspended?: boolean | null
           rate_limit_override?: number | null
+          subscription_expires_at?: string | null
+          subscription_status?: "free" | "premium" | "college"
           suspended_at?: string | null
           suspended_reason?: string | null
           updated_at?: string | null
