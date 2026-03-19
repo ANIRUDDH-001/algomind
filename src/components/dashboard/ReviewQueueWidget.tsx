@@ -83,11 +83,11 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
         return (
             <div className="space-y-3">
                 {visibleReviews.map((review) => {
-                    const diffTime = Date.now() - new Date(review.nextReviewDate).getTime();
+                    const diffTime = Date.now() - new Date(review.fsrsDueDate).getTime();
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     const isOverdue = diffDays > 0;
 
-                    // Approximate score from SM2 quality (0-5)
+                    // Approximate score from review quality (0-5)
                     const approxScore = review.lastQuality != null ? review.lastQuality * 2 : null;
 
                     return (
@@ -115,7 +115,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-400 font-medium">Rep #{review.repetitions}</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">Rep #{review.fsrsReps}</span>
                                     <span className="text-[10px] text-slate-600">•</span>
                                     <span className={cn(
                                         "text-[10px] font-bold",
@@ -168,7 +168,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                             <h4 className="text-sm font-bold text-emerald-400">All caught up! 🎉</h4>
                             {upcomingReviews.length > 0 && (
                                 <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
-                                    <Clock className="w-3 h-3" /> Next review: {new Date(upcomingReviews[0].nextReviewDate).toLocaleDateString()}
+                                    <Clock className="w-3 h-3" /> Next review: {new Date(upcomingReviews[0].fsrsDueDate).toLocaleDateString()}
                                 </p>
                             )}
                         </div>

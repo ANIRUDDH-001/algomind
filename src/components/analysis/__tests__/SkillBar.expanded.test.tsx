@@ -48,21 +48,20 @@ describe('SkillBar sub-criteria expansion', () => {
     };
 
     it('1. starts collapsed by default', () => {
-        render(<AnalysisClient session={mockSession} assessment={mockAssessment} sm2={null} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />);
+        render(<AnalysisClient session={mockSession} assessment={mockAssessment} reviewData={null} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />);
         expect(screen.queryByText('Clarifies Ambiguity')).toBeNull();
     });
 
     it('2. verifies that skill bar names render', () => {
-        const { container } = render(<AnalysisClient session={mockSession} assessment={mockAssessment} sm2={null} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />);
+        const { container } = render(<AnalysisClient session={mockSession} assessment={mockAssessment} reviewData={null} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />);
         expect(container).toBeTruthy();
     });
 
-    it('3. renders spaced-review block for pre-FSRS record (null fsrsDifficulty)', () => {
-        const sm2 = {
+    it('3. renders spaced-review block when fsrsDifficulty is missing', () => {
+        const reviewData = {
             intervalDays: 5,
             nextReview: new Date(Date.now() + 5 * 86400000).toISOString(),
-            repetitions: 3,
-            easeFactor: 2.5,
+            reviewCount: 3,
             fsrsDifficulty: null,
             fsrsStability: null,
             fsrsState: null,
@@ -70,7 +69,7 @@ describe('SkillBar sub-criteria expansion', () => {
             fsrsLapses: null,
         };
         const { getByText, getAllByText, queryByText } = render(
-            <AnalysisClient session={mockSession} assessment={mockAssessment} sm2={sm2} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />
+            <AnalysisClient session={mockSession} assessment={mockAssessment} reviewData={reviewData} previousAttempts={[]} flags={{ enableComparative: false, enableLearnMode: false }} />
         );
         expect(getAllByText('Spaced Review').length).toBeGreaterThan(0);
         expect(getByText('Difficulty')).toBeDefined();
