@@ -1,14 +1,18 @@
 /**
  * @module learn/tutor-prompt
- * @description System prompt builder for concept-scoped Kai tutor sessions.
- * @phase Phase 2C
+ * @description Kai-Tutor system prompt builder.
+ *              Called by /api/learn/concept on every turn.
+ *              Produces a focused, voice-optimized teaching prompt.
+ * @phase Phase 2D
  */
 
-import type { ConceptTag } from '@/types/knowledge-graph';
+import { KAI_TUTOR_BEHAVIORAL_CONTRACT, getOpeningMessage } from './tutor-behavioral-contract';
 import { buildStudentContextPromptBlock } from '@/lib/kai-context';
-import type { StudentContext } from '@/lib/kai-context';
+import type { StudentContext } from '@/lib/kai-context/types';
+import type { ConceptTag } from '@/types/knowledge-graph';
+import { getConfidenceLevel } from '@/types/knowledge-graph';
 
-export interface KaiTutorPromptConfig {
+export interface KaiTutorPromptOptions {
   conceptTag: ConceptTag;
   studentContext?: StudentContext;
   currentConfidence?: number;
@@ -17,59 +21,157 @@ export interface KaiTutorPromptConfig {
   proactiveNudge?: string | null;
 }
 
-export function buildKaiTutorSystemPrompt(config: KaiTutorPromptConfig): string {
+/**
+ * Build the complete Kai-Tutor system prompt for a given turn.
+ * Kept under 2000 tokens by design.
+ */
+export function buildKaiTutorSystemPrompt(options: KaiTutorPromptOptions): string {
   const {
     conceptTag,
     studentContext,
     currentConfidence,
     exchangeCount,
-    spokenLanguage = 'english',
+    spokenLanguage,
     proactiveNudge,
-  } = config;
+  } = options;
+
+  const confidenceLevel = currentConfidence !== undefined
+    ? getConfidenceLevel(currentConfidence)
+    : 'unknown';
+
+  const confidenceNote = currentConfidence !== undefined
+    ? `Student's tracked confidence for this concept: ${(currentConfidence * 100).toFixed(0)}% (${confidenceLevel})`
+    : 'No prior data - treat as new student for this concept.';
 
   const studentContextBlock = studentContext
-    ? `\n${buildStudentContextPromptBlock(studentContext)}\n`
-    : '\n<student_context>unavailable</student_context>\n';
+    ? buildStudentContextPromptBlock(studentContext)
+    : '<student_context>No prior data available.</student_context>';
 
-  const confidenceLine = typeof currentConfidence === 'number'
-    ? `Current confidence on this concept: ${(currentConfidence * 100).toFixed(0)}%.`
-    : 'Current confidence on this concept is unknown (new or sparse learner data).';
-
-  const languageBlock = spokenLanguage === 'hinglish'
-    ? `Language behavior:
-- Candidate is speaking Hinglish.
-- Explain naturally in Hinglish, but keep all technical DSA terms in English.
-- No Devanagari script.`
-    : `Language behavior:
-- Use clear conversational English.
-- Keep explanations concise and structured.`;
-
-  const nudgeBlock = proactiveNudge
-    ? `\nProactive nudge recommendation for this turn:\n${proactiveNudge}\n`
+  const sessionPhase = getSessionPhase(exchangeCount);
+  const languageHint = spokenLanguage === 'hinglish'
+    ? 'Language mode: Learner is using Hinglish. Warm Hinglish responses are preferred.'
+    : '';
+  const nudgeHint = proactiveNudge
+    ? `<nudge_hint>${proactiveNudge}</nudge_hint>`
+    : '';
+  const openingHint = exchangeCount === 0
+    ? `<opening_hint>${getOpeningMessage(conceptTag.id, conceptTag.display_name)}</opening_hint>`
     : '';
 
-  return `You are Kai, a Socratic DSA tutor focused on concept mastery.
-Goal: help the learner internalize the concept through guided questions, short explanations, and checkpoints.
+  return `You are Kai, AlgoMind's AI tutor.
 
-Concept in focus: ${conceptTag.display_name} (${conceptTag.id})
-Concept description: ${conceptTag.description ?? 'No description available.'}
-${confidenceLine}
-Current exchange count: ${exchangeCount}
+<concept_assignment>
+Concept: ${conceptTag.display_name}
+Slug: ${conceptTag.id}
+Subject: ${conceptTag.subject.toUpperCase()}
+Description: ${conceptTag.description ?? ''}
+${confidenceNote}
+</concept_assignment>
 
-${languageBlock}
+${studentContextBlock}
 
-Teaching protocol:
-1. Start from intuition before algorithm labels.
-2. Ask one focused question at a time.
-3. If learner is stuck, provide layered hints: nudge -> scaffold -> direct clue.
-4. Do not dump full solution unless learner asks repeatedly and still cannot progress.
-5. Every 2-3 turns, run a tiny check-for-understanding.
-6. Keep responses short enough for live tutoring (2-6 sentences usually).
+${openingHint}
 
-Session constraints:
-- This is a concept-teaching session, not a mock interview.
-- Adapt to learner history when available.
-- Stay on the target concept and closely related sub-concepts.
+${languageHint}
 
-${studentContextBlock}${nudgeBlock}`;
+${nudgeHint}
+
+<session_phase>
+Current phase: ${sessionPhase.name} (turn ${exchangeCount + 1})
+Phase instruction: ${sessionPhase.instruction}
+</session_phase>
+
+${KAI_TUTOR_BEHAVIORAL_CONTRACT}
+
+<output_rules>
+- Respond in plain spoken English only (or Hinglish if student uses it)
+- No markdown. No bullet points. No code blocks.
+- Maximum 100 words per response.
+- End every response with exactly ONE question (never zero, never two).
+- If this is the closing phase (turn 16+), ask student to summarize back to you.
+</output_rules>`;
 }
+
+interface SessionPhase {
+  name: string;
+  instruction: string;
+}
+
+function getSessionPhase(exchangeCount: number): SessionPhase {
+  if (exchangeCount === 0) {
+    return {
+      name: 'Opening',
+      instruction: 'Warm greeting + probe existing knowledge. Ask what they already know.',
+    };
+  }
+  if (exchangeCount <= 2) {
+    return {
+      name: 'Knowledge Probing',
+      instruction: 'Assess baseline. Identify gaps. Do not teach yet - only listen and probe.',
+    };
+  }
+  if (exchangeCount <= 12) {
+    return {
+      name: 'Core Teaching',
+      instruction: 'Socratic dialogue. One concept at a time. Build from their answers.',
+    };
+  }
+  if (exchangeCount <= 16) {
+    return {
+      name: 'Consolidation',
+      instruction: 'Push for edge cases and complexity analysis. Challenge their understanding.',
+    };
+  }
+  return {
+    name: 'Closing',
+    instruction: 'Ask student to summarize back. This is the final test of understanding.',
+  };
+}
+
+/**
+ * Build the prompt for generating Kai's memory update after a learn session.
+ */
+export function buildTutorMemoryUpdatePrompt(
+  conceptDisplayName: string,
+  sessionTranscript: string,
+  currentMemory: string | null
+): string {
+  return `You are updating AlgoMind's memory for a student after a tutoring session on "${conceptDisplayName}".
+
+Current memory: ${currentMemory ?? 'No prior memory.'}
+
+Session transcript:
+${sessionTranscript.slice(0, 3000)}
+
+Update the memory to reflect what was learned in this session.
+Be concise (under 200 words). Focus on: concept gaps found, misconceptions corrected, what clicked.
+Do not include generic praise. Be specific about the concept.
+
+Respond with the updated memory text only. No preamble.`;
+}
+
+/**
+ * Build Kai's opening message for a new concept session.
+ */
+export function buildTutorOpeningMessage(
+  conceptTag: ConceptTag,
+  studentContext?: StudentContext
+): string {
+  const baseOpening = getOpeningMessage(conceptTag.id, conceptTag.display_name);
+
+  if (!studentContext) return baseOpening;
+
+  const isKnownWeak = studentContext.weakestConcepts.some((concept) => concept.slug === conceptTag.id);
+  const isKnownStrong = studentContext.strongestConcepts.some((concept) => concept.slug === conceptTag.id);
+
+  if (isKnownWeak && studentContext.hasCompletedDiagnostic) {
+    return `${conceptTag.display_name} is one of your growth areas - great choice to focus here! ${baseOpening}`;
+  }
+
+  if (isKnownStrong) {
+    return `You have a solid foundation in ${conceptTag.display_name}! Let's go deeper today. ${baseOpening}`;
+  }
+
+  return baseOpening;
+}
+
