@@ -23,6 +23,7 @@ import { AnalyticsTab } from './tabs/analytics-tab';
 import { AIStatusTab } from './tabs/ai-status-tab';
 import { ModelRoutingTab } from './tabs/model-routing-tab';
 import { AWSBudgetTab } from './tabs/aws-budget-tab';
+import { SystemConfigTab } from './tabs/system-config-tab';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export interface OwnerDashboardProps {
@@ -123,13 +124,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                         {activeTab === 'voice-debug' && <VoiceDebugTab />}
                         {activeTab === 'analytics' && <AnalyticsTab />}
                         {activeTab === 'ai-status' && <AIStatusTab />}
-                        {activeTab === 'settings' && (
-                            <Card className="p-8 text-center text-zinc-500 border-dashed border-zinc-800 bg-transparent">
-                                <Settings className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <h3 className="text-lg font-bold text-zinc-300">System Config</h3>
-                                <p>System-level configuration settings go here.</p>
-                            </Card>
-                        )}
+                        {activeTab === 'settings' && <SystemConfigTab />}
                     </div>
                 </div>
             </div>

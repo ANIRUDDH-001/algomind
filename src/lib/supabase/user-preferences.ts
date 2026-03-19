@@ -121,3 +121,45 @@ function saveLocalPreferences(prefs: Partial<UserPreferences>): void {
         // Ignore storage errors
     }
 }
+
+/**
+ * Get user subscription status from profiles table.
+ * Used by freemium gate (Phase 2F).
+ */
+export async function getUserSubscriptionStatus(
+    userId: string
+): Promise<{ status: 'free' | 'premium' | 'college'; expiresAt: string | null }> {
+    try {
+        const { getServiceClient } = await import('./service');
+        const { data, error } = await getServiceClient()
+            .from('profiles')
+            .select('subscription_status, subscription_expires_at')
+            .eq('id', userId)
+            .single();
+
+        if (error || !data) {
+            return { status: 'free', expiresAt: null };
+        }
+
+        // Auto-downgrade expired subscriptions without blocking callers.
+        if (
+            data.subscription_status !== 'free' &&
+            data.subscription_expires_at &&
+            new Date(data.subscription_expires_at) < new Date()
+        ) {
+            void getServiceClient()
+                .from('profiles')
+                .update({ subscription_status: 'free', subscription_expires_at: null })
+                .eq('id', userId);
+
+            return { status: 'free', expiresAt: null };
+        }
+
+        return {
+            status: data.subscription_status as 'free' | 'premium' | 'college',
+            expiresAt: data.subscription_expires_at,
+        };
+    } catch {
+        return { status: 'free', expiresAt: null };
+    }
+}
