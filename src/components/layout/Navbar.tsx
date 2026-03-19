@@ -130,6 +130,7 @@ export function Navbar() {
                                     { href: '/practice', label: 'Practice', authOnly: false },
                                     ...(user ? [
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
+                                        { href: '/learn', label: 'Learn Mode', authOnly: true },
                                         ...(accountType === 'employer'
                                             ? [{ href: '/employer/dashboard', label: 'Employer', authOnly: true }]
                                             : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
@@ -317,6 +318,7 @@ export function Navbar() {
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
                                         { href: '/practice', label: 'Practice', icon: BookOpen },
+                                        { href: '/learn', label: 'Learn', icon: BookOpen },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },
                                     ])

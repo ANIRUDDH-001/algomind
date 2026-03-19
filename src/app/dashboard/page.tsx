@@ -26,6 +26,9 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+import { RecommendationBanner } from '@/components/dashboard/RecommendationBanner';
+import { WeeklyUsageCard } from '@/components/dashboard/WeeklyUsageCard';
+import { KnowledgeInsightsCard } from '@/components/dashboard/KnowledgeInsightsCard';
 
 function DashboardContent() {
     const router = useRouter();
@@ -149,24 +152,18 @@ function DashboardContent() {
                         >
                             {activeTab === 'overview' && (
                                 <>
+                                    {/* Recommendation Banner — top of dashboard */}
+                                    <RecommendationBanner />
+
                                     {/* Review Queue — above stats when reviews are due */}
                                     {progress?.userId && reviewDueCount > 0 && (
                                         <ReviewQueueWidget userId={progress.userId} />
                                     )}
 
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                        {/* Concept Heatmap - Left Half */}
+                                        {/* Knowledge Insights Card - Left Half */}
                                         <div className="lg:col-span-12 xl:col-span-7 h-full">
-                                            <DashboardCard
-                                                title="Concept Knowledge Map"
-                                                subtitle="20 core DSA concepts with confidence heat levels"
-                                                isLoading={isLoading}
-                                                data-tour="cognitive-profile"
-                                            >
-                                                <div className="h-full py-2">
-                                                    <ConceptHeatmap className="w-full" />
-                                                </div>
-                                            </DashboardCard>
+                                            <KnowledgeInsightsCard />
                                         </div>
 
                                         {/* Stats & Overview - Right Half */}
@@ -178,6 +175,9 @@ function DashboardContent() {
                                             >
                                                 <StatsOverview progress={progress} />
                                             </DashboardCard>
+
+                                            {/* Weekly Usage Card */}
+                                            <WeeklyUsageCard />
                                         </div>
                                     </div>
 

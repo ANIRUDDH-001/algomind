@@ -21,6 +21,7 @@ import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
+import { LiveTranscript } from '@/components/voice/LiveTranscript';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -924,6 +925,15 @@ export function InterviewSession({
                                         </div>
                                     )}
 
+                                    {/* ZoomTranscript Overlay */}
+                                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-10">
+                                        <LiveTranscript
+                                            entries={messages.slice(-2).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))}
+                                            interimTranscript={voice.interimTranscript}
+                                            isVisible={hasStarted && !readOnly}
+                                        />
+                                    </div>
+
                                     {readOnly && (
                                         <div className="flex justify-center pb-6">
                                             <div className="bg-zinc-800/80 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 text-sm font-medium flex items-center gap-2">
@@ -983,11 +993,11 @@ export function InterviewSession({
                                         )}
 
                                         {/* Send button: shown when mic is manually stopped AND there is content (or Whisper is in-flight) */}
-                                        {micStoppedManually && (voice.transcript || voice.isTranscribing) && (
+                                        {micStoppedManually && (voice.transcript || voice.isTranscribing || voice.interimTranscript) && (
                                             <Button
                                                 className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 onClick={() => {
-                                                    const content = voice.transcript;
+                                                    const content = voice.transcript || voice.interimTranscript;
                                                     if (content) {
                                                         submitUserResponse(content, { problemTitle: activeProblem.title, problemContent: activeProblem.description });
                                                     }
