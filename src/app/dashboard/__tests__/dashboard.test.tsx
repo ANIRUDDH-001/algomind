@@ -88,11 +88,8 @@ vi.mock('@/components/dashboard/DashboardCard', () => ({
 vi.mock('@/components/dashboard/StatsOverview', () => ({
     StatsOverview: () => <div data-testid="mock-stats">Stats</div>,
 }));
-vi.mock('@/components/charts/RadarChart', () => ({
-    RadarChart: () => <div data-testid="mock-radar">Radar</div>,
-}));
-vi.mock('@/components/charts/RadarChartLegend', () => ({
-    RadarChartLegend: () => null,
+vi.mock('@/components/knowledge/ConceptHeatmap', () => ({
+    ConceptHeatmap: () => <div data-testid="mock-concept-heatmap">Heatmap</div>,
 }));
 vi.mock('@/components/assessment/EmptyState', () => ({
     EmptyState: ({ title }: { title: string }) => <div data-testid="empty-state">{title}</div>,
