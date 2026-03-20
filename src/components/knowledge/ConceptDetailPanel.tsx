@@ -44,7 +44,7 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-2xl flex-shrink-0">{concept.icon}</span>
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white truncate">{concept.displayName}</h3>
+                <h3 data-testid="concept-detail-panel-title" className="text-sm font-bold text-white truncate">{concept.displayName}</h3>
                 <p className="text-xs text-zinc-500 capitalize">{concept.level}</p>
               </div>
             </div>
@@ -122,6 +122,7 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
           <div className="px-4 sm:px-5 pb-6 pt-3 border-t border-[#1E1E2E] space-y-2">
             <button
               type="button"
+              data-testid="detail-panel-learn-button"
               onClick={handleStartLearn}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
             >

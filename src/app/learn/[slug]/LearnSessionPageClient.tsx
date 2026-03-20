@@ -70,6 +70,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
               <span className="text-zinc-300 capitalize">{slug.replace(/-/g, ' ')}</span>
             </div>
             <button
+              data-testid="back-button"
               onClick={() => router.push('/learn')}
               className="text-zinc-500 hover:text-zinc-300 text-sm"
             >
@@ -90,6 +91,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
             )}
             {session.state === 'active' && (
               <button
+                data-testid="finish-button"
                 onClick={session.endSession}
                 className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all"
               >
@@ -152,11 +154,13 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                   {entry.role === 'assistant' ? 'K' : 'U'}
                 </div>
 
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                  entry.role === 'assistant'
-                    ? 'bg-[#111118] border border-[#1E1E2E] text-zinc-200 rounded-tl-sm'
-                    : 'bg-indigo-600/20 border border-indigo-500/20 text-zinc-200 rounded-tr-sm'
-                }`}>
+                <div 
+                  data-testid={entry.role === 'assistant' ? 'message-assistant' : 'message-user'}
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                    entry.role === 'assistant'
+                      ? 'bg-[#111118] border border-[#1E1E2E] text-zinc-200 rounded-tl-sm'
+                      : 'bg-indigo-600/20 border border-indigo-500/20 text-zinc-200 rounded-tr-sm'
+                  }`}>
                   {entry.content}
                   {entry.role === 'assistant' && (
                     <button
@@ -200,6 +204,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
       <div className="border-t border-[#1E1E2E] px-4 py-6 safe-area-bottom">
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-4">
           <motion.button
+            data-testid="send-button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setMicActive(!micActive)}

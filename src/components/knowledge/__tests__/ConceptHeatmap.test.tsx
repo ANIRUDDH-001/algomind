@@ -20,11 +20,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, onClick, 'data-testid': testId }: any) => (
-      <div className={className} style={style} onClick={onClick} data-testid={testId}>{children}</div>
+    div: ({ children, ...rest }: any) => (
+      <div {...rest}>{children}</div>
     ),
-    button: ({ children, className, style, onClick, title, type, 'data-testid': testId }: any) => (
-      <button type={type ?? 'button'} className={className} style={style} onClick={onClick} title={title} data-testid={testId}>
+    button: ({ children, type, ...rest }: any) => (
+      <button type={type ?? 'button'} {...rest}>
         {children}
       </button>
     ),
@@ -66,6 +66,18 @@ const mockConcepts: KGConceptSummary[] = [
 ];
 
 describe('ConceptHeatmap', () => {
+  const getTileBySlug = (slug: string): HTMLElement => {
+    const tile = screen
+      .getAllByTestId('concept-tile')
+      .find((el) => el.getAttribute('data-concept-slug') === slug);
+
+    if (!tile) {
+      throw new Error(`Could not find concept tile for slug: ${slug}`);
+    }
+
+    return tile;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     useConceptHeatmapMock.mockReturnValue({
@@ -85,7 +97,7 @@ describe('ConceptHeatmap', () => {
 
   it('renders 20 tiles when concepts loaded', () => {
     const { container } = render(<ConceptHeatmap />);
-    expect(container.querySelectorAll('[data-testid^="concept-tile-"]').length).toBe(20);
+    expect(container.querySelectorAll('[data-testid="concept-tile"]').length).toBe(20);
   });
 
   it('shows loading skeletons while fetching', () => {
@@ -135,20 +147,20 @@ describe('ConceptHeatmap', () => {
 
   it('opens detail panel when tile clicked', () => {
     render(<ConceptHeatmap />);
-    fireEvent.click(screen.getByTestId('concept-tile-arrays-strings'));
+    fireEvent.click(getTileBySlug('arrays-strings'));
     expect(screen.getByTestId('concept-detail-panel')).toBeDefined();
   });
 
   it('closes detail panel on backdrop click', () => {
     render(<ConceptHeatmap />);
-    fireEvent.click(screen.getByTestId('concept-tile-arrays-strings'));
-    fireEvent.click(screen.getByTestId('concept-detail-backdrop'));
+    fireEvent.click(getTileBySlug('arrays-strings'));
+    fireEvent.click(screen.getByTestId('heatmap-backdrop'));
     expect(screen.queryByTestId('concept-detail-panel')).toBeNull();
   });
 
   it('highlights active learning concept', () => {
     render(<ConceptHeatmap activeLearningConceptSlug="arrays-strings" />);
-    const tile = screen.getByTestId('concept-tile-arrays-strings');
+    const tile = getTileBySlug('arrays-strings');
     expect(tile.className.includes('ring-emerald-500/60')).toBe(true);
   });
 
@@ -159,6 +171,18 @@ describe('ConceptHeatmap', () => {
 });
 
 describe('ConceptTile', () => {
+  const getTileBySlug = (slug: string): HTMLElement => {
+    const tile = screen
+      .getAllByTestId('concept-tile')
+      .find((el) => el.getAttribute('data-concept-slug') === slug);
+
+    if (!tile) {
+      throw new Error(`Could not find concept tile for slug: ${slug}`);
+    }
+
+    return tile;
+  };
+
   const baseConcept = mockConcepts[0];
 
   afterEach(() => {
@@ -183,26 +207,26 @@ describe('ConceptTile', () => {
 
   it('applies correct color class for each level', () => {
     const { rerender } = render(<ConceptTile concept={mockConcepts[0]} index={0} />);
-    expect(screen.getByTestId('concept-tile-arrays-strings').className.includes('bg-red-950/40')).toBe(true);
+    expect(getTileBySlug('arrays-strings').className.includes('bg-red-950/40')).toBe(true);
 
     rerender(<ConceptTile concept={mockConcepts[1]} index={1} />);
-    expect(screen.getByTestId('concept-tile-hashmaps-sets').className.includes('bg-emerald-950/30')).toBe(true);
+    expect(getTileBySlug('hashmaps-sets').className.includes('bg-emerald-950/30')).toBe(true);
   });
 
   it('shows selected ring when isSelected', () => {
     render(<ConceptTile concept={baseConcept} index={0} isSelected />);
-    expect(screen.getByTestId('concept-tile-arrays-strings').className.includes('ring-indigo-500/60')).toBe(true);
+    expect(getTileBySlug('arrays-strings').className.includes('ring-indigo-500/60')).toBe(true);
   });
 
   it('shows emerald ring when isActiveLearning', () => {
     render(<ConceptTile concept={baseConcept} index={0} isActiveLearning />);
-    expect(screen.getByTestId('concept-tile-arrays-strings').className.includes('ring-emerald-500/60')).toBe(true);
+    expect(getTileBySlug('arrays-strings').className.includes('ring-emerald-500/60')).toBe(true);
   });
 
   it('calls onClick with concept on click', () => {
     const onClick = vi.fn();
     render(<ConceptTile concept={baseConcept} index={0} onClick={onClick} />);
-    fireEvent.click(screen.getByTestId('concept-tile-arrays-strings'));
+    fireEvent.click(getTileBySlug('arrays-strings'));
     expect(onClick).toHaveBeenCalledWith(baseConcept);
   });
 });

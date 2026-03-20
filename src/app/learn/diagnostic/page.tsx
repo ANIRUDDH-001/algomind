@@ -119,7 +119,7 @@ export default function DiagnosticPage() {
           <h1 className="text-sm font-semibold text-zinc-300">Diagnostic</h1>
         </div>
         {state === 'active' && (
-          <span className="text-xs text-zinc-500 flex-shrink-0 whitespace-nowrap">~{Math.max(0, 12 - exchangeCount.current)} left</span>
+          <span data-testid="turn-counter" className="text-xs text-zinc-500 flex-shrink-0 whitespace-nowrap">~{Math.max(0, 12 - exchangeCount.current)} left</span>
         )}
       </div>
 
@@ -159,6 +159,7 @@ export default function DiagnosticPage() {
             key={msg.id}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
+            data-testid={msg.role === 'assistant' ? 'message-assistant' : 'message-user'}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
           >
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
@@ -185,6 +186,7 @@ export default function DiagnosticPage() {
       {/* Mic input */}
       <div className="border-t border-[#1E1E2E] px-4 py-6 flex flex-col items-center gap-3 safe-area-bottom">
         <motion.button
+          data-testid="send-button"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={state !== 'active' || kaiThinking}
