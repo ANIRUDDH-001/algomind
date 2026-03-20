@@ -55,7 +55,7 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <div>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Sparkles size={14} className="text-indigo-400" />
@@ -74,7 +74,7 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => router.push('/learn/diagnostic')}
-            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-950/30 border border-indigo-500/20 hover:border-indigo-500/40 transition-all"
+            className="self-start sm:self-auto text-xs font-medium text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-950/30 border border-indigo-500/20 hover:border-indigo-500/40 transition-all whitespace-nowrap"
           >
             Take Diagnostic -&gt;
           </motion.button>
@@ -84,14 +84,14 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
           <button
             type="button"
             onClick={() => setSelectedConcept(weakestConcept)}
-            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+            className="self-start sm:self-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1 whitespace-nowrap"
           >
             Focus: {weakestConcept.displayName} -&gt;
           </button>
         )}
       </div>
 
-      <div className="flex items-center gap-3 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-3 flex-wrap gap-y-1.5">
         {[
           { level: 'unknown', label: 'Not assessed' },
           { level: 'weak', label: 'Weak' },
@@ -101,7 +101,7 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
         ].map((item) => (
           <div key={item.level} className="flex items-center gap-1.5">
             <div
-              className="w-2 h-2 rounded-full"
+              className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: CONCEPT_CONFIDENCE_COLORS[item.level as keyof typeof CONCEPT_CONFIDENCE_COLORS] }}
             />
             <span className="text-xs text-zinc-500">{item.label}</span>

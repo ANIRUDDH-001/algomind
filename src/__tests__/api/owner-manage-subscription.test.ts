@@ -126,6 +126,7 @@ describe('POST /api/owner/manage-subscription', () => {
             } else if (callCount === 3) {
                 // Update profiles
                 mockChain.update = vi.fn(function(this: any) { return this; });
+                // @ts-expect-error - Mock chain typing
                 mockChain.eq = vi.fn(function(this: any) { return Promise.resolve({ data: null, error: null }); });
             } else {
                 // Upsert subscriptions
@@ -164,6 +165,7 @@ describe('POST /api/owner/manage-subscription', () => {
                 mockChain.single = vi.fn().mockResolvedValue({ data: { id: 'target-user-1' }, error: null });
             } else if (callCount === 3) {
                 mockChain.update = vi.fn(function(this: any) { return this; });
+                // @ts-expect-error - Mock chain typing
                 mockChain.eq = vi.fn(function(this: any) { return Promise.resolve({ data: null, error: null }); });
             } else {
                 mockChain.upsert = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -201,6 +203,7 @@ describe('POST /api/owner/manage-subscription', () => {
                 mockChain.single = vi.fn().mockResolvedValue({ data: { id: 'target-user-1' }, error: null });
             } else if (callCount === 3) {
                 mockChain.update = vi.fn(function(this: any) { return this; });
+                // @ts-expect-error - Mock chain typing
                 mockChain.eq = vi.fn(function(this: any) { return Promise.resolve({ data: null, error: null }); });
             } else {
                 mockChain.upsert = vi.fn().mockResolvedValue({ data: null, error: null });

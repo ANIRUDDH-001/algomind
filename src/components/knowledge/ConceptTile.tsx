@@ -60,8 +60,8 @@ export function ConceptTile({ concept, index, isSelected, isActiveLearning, onCl
 
       <div className="relative">
         <div className="flex items-start gap-2 mb-2">
-          <span className="text-lg leading-none">{concept.icon}</span>
-          <span className={`text-xs font-semibold leading-tight ${colors.text}`}>
+          <span className="text-lg leading-none flex-shrink-0">{concept.icon}</span>
+          <span className={`text-xs font-semibold leading-tight line-clamp-2 ${colors.text}`}>
             {concept.displayName}
           </span>
         </div>

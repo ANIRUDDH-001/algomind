@@ -109,17 +109,17 @@ export default function DiagnosticPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-[#1E1E2E] flex items-center justify-between">
-        <div>
+      <div className="px-4 sm:px-5 py-4 border-b border-[#1E1E2E] flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
             <Link href="/learn" className="hover:text-zinc-300 transition-colors">Learn</Link>
             <span>/</span>
-            <span className="text-zinc-300">Diagnostic</span>
+            <span className="text-zinc-300 truncate">Diagnostic</span>
           </div>
-          <h1 className="text-sm font-semibold text-zinc-300">Diagnostic Assessment</h1>
+          <h1 className="text-sm font-semibold text-zinc-300">Diagnostic</h1>
         </div>
         {state === 'active' && (
-          <span className="text-xs text-zinc-500">~{Math.max(0, 12 - exchangeCount.current)} questions remaining</span>
+          <span className="text-xs text-zinc-500 flex-shrink-0 whitespace-nowrap">~{Math.max(0, 12 - exchangeCount.current)} left</span>
         )}
       </div>
 
@@ -183,7 +183,7 @@ export default function DiagnosticPage() {
       </div>
 
       {/* Mic input */}
-      <div className="border-t border-[#1E1E2E] px-4 py-6 flex flex-col items-center gap-3">
+      <div className="border-t border-[#1E1E2E] px-4 py-6 flex flex-col items-center gap-3 safe-area-bottom">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
