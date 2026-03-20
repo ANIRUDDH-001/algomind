@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
-const MASTER_ADMIN_EMAIL = 'aniruddhvijay2k7@gmail.com';
+async function getMasterAdminEmail(): Promise<string> {
+    const { data } = await getServiceClient()
+        .from('system_config')
+        .select('value')
+        .eq('key', 'primary_owner_email')
+        .single();
+    return data?.value ?? '';
+}
 
 export async function GET() {
     try {
@@ -18,8 +26,10 @@ export async function GET() {
         if (error) throw error;
         return NextResponse.json(admins || []);
     } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Internal Server Error" },
+            { error: 'Internal server error' },
             { status: 500 }
         );
     }
@@ -56,8 +66,10 @@ export async function POST(request: Request) {
         if (error) throw error;
         return NextResponse.json({ success: true, email });
     } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Internal Server Error" },
+            { error: 'Internal server error' },
             { status: 500 }
         );
     }
@@ -75,8 +87,8 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
-        // ← NEW: Protect master admin
-        if (email === MASTER_ADMIN_EMAIL) {
+        const masterEmail = await getMasterAdminEmail();
+        if (masterEmail && email === masterEmail) {
             return NextResponse.json(
                 { error: "Cannot delete master admin" },
                 { status: 403 }
@@ -103,8 +115,10 @@ export async function DELETE(request: Request) {
         if (error) throw error;
         return NextResponse.json({ success: true });
     } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Internal Server Error" },
+            { error: 'Internal server error' },
             { status: 500 }
         );
     }

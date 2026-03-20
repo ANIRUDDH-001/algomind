@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function GET(req: NextRequest) {
     const supabase = await createServerSupabase();
@@ -29,7 +30,9 @@ export async function GET(req: NextRequest) {
     const { data: users, error } = await dbQuery;
 
     if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     const userIds = users.map(u => u.id);
@@ -94,7 +97,9 @@ export async function PATCH(req: NextRequest) {
                 .eq('id', userId);
 
             if (error) {
-                return NextResponse.json({ error: error.message }, { status: 500 });
+                const errMsg = error instanceof Error ? error.message : String(error);
+                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+                return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
             }
         }
 
@@ -105,7 +110,9 @@ export async function PATCH(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true });
-    } catch (err) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

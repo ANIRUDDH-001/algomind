@@ -3,15 +3,14 @@
  * @description Slide-in panel showing concept details + quick actions.
  *              Appears when a ConceptTile is clicked.
  * @phase Phase 2I
- * @a11y Phase 3E — role="dialog", aria-modal, focus trap, Escape close
  */
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, BookOpen, TrendingUp, TrendingDown } from 'lucide-react';
 import type { KGConceptSummary } from '@/lib/knowledge-graph';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 interface ConceptDetailPanelProps {
   concept: KGConceptSummary | null;
@@ -20,8 +19,21 @@ interface ConceptDetailPanelProps {
 
 export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps) {
   const router = useRouter();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const firstFocusRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!concept) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [concept, onClose]);
 
   const handleStartLearn = () => {
     if (!concept) return;
@@ -33,57 +45,10 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
     router.push(`/interview?concept=${concept.slug}`);
   };
 
-  // Move focus to close button when panel opens
-  useEffect(() => {
-    if (concept) {
-      const timer = setTimeout(() => firstFocusRef.current?.focus(), 50);
-      return () => clearTimeout(timer);
-    }
-  }, [concept]);
-
-  // Escape key closes panel
-  useEffect(() => {
-    if (!concept) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [concept, onClose]);
-
-  // Focus trap: Tab cycles within panel
-  const handleFocusTrap = useCallback((e: KeyboardEvent) => {
-    if (e.key !== 'Tab' || !panelRef.current) return;
-    const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-      'button, a, input, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!concept) return;
-    document.addEventListener('keydown', handleFocusTrap);
-    return () => document.removeEventListener('keydown', handleFocusTrap);
-  }, [concept, handleFocusTrap]);
-
   return (
     <AnimatePresence>
       {concept && (
         <motion.div
-          ref={panelRef}
           data-testid="concept-detail-panel"
           role="dialog"
           aria-modal="true"
@@ -103,11 +68,10 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
               </div>
             </div>
             <button
-              ref={firstFocusRef}
               type="button"
               data-testid="concept-detail-close"
-              onClick={onClose}
               aria-label="Close concept details panel"
+              onClick={onClose}
               className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 flex-shrink-0"
             >
               <X size={14} />

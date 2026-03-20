@@ -7,7 +7,6 @@
 
 export { synthesizeWithPolly, resetPollyClient, type PollyVoice, type PollyError } from './polly';
 export { uploadTranscript, downloadTranscript, deleteTranscript, resetS3Client, type S3Error } from './s3';
-export { startTranscriptionJob, getTranscriptionJobStatus, resetTranscribeClient, type TranscribeError, type TranscriptionJobInput, type TranscriptionJobResult } from './transcribe';
 export { logAWSUsage, estimatePollyCost, estimateBedrockCost, estimateTranscribeCostFromDuration, estimateS3PutCost, type AWSService, type UsageLogEntry } from './usage-logger';
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';

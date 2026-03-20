@@ -2,30 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
 import { nanoid } from 'nanoid';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function GET() {
-    const { errorResponse } = await requireAdminForApi();
-    if (errorResponse) return errorResponse;
+    try {
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
-    const serviceClient = getServiceClient();
-    const { data, error } = await serviceClient
-        .from('employer_invites')
-        .select('*')
-        .order('created_at', { ascending: false });
+        const serviceClient = getServiceClient();
+        const { data, error } = await serviceClient
+            .from('employer_invites')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
+
+        return NextResponse.json({ invites: data });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    return NextResponse.json({ invites: data });
 }
 
 export async function POST(req: NextRequest) {
-    const { user, errorResponse } = await requireAdminForApi();
-    if (errorResponse || !user) return errorResponse || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        const { user, errorResponse } = await requireAdminForApi();
+        if (errorResponse || !user) return errorResponse || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { email, companyName, expiresAt } = body;
+        const body = await req.json();
+        const { email, companyName, expiresAt } = body;
 
     if (!companyName || typeof companyName !== 'string') {
         return NextResponse.json({ error: 'companyName is required' }, { status: 400 });
@@ -35,8 +45,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Email is required to generate an employer invite' }, { status: 400 });
     }
 
-    const inviteCode = nanoid(10);
-    const serviceClient = getServiceClient();
+        const inviteCode = nanoid(10);
+        const serviceClient = getServiceClient();
 
     const { data, error } = await serviceClient
         .from('employer_invites')
@@ -50,16 +60,24 @@ export async function POST(req: NextRequest) {
         .select()
         .single();
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
 
-    return NextResponse.json({ invite: data });
+        return NextResponse.json({ invite: data });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }
 
 export async function DELETE(req: NextRequest) {
-    const { errorResponse } = await requireAdminForApi();
-    if (errorResponse) return errorResponse;
+    try {
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -68,15 +86,22 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    const serviceClient = getServiceClient();
-    const { error } = await serviceClient
-        .from('employer_invites')
-        .update({ is_active: false })
-        .eq('id', id);
+        const serviceClient = getServiceClient();
+        const { error } = await serviceClient
+            .from('employer_invites')
+            .update({ is_active: false })
+            .eq('id', id);
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    return NextResponse.json({ success: true });
 }

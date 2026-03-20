@@ -3,11 +3,10 @@
  * @description A single speech turn bubble for ZoomTranscript.
  *              Kai's bubbles come from left, User's from right.
  * @phase Phase 2P
- * @a11y Phase 3E — useReducedMotion for conditional animation
  */
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface SpeechBubbleProps {
   role: 'assistant' | 'user';
@@ -18,14 +17,13 @@ interface SpeechBubbleProps {
 
 export function SpeechBubble({ role, text, isLive = false, isFading = false }: SpeechBubbleProps) {
   const isKai = role === 'assistant';
-  const prefersReducedMotion = useReducedMotion();
 
   return (
     <motion.div
-      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: isKai ? -12 : 12, y: 8 }}
+      initial={{ opacity: 0, x: isKai ? -12 : 12, y: 8 }}
       animate={{ opacity: isFading ? 0 : 1, x: 0, y: 0 }}
-      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-      transition={prefersReducedMotion ? { duration: 0 } : { duration: isFading ? 0.2 : 0.3, ease: 'easeOut' }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: isFading ? 0.2 : 0.3, ease: 'easeOut' }}
       className={`flex ${isKai ? 'justify-start' : 'justify-end'} w-full`}
       data-testid={isKai ? 'kai-message-bubble' : 'user-transcript-bubble'}
     >
@@ -43,8 +41,8 @@ export function SpeechBubble({ role, text, isLive = false, isFading = false }: S
           <div className="flex items-center gap-1.5 mb-1.5">
             <motion.div
               className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-              animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 0.3, 1] }}
-              transition={prefersReducedMotion ? {} : { duration: 0.8, repeat: Infinity }}
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
             />
             <span className="text-xs text-zinc-500 font-medium">You</span>
           </div>
@@ -53,7 +51,7 @@ export function SpeechBubble({ role, text, isLive = false, isFading = false }: S
         {/* Message text */}
         <p className={`text-sm leading-relaxed ${isLive ? 'text-zinc-400' : ''}`}>
           {text}
-          {isLive && !prefersReducedMotion && (
+          {isLive && (
             <motion.span
               className="inline-block w-0.5 h-4 bg-emerald-400 ml-0.5 align-middle"
               animate={{ opacity: [1, 0] }}

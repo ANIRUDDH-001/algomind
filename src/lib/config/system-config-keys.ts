@@ -12,6 +12,8 @@ export const SYSTEM_CONFIG_KEYS = {
 
     // Freemium gate (Phase 1C)
     FREE_TIER_WEEKLY_SESSION_LIMIT: 'free_tier_weekly_session_limit',
+    FREE_TIER_WEEKLY_INTERVIEW_LIMIT: 'free_tier_weekly_interview_limit',
+    FREE_TIER_WEEKLY_LEARN_LIMIT: 'free_tier_weekly_learn_limit',
     ENABLE_SESSION_GATING: 'enable_session_gating',
 
     // Knowledge graph weights (Phase 1C)
@@ -27,6 +29,8 @@ export const SYSTEM_CONFIG_DEFAULTS: Record<SystemConfigKey, string> = {
     [SYSTEM_CONFIG_KEYS.CROSS_TIER_FALLBACK_ENABLED]: 'true',
     [SYSTEM_CONFIG_KEYS.PRIMARY_OWNER_EMAIL]: '',
     [SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_SESSION_LIMIT]: '5',
+    [SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_INTERVIEW_LIMIT]: '5',
+    [SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_LEARN_LIMIT]: '5',
     [SYSTEM_CONFIG_KEYS.ENABLE_SESSION_GATING]: 'true',
     [SYSTEM_CONFIG_KEYS.CONCEPT_CONFIDENCE_INTERVIEW_WEIGHT]: '0.2',
     [SYSTEM_CONFIG_KEYS.CONCEPT_CONFIDENCE_TUTOR_WEIGHT]: '0.08',

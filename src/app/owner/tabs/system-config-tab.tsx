@@ -21,9 +21,14 @@ const CONFIG_KEY_DESCRIPTIONS: Record<string, ConfigMeta> = {
         description: 'Primary owner identity used for owner-level security and operational workflows.',
         type: 'string',
     },
-    free_tier_weekly_session_limit: {
-        label: 'Free Tier Weekly Session Limit',
-        description: 'Total sessions (interview + learn) per week for free users. Default: 5',
+    free_tier_weekly_interview_limit: {
+        label: 'Free Tier — Interview Sessions / Week',
+        description: 'Max interview sessions per week for free users. Default: 5',
+        type: 'number',
+    },
+    free_tier_weekly_learn_limit: {
+        label: 'Free Tier — Learn Sessions / Week',
+        description: 'Max Kai-Tutor learn sessions per week for free users. Default: 5',
         type: 'number',
     },
     enable_session_gating: {

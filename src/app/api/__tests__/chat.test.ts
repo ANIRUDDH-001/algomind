@@ -70,8 +70,8 @@ describe('Chat API (/api/chat)', () => {
 
         vi.mocked(checkUserRateLimit).mockResolvedValue({ allowed: true, remaining: 5, isAdmin: false });
         vi.mocked(incrementUserUsage).mockResolvedValue(undefined as any);
-        vi.mocked(checkWeeklySessionLimit).mockResolvedValue({ allowed: true, sessionsUsed: 0, limit: 5, gatingEnabled: true });
-        vi.mocked(incrementWeeklyUsage).mockResolvedValue(undefined);
+        vi.mocked(checkWeeklySessionLimit).mockResolvedValue({ allowed: true, sessionsUsed: 0, limit: 5, sessionsRemaining: 5, reason: 'within_limit' });
+        vi.mocked(incrementWeeklyUsage).mockResolvedValue(true);
         vi.mocked(supabaseHybridSearch).mockResolvedValue([]);
         vi.mocked(logSystemEvent).mockResolvedValue(undefined);
         vi.mocked(checkIpRateLimit).mockResolvedValue({ success: true, remaining: 19 } as any);
@@ -299,7 +299,8 @@ describe('Chat API (/api/chat)', () => {
             allowed: false,
             sessionsUsed: 5,
             limit: 5,
-            gatingEnabled: true,
+            sessionsRemaining: 0,
+            reason: 'limit_exceeded',
         });
 
         const req = createRequest({
@@ -324,7 +325,7 @@ describe('Chat API (/api/chat)', () => {
         const res = await POST(req);
 
         expect(res.status).toBe(200);
-        expect(checkWeeklySessionLimit).toHaveBeenCalledWith('user-123');
+        expect(checkWeeklySessionLimit).toHaveBeenCalledWith('user-123', 'interview');
         expect(incrementWeeklyUsage).toHaveBeenCalledWith('user-123', 'interview');
     });
 
