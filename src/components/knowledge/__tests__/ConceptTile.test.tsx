@@ -10,6 +10,7 @@ vi.mock('framer-motion', () => ({
     button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
+  useReducedMotion: () => false,
 }));
 
 const baseConcept = {

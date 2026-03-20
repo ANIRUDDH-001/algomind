@@ -61,4 +61,34 @@ describe('ZoomTranscript', () => {
     render(<ZoomTranscript {...defaultProps} sessionHistoryCount={8} />);
     expect(screen.getByText('8 earlier exchanges')).toBeInTheDocument();
   });
+
+  // ── Accessibility tests (Phase 3E) ──
+
+  it('has role=log with aria-live=polite on Kai message area', () => {
+    render(<ZoomTranscript {...defaultProps} />);
+    const log = document.querySelector('[role="log"]');
+    expect(log).not.toBeNull();
+    expect(log).toHaveAttribute('aria-live', 'polite');
+    expect(log).toHaveAttribute('aria-label', 'Conversation transcript');
+  });
+
+  it('has aria-live on user transcript area', () => {
+    render(<ZoomTranscript {...defaultProps} userTranscript="test" isUserSpeaking={true} />);
+    const liveRegion = document.querySelector('[aria-label="Your speech"]');
+    expect(liveRegion).not.toBeNull();
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('has aria-label on exchange counter', () => {
+    render(<ZoomTranscript {...defaultProps} exchangeCount={5} />);
+    const counter = document.querySelector('[aria-label="5 exchanges completed"]');
+    expect(counter).not.toBeNull();
+  });
+
+  it('voice activity indicator has role=status', () => {
+    render(<ZoomTranscript {...defaultProps} isKaiSpeaking={true} />);
+    const status = document.querySelector('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status).toHaveAttribute('aria-live', 'polite');
+  });
 });
