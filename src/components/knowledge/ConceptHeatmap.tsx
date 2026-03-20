@@ -4,10 +4,11 @@
  *              Primary dashboard insight component for AlgoMind 2.0.
  *              Replaces skills radar as the main progress view.
  * @phase Phase 2I
+ * @a11y Phase 3E — role="grid", arrow-key navigation, tileRefs
  */
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,43 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
   const router = useRouter();
   const { concepts, isLoading, error, hasCompletedDiagnostic, weakestConcept } = useConceptHeatmap();
   const [selectedConcept, setSelectedConcept] = useState<KGConceptSummary | null>(null);
+
+  // Refs for arrow-key grid navigation
+  const tileRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedTileRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleTileKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
+    const currentCols = window.innerWidth < 640 ? 2 : 4;
+    let nextIndex: number | null = null;
+
+    switch (e.key) {
+      case 'ArrowRight': nextIndex = Math.min(index + 1, concepts.length - 1); break;
+      case 'ArrowLeft':  nextIndex = Math.max(index - 1, 0); break;
+      case 'ArrowDown':  nextIndex = Math.min(index + currentCols, concepts.length - 1); break;
+      case 'ArrowUp':    nextIndex = Math.max(index - currentCols, 0); break;
+      case 'Home':       nextIndex = 0; break;
+      case 'End':        nextIndex = concepts.length - 1; break;
+      default: return;
+    }
+
+    if (nextIndex !== null && nextIndex !== index) {
+      e.preventDefault();
+      tileRefs.current[nextIndex]?.focus();
+    }
+  }, [concepts.length]);
+
+  const handleTileClick = useCallback((concept: KGConceptSummary) => {
+    // Track which tile was clicked so we can return focus on panel close
+    const idx = concepts.findIndex(c => c.slug === concept.slug);
+    selectedTileRef.current = tileRefs.current[idx] ?? null;
+    setSelectedConcept(concept);
+  }, [concepts]);
+
+  const handlePanelClose = useCallback(() => {
+    setSelectedConcept(null);
+    // Return focus to the tile that opened the panel
+    selectedTileRef.current?.focus();
+  }, []);
 
   if (isLoading) {
     return (
@@ -82,7 +120,10 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
         {hasCompletedDiagnostic && weakestConcept && (
           <button
             type="button"
-            onClick={() => setSelectedConcept(weakestConcept)}
+            onClick={() => {
+              selectedTileRef.current = null;
+              setSelectedConcept(weakestConcept);
+            }}
             className="self-start sm:self-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1 whitespace-nowrap"
           >
             Focus: {weakestConcept.displayName} -&gt;
@@ -108,29 +149,38 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
         ))}
       </div>
 
-      <div data-testid="concept-heatmap-grid" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div
+        data-testid="concept-heatmap-grid"
+        role="grid"
+        aria-label={`Knowledge concept map — ${concepts.length} DSA concepts`}
+        aria-rowcount={Math.ceil(concepts.length / 4)}
+        aria-colcount={4}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+      >
         {concepts.map((concept, index) => (
           <ConceptTile
             key={concept.slug}
+            ref={el => { tileRefs.current[index] = el; }}
             concept={concept}
             index={index}
             isSelected={selectedConcept?.slug === concept.slug}
             isActiveLearning={activeLearningConceptSlug === concept.slug}
-            onClick={setSelectedConcept}
+            onClick={handleTileClick}
+            onKeyDown={e => handleTileKeyDown(e, index)}
           />
         ))}
       </div>
 
       <ConceptDetailPanel
         concept={selectedConcept}
-        onClose={() => setSelectedConcept(null)}
+        onClose={handlePanelClose}
       />
 
       {selectedConcept && (
         <div
           data-testid="heatmap-backdrop"
           className="fixed inset-0 z-30"
-          onClick={() => setSelectedConcept(null)}
+          onClick={handlePanelClose}
         />
       )}
     </div>
