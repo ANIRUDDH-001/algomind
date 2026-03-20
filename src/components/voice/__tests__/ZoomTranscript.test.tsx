@@ -1,6 +1,13 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+// @vitest-environment jsdom
+
+import '@testing-library/jest-dom/vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { ZoomTranscript } from '../ZoomTranscript';
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('ZoomTranscript', () => {
   const defaultProps = {
@@ -36,7 +43,7 @@ describe('ZoomTranscript', () => {
 
   it('shows user speaking state', () => {
     render(<ZoomTranscript {...defaultProps} isUserSpeaking={true} />);
-    expect(screen.getByText('Listening…')).toBeInTheDocument();
+    expect(screen.getAllByText('Listening…').length).toBeGreaterThan(0);
   });
 
   it('renders exchange dots', () => {

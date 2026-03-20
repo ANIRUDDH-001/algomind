@@ -55,30 +55,29 @@ export function useProgressiveReveal(text: string | null, isKaiSpeaking: boolean
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!text || !isKaiSpeaking) {
-      setRevealedWordCount(text?.split(' ').length ?? 0); // Show all immediately
-      return;
-    }
+    if (!text || !isKaiSpeaking) return;
 
     // Progressive reveal: ~3 words per second while TTS plays
     const words = text.split(' ');
-    setRevealedWordCount(0);
+    const resetTimer = setTimeout(() => setRevealedWordCount(0), 0);
     let count = 0;
 
     intervalRef.current = setInterval(() => {
       count += 1;
-      setRevealedWordCount(count);
+      setRevealedWordCount((prev) => Math.max(prev, count));
       if (count >= words.length) {
         if (intervalRef.current) clearInterval(intervalRef.current);
       }
     }, 320); // ~3 words/second
 
     return () => {
+      clearTimeout(resetTimer);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [text, isKaiSpeaking]);
 
   if (!text) return '';
+  if (!isKaiSpeaking) return text;
   const words = text.split(' ');
   return words.slice(0, revealedWordCount).join(' ');
 }

@@ -38,13 +38,13 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed right-0 top-0 h-full w-80 bg-[#111118] border-l border-[#1E1E2E] z-40 flex flex-col shadow-2xl"
+          className="fixed right-0 top-0 h-full w-full sm:w-80 bg-[#111118] border-l border-[#1E1E2E] z-40 flex flex-col shadow-2xl"
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E1E2E]">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{concept.icon}</span>
-              <div>
-                <h3 className="text-sm font-bold text-white">{concept.displayName}</h3>
+          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-[#1E1E2E]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-2xl flex-shrink-0">{concept.icon}</span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-white truncate">{concept.displayName}</h3>
                 <p className="text-xs text-zinc-500 capitalize">{concept.level}</p>
               </div>
             </div>
@@ -52,13 +52,13 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
               type="button"
               data-testid="concept-detail-close"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 flex-shrink-0"
             >
               <X size={14} />
             </button>
           </div>
 
-          <div className="flex-1 px-5 py-4 overflow-y-auto space-y-5">
+          <div className="flex-1 px-4 sm:px-5 py-4 overflow-y-auto space-y-5">
             <div>
               <div className="flex justify-between text-xs text-zinc-400 mb-2">
                 <span>Confidence</span>
@@ -119,11 +119,11 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
             )}
           </div>
 
-          <div className="px-5 pb-6 pt-3 border-t border-[#1E1E2E] space-y-2">
+          <div className="px-4 sm:px-5 pb-6 pt-3 border-t border-[#1E1E2E] space-y-2">
             <button
               type="button"
               onClick={handleStartLearn}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
             >
               <BookOpen size={14} />
               Learn with Kai
@@ -131,7 +131,7 @@ export function ConceptDetailPanel({ concept, onClose }: ConceptDetailPanelProps
             <button
               type="button"
               onClick={handlePracticeInterview}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium transition-colors"
             >
               <Play size={14} />
               Practice Interview

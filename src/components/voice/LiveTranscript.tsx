@@ -7,7 +7,7 @@
  */
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface TranscriptEntry {
@@ -24,14 +24,8 @@ interface LiveTranscriptProps {
 }
 
 export function LiveTranscript({ entries, interimTranscript, isVisible = true, className = '' }: LiveTranscriptProps) {
-  const [displayEntries, setDisplayEntries] = useState<TranscriptEntry[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Sliding window: show last 2 entries + interim
-  useEffect(() => {
-    const last2 = entries.slice(-2);
-    setDisplayEntries(last2);
-  }, [entries]);
+  const displayEntries = entries.slice(-2);
 
   // Auto-scroll
   useEffect(() => {

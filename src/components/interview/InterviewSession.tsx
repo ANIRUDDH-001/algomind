@@ -964,15 +964,14 @@ export function InterviewSession({
                                         <div className="flex-1 bg-zinc-900/40 rounded-xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col relative" data-testid="transcript-area">
                                             <div className="absolute inset-0 p-1">
                                                 <ZoomTranscript
-                                                    lastAiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content}
-                                                    isSpeaking={voice.isSpeaking}
-                                                    isProcessing={isProcessing}
-                                                    transcript={voice.transcript}
-                                                    interimTranscript={voice.interimTranscript}
-                                                    isListening={voice.isListening}
-                                                    micStoppedManually={micStoppedManually}
-                                                    isPushToTalk={isPushToTalk}
-                                                    isTranscribing={voice.isTranscribing}
+                                                    kaiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content ?? null}
+                                                    userTranscript={voice.transcript}
+                                                    isKaiSpeaking={voice.isSpeaking}
+                                                    isUserSpeaking={voice.isListening}
+                                                    isThinking={isProcessing}
+                                                    conceptSlug="interview"
+                                                    conceptIcon="🎯"
+                                                    exchangeCount={messages.filter(m => m.role === 'user').length}
                                                 />
                                             </div>
                                         </div>

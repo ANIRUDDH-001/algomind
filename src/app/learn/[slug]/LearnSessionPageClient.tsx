@@ -197,7 +197,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
         <div ref={transcriptEndRef} />
       </div>
 
-      <div className="border-t border-[#1E1E2E] px-4 py-6">
+      <div className="border-t border-[#1E1E2E] px-4 py-6 safe-area-bottom">
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}

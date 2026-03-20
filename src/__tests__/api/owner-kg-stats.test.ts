@@ -82,6 +82,7 @@ describe('GET /api/owner/kg-stats', () => {
             innerChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
             
             // Return different data for count queries
+            // @ts-expect-error - Mock chain typing
             innerChain.limit = vi.fn(function() {
                 return Promise.resolve({
                     count: 50,
@@ -119,6 +120,7 @@ describe('GET /api/owner/kg-stats', () => {
             const innerChain = createChainableMock();
             innerChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
             
+            // @ts-expect-error - Mock chain typing
             innerChain.limit = vi.fn(function() {
                 return Promise.resolve({
                     count: 50,

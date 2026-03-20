@@ -106,19 +106,19 @@ export default function LearnResultsPage() {
         >
           <button
             onClick={() => router.push(`/learn/${params.slug}`)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-colors"
           >
             Continue Learning <ArrowRight size={16} />
           </button>
           <button
             onClick={() => router.push('/learn')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-sm transition-colors"
           >
             <Home size={14} /> Pick Another Concept
           </button>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-full text-center text-xs text-zinc-500 hover:text-zinc-400 py-2 transition-colors"
+            className="w-full text-center text-xs text-zinc-500 hover:text-zinc-400 py-3 transition-colors"
           >
             Back to Dashboard
           </button>
