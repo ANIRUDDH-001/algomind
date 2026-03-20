@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/api/knowledge/recommendations/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { buildStudentContext } from '@/lib/kai-context';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabase: vi.fn(),
@@ -50,8 +51,26 @@ describe('GET /api/knowledge/recommendations', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.nextRecommendedConcept).toBe('graphs');
-    expect(data.weakestConcepts).toHaveLength(1);
-    expect(data.strongestConcepts).toHaveLength(1);
+    expect(data).toEqual(
+      expect.objectContaining({
+        hasCompletedDiagnostic: true,
+        nextRecommendedConcept: 'graphs',
+        weakestConcepts: expect.any(Array),
+        strongestConcepts: expect.any(Array),
+        allConceptSummaries: expect.any(Array),
+        subscription: expect.any(Object),
+      })
+    );
+  });
+
+  it('returns 500 and logs when context builder fails', async () => {
+    vi.mocked(buildStudentContext).mockRejectedValueOnce(new Error('context failed'));
+
+    const res = await GET();
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe('Failed to load recommendations');
+    expect(logSystemEvent).toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildKaiTutorSystemPrompt } from '../tutor-prompt';
+import { buildKaiTutorSystemPrompt, buildTutorMemoryUpdatePrompt, buildTutorOpeningMessage } from '../tutor-prompt';
 import type { ConceptTag } from '@/types/knowledge-graph';
 
 const mockConceptTag: ConceptTag = {
@@ -48,6 +48,22 @@ describe('buildKaiTutorSystemPrompt', () => {
       exchangeCount: 5,
     });
     expect(prompt).toContain('Core Teaching');
+  });
+
+  it('shows Knowledge Probing phase on turn 1', () => {
+    const prompt = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 1,
+    });
+    expect(prompt).toContain('Knowledge Probing');
+  });
+
+  it('shows Consolidation phase on turn 14', () => {
+    const prompt = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 14,
+    });
+    expect(prompt).toContain('Consolidation');
   });
 
   it('shows Closing phase on turn 18', () => {
@@ -100,6 +116,46 @@ describe('buildKaiTutorSystemPrompt', () => {
     expect(prompt).toContain('Arrays');
   });
 
+  it('includes hinglish language hint when spokenLanguage=hinglish', () => {
+    const prompt = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 2,
+      spokenLanguage: 'hinglish',
+    });
+    expect(prompt).toContain('Language mode: Learner is using Hinglish');
+  });
+
+  it('does not include language hint in english mode', () => {
+    const prompt = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 2,
+      spokenLanguage: 'english',
+    });
+    expect(prompt).not.toContain('Language mode: Learner is using Hinglish');
+  });
+
+  it('includes nudge hint when proactive nudge is provided', () => {
+    const prompt = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 3,
+      proactiveNudge: 'Ask for complexity explicitly',
+    });
+    expect(prompt).toContain('<nudge_hint>Ask for complexity explicitly</nudge_hint>');
+  });
+
+  it('includes opening hint only on first turn', () => {
+    const promptTurn0 = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 0,
+    });
+    const promptTurn2 = buildKaiTutorSystemPrompt({
+      conceptTag: mockConceptTag,
+      exchangeCount: 2,
+    });
+    expect(promptTurn0).toContain('<opening_hint>');
+    expect(promptTurn2).not.toContain('<opening_hint>');
+  });
+
   it('keeps prompt under 2000 tokens (approx 8000 chars)', () => {
     const prompt = buildKaiTutorSystemPrompt({
       conceptTag: mockConceptTag,
@@ -116,6 +172,70 @@ describe('buildKaiTutorSystemPrompt', () => {
     expect(prompt).toContain('<output_rules>');
     expect(prompt).toContain('No markdown');
     expect(prompt).toContain('100 words');
+  });
+});
+
+describe('buildTutorMemoryUpdatePrompt', () => {
+  it('includes current memory fallback text when memory is null', () => {
+    const prompt = buildTutorMemoryUpdatePrompt('Arrays', 'hello', null);
+    expect(prompt).toContain('No prior memory.');
+  });
+
+  it('truncates very long transcripts to 3000 characters', () => {
+    const transcript = `${'x'.repeat(2999)}A${'y'.repeat(3000)}TAIL_MARKER`;
+    const prompt = buildTutorMemoryUpdatePrompt('Arrays', transcript, 'existing memory');
+    const expectedSlice = transcript.slice(0, 3000);
+    expect(prompt).toContain(expectedSlice);
+    expect(prompt).not.toContain('TAIL_MARKER');
+  });
+});
+
+describe('buildTutorOpeningMessage', () => {
+  const baseStudentContext = {
+    userId: 'u1',
+    builtAt: new Date().toISOString(),
+    hasCompletedDiagnostic: true,
+    weakestConcepts: [],
+    strongestConcepts: [],
+    allConceptSummaries: [],
+    nextRecommendedConcept: null,
+    performance: {
+      totalSessionsCompleted: 0,
+      averageScore: null,
+      lastSessionScore: null,
+      lastSessionAt: null,
+      streak: 0,
+    },
+    kaiMemoryText: null,
+    kaiMemoryStructured: null,
+    subscription: {
+      status: 'free' as const,
+      sessionsUsedThisWeek: 0,
+      weeklyLimit: 5,
+      sessionsRemaining: 5,
+    },
+    accountType: 'candidate' as const,
+  };
+
+  it('returns base opening when no student context', () => {
+    const opening = buildTutorOpeningMessage(mockConceptTag);
+    expect(opening.toLowerCase()).toContain('arrays and strings');
+  });
+
+  it('prefixes growth-area message when concept is weak', () => {
+    const opening = buildTutorOpeningMessage(mockConceptTag, {
+      ...baseStudentContext,
+      weakestConcepts: [{ slug: 'arrays-strings', displayName: 'Arrays', confidence: 0.2, level: 'weak', evidenceCount: 2 }],
+    });
+    expect(opening).toContain('growth areas');
+  });
+
+  it('prefixes strong-foundation message when concept is strong', () => {
+    const opening = buildTutorOpeningMessage(mockConceptTag, {
+      ...baseStudentContext,
+      strongestConcepts: [{ slug: 'arrays-strings', displayName: 'Arrays', confidence: 0.9, level: 'strong', evidenceCount: 5 }],
+    });
+    expect(opening).toContain('solid foundation');
   });
 });
 

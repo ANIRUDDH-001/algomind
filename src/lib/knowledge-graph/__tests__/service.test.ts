@@ -207,6 +207,119 @@ describe('KnowledgeGraphService', () => {
     });
   });
 
+  describe('getStrongestConcepts', () => {
+    it('returns concepts sorted by confidence descending', async () => {
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([
+        makeConceptState('a', 0.8, 1),
+        makeConceptState('b', 0.2, 1),
+        makeConceptState('c', 0.4, 1),
+      ]);
+
+      const result = await service.getStrongestConcepts('user-1', 3);
+
+      expect(result.map((state) => state.conceptSlug)).toEqual(['a', 'c', 'b']);
+    });
+  });
+
+  describe('getSingleConceptState', () => {
+    it('returns matching concept state when slug exists', async () => {
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([
+        makeConceptState('arrays-strings', 0.7, 2),
+      ]);
+
+      const state = await service.getSingleConceptState('user-1', 'arrays-strings');
+
+      expect(state?.conceptSlug).toBe('arrays-strings');
+    });
+
+    it('returns null when slug does not exist', async () => {
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([]);
+
+      await expect(service.getSingleConceptState('user-1', 'missing')).resolves.toBeNull();
+    });
+  });
+
+  describe('getConceptSummaries', () => {
+    it('maps concept tags with fallback values when state missing', async () => {
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([
+        makeConceptState('arrays-strings', 0.9, 2),
+      ]);
+
+      const order = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'arrays-strings',
+            display_name: 'Arrays & Strings',
+            description: null,
+            subject: 'dsa',
+            icon: null,
+            sort_order: 1,
+            is_active: true,
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+          {
+            id: 'graphs-bfs-dfs',
+            display_name: 'Graphs',
+            description: null,
+            subject: 'dsa',
+            icon: null,
+            sort_order: 2,
+            is_active: true,
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+        error: null,
+      });
+      const eq = vi.fn().mockReturnValue({ order });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      const result = await service.getConceptSummaries('user-1');
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          slug: 'arrays-strings',
+          level: 'strong',
+          icon: 'list',
+          evidenceCount: 2,
+        })
+      );
+      expect(result[1]).toEqual(
+        expect.objectContaining({
+          slug: 'graphs-bfs-dfs',
+          confidence: 0.5,
+          level: 'unknown',
+          evidenceCount: 0,
+        })
+      );
+    });
+
+    it('uses cached concept tags when Redis has a hit', async () => {
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([]);
+      mockRedisGet.mockResolvedValueOnce([
+        {
+          id: 'arrays-strings',
+          display_name: 'Arrays & Strings',
+          description: null,
+          subject: 'dsa',
+          icon: 'list',
+          sort_order: 1,
+          is_active: true,
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ]);
+
+      const result = await service.getConceptSummaries('user-1');
+
+      expect(result).toHaveLength(1);
+      expect(mockFrom).not.toHaveBeenCalledWith('concept_tags');
+    });
+  });
+
   describe('hasCompletedDiagnostic', () => {
     it('returns false when no states have evidence', async () => {
       vi.spyOn(service, 'getConceptStates').mockResolvedValue([
@@ -300,13 +413,58 @@ describe('KnowledgeGraphService', () => {
 
       expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1', 'student_context:user-1');
     });
+
+    it('throws when on_learn_session_completed RPC fails', async () => {
+      mockRpc.mockResolvedValueOnce({ error: { message: 'learn rpc failed' } });
+
+      await expect(
+        service.onLearnSessionCompleted('learn-session-1', {
+          understood: [],
+          struggled: [],
+          notes: 'x',
+          confidenceDelta: 0,
+        })
+      ).rejects.toThrow('KnowledgeGraphService.onLearnSessionCompleted failed: learn rpc failed');
+    });
+  });
+
+  describe('onInterviewCompleted', () => {
+    it('returns without throw when interview RPC fails', async () => {
+      mockRpc.mockResolvedValueOnce({ error: { message: 'interview rpc failed' } });
+
+      await expect(service.onInterviewCompleted('interview-1')).resolves.toBeUndefined();
+      expect(logSystemEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'db_error',
+          metadata: expect.objectContaining({ context: 'knowledge_graph.on_interview_completed' }),
+        })
+      );
+    });
+
+    it('invalidates cache when interview lookup returns user_id', async () => {
+      const single = vi.fn().mockResolvedValue({ data: { user_id: 'user-1' }, error: null });
+      const eq = vi.fn().mockReturnValue({ single });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      await service.onInterviewCompleted('interview-1');
+
+      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1', 'student_context:user-1');
+    });
+
+    it('swallows lookup failures during cache invalidation', async () => {
+      const single = vi.fn().mockRejectedValue(new Error('lookup failed'));
+      const eq = vi.fn().mockReturnValue({ single });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      await expect(service.onInterviewCompleted('interview-1')).resolves.toBeUndefined();
+    });
   });
 
   describe('getNextRecommendedConcept', () => {
     it('returns unlearned concept when some exist', async () => {
-      vi.spyOn(service, 'getConceptStates').mockResolvedValue([
-        makeConceptState('arrays-strings', 0.7, 1),
-      ]);
+      vi.spyOn(service, 'getConceptStates').mockResolvedValue([]);
 
       const order = vi.fn().mockResolvedValue({
         data: [
@@ -341,7 +499,7 @@ describe('KnowledgeGraphService', () => {
 
       const result = await service.getNextRecommendedConcept('user-1');
 
-      expect(result).toBe('hashmaps-sets');
+      expect(result).toBe('arrays-strings');
     });
 
     it('returns weakest concept when all have evidence', async () => {
@@ -411,6 +569,59 @@ describe('KnowledgeGraphService', () => {
       mockRedisDel.mockRejectedValueOnce(new Error('redis unavailable'));
 
       await expect(service.invalidateCache('user-123')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('normalization and cache edge cases', () => {
+    it('normalizes invalid signal history and unknown session type safely', async () => {
+      const row = makeConceptStateRow({
+        signal_history: [
+          { type: 'diagnostic_initial', delta: 0.2, at: '2026-03-01T00:00:00.000Z' },
+          { type: 'unknown', delta: 0.3, at: '2026-03-01T00:00:00.000Z' },
+          null,
+        ] as never,
+        last_session_type: 'other' as never,
+        updated_at: null,
+        last_signal_at: null,
+        created_at: '2026-03-03T00:00:00.000Z',
+      });
+
+      const order = vi.fn().mockResolvedValue({ data: [row], error: null });
+      const eq = vi.fn().mockReturnValue({ order });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      const result = await service.getConceptStates('user-1');
+
+      expect(result[0]?.signalHistory).toEqual([
+        { type: 'diagnostic_initial', delta: 0.2, at: '2026-03-01T00:00:00.000Z' },
+      ]);
+      expect(result[0]?.lastSessionType).toBeNull();
+      expect(result[0]?.updatedAt).toBe('2026-03-03T00:00:00.000Z');
+      expect(result[0]?.lastSignalAt).toBe('2026-03-03T00:00:00.000Z');
+    });
+
+    it('falls back to DB when Redis read throws', async () => {
+      mockRedisGet.mockRejectedValueOnce(new Error('redis down'));
+      const order = vi.fn().mockResolvedValue({ data: [makeConceptStateRow()], error: null });
+      const eq = vi.fn().mockReturnValue({ order });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      const result = await service.getConceptStates('user-1');
+
+      expect(result).toHaveLength(1);
+      expect(mockFrom).toHaveBeenCalledWith('concept_states');
+    });
+
+    it('returns states even when Redis write throws', async () => {
+      mockRedisSet.mockRejectedValueOnce(new Error('set failed'));
+      const order = vi.fn().mockResolvedValue({ data: [makeConceptStateRow()], error: null });
+      const eq = vi.fn().mockReturnValue({ order });
+      const select = vi.fn().mockReturnValue({ eq });
+      mockFrom.mockReturnValue({ select });
+
+      await expect(service.getConceptStates('user-1')).resolves.toHaveLength(1);
     });
   });
 });

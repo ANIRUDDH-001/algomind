@@ -161,4 +161,57 @@ describe('GET /api/knowledge/session-impacts', () => {
     expect(res.status).toBe(200);
     expect(data).toEqual({ impacts: [] });
   });
+
+  it('returns 500 when learning signal query fails', async () => {
+    const signalsChain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockImplementation(function (this: any, col: string) {
+        if (col === 'user_id') {
+          return Promise.resolve({ data: null, error: new Error('query failed') });
+        }
+        return this;
+      }),
+    };
+
+    vi.mocked(getServiceClient).mockReturnValue({
+      from: vi.fn(() => signalsChain),
+    } as never);
+
+    const res = await GET(createReq('http://localhost:3000/api/knowledge/session-impacts?sessionId=s-4'));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data).toEqual({ error: 'Failed to fetch learning signals' });
+  });
+
+  it('falls back to slug when concept tag lookup is missing', async () => {
+    const signalsChain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockImplementation(function (this: any, col: string) {
+        if (col === 'user_id') {
+          return Promise.resolve({
+            data: [{ concept_slug: 'custom-slug', delta: 0.05, confidence_before: 0.1, confidence_after: 0.15 }],
+            error: null,
+          });
+        }
+        return this;
+      }),
+    };
+
+    vi.mocked(getServiceClient).mockReturnValue({
+      from: vi.fn((table: string) => {
+        if (table === 'learning_signals') return signalsChain;
+        return {
+          select: vi.fn().mockReturnThis(),
+          in: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
+      }),
+    } as never);
+
+    const res = await GET(createReq('http://localhost:3000/api/knowledge/session-impacts?sessionId=s-5'));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.impacts[0].displayName).toBe('custom-slug');
+  });
 });

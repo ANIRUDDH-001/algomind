@@ -4,6 +4,7 @@ import { GET } from '@/app/api/knowledge/session-limit/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { checkWeeklySessionLimit } from '@/lib/rate-limit/weekly-session-limiter';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabase: vi.fn(),
@@ -57,6 +58,7 @@ describe('GET /api/knowledge/session-limit', () => {
     expect(data.allowed).toBe(true);
     expect(data.sessionsRemaining).toBe(3);
     expect(data.status).toBe('free');
+    expect(data.gatingEnabled).toBe(true);
   });
 
   it('returns null sessionsRemaining for premium users', async () => {
@@ -67,5 +69,16 @@ describe('GET /api/knowledge/session-limit', () => {
 
     expect(data.sessionsRemaining).toBeNull();
     expect(data.status).toBe('premium');
+  });
+
+  it('returns 500 and logs when limiter throws', async () => {
+    vi.mocked(checkWeeklySessionLimit).mockRejectedValueOnce(new Error('db failure'));
+
+    const res = await GET();
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe('Failed to load weekly session limit');
+    expect(logSystemEvent).toHaveBeenCalled();
   });
 });

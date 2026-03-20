@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/api/knowledge/concepts/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabase: vi.fn(),
@@ -51,5 +52,16 @@ describe('GET /api/knowledge/concepts', () => {
     expect(res.status).toBe(200);
     expect(data.hasCompletedDiagnostic).toBe(true);
     expect(data.concepts).toHaveLength(1);
+  });
+
+  it('returns 500 and logs when service throws', async () => {
+    mockKG.getConceptSummaries.mockRejectedValueOnce(new Error('query failed'));
+
+    const res = await GET();
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe('Failed to load concept summaries');
+    expect(logSystemEvent).toHaveBeenCalled();
   });
 });

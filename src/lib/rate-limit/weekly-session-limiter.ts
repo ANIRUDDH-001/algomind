@@ -105,6 +105,10 @@ async function fetchWeeklySessionCount(userId: string): Promise<number> {
   return (data.interview_sessions_used ?? 0) + (data.learn_sessions_used ?? 0);
 }
 
+export async function getWeeklySessionCount(userId: string): Promise<number> {
+  return fetchWeeklySessionCount(userId);
+}
+
 function getMonday(): string {
   const now = new Date();
   const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

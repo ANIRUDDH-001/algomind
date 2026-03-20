@@ -1,7 +1,7 @@
 // AlgoMind Service Worker
 // Provides offline caching for PWA functionality
 
-const CACHE_NAME = 'algomind-1773981639290';
+const CACHE_NAME = 'algomind-1773985926746';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
