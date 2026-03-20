@@ -3,10 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 async function tryCredentialLogin(baseUrl: string): Promise<void> {
-  const email = process.env.E2E_TEST_EMAIL;
-  const password = process.env.E2E_TEST_PASSWORD;
+  const email = process.env.TEST_USER_EMAIL;
+  const password = process.env.TEST_USER_PASSWORD;
 
   if (!email || !password) {
+    console.warn('[e2e/global-setup] TEST_USER_EMAIL or TEST_USER_PASSWORD missing. Using cookie-based fallback auth.');
     return;
   }
 
@@ -18,14 +19,14 @@ async function tryCredentialLogin(baseUrl: string): Promise<void> {
   for (const route of candidateLoginRoutes) {
     await page.goto(`${baseUrl}${route}`);
 
-    const emailInput = page.locator('input[name="email"], input[type="email"], [data-testid="email"]');
-    const passwordInput = page.locator('input[name="password"], input[type="password"], [data-testid="password"]');
+    const emailInput = page.locator('input[name="email"], input[type="email"], [data-testid="email-input"]');
+    const passwordInput = page.locator('input[name="password"], input[type="password"], [data-testid="password-input"]');
 
     if (await emailInput.first().isVisible().catch(() => false) && await passwordInput.first().isVisible().catch(() => false)) {
       await emailInput.first().fill(email);
       await passwordInput.first().fill(password);
 
-      const submit = page.locator('[type="submit"], [data-testid="login-btn"]');
+      const submit = page.locator('[type="submit"], [data-testid="sign-in-button"]');
       await submit.first().click();
       await page.waitForLoadState('networkidle');
       break;

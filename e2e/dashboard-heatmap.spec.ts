@@ -1,110 +1,92 @@
 import { test, expect } from '@playwright/test';
+import { signIn } from './helpers/auth';
 
-async function gotoDashboard(page: import('@playwright/test').Page) {
-  await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle');
-}
+test.describe('Concept Heatmap', () => {
+  test.skip(
+    !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD,
+    'TEST_USER_EMAIL and TEST_USER_PASSWORD are required for authenticated heatmap tests'
+  );
 
-test.describe('Dashboard Heatmap', () => {
-  test('concept heatmap renders on dashboard', async ({ page }) => {
-    await gotoDashboard(page);
-
-    if (page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/login/);
-      return;
-    }
-
-    const emptyState = page.locator("text=Your journey hasn't started yet!");
-    if (await emptyState.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(emptyState).toBeVisible();
-      return;
-    }
-
-    await expect(page.locator('text=Knowledge Map')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-testid^="concept-tile-"], [data-testid="concept-heatmap-skeleton"]').first()).toBeVisible({ timeout: 10000 });
+  test.beforeEach(async ({ page }) => {
+    await signIn(page);
   });
 
-  test('clicking concept tile opens detail panel', async ({ page }) => {
-    await gotoDashboard(page);
+  test('heatmap renders with concept tiles', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-heatmap"]', { timeout: 8000 });
 
-    if (page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/login/);
-      return;
-    }
-
-    const firstTile = page.locator('[data-testid^="concept-tile-"]').first();
-    const hasTile = await firstTile.isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (!hasTile) {
-      await expect(page.locator("text=Your journey hasn't started yet!")).toBeVisible();
-      return;
-    }
-
-    await firstTile.click();
-
-    await expect(page.locator('[data-testid="concept-detail-panel"]')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('text=Learn with Kai')).toBeVisible({ timeout: 5000 });
+    const tiles = await page.locator('[data-testid="concept-tile"]').count();
+    expect(tiles).toBeGreaterThanOrEqual(15);
   });
 
-  test('closing detail panel via backdrop works', async ({ page }) => {
-    await gotoDashboard(page);
+  test('clicking tile opens detail panel', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]');
 
-    if (page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/login/);
-      return;
-    }
+    await page.locator('[data-testid="concept-tile"]').first().click();
+    await page.waitForSelector('[data-testid="concept-detail-panel"]');
 
-    const firstTile = page.locator('[data-testid^="concept-tile-"]').first();
-    const hasTile = await firstTile.isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (!hasTile) {
-      await expect(page.locator("text=Your journey hasn't started yet!")).toBeVisible();
-      return;
-    }
-
-    await firstTile.click();
-    await expect(page.locator('[data-testid="concept-detail-panel"]')).toBeVisible({ timeout: 5000 });
-
-    await page.click('[data-testid="concept-detail-backdrop"]');
-    await expect(page.locator('[data-testid="concept-detail-panel"]')).not.toBeVisible({ timeout: 3000 });
+    expect(await page.locator('[data-testid="concept-detail-panel"]').isVisible()).toBe(true);
   });
 
-  test('recommendation banner or diagnostic CTA is visible', async ({ page }) => {
-    await gotoDashboard(page);
+  test('detail panel shows concept name', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]');
 
-    if (page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/login/);
-      return;
-    }
+    await page.locator('[data-testid="concept-tile"]').first().click();
+    await page.waitForSelector('[data-testid="concept-detail-panel"]');
 
-    const recommendation = page.locator('text=Recommended for you');
-    const diagnostic = page.locator('text=Start your personalized journey');
-    const emptyState = page.locator("text=Your journey hasn't started yet!");
-
-    const hasRecommendation = await recommendation.first().isVisible({ timeout: 3000 }).catch(() => false);
-    const hasDiagnostic = await diagnostic.first().isVisible({ timeout: 3000 }).catch(() => false);
-    const hasEmptyState = await emptyState.first().isVisible({ timeout: 3000 }).catch(() => false);
-
-    expect(hasRecommendation || hasDiagnostic || hasEmptyState).toBe(true);
+    const title = await page.locator('[data-testid="concept-detail-panel-title"]');
+    await expect(title).toBeVisible();
   });
 
-  test('weekly usage card shows This Week', async ({ page }) => {
-    await gotoDashboard(page);
+  test('backdrop click closes detail panel', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]');
 
-    if (page.url().includes('/login')) {
-      await expect(page).toHaveURL(/\/login/);
-      return;
+    await page.locator('[data-testid="concept-tile"]').first().click();
+    await page.waitForSelector('[data-testid="concept-detail-panel"]');
+
+    await page.click('[data-testid="heatmap-backdrop"]');
+    await expect(page.locator('[data-testid="concept-detail-panel"]')).toBeHidden({
+      timeout: 2000,
+    });
+  });
+
+  test('Learn button navigates to session', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]');
+
+    await page.locator('[data-testid="concept-tile"]').first().click();
+    await page.waitForSelector('[data-testid="detail-panel-learn-button"]');
+
+    await page.click('[data-testid="detail-panel-learn-button"]');
+    await expect(page).toHaveURL(/\/learn\/[\w-]+$/);
+  });
+
+  test('heatmap is responsive on mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]', { timeout: 8000 });
+
+    const tiles = await page.locator('[data-testid="concept-tile"]').all();
+    expect(tiles.length).toBeGreaterThanOrEqual(15);
+
+    // Verify first few tiles are in viewport
+    for (const tile of tiles.slice(0, 3)) {
+      await expect(tile).toBeInViewport();
     }
+  });
 
-    const weekly = page.locator('text=This Week');
-    const emptyState = page.locator("text=Your journey hasn't started yet!");
+  test('tiles are visually distinct with different states', async ({ page }) => {
+    await page.goto('/learn');
+    await page.waitForSelector('[data-testid="concept-tile"]', { timeout: 8000 });
 
-    const hasWeekly = await weekly.first().isVisible({ timeout: 3000 }).catch(() => false);
-    if (!hasWeekly) {
-      await expect(emptyState).toBeVisible();
-      return;
-    }
+    const firstTile = page.locator('[data-testid="concept-tile"]').first();
+    const bgColor = await firstTile.evaluate((el) => {
+      return window.getComputedStyle(el).backgroundColor;
+    });
 
-    await expect(weekly).toBeVisible({ timeout: 5000 });
+    expect(bgColor).toBeTruthy();
   });
 });

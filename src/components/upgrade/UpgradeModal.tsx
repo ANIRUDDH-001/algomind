@@ -35,9 +35,9 @@ export function UpgradeModal({ open, onOpenChange, payload }: UpgradeModalProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-zinc-800 bg-zinc-950 text-zinc-100">
+      <DialogContent data-testid="upgrade-modal" className="max-w-md border-zinc-800 bg-zinc-950 text-zinc-100">
         <DialogHeader>
-          <DialogTitle className="text-xl font-black tracking-tight">Weekly Session Limit Reached</DialogTitle>
+          <DialogTitle data-testid="upgrade-modal-title" className="text-xl font-black tracking-tight">Weekly Session Limit Reached</DialogTitle>
           <DialogDescription className="text-zinc-300">{description}</DialogDescription>
         </DialogHeader>
 
@@ -46,10 +46,11 @@ export function UpgradeModal({ open, onOpenChange, payload }: UpgradeModalProps)
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button data-testid="upgrade-modal-close" variant="outline" onClick={() => onOpenChange(false)}>
             Maybe Later
           </Button>
           <Button
+            data-testid="upgrade-modal-upgrade"
             className="bg-amber-500 text-zinc-950 hover:bg-amber-400"
             onClick={() => {
               onOpenChange(false);

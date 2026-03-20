@@ -43,7 +43,6 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
       </div>
     );
   }
-
   if (error) {
     return (
       <div className={`flex items-center gap-2 p-4 rounded-xl bg-red-950/20 border border-red-500/20 ${className}`}>
@@ -53,20 +52,20 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
     );
   }
 
-  return (
-    <div className={className}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-        <div>
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Sparkles size={14} className="text-indigo-400" />
-            Knowledge Map
-          </h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {hasCompletedDiagnostic
-              ? `${concepts.filter((c) => c.evidenceCount > 0).length}/20 concepts tracked`
-              : 'Complete the diagnostic to start tracking'}
-          </p>
-        </div>
+    return (
+      <div data-testid="concept-heatmap" className={className}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Sparkles size={14} className="text-indigo-400" />
+              Knowledge Map
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {hasCompletedDiagnostic
+                ? `${concepts.filter((c) => c.evidenceCount > 0).length}/20 concepts tracked`
+                : 'Complete the diagnostic to start tracking'}
+            </p>
+          </div>
 
         {!hasCompletedDiagnostic && (
           <motion.button
@@ -129,7 +128,7 @@ export function ConceptHeatmap({ activeLearningConceptSlug, className = '' }: Co
 
       {selectedConcept && (
         <div
-          data-testid="concept-detail-backdrop"
+          data-testid="heatmap-backdrop"
           className="fixed inset-0 z-30"
           onClick={() => setSelectedConcept(null)}
         />

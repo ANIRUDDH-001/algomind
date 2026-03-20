@@ -32,7 +32,9 @@ export function ConceptTile({ concept, index, isSelected, isActiveLearning, onCl
 
   return (
     <motion.button
-      data-testid={`concept-tile-${concept.slug}`}
+      data-testid="concept-tile"
+      data-concept-name={concept.displayName}
+      data-concept-slug={concept.slug}
       initial={{ opacity: 0, y: 12, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: index * 0.03, duration: 0.35, ease: 'easeOut' }}

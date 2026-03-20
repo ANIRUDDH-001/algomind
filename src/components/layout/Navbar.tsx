@@ -144,6 +144,7 @@ export function Navbar() {
                                         <Link
                                             key={link.href}
                                             href={link.href}
+                                            data-testid={link.label === 'Learn' ? 'nav-learn' : link.label === 'Settings' ? 'nav-settings' : undefined}
                                             className={`relative py-2 text-sm font-bold transition-colors ${isActive ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'}`}
                                         >
                                             <span className="inline-flex items-center gap-2">
@@ -230,6 +231,7 @@ export function Navbar() {
                                             )}
 
                                             <DropdownMenuItem
+                                                data-testid="nav-settings"
                                                 onClick={() => router.push('/settings')}
                                                 className="text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer focus:bg-white/5 rounded-xl px-3 py-2 text-xs font-bold"
                                             >
@@ -279,6 +281,7 @@ export function Navbar() {
                                             <DropdownMenuSeparator className="my-1" style={{ backgroundColor: 'var(--surface-edge)' }} />
 
                                             <DropdownMenuItem
+                                                data-testid="sign-out-button"
                                                 onClick={handleLogout}
                                                 className="text-red-400 hover:bg-red-500/10 hover:text-red-300 cursor-pointer focus:bg-red-500/10 rounded-xl px-3 py-2 text-xs font-bold"
                                             >

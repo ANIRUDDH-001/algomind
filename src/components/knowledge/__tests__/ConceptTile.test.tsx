@@ -46,7 +46,7 @@ describe('ConceptTile', () => {
   it('does apply selected and active rings when flags are true', () => {
     render(<ConceptTile concept={baseConcept} index={0} isSelected isActiveLearning />);
 
-    const tile = screen.getAllByTestId('concept-tile-arrays-strings')[0];
+    const tile = screen.getByTestId('concept-tile');
     expect(tile.className).toContain('ring-indigo-500/60');
     expect(tile.className).toContain('ring-emerald-500/60');
   });
@@ -55,7 +55,7 @@ describe('ConceptTile', () => {
     const onClick = vi.fn();
     render(<ConceptTile concept={baseConcept} index={0} onClick={onClick} />);
 
-    fireEvent.click(screen.getAllByTestId('concept-tile-arrays-strings')[0]);
+    fireEvent.click(screen.getByTestId('concept-tile'));
     expect(onClick).toHaveBeenCalledWith(baseConcept);
   });
 });

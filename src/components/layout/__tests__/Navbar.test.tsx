@@ -278,10 +278,8 @@ describe('Navbar Component', () => {
     });
 
     it('14. Sign out option calls signOut and redirects', async () => {
-        const { container } = render(<Navbar />);
-        const menuItems = container.querySelectorAll('[data-testid="dropdown-item"]');
-        // Sign Out is the last menu item
-        const signOutItem = Array.from(menuItems).find(el => el.textContent?.includes('Sign Out'));
+        render(<Navbar />);
+        const signOutItem = screen.getByTestId('sign-out-button');
         expect(signOutItem).toBeDefined();
 
         await act(async () => {
