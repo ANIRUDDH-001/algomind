@@ -107,6 +107,7 @@ vi.mock('lucide-react', () => ({
     Flag: (props: any) => <span data-testid="icon-flag" className={props.className} />,
     Briefcase: (props: any) => <span data-testid="icon-briefcase" className={props.className} />,
     BookOpen: (props: any) => <span data-testid="icon-bookopen" className={props.className} />,
+    Brain: (props: any) => <span data-testid="icon-brain" className={props.className} />,
     Sparkles: (props: any) => <span data-testid="icon-sparkles" className={props.className} />,
 }));
 

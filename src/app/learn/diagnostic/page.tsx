@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, CheckCircle } from 'lucide-react';
@@ -109,7 +110,14 @@ export default function DiagnosticPage() {
     <div className="min-h-screen bg-[#0A0A0F] flex flex-col">
       {/* Header */}
       <div className="px-5 py-4 border-b border-[#1E1E2E] flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-zinc-300">Diagnostic Assessment</h1>
+        <div>
+          <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
+            <Link href="/learn" className="hover:text-zinc-300 transition-colors">Learn</Link>
+            <span>/</span>
+            <span className="text-zinc-300">Diagnostic</span>
+          </div>
+          <h1 className="text-sm font-semibold text-zinc-300">Diagnostic Assessment</h1>
+        </div>
         {state === 'active' && (
           <span className="text-xs text-zinc-500">~{Math.max(0, 12 - exchangeCount.current)} questions remaining</span>
         )}
@@ -153,7 +161,7 @@ export default function DiagnosticPage() {
             animate={{ opacity: 1, y: 0 }}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
           >
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${msg.role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
               {msg.role === 'assistant' ? 'K' : 'U'}
             </div>
             <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm text-zinc-200 ${msg.role === 'assistant' ? 'bg-[#111118] border border-[#1E1E2E] rounded-tl-sm' : 'bg-indigo-600/20 border border-indigo-500/20 rounded-tr-sm'}`}>

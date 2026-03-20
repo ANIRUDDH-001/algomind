@@ -1,21 +1,24 @@
-export default function Loading() {
+export default function LearnLoading() {
     return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="space-y-4 w-full max-w-2xl px-6">
-                {/* Chat bubbles skeleton */}
-                <div className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800/50 animate-pulse shrink-0" />
-                    <div className="h-16 bg-zinc-800/30 rounded-2xl rounded-tl-sm animate-pulse flex-1" />
+        <div className="min-h-screen bg-[#0A0A0F] px-4 py-8">
+            <div className="max-w-4xl mx-auto">
+                <div className="mb-8 space-y-2">
+                    <div className="h-4 w-24 bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-7 w-64 bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-4 w-80 bg-zinc-700/50 rounded animate-pulse" />
                 </div>
-                <div className="flex gap-3 items-start justify-end">
-                    <div className="h-10 bg-indigo-900/20 rounded-2xl rounded-tr-sm animate-pulse w-2/3" />
+
+                <div className="h-20 bg-zinc-800/50 rounded-xl animate-pulse mb-6" />
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {Array.from({ length: 20 }).map((_, i) => (
+                        <div
+                            key={i}
+                              className="h-18 rounded-xl bg-zinc-900/40 animate-pulse"
+                            style={{ animationDelay: `${i * 25}ms` }}
+                        />
+                    ))}
                 </div>
-                <div className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800/50 animate-pulse shrink-0" />
-                    <div className="h-20 bg-zinc-800/30 rounded-2xl rounded-tl-sm animate-pulse flex-1" />
-                </div>
-                {/* Input skeleton */}
-                <div className="h-12 bg-zinc-800/20 rounded-xl animate-pulse mt-4" />
             </div>
         </div>
     );
