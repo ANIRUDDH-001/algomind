@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { RecommendationBanner } from '../RecommendationBanner';
 
@@ -27,7 +27,9 @@ describe('RecommendationBanner', () => {
       json: () => Promise.resolve({ hasCompletedDiagnostic: false, nextConcept: null, weakest: [] }),
     }));
     render(<RecommendationBanner />);
-    await screen.findByText(/take diagnostic/i);
+    await waitFor(() => {
+        expect(screen.queryByText(/take diagnostic/i)).not.toBeNull();
+    });
   });
 
   it('shows concept recommendation for returning user', async () => {
@@ -40,7 +42,9 @@ describe('RecommendationBanner', () => {
       }),
     }));
     render(<RecommendationBanner />);
-    await screen.findByText(/Arrays & Strings/);
+    await waitFor(() => {
+        expect(screen.queryByText(/Arrays & Strings/)).not.toBeNull();
+    });
   });
 
   it('hides when dismissed', async () => {});

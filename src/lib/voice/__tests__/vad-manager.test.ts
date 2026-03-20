@@ -26,11 +26,30 @@ describe('VADManager', () => {
         vi.clearAllMocks();
         createdVADOptions = null;
 
+        // Implementation of loadScript uses 'document'
+        (globalThis as any).document = {
+            querySelector: vi.fn().mockReturnValue(null),
+            createElement: vi.fn().mockImplementation(() => ({
+                set src(val: string) { },
+                get src() { return ''; },
+                onload: null,
+                onerror: null,
+                async: false,
+            })),
+            head: {
+                appendChild: vi.fn().mockImplementation((el) => {
+                    // Simulate async script load
+                    setTimeout(() => el.onload?.(), 10);
+                })
+            }
+        };
+
         // Setup raw browser mocks expected by `_assertBrowserSupport`
         (globalThis as any).window = {
             AudioContext: vi.fn(),
             // The injection token expected by init() script loader bypass
             mockMicVAD: MockMicVAD,
+            document: (globalThis as any).document,
         };
         Object.defineProperty(globalThis, 'navigator', {
             value: {

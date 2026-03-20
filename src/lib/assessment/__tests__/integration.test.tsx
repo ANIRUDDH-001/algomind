@@ -65,7 +65,10 @@ vi.mock('@/lib/assessment/analyzer', () => {
 // Mock ancillary services to prevent errors during save
 vi.mock('@/lib/monitoring/events', () => ({ logSystemEvent: vi.fn() }));
 vi.mock('@/lib/ai/memory-generator', () => ({ updateKaiMemory: vi.fn() }));
-vi.mock('@/lib/spaced-repetition/queue', () => ({ addToQueue: vi.fn() }));
+vi.mock('@/lib/spaced-repetition/queue', () => ({
+    addToQueue: vi.fn(),
+    updateSkillRepetition: vi.fn(),
+}));
 vi.mock('@/lib/cache/dashboardCache', () => ({ invalidateDashboardCache: vi.fn() }));
 
 import { createServerSupabase } from '@/lib/supabase/server';
