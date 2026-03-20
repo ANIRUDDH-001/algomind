@@ -24,16 +24,21 @@ interface LiveTranscriptProps {
 }
 
 export function LiveTranscript({ entries, interimTranscript, isVisible = true, className = '' }: LiveTranscriptProps) {
+  const [displayEntries, setDisplayEntries] = useState<TranscriptEntry[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+
   // Sliding window: show last 2 entries + interim
-  const displayEntries = entries.slice(-2);
+  useEffect(() => {
+    const last2 = entries.slice(-2);
+    setDisplayEntries(last2);
+  }, [entries]);
 
   // Auto-scroll
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [entries, interimTranscript]);
+  }, [displayEntries, interimTranscript]);
 
   const hasContent = displayEntries.length > 0 || (interimTranscript && interimTranscript.trim().length > 0);
 

@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
 
-        const supabase = await createServerSupabase();
         const supabaseAdmin = getServiceClient();
 
         // 1. Validate candidate JWT securely

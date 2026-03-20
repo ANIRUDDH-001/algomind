@@ -28,21 +28,19 @@ function normalizeTag(tag: string): string {
 }
 
 export function InterviewHeader({ problemTitle, difficulty, mode, conceptTags }: InterviewHeaderProps) {
-  const badge = MODE_BADGE[mode] || MODE_BADGE['warm-up'];
-
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-sm font-bold text-white whitespace-normal break-words flex-1">
           {problemTitle}
         </h1>
-        <Badge className={`text-[10px] px-2 py-0 h-5 shrink-0 border mt-0.5 ${DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.easy}`}>
+        <Badge className={`text-[10px] px-2 py-0 h-5 shrink-0 border mt-0.5 ${DIFFICULTY_STYLES[difficulty]}`}>
           {difficulty}
         </Badge>
       </div>
       <div className="flex items-center gap-2 flex-wrap" data-testid="interview-header-meta">
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.color}`} data-testid="mode-badge">
-          {badge.label}
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${MODE_BADGE[mode].color}`} data-testid="mode-badge">
+          {MODE_BADGE[mode].label}
         </span>
         {conceptTags?.map((tag) => (
           <span
