@@ -18,6 +18,10 @@ vi.mock('framer-motion', () => ({
     AnimatePresence: ({ children }: any) => <>{children}</>
 }));
 
+vi.mock('@/components/dashboard/ExportReportButton', () => ({
+    ExportReportButton: () => <div data-testid="export-report-button" />,
+}));
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
     writable: true,

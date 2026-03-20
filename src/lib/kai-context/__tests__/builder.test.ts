@@ -255,6 +255,53 @@ describe('StudentContext Builder', () => {
 
       expect(result.hasCompletedDiagnostic).toBe(true);
     });
+
+    it('falls back to weakest concept when next recommended is unavailable', async () => {
+      mockKGService.getNextRecommendedConcept.mockRejectedValueOnce(new Error('unavailable'));
+
+      const result = await buildStudentContext('user-1');
+
+      expect(result.nextRecommendedConcept).toBe('dp');
+    });
+
+    it('falls back to first concept slug when no weak concepts are available', async () => {
+      mockKGService.getConceptSummaries.mockResolvedValueOnce([
+        { slug: 'graphs', displayName: 'Graphs', confidence: 0.5, level: 'unknown', evidenceCount: 0, icon: 'list', lastSessionType: null, lastSignalAt: null },
+      ]);
+      mockKGService.getNextRecommendedConcept.mockResolvedValueOnce(null);
+
+      const result = await buildStudentContext('user-1');
+
+      expect(result.nextRecommendedConcept).toBe('graphs');
+    });
+
+    it('uses safe defaults when weekly usage and subscription fetch fail', async () => {
+      vi.mocked(getUserSubscriptionStatus).mockRejectedValueOnce(new Error('sub down'));
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'user_weekly_usage') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({ maybeSingle: () => Promise.reject(new Error('usage down')) }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: null, error: null }),
+              order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }),
+            }),
+          }),
+        };
+      });
+
+      const result = await buildStudentContext('user-1');
+
+      expect(result.subscription.status).toBe('free');
+      expect(result.subscription.sessionsUsedThisWeek).toBe(0);
+    });
   });
 
   describe('buildStudentContextPromptBlock', () => {
@@ -287,6 +334,39 @@ describe('StudentContext Builder', () => {
       const block = buildStudentContextPromptBlock(ctx);
 
       expect(block).toContain('3/5');
+    });
+
+    it('escapes XML-sensitive characters in prompt fields', () => {
+      const ctx = buildMockStudentContext({
+        weakestConcepts: [
+          { slug: 'x', displayName: 'A<B & C', confidence: 0.2, level: 'weak', evidenceCount: 1 },
+        ],
+        kaiMemoryText: 'Use "single quotes" and <tags> & ampersands',
+      });
+
+      const block = buildStudentContextPromptBlock(ctx);
+
+      expect(block).toContain('&lt;');
+      expect(block).toContain('&amp;');
+      expect(block).toContain('&quot;');
+    });
+
+    it('prefers structured kai memory fields over text memory', () => {
+      const ctx = buildMockStudentContext({
+        kaiMemoryText: 'old memory text',
+        kaiMemoryStructured: {
+          topStrength: 'problemDecomposition',
+          mainWeakness: 'complexityAnalysis',
+          communicationStyle: 'analytical',
+          focusForNextSession: 'edge cases',
+        },
+      });
+
+      const block = buildStudentContextPromptBlock(ctx);
+
+      expect(block).toContain('Strength: problemDecomposition');
+      expect(block).toContain('Weakness: complexityAnalysis');
+      expect(block).not.toContain('old memory text');
     });
   });
 
