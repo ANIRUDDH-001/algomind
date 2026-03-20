@@ -169,39 +169,6 @@ export class KnowledgeGraphService {
     await this.invalidateCache(userId);
   }
 
-  async onInterviewCompleted(sessionId: string): Promise<void> {
-    const { error } = await getServiceClient().rpc('on_interview_session_completed', {
-      p_session_id: sessionId,
-    });
-
-    if (error) {
-      await logSystemEvent({
-        type: 'db_error',
-        errorMessage: error.message,
-        metadata: {
-          context: 'knowledge_graph.on_interview_completed',
-          sessionId,
-          operation: 'on_interview_session_completed',
-        },
-      });
-      return;
-    }
-
-    try {
-      const { data } = await getServiceClient()
-        .from('interview_sessions')
-        .select('user_id')
-        .eq('id', sessionId)
-        .single();
-
-      if (data?.user_id) {
-        await this.invalidateCache(data.user_id);
-      }
-    } catch {
-      // Cache invalidation lookup failure is non-fatal.
-    }
-  }
-
   async onLearnSessionCompleted(sessionId: string, assessment: KGLearnAssessment): Promise<void> {
     const payload = {
       understood: assessment.understood,

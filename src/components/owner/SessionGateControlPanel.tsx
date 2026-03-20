@@ -5,7 +5,8 @@ import { ToggleLeft, ToggleRight, Save } from 'lucide-react';
 
 export function SessionGateControlPanel() {
   const [gatingEnabled, setGatingEnabled] = useState<boolean | null>(null);
-  const [weeklyLimit, setWeeklyLimit] = useState<number>(5);
+  const [interviewLimit, setInterviewLimit] = useState<number>(5);
+  const [learnLimit, setLearnLimit] = useState<number>(5);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,14 +21,15 @@ export function SessionGateControlPanel() {
           setIsLoading(false);
           return;
         }
-        // Create a config lookup (handle both array and object responses)
+
         const configMap: Record<string, string> =
-          Array.isArray(data.config) ?
-            Object.fromEntries(data.config.map((item: any) => [item.key, item.value]))
+          Array.isArray(data.config)
+            ? Object.fromEntries(data.config.map((item: { key: string; value: string }) => [item.key, item.value]))
             : data.config || {};
 
         setGatingEnabled(configMap.enable_session_gating === 'true');
-        setWeeklyLimit(parseInt(configMap.free_tier_weekly_session_limit) || 5);
+        setInterviewLimit(parseInt(configMap.free_tier_weekly_interview_limit, 10) || 5);
+        setLearnLimit(parseInt(configMap.free_tier_weekly_learn_limit, 10) || 5);
         setIsLoading(false);
       })
       .catch(() => {
@@ -47,19 +49,20 @@ export function SessionGateControlPanel() {
         body: JSON.stringify({
           updates: [
             { key: 'enable_session_gating', value: String(gatingEnabled) },
-            { key: 'free_tier_weekly_session_limit', value: String(weeklyLimit) },
+            { key: 'free_tier_weekly_interview_limit', value: String(interviewLimit) },
+            { key: 'free_tier_weekly_learn_limit', value: String(learnLimit) },
           ],
         }),
       });
 
       if (res.ok) {
         setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setTimeout(() => setSaved(false), 2500);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to save');
       }
-    } catch (err) {
+    } catch {
       setError('Request failed');
     } finally {
       setIsSaving(false);
@@ -68,37 +71,33 @@ export function SessionGateControlPanel() {
 
   return (
     <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-sm font-bold text-white">Session Gate Control</h3>
-      </div>
+      <h3 className="text-sm font-bold text-white mb-4">Session Gate Control</h3>
 
       {error && <div className="text-xs text-red-400 p-3 bg-red-950/20 rounded-lg mb-4">{error}</div>}
 
       {isLoading ? (
         <div className="space-y-3">
-          <div className="h-10 bg-zinc-800/50 rounded animate-pulse" />
-          <div className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+          ))}
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Toggle gating */}
+        <div className="space-y-5">
+          {/* Master gate toggle */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-zinc-300">Session Gating</p>
-              <p className="text-xs text-zinc-500">Disable for demo/hackathon mode</p>
+              <p className="text-xs text-zinc-500">Disable for demo/hackathon mode (all limits bypassed)</p>
             </div>
             <button
               onClick={() => setGatingEnabled((v) => !v)}
-              className="flex items-center gap-2 text-sm"
               disabled={gatingEnabled === null}
+              className="flex items-center gap-2"
+              aria-label="Toggle session gating"
             >
               {gatingEnabled
-                ? (
-                    <ToggleRight size={24} className="text-indigo-400" />
-                  )
-                : (
-                    <ToggleLeft size={24} className="text-zinc-600" />
-                  )}
+                ? <ToggleRight size={26} className="text-indigo-400" />
+                : <ToggleLeft size={26} className="text-zinc-600" />}
               <span
                 className={`text-xs font-medium ${
                   gatingEnabled ? 'text-indigo-400' : 'text-zinc-500'
@@ -109,19 +108,42 @@ export function SessionGateControlPanel() {
             </button>
           </div>
 
-          {/* Weekly limit */}
-          <div>
-            <label className="text-sm text-zinc-300">Free Tier Weekly Limit</label>
-            <div className="flex items-center gap-3 mt-2">
+          {/* Per-type limits */}
+          <div className={`space-y-4 transition-opacity ${gatingEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+            <p className="text-xs text-zinc-500 border-t border-zinc-800 pt-3">
+              Free tier limits (per week) — Interview and Learn are independent
+            </p>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-zinc-300">Interview Sessions / week</p>
+                <p className="text-xs text-zinc-500">Practice interview sessions</p>
+              </div>
               <input
                 type="number"
-                value={weeklyLimit}
-                onChange={(e) => setWeeklyLimit(parseInt(e.target.value) || 5)}
+                value={interviewLimit}
+                onChange={(e) => setInterviewLimit(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
                 min={1}
-                max={50}
+                max={99}
                 className="w-20 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-indigo-500"
+                aria-label="Interview session limit per week"
               />
-              <span className="text-xs text-zinc-500">sessions per week</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-zinc-300">Learn Sessions / week</p>
+                <p className="text-xs text-zinc-500">Kai-Tutor concept sessions</p>
+              </div>
+              <input
+                type="number"
+                value={learnLimit}
+                onChange={(e) => setLearnLimit(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
+                min={1}
+                max={99}
+                className="w-20 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-indigo-500"
+                aria-label="Learn session limit per week"
+              />
             </div>
           </div>
 

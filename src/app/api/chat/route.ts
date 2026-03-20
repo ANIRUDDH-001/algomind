@@ -14,6 +14,8 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
     try {
 
@@ -197,21 +199,34 @@ export async function POST(req: NextRequest) {
         const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
             || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
 
-        if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
-            const weeklyLimit = await checkWeeklySessionLimit(user.id);
-            if (!weeklyLimit.allowed) {
+        const isNewInterviewSession = !guestMode && Boolean(user?.id) && isFirstTurn && looksLikeInterviewerPrompt;
+
+        if (isNewInterviewSession && user?.id) {
+            const limitResult = await checkWeeklySessionLimit(user.id, 'interview');
+            if (!limitResult.allowed) {
                 return NextResponse.json(
                     {
-                        error: 'Weekly session limit reached',
+                        error: 'Weekly interview session limit reached.',
                         code: 'LIMIT_REACHED',
-                        sessionsUsed: weeklyLimit.sessionsUsed,
-                        limit: weeklyLimit.limit,
+                        sessionsUsed: limitResult.sessionsUsed,
+                        limit: limitResult.limit,
+                        sessionType: 'interview',
                     },
                     { status: 429 }
                 );
             }
 
-            void incrementWeeklyUsage(user.id, 'interview');
+            const incremented = await incrementWeeklyUsage(user.id, 'interview');
+            if (!incremented) {
+                return NextResponse.json(
+                    {
+                        error: 'Weekly interview session limit reached.',
+                        code: 'LIMIT_REACHED',
+                        sessionType: 'interview',
+                    },
+                    { status: 429 }
+                );
+            }
         }
 
         let studentContext: StudentContext | undefined;

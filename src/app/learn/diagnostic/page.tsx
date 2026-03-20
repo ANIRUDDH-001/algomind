@@ -30,9 +30,11 @@ export default function DiagnosticPage() {
   const [micActive, setMicActive] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const exchangeCount = useRef(0);
+  const messageIdCounter = useRef(0);
 
   const addMsg = (role: 'user' | 'assistant', content: string) => {
-    setMessages(prev => [...prev, { id: `${Date.now()}`, role, content }]);
+    const id = `msg-${Date.now()}-${messageIdCounter.current++}`;
+    setMessages(prev => [...prev, { id, role, content }]);
   };
 
   // Auto-start

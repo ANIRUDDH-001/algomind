@@ -428,40 +428,6 @@ describe('KnowledgeGraphService', () => {
     });
   });
 
-  describe('onInterviewCompleted', () => {
-    it('returns without throw when interview RPC fails', async () => {
-      mockRpc.mockResolvedValueOnce({ error: { message: 'interview rpc failed' } });
-
-      await expect(service.onInterviewCompleted('interview-1')).resolves.toBeUndefined();
-      expect(logSystemEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'db_error',
-          metadata: expect.objectContaining({ context: 'knowledge_graph.on_interview_completed' }),
-        })
-      );
-    });
-
-    it('invalidates cache when interview lookup returns user_id', async () => {
-      const single = vi.fn().mockResolvedValue({ data: { user_id: 'user-1' }, error: null });
-      const eq = vi.fn().mockReturnValue({ single });
-      const select = vi.fn().mockReturnValue({ eq });
-      mockFrom.mockReturnValue({ select });
-
-      await service.onInterviewCompleted('interview-1');
-
-      expect(mockRedisDel).toHaveBeenCalledWith('kg:concepts:user-1', 'student_context:user-1');
-    });
-
-    it('swallows lookup failures during cache invalidation', async () => {
-      const single = vi.fn().mockRejectedValue(new Error('lookup failed'));
-      const eq = vi.fn().mockReturnValue({ single });
-      const select = vi.fn().mockReturnValue({ eq });
-      mockFrom.mockReturnValue({ select });
-
-      await expect(service.onInterviewCompleted('interview-1')).resolves.toBeUndefined();
-    });
-  });
-
   describe('getNextRecommendedConcept', () => {
     it('returns unlearned concept when some exist', async () => {
       vi.spyOn(service, 'getConceptStates').mockResolvedValue([]);

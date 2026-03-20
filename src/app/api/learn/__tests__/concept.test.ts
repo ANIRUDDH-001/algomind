@@ -80,8 +80,10 @@ describe('POST /api/learn/concept', () => {
       allowed: true,
       sessionsUsed: 1,
       limit: 5,
-      gatingEnabled: true,
+      sessionsRemaining: 4,
+      reason: 'within_limit',
     });
+    vi.mocked(incrementWeeklyUsage).mockResolvedValue(true);
 
     vi.mocked(getAIClient).mockReturnValue({
       generateResponse: mockGenerateResponse,
@@ -204,7 +206,8 @@ describe('POST /api/learn/concept', () => {
         allowed: false,
         sessionsUsed: 5,
         limit: 5,
-        gatingEnabled: true,
+        sessionsRemaining: 0,
+        reason: 'limit_exceeded',
       });
 
       const res = await POST(createRequest({

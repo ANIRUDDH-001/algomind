@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 // ONLY the primary owner can add or remove co-owners.
 export async function POST(req: NextRequest) {
@@ -34,12 +35,16 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             if (error.code === '23505') return NextResponse.json({ error: 'User is already a co-owner' }, { status: 400 });
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, coOwner });
-    } catch (err) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -72,11 +77,15 @@ export async function DELETE(req: NextRequest) {
             .eq('id', id);
 
         if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
-    } catch (err) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

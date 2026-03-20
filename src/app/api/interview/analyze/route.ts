@@ -7,6 +7,8 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
 
+export const maxDuration = 60;
+
 /**
  * POST /api/interview/analyze
  *

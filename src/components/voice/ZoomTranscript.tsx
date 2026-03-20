@@ -5,7 +5,6 @@
  *              Replaces scrolling chat log for voice sessions.
  *              Inspired by Zoom's live caption bar.
  * @phase Phase 2P
- * @a11y Phase 3E — role="log", aria-live regions, contrast fixes
  */
 'use client';
 
@@ -72,21 +71,15 @@ export function ZoomTranscript({
           className="flex items-center gap-2"
         >
           <div className="h-px flex-1 bg-zinc-800/60 max-w-16" />
-          <span className="text-xs text-zinc-500 px-2">
+          <span className="text-xs text-zinc-600 px-2">
             {sessionHistoryCount} earlier exchanges
           </span>
           <div className="h-px flex-1 bg-zinc-800/60 max-w-16" />
         </motion.div>
       )}
 
-      {/* Kai's message — live region for screen readers */}
-      <div
-        className="w-full"
-        ref={containerRef}
-        role="log"
-        aria-label="Conversation transcript"
-        aria-live="polite"
-      >
+      {/* Kai's message */}
+      <div className="w-full" ref={containerRef}>
         <AnimatePresence mode="wait">
           {displayedKaiMessage && (
             <motion.div
@@ -112,8 +105,8 @@ export function ZoomTranscript({
         />
       </div>
 
-      {/* User's live transcript — live region */}
-      <div className="w-full min-h-[48px]" aria-live="polite" aria-atomic="false" aria-label="Your speech">
+      {/* User's live transcript */}
+      <div className="w-full min-h-[48px]">
         <AnimatePresence>
           {userTranscript && (
             <SpeechBubble
@@ -139,10 +132,7 @@ export function ZoomTranscript({
       </div>
 
       {/* Exchange counter */}
-      <div
-        className="flex items-center gap-1.5"
-        aria-label={`${exchangeCount} exchanges completed`}
-      >
+      <div className="flex items-center gap-1.5">
         {Array.from({ length: Math.min(exchangeCount, 20) }).map((_, i) => (
           <motion.div
             key={i}
@@ -153,7 +143,7 @@ export function ZoomTranscript({
           />
         ))}
         {exchangeCount > 20 && (
-          <span className="text-xs text-zinc-500">+{exchangeCount - 20}</span>
+          <span className="text-xs text-zinc-600">+{exchangeCount - 20}</span>
         )}
       </div>
     </div>

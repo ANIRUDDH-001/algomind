@@ -20,6 +20,8 @@ import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import type { ConceptTag } from '@/types/knowledge-graph';
 import type { KaiTutorAssessment } from '@/lib/knowledge-graph/types';
 
+export const maxDuration = 60;
+
 const LEARN_SESSION_MAX_TURNS = 20;
 
 interface LearnConceptRequestBody {
@@ -81,14 +83,15 @@ export async function POST(req: NextRequest) {
     const isFirstTurn = action === 'start' || !sessionId;
 
     if (isFirstTurn) {
-      const limitCheck = await checkWeeklySessionLimit(user.id);
-      if (!limitCheck.allowed) {
+      const limitResult = await checkWeeklySessionLimit(user.id, 'learn');
+      if (!limitResult.allowed) {
         return NextResponse.json(
           {
-            error: 'Weekly session limit reached',
+            error: 'Weekly learn session limit reached.',
             code: 'LIMIT_REACHED',
-            sessionsUsed: limitCheck.sessionsUsed,
-            limit: limitCheck.limit,
+            sessionsUsed: limitResult.sessionsUsed,
+            limit: limitResult.limit,
+            sessionType: 'learn',
           },
           { status: 429 }
         );
@@ -118,7 +121,17 @@ export async function POST(req: NextRequest) {
       }
 
       activeSessionId = newSession.id;
-      void incrementWeeklyUsage(user.id, 'learn');
+      const incremented = await incrementWeeklyUsage(user.id, 'learn');
+      if (!incremented) {
+        return NextResponse.json(
+          {
+            error: 'Weekly learn session limit reached.',
+            code: 'LIMIT_REACHED',
+            sessionType: 'learn',
+          },
+          { status: 429 }
+        );
+      }
     }
 
     if (action === 'end' && activeSessionId) {

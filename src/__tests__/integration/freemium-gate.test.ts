@@ -52,7 +52,7 @@ describeIfIntegration('Freemium Gate (Integration)', () => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,week_start' });
 
-    const result = await checkWeeklySessionLimit(testUser.userId);
+    const result = await checkWeeklySessionLimit(testUser.userId, 'interview');
 
     expect(result.allowed).toBe(true);
     expect(result.sessionsUsed).toBe(4);
@@ -69,7 +69,7 @@ describeIfIntegration('Freemium Gate (Integration)', () => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,week_start' });
 
-    const result = await checkWeeklySessionLimit(testUser.userId);
+    const result = await checkWeeklySessionLimit(testUser.userId, 'interview');
 
     expect(result.allowed).toBe(false);
     expect(result.sessionsUsed).toBe(5);
@@ -87,7 +87,7 @@ describeIfIntegration('Freemium Gate (Integration)', () => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,week_start' });
 
-    const result = await checkWeeklySessionLimit(testUser.userId);
+    const result = await checkWeeklySessionLimit(testUser.userId, 'interview');
 
     expect(result.allowed).toBe(true);
     expect(result.sessionsUsed).toBe(0);
@@ -109,7 +109,7 @@ describeIfIntegration('Freemium Gate (Integration)', () => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,week_start' });
 
-    const result = await checkWeeklySessionLimit(testUser.userId);
+    const result = await checkWeeklySessionLimit(testUser.userId, 'interview');
 
     expect(result.allowed).toBe(true);
     expect(result.sessionsUsed).toBe(0);
@@ -130,9 +130,9 @@ describeIfIntegration('Freemium Gate (Integration)', () => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,week_start' });
 
-    const result = await checkWeeklySessionLimit(testUser.userId);
+    const result = await checkWeeklySessionLimit(testUser.userId, 'interview');
 
-    expect(result.gatingEnabled).toBe(false);
+    expect(result.reason).toBe('gating_disabled');
     expect(result.allowed).toBe(true);
   });
 });

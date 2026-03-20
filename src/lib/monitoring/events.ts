@@ -25,7 +25,8 @@ export type SystemEventType =
     | 'transcript_save_failed'
     | 'kg_cache_hit'
     | 'kg_cache_miss'
-    | 'prompt_size_warning';
+    | 'prompt_size_warning'
+    | 'route_error';
 
 export interface SystemEventPayload {
     type: SystemEventType;
@@ -82,7 +83,7 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
             },
             body: JSON.stringify({
                 dt: new Date().toISOString(),
-                level: ['model_error', 'db_error', 'cron_failed', 'transcript_save_failed']
+                level: ['model_error', 'db_error', 'cron_failed', 'transcript_save_failed', 'route_error']
                     .includes(event.type) ? 'error' : 'info',
                 ...payload,
                 env: process.env.NODE_ENV ?? 'unknown',

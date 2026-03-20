@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 
+export const maxDuration = 30;
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {

@@ -17,7 +17,6 @@ vi.mock('framer-motion', () => ({
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useReducedMotion: () => false,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -90,11 +89,11 @@ describe('Accessibility — ConceptTile', () => {
     expect(desc!.textContent).toContain('4 session signals');
   });
 
-  it('forwards onKeyDown handler', () => {
-    const onKeyDown = vi.fn();
-    render(<ConceptTile concept={mockConcept} index={0} onKeyDown={onKeyDown} />);
-    fireEvent.keyDown(screen.getByRole('button'), { key: 'ArrowRight' });
-    expect(onKeyDown).toHaveBeenCalled();
+  it('forwards click handler', () => {
+    const onClick = vi.fn();
+    render(<ConceptTile concept={mockConcept} index={0} onClick={onClick} />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalledWith(mockConcept);
   });
 });
 

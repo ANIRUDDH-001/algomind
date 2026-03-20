@@ -3,11 +3,10 @@
  * @description Animated voice state indicator.
  *              Shows: idle / kai-speaking / user-speaking / thinking
  * @phase Phase 2P
- * @a11y Phase 3E — role="status", aria-live, aria-label, useReducedMotion, contrast fix
  */
 'use client';
 
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type VoiceState = 'idle' | 'kai-speaking' | 'user-speaking' | 'thinking';
 
@@ -31,26 +30,12 @@ const RING_COLORS = {
   thinking: 'border-amber-500/20',
 };
 
-const STATE_LABELS: Record<VoiceState, string> = {
-  'kai-speaking': 'Kai speaking',
-  'user-speaking': 'Listening…',
-  thinking: 'Thinking…',
-  idle: 'Tap to speak',
-};
-
 export function VoiceActivityIndicator({ state, conceptIcon = '🤖', className = '' }: VoiceActivityIndicatorProps) {
-  const prefersReducedMotion = useReducedMotion();
-
   return (
-    <div
-      className={`relative flex items-center justify-center ${className}`}
-      role="status"
-      aria-live="polite"
-      aria-label={`Voice state: ${state}`}
-    >
+    <div className={`relative flex items-center justify-center ${className}`}>
       {/* Pulsing rings for active states */}
       <AnimatePresence>
-        {!prefersReducedMotion && (state === 'kai-speaking' || state === 'user-speaking') && (
+        {(state === 'kai-speaking' || state === 'user-speaking') && (
           <>
             {[0, 1, 2].map(i => (
               <motion.div
@@ -77,8 +62,8 @@ export function VoiceActivityIndicator({ state, conceptIcon = '🤖', className 
       {/* Core circle */}
       <motion.div
         className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center transition-colors duration-300 ${STATE_COLORS[state]}`}
-        animate={!prefersReducedMotion && state === 'thinking' ? { rotate: [0, 360] } : { rotate: 0 }}
-        transition={!prefersReducedMotion && state === 'thinking' ? { duration: 3, repeat: Infinity, ease: 'linear' } : {}}
+        animate={state === 'thinking' ? { rotate: [0, 360] } : { rotate: 0 }}
+        transition={state === 'thinking' ? { duration: 3, repeat: Infinity, ease: 'linear' } : {}}
       >
         {state === 'thinking' ? (
           <div className="w-5 h-5 border-2 border-amber-500/60 border-t-amber-400 rounded-full animate-spin" />
@@ -91,14 +76,17 @@ export function VoiceActivityIndicator({ state, conceptIcon = '🤖', className 
       <AnimatePresence mode="wait">
         <motion.div
           key={state}
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+          initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.15 }}
           className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap"
         >
-          <span className="text-xs text-zinc-500" data-testid="voice-state-label">
-            {STATE_LABELS[state]}
+          <span className="text-xs text-zinc-600" data-testid="voice-state-label">
+            {state === 'kai-speaking' && 'Kai speaking'}
+            {state === 'user-speaking' && 'Listening…'}
+            {state === 'thinking' && 'Thinking…'}
+            {state === 'idle' && 'Tap to speak'}
           </span>
         </motion.div>
       </AnimatePresence>
