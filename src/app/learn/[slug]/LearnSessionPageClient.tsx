@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Square, Volume2 } from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
+import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
+import { VoiceModeToggle } from '@/components/voice/VoiceModeToggle';
 
 interface LearnSessionPageClientProps {
   slug: string;
@@ -16,6 +18,10 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   const router = useRouter();
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [micActive, setMicActive] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(true); // default voice mode
+  const [userTranscript, setUserTranscript] = useState('');
+  const [isKaiSpeaking, setIsKaiSpeaking] = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
 
   const speakMessage = async (text: string) => {
     console.log('[Kai speaks]:', text);
@@ -71,22 +77,27 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {session.state === 'active' && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
+            <VoiceModeToggle isVoiceMode={isVoiceMode} onToggle={setIsVoiceMode} />
           )}
-          {session.state === 'active' && (
-            <button
-              onClick={session.endSession}
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all"
-            >
-              <Square size={12} />
-              End Session
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {session.state === 'active' && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            )}
+            {session.state === 'active' && (
+              <button
+                onClick={session.endSession}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all"
+              >
+                <Square size={12} />
+                End Session
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -106,44 +117,63 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
           </div>
         )}
 
-        <AnimatePresence initial={false}>
-          {session.transcript.map((entry) => (
-            <motion.div
-              key={entry.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`flex gap-3 ${entry.role === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                entry.role === 'assistant'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-zinc-700 text-zinc-300'
-              }`}>
-                {entry.role === 'assistant' ? 'K' : 'U'}
-              </div>
+        {isVoiceMode ? (
+          // Voice mode: ZoomTranscript
+          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 min-h-[400px]">
+            <ZoomTranscript
+              kaiMessage={session.transcript.filter((m) => m.role === 'assistant').at(-1)?.content ?? null}
+              userTranscript={userTranscript}
+              isKaiSpeaking={isKaiSpeaking}
+              isUserSpeaking={isUserSpeaking}
+              isThinking={session.kaiTyping}
+              conceptSlug={slug}
+              conceptIcon="📚"
+              exchangeCount={Math.floor(session.transcript.length / 2)}
+              sessionHistoryCount={Math.max(0, session.transcript.length - 2)}
+              className="w-full max-w-lg"
+            />
+          </div>
+        ) : (
+          // Text mode: original scrolling chat log
+          <AnimatePresence initial={false}>
+            {session.transcript.map((entry) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`flex gap-3 ${entry.role === 'user' ? 'flex-row-reverse' : ''}`}
+              >
+                <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  entry.role === 'assistant'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-zinc-700 text-zinc-300'
+                }`}>
+                  {entry.role === 'assistant' ? 'K' : 'U'}
+                </div>
 
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                entry.role === 'assistant'
-                  ? 'bg-[#111118] border border-[#1E1E2E] text-zinc-200 rounded-tl-sm'
-                  : 'bg-indigo-600/20 border border-indigo-500/20 text-zinc-200 rounded-tr-sm'
-              }`}>
-                {entry.content}
-                {entry.role === 'assistant' && (
-                  <button
-                    onClick={() => speakMessage(entry.content)}
-                    className="ml-2 text-zinc-600 hover:text-indigo-400 inline-flex items-center"
-                    title="Replay"
-                  >
-                    <Volume2 size={12} />
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                  entry.role === 'assistant'
+                    ? 'bg-[#111118] border border-[#1E1E2E] text-zinc-200 rounded-tl-sm'
+                    : 'bg-indigo-600/20 border border-indigo-500/20 text-zinc-200 rounded-tr-sm'
+                }`}>
+                  {entry.content}
+                  {entry.role === 'assistant' && (
+                    <button
+                      onClick={() => speakMessage(entry.content)}
+                      className="ml-2 text-zinc-600 hover:text-indigo-400 inline-flex items-center"
+                      title="Replay"
+                    >
+                      <Volume2 size={12} />
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
 
-        {session.kaiTyping && (
+        {session.kaiTyping && !isVoiceMode && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
