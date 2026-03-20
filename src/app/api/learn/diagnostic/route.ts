@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { invalidateStudentContext } from '@/lib/kai-context';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import type { KGDiagnosticResult } from '@/lib/knowledge-graph/types';
 
@@ -27,6 +28,18 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? req.headers.get('x-real-ip')
+      ?? 'unknown';
+    const ipRateLimit = await checkIpRateLimit(ip, {
+      maxRequests: 30,
+      windowSeconds: 60,
+      endpoint: 'learn_diagnostic',
+    });
+    if (ipRateLimit.allowed === false) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     let body: DiagnosticRequestBody;

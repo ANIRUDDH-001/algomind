@@ -22,7 +22,10 @@ export type SystemEventType =
     | 'stt_fallback'
     | 'vad_fallback'
     | 'admin_action'
-    | 'transcript_save_failed';
+    | 'transcript_save_failed'
+    | 'kg_cache_hit'
+    | 'kg_cache_miss'
+    | 'prompt_size_warning';
 
 export interface SystemEventPayload {
     type: SystemEventType;
