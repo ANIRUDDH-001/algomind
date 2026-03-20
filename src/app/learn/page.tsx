@@ -11,19 +11,23 @@ import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { buildStudentContext } from '@/lib/kai-context';
 
 export const metadata = {
-  title: 'Learn Mode — AlgoMind',
-  description: 'Learn DSA with Kai, your AI tutor',
+  title: 'Learn | AlgoMind',
+  description: 'Master DSA concepts with Kai, your AI tutor',
 };
 
 export default async function LearnPage() {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/auth/login');
+  if (!user) redirect('/login');
 
   const [summaries, context] = await Promise.all([
     getKnowledgeGraphService().getConceptSummaries(user.id),
     buildStudentContext(user.id),
   ]);
+
+  if (!context.hasCompletedDiagnostic) {
+    redirect('/learn/diagnostic');
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0F]">

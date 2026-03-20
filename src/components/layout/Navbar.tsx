@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
 import Link from 'next/link';
 
 import { isDemoMode } from '@/lib/demo/manager';
@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { motion } from 'framer-motion';
+import { useLearnKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 export function Navbar() {
     const { user, signOut, loading, isConfigured } = useAuth();
@@ -30,6 +31,8 @@ export function Navbar() {
     const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
     const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin' | 'owner'>('candidate');
     const [isOwner, setIsOwner] = useState(false);
+
+    useLearnKeyboardShortcuts();
 
     useEffect(() => {
         if (!user) return;
@@ -130,7 +133,7 @@ export function Navbar() {
                                     { href: '/practice', label: 'Practice', authOnly: false },
                                     ...(user ? [
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
-                                        { href: '/learn', label: 'Learn Mode', authOnly: true },
+                                        { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
                                         ...(accountType === 'employer'
                                             ? [{ href: '/employer/dashboard', label: 'Employer', authOnly: true }]
                                             : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
@@ -143,7 +146,14 @@ export function Navbar() {
                                             href={link.href}
                                             className={`relative py-2 text-sm font-bold transition-colors ${isActive ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'}`}
                                         >
-                                            {link.label}
+                                            <span className="inline-flex items-center gap-2">
+                                                {link.label}
+                                                {'isNew' in link && link.isNew && (
+                                                    <span className="text-[10px] font-bold text-indigo-300 bg-indigo-950/60 border border-indigo-500/25 px-1.5 py-0.5 rounded-full leading-none">
+                                                        New
+                                                    </span>
+                                                )}
+                                            </span>
                                             {isActive && (
                                                 <motion.div
                                                     layoutId="nav-active"
@@ -318,7 +328,7 @@ export function Navbar() {
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
                                         { href: '/practice', label: 'Practice', icon: BookOpen },
-                                        { href: '/learn', label: 'Learn', icon: BookOpen },
+                                        { href: '/learn', label: 'Learn', icon: Brain },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },
                                     ])
