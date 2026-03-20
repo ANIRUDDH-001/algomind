@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
     Users, Flag, Shield, Settings, Briefcase,
-    Activity, Key, LayoutGrid, Database, BookOpen, Mic, BarChart2
+    Activity, Key, LayoutGrid, Database, BookOpen, Mic, BarChart2, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // We'll extract tab contents into separate components for maintainability
@@ -24,6 +24,7 @@ import { AIStatusTab } from './tabs/ai-status-tab';
 import { ModelRoutingTab } from './tabs/model-routing-tab';
 import { AWSBudgetTab } from './tabs/aws-budget-tab';
 import { SystemConfigTab } from './tabs/system-config-tab';
+import { AlgoMind2OTab } from './tabs/algomind-2o-tab';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export interface OwnerDashboardProps {
@@ -46,6 +47,7 @@ const TABS = [
     { id: 'voice-debug', label: 'Voice Debug', icon: Mic },
     { id: 'analytics', label: 'Analytics', icon: BarChart2 },
     { id: 'ai-status', label: 'AI Status', icon: Activity },
+    { id: 'algomind-2o', label: 'AlgoMind 2.0', icon: Zap },
     { id: 'limits', label: 'Rate Limits', icon: Activity },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'co-owners', label: 'Co-Owners', icon: Key },
@@ -124,6 +126,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                         {activeTab === 'voice-debug' && <VoiceDebugTab />}
                         {activeTab === 'analytics' && <AnalyticsTab />}
                         {activeTab === 'ai-status' && <AIStatusTab />}
+                        {activeTab === 'algomind-2o' && <AlgoMind2OTab />}
                         {activeTab === 'settings' && <SystemConfigTab />}
                     </div>
                 </div>
