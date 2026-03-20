@@ -48,8 +48,16 @@ export class KnowledgeGraphService {
       if (redis) {
         const cached = await redis.get<KGUserCache>(cacheKey);
         if (cached?.conceptStates) {
+          void logSystemEvent({
+            type: 'kg_cache_hit',
+            userId,
+          });
           return cached.conceptStates;
         }
+        void logSystemEvent({
+          type: 'kg_cache_miss',
+          userId,
+        });
       }
     } catch {
       // Redis failure is non-fatal.

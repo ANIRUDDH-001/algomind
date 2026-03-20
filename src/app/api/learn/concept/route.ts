@@ -13,6 +13,7 @@ import { buildKaiTutorSystemPrompt } from '@/lib/learn/tutor-prompt';
 import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
@@ -30,6 +31,24 @@ interface LearnConceptRequestBody {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? req.headers.get('x-real-ip')
+      ?? 'unknown';
+    const ipRateLimit = await checkIpRateLimit(ip, {
+      maxRequests: 30,
+      windowSeconds: 60,
+      endpoint: 'learn_concept',
+    });
+    if (ipRateLimit.allowed === false) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     let body: LearnConceptRequestBody;
     try {
       body = await req.json();
@@ -45,12 +64,6 @@ export async function POST(req: NextRequest) {
 
     if (!Array.isArray(messages)) {
       return NextResponse.json({ error: 'messages must be an array' }, { status: 400 });
-    }
-
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { data: conceptTag, error: tagError } = await getServiceClient()
@@ -147,6 +160,16 @@ export async function POST(req: NextRequest) {
       spokenLanguage,
       proactiveNudge,
     });
+
+    const promptTokensEstimate = Math.round(systemPrompt.length / 4);
+    if (promptTokensEstimate > 2000) {
+      console.warn(`[Learn API] System prompt too large: ~${promptTokensEstimate} tokens`);
+      void logSystemEvent({
+        type: 'prompt_size_warning',
+        userId: user.id,
+        metadata: { tokens: promptTokensEstimate, concept: conceptSlug },
+      });
+    }
 
     const aiClient = getAIClient();
     const aiResult = await aiClient.generateResponse(
