@@ -3,7 +3,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 
 /**
  * Keepalive ping to prevent Supabase free tier auto-pause (7 days idle).
- * Called by Vercel cron every 5 minutes.
+ * Optional endpoint for external uptime pings.
  */
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
