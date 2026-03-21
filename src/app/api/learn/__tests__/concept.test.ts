@@ -57,6 +57,22 @@ describe('POST /api/learn/concept', () => {
   const mockFrom = vi.fn();
   const mockGenerateResponse = vi.fn();
 
+  const buildSelectChain = (result: unknown) => {
+    const chain = {
+      eq: vi.fn(() => chain),
+      single: vi.fn(() => Promise.resolve(result)),
+      maybeSingle: vi.fn(() => Promise.resolve(result)),
+    };
+    return chain;
+  };
+
+  const buildUpdateChain = () => {
+    const chain = {
+      eq: vi.fn(() => chain),
+    };
+    return chain;
+  };
+
   const mockKG = {
     getSingleConceptState: vi.fn(),
     onLearnSessionCompleted: vi.fn(),
@@ -122,20 +138,22 @@ describe('POST /api/learn/concept', () => {
       }
 
       if (table === 'learn_sessions') {
+        const ownershipResult = { data: { id: 'learn-session-1' }, error: null };
+        const startTimeResult = { data: { started_at: '2026-03-19T09:00:00.000Z' }, error: null };
+
         return {
           insert: () => ({
             select: () => ({
               single: () => Promise.resolve({ data: { id: 'learn-session-1' }, error: null }),
             }),
           }),
-          update: () => ({
-            eq: () => Promise.resolve({ data: null, error: null }),
-          }),
-          select: () => ({
-            eq: () => ({
-              single: () => Promise.resolve({ data: { started_at: '2026-03-19T09:00:00.000Z' }, error: null }),
-            }),
-          }),
+          update: () => buildUpdateChain(),
+          select: (columns: string) => {
+            if (columns === 'started_at') {
+              return buildSelectChain(startTimeResult);
+            }
+            return buildSelectChain(ownershipResult);
+          },
         };
       }
 

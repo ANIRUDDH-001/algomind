@@ -142,14 +142,14 @@ export const TOUR_STEPS: TourStep[] = [
         id: 7,
         type: 'spotlight',
         route: '/dashboard',
-        tabParam: 'overview',
+        tabParam: 'knowledge',
         target: '[data-tour="cognitive-profile"]',
         position: 'right',
         shape: 'rectangle',
         mobilePosition: 'bottom',
-        title: '8-Skill Cognitive Profile',
-        body: "Every session scores you across eight cognitive dimensions: Problem Decomposition, Pattern Recognition, Algorithmic Thinking, Complexity Analysis, Communication Clarity, Edge Case Awareness, Optimization Mindset, and Debugging. The radar chart is your honest fingerprint.",
-        kaiSays: "Eight skills scored after every session here.",
+        title: 'Knowledge Map And Focus Areas',
+        body: "Use this concept map to see what is strong, shaky, or untouched across your DSA journey. Pair it with recommendation cards to pick the next best practice problem.",
+        kaiSays: "This map shows what to practice next.",
     },
 
     // ── STEP 8 ─── Dashboard — Performance Stats ──────────────────────────────

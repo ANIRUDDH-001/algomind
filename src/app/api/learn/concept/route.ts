@@ -31,6 +31,17 @@ interface LearnConceptRequestBody {
   action?: 'start' | 'turn' | 'end';
 }
 
+async function verifySessionOwnership(sessionId: string, userId: string): Promise<boolean> {
+  const { data, error } = await getServiceClient()
+    .from('learn_sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  return !error && Boolean(data?.id);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase();
@@ -76,6 +87,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (tagError || !conceptTag) {
+      console.error('[learn/concept 400] tagError:', JSON.stringify(tagError), '| conceptSlug received:', conceptSlug);
       return NextResponse.json({ error: 'Invalid or unknown concept slug' }, { status: 400 });
     }
 
@@ -121,8 +133,30 @@ export async function POST(req: NextRequest) {
       }
 
       activeSessionId = newSession.id;
-      const incremented = await incrementWeeklyUsage(user.id, 'learn');
+      let incremented = false;
+      try {
+        incremented = await incrementWeeklyUsage(user.id, 'learn');
+      } catch (incrementError: unknown) {
+        const errorMessage = incrementError instanceof Error ? incrementError.message : String(incrementError);
+        await logSystemEvent({
+          type: 'db_error',
+          userId: user.id,
+          errorMessage,
+          metadata: { context: 'learn_concept.increment_usage', sessionId: activeSessionId },
+        });
+      }
+
       if (!incremented) {
+        await getServiceClient()
+          .from('learn_sessions')
+          .update({
+            status: 'abandoned',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', activeSessionId)
+          .eq('user_id', user.id);
+
         return NextResponse.json(
           {
             error: 'Weekly learn session limit reached.',
@@ -131,6 +165,14 @@ export async function POST(req: NextRequest) {
           },
           { status: 429 }
         );
+      }
+    } else {
+      if (!activeSessionId) {
+        return NextResponse.json({ error: 'sessionId is required for turn/end actions' }, { status: 400 });
+      }
+      const ownedByUser = await verifySessionOwnership(activeSessionId, user.id);
+      if (!ownedByUser) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
     }
 
@@ -225,7 +267,8 @@ export async function POST(req: NextRequest) {
           exchange_count: Math.floor(messages.length / 2) + 1,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', activeSessionId);
+        .eq('id', activeSessionId)
+        .eq('user_id', user.id);
     }
 
     return NextResponse.json({
@@ -254,9 +297,9 @@ async function handleSessionEnd(
   conceptSlug: string
 ): Promise<NextResponse> {
   try {
-    const assessment = await generateSessionAssessment(messages, conceptSlug, userId);
+    const assessment = await generateSessionAssessment(messages, conceptSlug);
 
-    const startTime = await getSessionStartTime(sessionId);
+    const startTime = await getSessionStartTime(sessionId, userId);
     const durationSeconds = startTime
       ? Math.round((Date.now() - new Date(startTime).getTime()) / 1000)
       : null;
@@ -266,17 +309,18 @@ async function handleSessionEnd(
       .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
+        transcript: messages,
         duration_seconds: durationSeconds,
-        kai_assessment: {
-          understood: assessment.understood,
-          struggled: assessment.struggled,
+        exchange_count: Math.floor(messages.length / 2),
+        tutor_assessment: {
           notes: assessment.notes,
           confidence_delta: assessment.confidenceDelta,
         },
         concepts_understood: assessment.understood,
         concepts_struggled: assessment.struggled,
       })
-      .eq('id', sessionId);
+      .eq('id', sessionId)
+      .eq('user_id', userId);
 
     await getKnowledgeGraphService().onLearnSessionCompleted(sessionId, assessment);
     void invalidateStudentContext(userId);
@@ -300,8 +344,7 @@ async function handleSessionEnd(
 
 async function generateSessionAssessment(
   messages: { role: string; content: string }[],
-  conceptSlug: string,
-  userId: string
+  conceptSlug: string
 ): Promise<KaiTutorAssessment> {
   const assessmentPrompt = `You are analyzing a Kai-Tutor learning session transcript.
 Concept taught: ${conceptSlug}
@@ -363,7 +406,7 @@ confidence_delta: -0.1 to +0.15 (positive if understood, negative if struggled, 
   };
 }
 
-async function getSessionStartTime(sessionId: string): Promise<string | null> {
+async function getSessionStartTime(sessionId: string, userId: string): Promise<string | null> {
   if (!sessionId) {
     return null;
   }
@@ -372,6 +415,7 @@ async function getSessionStartTime(sessionId: string): Promise<string | null> {
     .from('learn_sessions')
     .select('started_at')
     .eq('id', sessionId)
+    .eq('user_id', userId)
     .single();
 
   return data?.started_at ?? null;
