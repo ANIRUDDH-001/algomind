@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, BarChart3, History, Lightbulb, Flag } from 'lucide-react';
+import { LayoutGrid, Brain, BarChart3, History, Lightbulb, Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export type TabId = 'overview' | 'skills' | 'history' | 'insights' | 'campaigns';
+export type TabId = 'overview' | 'knowledge' | 'skills' | 'history' | 'insights' | 'campaigns';
 
 interface DashboardNavProps {
     activeTab: TabId;
@@ -18,6 +18,7 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
     const router = useRouter();
     const tabs = [
         { id: 'overview', label: 'Overview', icon: LayoutGrid },
+        { id: 'knowledge', label: 'Knowledge', icon: Brain },
         { id: 'skills', label: 'Skills', icon: BarChart3 },
         { id: 'history', label: 'History', icon: History },
         { id: 'insights', label: 'Insights', icon: Lightbulb },
@@ -61,7 +62,7 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
                             style={isActive ? { background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' } : {}}
                         >
                             <Icon className={cn(
-                                "w-4 h-4 transition-transform group-hover:scale-110 flex-shrink-0",
+                                "w-4 h-4 transition-transform group-hover:scale-110 shrink-0",
                                 isActive ? "text-white" : "text-zinc-500"
                             )} />
                             <span>{tab.label}</span>

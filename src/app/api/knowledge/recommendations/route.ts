@@ -16,6 +16,10 @@ export async function GET() {
 
     return NextResponse.json({
       hasCompletedDiagnostic: studentContext.hasCompletedDiagnostic,
+      // Canonical keys
+      nextConcept: studentContext.nextRecommendedConcept,
+      weakest: studentContext.weakestConcepts,
+      // Backward-compatible aliases
       nextRecommendedConcept: studentContext.nextRecommendedConcept,
       weakestConcepts: studentContext.weakestConcepts,
       strongestConcepts: studentContext.strongestConcepts,

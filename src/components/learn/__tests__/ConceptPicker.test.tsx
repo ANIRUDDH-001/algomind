@@ -112,7 +112,7 @@ describe('ConceptPicker', () => {
   });
 
   it('does dispatch upgrade event from warning banner action', async () => {
-    const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 
     render(
       <ConceptPicker

@@ -103,7 +103,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20"
         >
-          <Sparkles size={16} className="text-indigo-400 flex-shrink-0" />
+          <Sparkles size={16} className="text-indigo-400 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-zinc-300">
               Kai recommends starting with{' '}
@@ -114,7 +114,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
           </div>
           <button
             onClick={() => router.push(`/learn/${nextRecommendedConcept}`)}
-            className="flex-shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            className="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
           >
             Start <ArrowRight size={12} />
           </button>
@@ -124,11 +124,17 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
       {/* Session limit warning */}
       {isLimitReached && (
         <div className="p-4 rounded-xl bg-red-950/30 border border-red-500/20 flex items-center gap-3">
-          <Zap size={16} className="text-red-400 flex-shrink-0" />
+          <Zap size={16} className="text-red-400 shrink-0" />
           <p className="text-sm text-zinc-300">
             You've used all {subscription.weeklyLimit} sessions this week.{' '}
             <button
-              onClick={() => document.dispatchEvent(new CustomEvent('show-upgrade-modal'))}
+              onClick={() => window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
+                detail: {
+                  source: 'learn-concept-picker',
+                  sessionsUsed: subscription.weeklyLimit ?? undefined,
+                  limit: subscription.weeklyLimit ?? undefined,
+                },
+              }))}
               className="text-indigo-400 hover:text-indigo-300"
             >
               Upgrade for unlimited access

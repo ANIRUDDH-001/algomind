@@ -15,6 +15,11 @@ interface WeeklyUsage {
   limit: number | null;
   sessionsRemaining: number | null;
   subscriptionStatus: 'free' | 'premium' | 'college';
+  learn?: {
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+  };
 }
 
 export function WeeklyUsageCard() {
@@ -32,7 +37,10 @@ export function WeeklyUsageCard() {
   }
 
   const isPremium = data.subscriptionStatus !== 'free';
-  const pct = isPremium ? 100 : Math.min(100, ((data.sessionsUsed ?? 0) / (data.limit ?? 5)) * 100);
+  const used = data.learn?.used ?? data.sessionsUsed ?? 0;
+  const limit = data.learn?.limit ?? data.limit;
+  const remaining = data.learn?.remaining ?? data.sessionsRemaining;
+  const pct = isPremium ? 100 : Math.min(100, (used / (limit ?? 5)) * 100);
 
   return (
     <div className="rounded-2xl bg-[#111118] border border-[#1E1E2E] p-5">
@@ -41,10 +49,10 @@ export function WeeklyUsageCard() {
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">This Week</h3>
           <div className="flex items-baseline gap-1 mt-1">
             <span className="text-3xl font-black text-white tabular-nums">
-              {isPremium ? '∞' : data.sessionsUsed}
+              {isPremium ? '∞' : used}
             </span>
-            {!isPremium && data.limit && (
-              <span className="text-sm text-zinc-500">/ {data.limit} sessions</span>
+            {!isPremium && limit && (
+              <span className="text-sm text-zinc-500">/ {limit} sessions</span>
             )}
           </div>
         </div>
@@ -65,14 +73,20 @@ export function WeeklyUsageCard() {
             />
           </div>
           <p className="text-xs text-zinc-500">
-            {data.sessionsRemaining === 0
+            {remaining === 0
               ? 'Limit reached — resets next Monday'
-              : `${data.sessionsRemaining} session${data.sessionsRemaining !== 1 ? 's' : ''} remaining this week`
+              : `${remaining} session${remaining !== 1 ? 's' : ''} remaining this week`
             }
           </p>
-          {(data.sessionsRemaining ?? 0) <= 1 && data.sessionsRemaining !== null && (
+          {(remaining ?? 0) <= 1 && remaining !== null && (
             <button
-              onClick={() => document.dispatchEvent(new CustomEvent('show-upgrade-modal'))}
+              onClick={() => window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
+                detail: {
+                  source: 'dashboard-weekly-usage',
+                  sessionsUsed: used,
+                  limit: limit ?? undefined,
+                },
+              }))}
               className="mt-2 text-xs text-indigo-400 hover:text-indigo-300"
             >
               Upgrade for unlimited →

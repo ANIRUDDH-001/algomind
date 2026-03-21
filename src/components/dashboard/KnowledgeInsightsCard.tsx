@@ -13,7 +13,7 @@ export function KnowledgeInsightsCard() {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="rounded-2xl bg-[#111118] border border-[#1E1E2E] overflow-hidden">
+    <div className="rounded-2xl bg-[#111118] border border-[#1E1E2E] overflow-hidden" data-tour="cognitive-profile">
       {/* Card header */}
       <button
         onClick={() => setExpanded(!expanded)}
