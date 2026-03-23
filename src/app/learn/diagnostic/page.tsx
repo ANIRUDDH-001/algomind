@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, CheckCircle, Send, Loader2 } from 'lucide-react';
+import { Mic, MicOff, CheckCircle, Send, Loader2, Volume2, Square } from 'lucide-react';
 
 type DiagnosticState = 'intro' | 'active' | 'processing' | 'complete';
+type AudioState = 'idle' | 'listening' | 'speaking' | 'processing';
 
 interface MessageEntry {
   id: string;
@@ -42,6 +42,7 @@ type SpeechRecognitionLike = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
+  onstart?: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void | Promise<void>) | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
@@ -56,10 +57,10 @@ const DIAGNOSTIC_WELCOME = "Welcome to AlgoMind! I'm Kai, your AI tutor. I'll as
 export default function DiagnosticPage() {
   const router = useRouter();
   const [state, setState] = useState<DiagnosticState>('intro');
+  const [audioState, setAudioState] = useState<AudioState>('idle');
   const [messages, setMessages] = useState<MessageEntry[]>([]);
   const [sessionId] = useState(() => `diag-${Date.now()}`);
   const [kaiThinking, setKaiThinking] = useState(false);
-  const [micActive, setMicActive] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [interimVoiceText, setInterimVoiceText] = useState('');
   const [canComplete, setCanComplete] = useState(false);
@@ -176,7 +177,7 @@ export default function DiagnosticPage() {
   };
 
   const toggleMic = () => {
-    if (state !== 'active' || kaiThinking) return;
+    if (state !== 'active' || kaiThinking || audioState === 'speaking') return;
 
     const speechWindow = window as Window & {
       SpeechRecognition?: SpeechRecognitionCtorLike;
@@ -186,15 +187,14 @@ export default function DiagnosticPage() {
       speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) {
-      // Show toast or error message if speech recognition not available
       addMsg('assistant', 'Speech recognition is not available in your browser. Please use text input instead.');
-      setMicActive(false);
       return;
     }
 
-    if (micActive) {
+    if (audioState === 'listening') {
       recognitionRef.current?.stop();
-      setMicActive(false);
+      setAudioState('idle');
+      setInterimVoiceText('');
       return;
     }
 
@@ -202,6 +202,10 @@ export default function DiagnosticPage() {
     recognition.lang = 'en-IN';
     recognition.interimResults = true;
     recognition.continuous = false;
+
+    recognition.onstart = () => {
+      setAudioState('listening');
+    };
 
     recognition.onresult = async (event: SpeechRecognitionEventLike) => {
       let finalText = '';
@@ -216,45 +220,37 @@ export default function DiagnosticPage() {
       setInterimVoiceText(interim);
       if (finalText.trim()) {
         setInterimVoiceText('');
-        setMicActive(false);
+        setAudioState('idle');
         recognition.stop();
         await sendToKai(finalText.trim());
       }
     };
 
     recognition.onerror = () => {
-      setMicActive(false);
+      setAudioState('idle');
       setInterimVoiceText('');
     };
 
     recognition.onend = () => {
-      setMicActive(false);
+      setAudioState('idle');
       setInterimVoiceText('');
     };
 
     recognitionRef.current = recognition;
-    setMicActive(true);
     recognition.start();
   };
 
   return (
-    <div className="h-full min-h-0 bg-[#0A0A0F] flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-4 sm:px-5 py-4 border-b border-[#1E1E2E] flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-            <Link href="/learn" className="hover:text-zinc-300 transition-colors">Learn</Link>
-            <span>/</span>
-            <span className="text-zinc-300 truncate">Diagnostic</span>
-          </div>
-          <h1 className="text-sm font-semibold text-zinc-300">Diagnostic</h1>
-        </div>
-        {state === 'active' && (
-          <span data-testid="turn-counter" className="text-xs text-zinc-500 shrink-0 whitespace-nowrap">~{Math.max(0, 12 - exchangeCount.current)} left</span>
-        )}
+    <div className="h-screen bg-[#0A0A0F] flex flex-col overflow-hidden">
+      {/* Page Header */}
+      <div className="shrink-0 max-w-5xl mx-auto px-4 py-8 w-full">
+        <h1 className="text-2xl font-bold text-white">Diagnostic Assessment</h1>
+        <p className="text-zinc-400 mt-1 text-sm">
+          Let's calibrate your knowledge level. Answer honestly — no right or wrong answers.
+        </p>
       </div>
 
-      {/* Processing / Complete overlay */}
+      {/* Processing / Complete Overlay */}
       <AnimatePresence>
         {(state === 'processing' || state === 'complete') && (
           <motion.div
@@ -283,8 +279,8 @@ export default function DiagnosticPage() {
         )}
       </AnimatePresence>
 
-      {/* Transcript */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6 pb-32 md:pb-12 max-w-2xl mx-auto w-full space-y-4">
+      {/* Message Transcript Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto max-w-2xl mx-auto px-4 pb-32 md:pb-12 w-full space-y-4">
         {messages.map(msg => (
           <motion.div
             key={msg.id}
@@ -293,100 +289,198 @@ export default function DiagnosticPage() {
             data-testid={msg.role === 'assistant' ? 'message-assistant' : 'message-user'}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
           >
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                msg.role === 'assistant'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-zinc-700 text-zinc-300'
+              }`}
+            >
               {msg.role === 'assistant' ? 'K' : 'U'}
             </div>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm text-zinc-200 ${msg.role === 'assistant' ? 'bg-[#111118] border border-[#1E1E2E] rounded-tl-sm' : 'bg-indigo-600/20 border border-indigo-500/20 rounded-tr-sm'}`}>
+            <div
+              className={`max-w-xs sm:max-w-sm md:max-w-md rounded-2xl px-4 py-3 text-sm ${
+                msg.role === 'assistant'
+                  ? 'bg-zinc-800/50 border border-zinc-700/50 text-zinc-200 rounded-tl-none'
+                  : 'bg-indigo-600/20 border border-indigo-500/30 text-zinc-200 rounded-tr-none'
+              }`}
+            >
               {msg.content}
             </div>
           </motion.div>
         ))}
+
+        {/* Kai Thinking Indicator */}
         {kaiThinking && (
           <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs text-white font-bold">K</div>
-            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">
+            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs text-white font-bold shrink-0">
+              K
+            </div>
+            <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-2xl rounded-tl-none px-4 py-3 flex gap-1">
               {[0, 0.2, 0.4].map((d, i) => (
-                <motion.span key={i} className="w-1.5 h-1.5 rounded-full bg-zinc-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, delay: d, repeat: Infinity }} />
+                <motion.span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-zinc-500"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, delay: d, repeat: Infinity }}
+                />
               ))}
             </div>
           </div>
         )}
+
         <div ref={transcriptEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="shrink-0 sticky bottom-0 z-20 bg-[#0A0A0F]/95 backdrop-blur-sm border-t border-[#1E1E2E] px-4 py-3 pt-4 safe-area-bottom">
-        <div className="max-w-2xl mx-auto flex items-end gap-3">
-          <div className={`flex-1 bg-[#111118] border rounded-xl overflow-hidden transition-colors ${
-            state !== 'active' || kaiThinking
-              ? 'border-zinc-800/40 opacity-50'
-              : 'border-[#1E1E2E] focus-within:border-indigo-500/40'
-          }`}>
-            <textarea
-              data-testid="text-input"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleTextSend();
-                }
-              }}
-              placeholder={
-                state === 'active'
-                  ? 'Type your answer or use voice'
-                  : 'Diagnostic is preparing...'
-              }
-              rows={2}
-              disabled={state !== 'active' || kaiThinking}
-              className="w-full bg-transparent px-4 py-3 text-base text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none"
-              style={{ fontSize: '16px' }}
-            />
+      {/* Input Area */}
+      <div className="shrink-0 sticky bottom-0 z-20 bg-[#0A0A0F]/95 backdrop-blur-sm border-t border-zinc-700/50 px-4 py-4 safe-area-bottom">
+        <div className="max-w-2xl mx-auto space-y-3">
+          {/* Status Badge */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {audioState === 'listening' && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-emerald-400 flex items-center gap-1.5 text-xs font-medium"
+                >
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-emerald-400"
+                    animate={{ scale: [1, 1.5, 1] }}
+                    transition={{ duration: 0.6, repeat: Infinity }}
+                  />
+                  Listening...
+                </motion.div>
+              )}
+              {audioState === 'processing' && (
+                <div className="text-amber-400 flex items-center gap-1.5 text-xs font-medium">
+                  <Loader2 size={12} className="animate-spin" />
+                  Processing...
+                </div>
+              )}
+              {audioState === 'speaking' && (
+                <div className="text-purple-400 flex items-center gap-1.5 text-xs font-medium">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                  >
+                    <Volume2 size={12} />
+                  </motion.div>
+                  Kai is speaking...
+                </div>
+              )}
+              {audioState === 'idle' && state === 'active' && (
+                <span className="text-zinc-500 text-xs">Ready to respond</span>
+              )}
+            </div>
+            <span className="text-xs text-zinc-500">
+              ~{Math.max(0, 12 - exchangeCount.current)} questions left
+            </span>
           </div>
 
-          <button
-            data-testid="send-text-button"
-            onClick={() => void handleTextSend()}
-            disabled={!textInput.trim() || state !== 'active' || kaiThinking}
-            className="shrink-0 p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white transition-colors"
-            aria-label="Send diagnostic answer"
-          >
-            {kaiThinking ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-          </button>
+          {/* Input Controls */}
+          <div className="flex items-end gap-2">
+            {/* Text Input */}
+            <div
+              className={`flex-1 bg-zinc-800/30 border rounded-xl overflow-hidden transition-colors ${
+                state !== 'active' || kaiThinking
+                  ? 'border-zinc-800/40 opacity-50'
+                  : 'border-zinc-700/50 focus-within:border-indigo-500/40'
+              }`}
+            >
+              <textarea
+                data-testid="text-input"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleTextSend();
+                  }
+                }}
+                placeholder={
+                  state === 'active'
+                    ? 'Type your answer or use voice'
+                    : 'Diagnostic is preparing...'
+                }
+                rows={2}
+                disabled={state !== 'active' || kaiThinking}
+                className="w-full bg-transparent px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
 
-          <motion.button
-            data-testid="send-button"
-            whileHover={{ scale: state === 'active' && !kaiThinking ? 1.05 : 1 }}
-            whileTap={{ scale: state === 'active' && !kaiThinking ? 0.95 : 1 }}
-            disabled={state !== 'active' || kaiThinking}
-            onClick={toggleMic}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all relative ${state !== 'active' || kaiThinking ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed' : micActive ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
-          >
-            {micActive && <motion.div className="absolute inset-0 rounded-full bg-emerald-500/20" animate={{ scale: [1, 1.4], opacity: [0.5, 0] }} transition={{ duration: 1.2, repeat: Infinity }} />}
-            {micActive ? <Mic size={18} /> : <MicOff size={18} />}
-          </motion.button>
-        </div>
+            {/* Mic Toggle */}
+            <motion.button
+              whileHover={{ scale: state === 'active' && !kaiThinking ? 1.05 : 1 }}
+              whileTap={{ scale: state === 'active' && !kaiThinking ? 0.95 : 1 }}
+              disabled={state !== 'active' || kaiThinking || audioState === 'speaking'}
+              onClick={toggleMic}
+              className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all relative ${
+                audioState === 'listening'
+                  ? 'bg-emerald-600 text-white'
+                  : state !== 'active' || kaiThinking
+                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+              aria-label={audioState === 'listening' ? 'Stop recording' : 'Start recording'}
+            >
+              {audioState === 'listening' && (
+                <motion.div
+                  className="absolute inset-0 rounded-lg bg-emerald-500/20"
+                  animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                />
+              )}
+              {audioState === 'listening' ? <Mic size={16} /> : <MicOff size={16} />}
+            </motion.button>
 
-        <div className="max-w-2xl mx-auto mt-3 flex items-center justify-between gap-3">
-          <span className="text-xs text-zinc-500 flex-1">
-            {kaiThinking ? 'Kai is thinking...' : micActive ? 'Listening...' : 'Type or tap mic to answer'}
-            {interimVoiceText ? ` ${interimVoiceText}` : ''}
-          </span>
-          <button
-            data-testid="finish-diagnostic-button"
-            onClick={() => void completeDiagnostic(messagesRef.current)}
-            disabled={state !== 'active' || kaiThinking || !canComplete}
-            className="shrink-0 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold text-sm flex items-center gap-2 transition-all"
-          >
-            {state === 'processing' ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Initializing...
-              </>
-            ) : (
-              'Finish Diagnostic'
+            {/* Send Button */}
+            <button
+              data-testid="send-text-button"
+              onClick={() => void handleTextSend()}
+              disabled={!textInput.trim() || state !== 'active' || kaiThinking}
+              className="shrink-0 w-10 h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white transition-colors flex items-center justify-center"
+              aria-label="Send message"
+            >
+              {kaiThinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            </button>
+
+            {/* Stop Speaking Button (shown only when AI is speaking) */}
+            {audioState === 'speaking' && (
+              <button
+                onClick={() => setAudioState('idle')}
+                className="shrink-0 w-10 h-10 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors flex items-center justify-center"
+                aria-label="Stop AI speech"
+              >
+                <Square size={16} />
+              </button>
             )}
-          </button>
+
+            {/* Finish Button */}
+            <button
+              data-testid="finish-diagnostic-button"
+              onClick={() => void completeDiagnostic(messagesRef.current)}
+              disabled={state !== 'active' || kaiThinking || !canComplete}
+              className="shrink-0 px-4 h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:cursor-not-allowed disabled:text-zinc-600 text-white font-medium text-sm transition-all flex items-center gap-2"
+            >
+              {state === 'processing' ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="hidden sm:inline">Init...</span>
+                </>
+              ) : (
+                <span className="hidden sm:inline">Finish</span>
+              )}
+            </button>
+          </div>
+
+          {/* Voice Input Feedback */}
+          {interimVoiceText && (
+            <div className="text-xs text-zinc-500 italic">
+              <span className="text-zinc-400">Hearing:</span> {interimVoiceText}
+            </div>
+          )}
         </div>
       </div>
     </div>
