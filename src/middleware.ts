@@ -52,9 +52,23 @@ export default async function middleware(request: NextRequest) {
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
     const isEmployer = pathname.startsWith('/employer');
+    const isEmployerAPI = pathname.startsWith('/api/employer');
     const isAssess = pathname.startsWith('/assess');
     const isOwnerRoute = pathname.startsWith('/owner');
     const isLearn = pathname.startsWith('/learn');
+
+    // Gate employer tier if feature flag is disabled
+    const enableEmployerTier = process.env.ENABLE_EMPLOYER_TIER === 'true';
+    if (!enableEmployerTier && (isEmployer || isEmployerAPI)) {
+        if (isEmployer) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard';
+            return NextResponse.redirect(url);
+        }
+        if (isEmployerAPI) {
+            return NextResponse.json({ error: 'Not available' }, { status: 404 });
+        }
+    }
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||

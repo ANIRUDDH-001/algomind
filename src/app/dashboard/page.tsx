@@ -29,6 +29,7 @@ import { RecommendationBanner } from '@/components/dashboard/RecommendationBanne
 import { WeeklyUsageCard } from '@/components/dashboard/WeeklyUsageCard';
 import { KnowledgeInsightsCard } from '@/components/dashboard/KnowledgeInsightsCard';
 import { PlacementContextCard } from '@/components/onboarding/PlacementContextCard';
+import { PlacementOutcomeButton } from '@/components/dashboard/PlacementOutcomeButton';
 
 function DashboardContent() {
     const router = useRouter();
@@ -250,6 +251,11 @@ function DashboardContent() {
                                                 {progress.narrative}
                                             </p>
                                         </div>
+                                    )}
+
+                                    {/* Placement Outcome */}
+                                    {progress && progress.totalSessions >= 3 && (
+                                        <PlacementOutcomeButton />
                                     )}
 
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />

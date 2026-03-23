@@ -50,6 +50,7 @@
     "onnxruntime-web": "^1.24.1",
     "postgres": "^3.4.8",
     "radix-ui": "^1.4.3",
+    "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-resizable-panels": "^4.6.0",
