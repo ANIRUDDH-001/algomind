@@ -84,12 +84,9 @@ export default function DiagnosticPage() {
     if (hasBootstrappedRef.current) return;
     hasBootstrappedRef.current = true;
 
-    const timer = setTimeout(() => {
-      addMsg('assistant', DIAGNOSTIC_WELCOME);
-      setState('active');
-    }, 800);
-
-    return () => clearTimeout(timer);
+    // Immediately add welcome message and set active state
+    addMsg('assistant', DIAGNOSTIC_WELCOME);
+    setState('active');
   }, []);
 
   useEffect(() => {
@@ -189,6 +186,8 @@ export default function DiagnosticPage() {
       speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) {
+      // Show toast or error message if speech recognition not available
+      addMsg('assistant', 'Speech recognition is not available in your browser. Please use text input instead.');
       setMicActive(false);
       return;
     }

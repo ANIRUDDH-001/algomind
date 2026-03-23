@@ -106,6 +106,21 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
+    // Check if user needs to complete diagnostic before accessing learn features
+    if (user && isLearn && pathname === '/learn') {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('has_completed_diagnostic')
+            .eq('id', user.id)
+            .single();
+        
+        if (!profile?.has_completed_diagnostic) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/learn/diagnostic';
+            return NextResponse.redirect(url);
+        }
+    }
+
     // OWNER-001: Protect /owner routes — only owners & co-owners allowed
     if (user && isOwnerRoute) {
         const { data: profile } = await supabase
