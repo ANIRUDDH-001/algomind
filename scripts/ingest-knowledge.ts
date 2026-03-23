@@ -114,8 +114,23 @@ function chunkText(text: string, title: string, topic: string): KnowledgeChunk[]
 
 async function getEmbedding(text: string): Promise<number[]> {
     try {
-        const result = await embeddingModel.embedContent(text);
-        return result.embedding.values;
+        const result = await embeddingModel.embedContent({
+            content: text,
+            taskType: 'RETRIEVAL_DOCUMENT',
+            outputDimensionality: 768
+        } as any);
+        const values = result.embedding.values;
+
+        // Keep output shape aligned with the existing vector(768) column.
+        if (values.length === 768) {
+            return values;
+        }
+
+        if (values.length > 768) {
+            return values.slice(0, 768);
+        }
+
+        return [...values, ...new Array(768 - values.length).fill(0)];
     } catch (error) {
         console.error('Embedding error:', error);
         throw error;
@@ -149,7 +164,7 @@ async function main() {
                     embeddedChunks.push({
                         ...chunk,
                         embedding,
-                        embeddingModel: 'text-embedding-004'
+                        embeddingModel: 'gemini-embedding-001-768'
                     });
                     await new Promise(r => setTimeout(r, 500)); // Rate limit
                 } catch (e) {
@@ -201,7 +216,7 @@ async function main() {
                         patterns: [], // DB doesn't have patterns col yet usually
                         source: 'db',
                         embedding,
-                        embeddingModel: 'text-embedding-004'
+                        embeddingModel: 'gemini-embedding-001-768'
                     });
 
                     // Optional: Update DB with embedding if you want to support pgvector later

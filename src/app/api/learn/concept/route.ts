@@ -252,7 +252,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'AI response failed' }, { status: 503 });
     }
 
-    const response = aiResult.response;
+    // Sanitize response to remove reasoning tags and system prompt leaks
+    const cleanResponse = (aiResult.response || '')
+      .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+      .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+      .trim();
+
+    const response = cleanResponse;
 
     if (activeSessionId) {
       const newTranscript = [

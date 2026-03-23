@@ -3,40 +3,17 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PlacementContextCardProps {
     onComplete: (data: { placementMonth: string; targetCompanies: string[] }) => void;
     onSkip: () => void;
 }
 
-function buildMonthOptions(): Array<{ value: string; label: string }> {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        month: 'long',
-        year: 'numeric',
-    });
-    const today = new Date();
-    const startYear = today.getFullYear();
-    const startMonth = today.getMonth();
-
-    return Array.from({ length: 18 }, (_, index) => {
-        const date = new Date(startYear, startMonth + index, 1);
-        const value = [
-            String(date.getFullYear()),
-            String(date.getMonth() + 1).padStart(2, '0'),
-            '01',
-        ].join('-');
-
-        return {
-            value,
-            label: formatter.format(date),
-        };
-    });
-}
-
 export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCardProps) {
-    const monthOptions = buildMonthOptions();
     const [placementMonth, setPlacementMonth] = useState('');
     const [targetCompanies, setTargetCompanies] = useState('');
+    const [calendarMonth, setCalendarMonth] = useState(new Date());
 
     const handleSubmit = () => {
         if (!placementMonth) return;
@@ -50,6 +27,46 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
         });
     };
 
+    const generateMonths = () => {
+        const months = [];
+        const today = new Date();
+        for (let i = 0; i < 18; i++) {
+            const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+            months.push(date);
+        }
+        return months;
+    };
+
+    const months = generateMonths();
+    const formatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+
+    const handleMonthSelect = (date: Date) => {
+        const value = [
+            String(date.getFullYear()),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            '01',
+        ].join('-');
+        setPlacementMonth(value);
+    };
+
+    const prevMonth = () => {
+        const newMonth = new Date(calendarMonth);
+        newMonth.setMonth(newMonth.getMonth() - 3);
+        setCalendarMonth(newMonth);
+    };
+
+    const nextMonth = () => {
+        const newMonth = new Date(calendarMonth);
+        newMonth.setMonth(newMonth.getMonth() + 3);
+        setCalendarMonth(newMonth);
+    };
+
+    const visibleMonths = months.filter(
+        (m) =>
+            m.getFullYear() === calendarMonth.getFullYear() &&
+            (m.getMonth() >= calendarMonth.getMonth() && m.getMonth() <= calendarMonth.getMonth() + 2)
+    );
+
     return (
         <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-sm">
             <div className="space-y-1">
@@ -61,23 +78,61 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <p className="text-sm font-semibold text-slate-100">When is your placement season?</p>
-                        <label htmlFor="placement-month" className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Placement Month
+                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Select Month & Year
                         </label>
                     </div>
-                    <select
-                        id="placement-month"
-                        value={placementMonth}
-                        onChange={(event) => setPlacementMonth(event.target.value)}
-                        className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none transition focus:border-indigo-500/60"
-                    >
-                        <option value="">Select month</option>
-                        {monthOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="space-y-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={prevMonth}
+                                className="rounded-lg p-2 hover:bg-white/5 transition"
+                                aria-label="Previous months"
+                            >
+                                <ChevronLeft className="w-4 h-4 text-slate-400" />
+                            </button>
+                            <span className="text-sm font-semibold text-slate-200">
+                                {calendarMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                            </span>
+                            <button
+                                onClick={nextMonth}
+                                className="rounded-lg p-2 hover:bg-white/5 transition"
+                                aria-label="Next months"
+                            >
+                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                            {visibleMonths.map((date) => {
+                                const isSelected =
+                                    placementMonth ===
+                                    [
+                                        String(date.getFullYear()),
+                                        String(date.getMonth() + 1).padStart(2, '0'),
+                                        '01',
+                                    ].join('-');
+                                return (
+                                    <button
+                                        key={`${date.getFullYear()}-${date.getMonth()}`}
+                                        onClick={() => handleMonthSelect(date)}
+                                        className={`rounded-lg py-3 px-2 text-sm font-medium transition ${
+                                            isSelected
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        {date.toLocaleString('en-US', { month: 'short' })}
+                                        <div className="text-xs text-opacity-75 mt-0.5">{date.getFullYear()}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {!placementMonth && (
+                            <div className="text-xs text-slate-500 text-center">
+                                Select a month to continue
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-3">

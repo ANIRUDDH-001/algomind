@@ -148,8 +148,14 @@ export async function POST(req: NextRequest) {
             console.error('[Learn API] Failed to track usage:', err)
         );
 
+        // Sanitize response to remove reasoning tags and system prompt leaks
+        const cleanResponse = (result.response || '')
+          .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+          .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+          .trim();
+
         return NextResponse.json({
-            response: result.response,
+            response: cleanResponse,
             modelUsed: result.modelUsed,
             provider: result.provider
         });
