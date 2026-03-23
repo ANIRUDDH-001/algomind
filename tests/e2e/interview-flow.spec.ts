@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+const hasInterviewFlowCreds = !!process.env.TEST_USER_EMAIL && !!process.env.TEST_USER_PASSWORD;
+
 test.describe('Complete interview flow', () => {
+    test.skip(!hasInterviewFlowCreds, 'Set TEST_USER_EMAIL and TEST_USER_PASSWORD to run authenticated interview-flow E2E tests.');
+
     test.beforeEach(async ({ page }) => {
         // Login with test credentials
         await page.goto('/login');

@@ -13,7 +13,7 @@ import type { FeatureFlagKey } from '@/lib/feature-flags';
 
 // ─── Provider Types ────────────────────────────────────────────────────────
 
-export type TTSProvider = 'groq' | 'browser' | 'aws-polly';
+export type TTSProvider = 'browser' | 'aws-polly';
 export type STTProvider = 'groq-whisper' | 'browser' | 'aws-transcribe';
 export type StorageProvider = 'supabase' | 'aws-s3';
 
@@ -31,20 +31,18 @@ export interface ProviderConfig {
  * Resolve the active provider configuration by reading feature flags.
  *
  * Priority (AWS is primary when its flag is ON):
- *  - TTS:     aws-polly (if flag ON) → groq → browser
+ *  - TTS:     aws-polly (if flag ON) → browser
  *  - STT:     groq-whisper → browser  (aws-transcribe is batch-only, NOT real-time)
  *  - Storage: aws-s3 → supabase
  */
 export async function getProviderConfig(): Promise<ProviderConfig> {
     const [
-        groqTts,
         awsPollyTts,
         whisperStt,
         awsTranscribeStt,
         awsS3Storage,
         awsBedrock,
     ] = await Promise.all([
-        getGlobalFeatureFlag('ENABLE_GROQ_TTS' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_AWS_POLLY_TTS' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_WHISPER_STT' as FeatureFlagKey),
         getGlobalFeatureFlag('ENABLE_AWS_TRANSCRIBE_STT' as FeatureFlagKey),
@@ -53,7 +51,6 @@ export async function getProviderConfig(): Promise<ProviderConfig> {
     ]);
 
     return resolveConfig({
-        ENABLE_GROQ_TTS: groqTts,
         ENABLE_AWS_POLLY_TTS: awsPollyTts,
         ENABLE_WHISPER_STT: whisperStt,
         ENABLE_AWS_TRANSCRIBE_STT: awsTranscribeStt,
@@ -76,12 +73,10 @@ export function getProviderConfigSync(flags: Record<string, boolean>): ProviderC
 // ─── Shared resolution logic ───────────────────────────────────────────────
 
 function resolveConfig(flags: Record<string, boolean>): ProviderConfig {
-    // TTS priority: aws-polly (if ON) → groq → browser
+    // TTS priority: aws-polly (if ON) → browser
     let tts: TTSProvider = 'browser';
     if (flags.ENABLE_AWS_POLLY_TTS) {
         tts = 'aws-polly';
-    } else if (flags.ENABLE_GROQ_TTS) {
-        tts = 'groq';
     }
 
     // STT (real-time): groq-whisper → browser

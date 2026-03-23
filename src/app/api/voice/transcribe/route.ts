@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { retryWithBackoff } from '@/lib/utils/retry';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,39 +60,70 @@ export async function POST(req: NextRequest) {
 
         for (const model of models) {
             try {
-                const groqForm = new FormData();
-                groqForm.append('file', audioFile);
-                groqForm.append('model', model);
-                groqForm.append('language', 'en');
-                groqForm.append('response_format', 'verbose_json');
-                groqForm.append('temperature', '0');
-                // DSA vocabulary prompt for better accuracy
-                groqForm.append('prompt',
-                    'Technical interview about data structures and algorithms. ' +
-                    'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
-                    'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
-                    'hash map, linked list, binary tree, heap, graph, two pointers.');
+                // Wrap Groq API call in retry logic
+                const { response, data } = await retryWithBackoff(
+                    async () => {
+                        const groqForm = new FormData();
+                        groqForm.append('file', audioFile);
+                        groqForm.append('model', model);
+                        groqForm.append('language', 'en');
+                        groqForm.append('response_format', 'verbose_json');
+                        groqForm.append('temperature', '0');
+                        // DSA vocabulary prompt for better accuracy
+                        groqForm.append('prompt',
+                            'Technical interview about data structures and algorithms. ' +
+                            'DSA vocabulary: Big O notation, O(n log n), binary search, ' +
+                            'Dijkstra, BFS, DFS, dynamic programming, memoization, recursion, ' +
+                            'hash map, linked list, binary tree, heap, graph, two pointers.');
 
-                const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${groqApiKey}` },
-                    body: groqForm,
-                });
+                        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${groqApiKey}` },
+                            body: groqForm,
+                        });
 
-                if (!response.ok) {
-                    const errorBody = await response.json().catch(() => ({ error: { message: response.statusText } }));
-                    const errMsg = errorBody.error?.message || 'Groq API error';
-                    console.error(`[Transcribe] Groq ${model} returned ${response.status}: ${errMsg}`);
-                    if (response.status === 429) continue; // Rate limited, try next model
-                    throw new Error(errMsg);
-                }
+                        if (!response.ok) {
+                            const errorBody = await response.json().catch(() => ({ error: { message: response.statusText } }));
+                            const errMsg = errorBody.error?.message || 'Groq API error';
+                            console.error(`[Transcribe] Groq ${model} returned ${response.status}: ${errMsg}`);
 
-                const data = await response.json();
+                            // For 429 rate limit, throw response so retry logic can handle it
+                            if (response.status === 429) {
+                                throw response;
+                            }
+                            throw new Error(errMsg);
+                        }
+
+                        const data = await response.json();
+                        return { response, data };
+                    },
+                    {
+                        maxRetries: 3,
+                        baseDelayMs: 1000,
+                        maxDelayMs: 8000,
+                        retryOn: (err) => {
+                            // Retry on rate limit (429) only
+                            return err instanceof Response && err.status === 429;
+                        },
+                        onRetry: (attempt, err) => {
+                            if (err instanceof Response) {
+                                console.warn(`[Transcribe] Rate limited (429) on ${model}, retry ${attempt}/3`);
+                            }
+                        },
+                    }
+                );
 
                 const segments = data.segments ?? [];
                 const confidence = segments.length > 0
                     ? Math.exp(segments.reduce((sum: number, s: { avg_logprob?: number }) => sum + (s.avg_logprob ?? -1), 0) / segments.length)
                     : undefined;
+
+                // Log rate limit info for monitoring
+                const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
+                const rateLimitReset = response.headers.get('x-ratelimit-reset');
+                if (rateLimitRemaining && parseInt(rateLimitRemaining) < 10) {
+                    console.warn(`[Transcribe] Groq rate limit low: ${rateLimitRemaining} requests remaining, resets at ${rateLimitReset}`);
+                }
 
                 // Confidence gate: reject low-confidence hallucinations (0.15 for short utterances)
                 if (confidence !== undefined && confidence < 0.15) {
@@ -107,7 +139,7 @@ export async function POST(req: NextRequest) {
                 });
             } catch (err) {
                 if (model === models[models.length - 1]) throw err;
-                console.warn(`[Transcribe] ${model} failed, trying fallback:`, err);
+                console.warn(`[Transcribe] ${model} failed after retries, trying fallback:`, err);
             }
         }
 

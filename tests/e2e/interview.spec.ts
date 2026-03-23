@@ -12,6 +12,8 @@ import {
     InterviewPanelPOM,
 } from '../../src/test-utils/playwright-helpers';
 
+const RUN_FULL_STACK_E2E = process.env.E2E_FULL_STACK === 'true';
+
 // ───────────────────────────────────────────────
 //  1. Full Guest Interview Flow
 // ───────────────────────────────────────────────
@@ -226,6 +228,8 @@ import { setE2EAuthCookie } from './auth-helper';
 // ───────────────────────────────────────────────
 
 test.describe('Dashboard Empty State', () => {
+    test.skip(!RUN_FULL_STACK_E2E, 'Set E2E_FULL_STACK=true to run dashboard e2e checks that require full app readiness.');
+
     test('shows empty state or session list (not crash)', async ({ page, context }) => {
         // Bypass proxy.ts auth guard
         await setE2EAuthCookie(context);

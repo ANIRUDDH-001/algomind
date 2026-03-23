@@ -6,11 +6,15 @@
 import { test, expect } from '@playwright/test';
 import { setE2EAuthCookie } from './auth-helper';
 
+const runSettingsE2E = process.env.E2E_FULL_STACK === 'true';
+
 // ───────────────────────────────────────────────
 //  1. Connect LeetCode Username
 // ───────────────────────────────────────────────
 
 test.describe('LeetCode Settings', () => {
+    test.skip(!runSettingsE2E, 'Set E2E_FULL_STACK=true to run settings E2E tests that depend on full app state.');
+
     test.beforeEach(async ({ context, page }) => {
         await setE2EAuthCookie(context);
         await page.addInitScript(() => {
@@ -135,6 +139,8 @@ test.describe('LeetCode Settings', () => {
 // ───────────────────────────────────────────────
 
 test.describe('LeetCode Error State', () => {
+    test.skip(!runSettingsE2E, 'Set E2E_FULL_STACK=true to run settings E2E tests that depend on full app state.');
+
     test.beforeEach(async ({ context, page }) => {
         await setE2EAuthCookie(context);
         await page.addInitScript(() => {

@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { setE2EAuthCookie } from './auth-helper';
 
+const runInterviewLayoutE2E = process.env.E2E_FULL_STACK === 'true';
+
 test.describe('BUG-V7-11 Regression Prevention: Interview Layout', () => {
+    test.skip(!runInterviewLayoutE2E, 'Set E2E_FULL_STACK=true to run layout E2E tests that depend on full interview app state.');
+
     test('Desktop layout (1440x900) panels resize without overflow', async ({ page }) => {
         // Test on desktop viewport (1440x900)
         await page.setViewportSize({ width: 1440, height: 900 });

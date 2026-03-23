@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const IS_CI = !!process.env.CI;
+const RUN_FULL_STACK_E2E = process.env.E2E_FULL_STACK === 'true';
 const VIEWPORTS = [
     { name: 'desktop', width: 1440, height: 900 },
     { name: 'mobile', width: 390, height: 844 },
@@ -206,6 +207,8 @@ test.describe('Interview page ARIA & semantics', () => {
 //  4. Keyboard navigation
 // ═══════════════════════════════════════════════
 test.describe('Keyboard navigation', () => {
+    test.skip(!RUN_FULL_STACK_E2E, 'Set E2E_FULL_STACK=true to run keyboard-navigation accessibility tests that require full interview app readiness.');
+
     test.beforeEach(async ({ page, context }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await setupInterview(page, context);

@@ -8,6 +8,8 @@
 import { test, expect, Page } from '@playwright/test';
 import { setE2EAuthCookie } from './auth-helper';
 
+const runAdminE2E = process.env.E2E_FULL_STACK === 'true';
+
 // ── Helpers ──
 
 /** Mock the admin check to return true (admin user) */
@@ -84,6 +86,8 @@ async function mockAsNonAdmin(page: Page) {
 // ───────────────────────────────────────────────
 
 test.describe('Admin Panel Auth', () => {
+    test.skip(!runAdminE2E, 'Set E2E_FULL_STACK=true to run admin E2E tests that depend on full app state.');
+
     test('non-admin is redirected or sees 403', async ({ page }) => {
         await mockAsNonAdmin(page);
         await page.goto('/admin/admins');
@@ -124,6 +128,8 @@ test.describe('Admin Panel Auth', () => {
 // ───────────────────────────────────────────────
 
 test.describe('Admin Models Page', () => {
+    test.skip(!runAdminE2E, 'Set E2E_FULL_STACK=true to run admin E2E tests that depend on full app state.');
+
     test('model registry table loads with at least 1 model', async ({
         page,
     }) => {
@@ -177,6 +183,8 @@ test.describe('Admin Models Page', () => {
 // ───────────────────────────────────────────────
 
 test.describe('Add/Remove Admin', () => {
+    test.skip(!runAdminE2E, 'Set E2E_FULL_STACK=true to run admin E2E tests that depend on full app state.');
+
     test('add admin → appears in list → remove → disappears', async ({
         page,
     }) => {

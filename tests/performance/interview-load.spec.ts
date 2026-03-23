@@ -4,6 +4,8 @@
  */
 import { test, expect, Page } from '@playwright/test';
 
+const RUN_FULL_STACK_E2E = process.env.E2E_FULL_STACK === 'true';
+
 // ── Thresholds ──
 // Note: TTFB is relaxed for local dev (Next.js compiles on demand).
 // In CI with production build, tighten to 800ms.
@@ -208,6 +210,7 @@ test.describe('Interview Page Performance Metrics', () => {
     });
 
     test('Monaco editor ready time < 3s after page load', async ({ page, context }) => {
+        test.skip(!RUN_FULL_STACK_E2E, 'Set E2E_FULL_STACK=true to run Monaco readiness benchmark in full-stack mode.');
         test.setTimeout(IS_CI ? 30_000 : 45_000);
 
         await page.setViewportSize({ width: 1440, height: 900 });

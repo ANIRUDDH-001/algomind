@@ -17,7 +17,7 @@ const FLAG_GROUPS = [
     {
         title: 'Voice & Audio',
         icon: '🎙️',
-        keys: ['ENABLE_WHISPER_STT', 'ENABLE_GROQ_TTS', 'ENABLE_VAD_INTERRUPTIONS', 'ENABLE_CHUNKED_RESPONSES'],
+        keys: ['ENABLE_WHISPER_STT', 'ENABLE_VAD_INTERRUPTIONS', 'ENABLE_CHUNKED_RESPONSES'],
     },
     {
         title: 'AWS Services — Requires Credits',

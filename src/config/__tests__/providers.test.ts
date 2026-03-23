@@ -4,7 +4,6 @@ import { getProviderConfigSync } from '../providers';
 /** Helper: returns a flags object with all relevant flags set to false. */
 function allOff(): Record<string, boolean> {
     return {
-        ENABLE_GROQ_TTS: false,
         ENABLE_AWS_POLLY_TTS: false,
         ENABLE_WHISPER_STT: false,
         ENABLE_AWS_TRANSCRIBE_STT: false,
@@ -19,21 +18,6 @@ describe('getProviderConfigSync', () => {
     it('returns browser TTS when all flags off', () => {
         const config = getProviderConfigSync(allOff());
         expect(config.tts).toBe('browser');
-    });
-
-    it('returns groq TTS when ENABLE_GROQ_TTS=true', () => {
-        const config = getProviderConfigSync({ ...allOff(), ENABLE_GROQ_TTS: true });
-        expect(config.tts).toBe('groq');
-    });
-
-    it('returns aws-polly TTS when both groq and polly flags are on (AWS is primary)', () => {
-        const config = getProviderConfigSync({
-            ...allOff(),
-            ENABLE_GROQ_TTS: true,
-            ENABLE_AWS_POLLY_TTS: true,
-        });
-        // AWS Polly is primary when its flag is ON
-        expect(config.tts).toBe('aws-polly');
     });
 
     it('returns aws-polly when only AWS flag is on', () => {
