@@ -5,6 +5,7 @@ import { getSpacedReviewForProblem } from '@/app/actions/spaced-repetition';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import type { FeatureFlagKey } from '@/lib/feature-flags';
+import { tagsToFirstConceptSlug } from '@/lib/knowledge-graph/tag-concept-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,16 @@ export default async function AnalysisPage({
         redirect('/practice');
     }
 
+    const { data: problemData } = await supabase
+        .from('problems')
+        .select('tags, primary_pattern')
+        .eq('id', session.problem_id)
+        .maybeSingle();
+
+    const learnConceptSlug = problemData
+        ? tagsToFirstConceptSlug(problemData.tags ?? [], problemData.primary_pattern ?? null)
+        : null;
+
     // Detect limited evidence from transcript turn count
     const userTurnCount = ((session.transcript || []) as TranscriptTurn[]).filter(t => t.speaker === 'user' || t.speaker === 'USER').length;
     const isLimitedEvidence = userTurnCount <= 5;
@@ -120,6 +131,7 @@ export default async function AnalysisPage({
                 difficultyMode: session.difficulty_mode || undefined,
                 status: session.status || 'completed',
                 isLimitedEvidence,
+                learnConceptSlug,
             }}
             assessment={assessment ? {
                 overallScore: assessment.overall_score || 0,

@@ -60,6 +60,12 @@ vi.mock('@/lib/cache/dashboardCache', () => ({
     invalidateDashboardCache: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@/lib/knowledge-graph', () => ({
+    getKnowledgeGraphService: () => ({
+        onInterviewSessionCompleted: vi.fn().mockResolvedValue(undefined),
+    }),
+}));
+
 describe('saveInterviewSession scores & profile wiring', () => {
     let mockRpc: any;
 
@@ -114,5 +120,35 @@ describe('saveInterviewSession scores & profile wiring', () => {
         // Assert
         expect(result.success).toBe(true);
         expect((result as any).streakDays).toBeUndefined();
+    });
+
+    it('calls getKnowledgeGraphService().onInterviewSessionCompleted after saving', async () => {
+        const { getKnowledgeGraphService } = await import('@/lib/knowledge-graph');
+        const kg = getKnowledgeGraphService();
+        const onInterviewSessionCompletedSpy = vi.spyOn(kg, 'onInterviewSessionCompleted');
+
+        // Mock RPC
+        mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'ensure_learner_profile') {
+                return { data: null, error: null };
+            }
+            return { data: null, error: null };
+        });
+
+        // Act: call saveInterviewSession
+        const result = await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [
+            { role: 'user', text: 'I will use a hashmap', timestamp: 1000 },
+            { role: 'interviewer', text: 'Great approach', timestamp: 2000 },
+            { role: 'user', text: 'Here is my solution', timestamp: 3000 },
+        ], 120);
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(onInterviewSessionCompletedSpy).toHaveBeenCalledOnce();
+
+        const callArgs = onInterviewSessionCompletedSpy.mock.calls[0][0];
+        expect(callArgs.userId).toBe('user-id');
+        expect(callArgs.overallScore).toBeGreaterThanOrEqual(0);
+        expect(callArgs.overallScore).toBeLessThanOrEqual(10);
     });
 });
