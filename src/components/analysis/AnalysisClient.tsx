@@ -31,6 +31,7 @@ interface SessionData {
     difficultyMode?: string;
     status?: string;
     isLimitedEvidence?: boolean;
+    learnConceptSlug?: string | null;
 }
 
 interface TranscriptTurn {
@@ -831,7 +832,7 @@ export function AnalysisClient({
                         </Link>
 
                         {flags.enableLearnMode && (
-                            <Link href={`/learn?problemId=${session.problemId}`} className="block">
+                            <Link href={session.learnConceptSlug ? `/learn/${session.learnConceptSlug}` : '/learn'} className="block">
                                 <Button variant="outline" className="w-full text-zinc-300 hover:text-white"
                                     style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
                                     data-testid="learn-button"

@@ -7,6 +7,7 @@ import { createAndSaveSession1Baseline } from '@/lib/ai/narrative-generator';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { type ConversationTurn } from '@/lib/assessment/prompts';
 import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
+import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 
 export async function saveInterviewSession(
     userId: string,
@@ -262,6 +263,28 @@ export async function saveInterviewSession(
                 dimensionScores,
             });
         } catch (err) { console.error('[save-session] updateSkillRepetition failed:', err); }
+
+        // Knowledge Graph update — makes interview scores visible to recommendation engine
+        try {
+            const { data: problemData } = await supabase
+                .from('problems')
+                .select('tags, primary_pattern')
+                .eq('id', problemId)
+                .maybeSingle();
+
+            if (problemData) {
+                await getKnowledgeGraphService().onInterviewSessionCompleted({
+                    userId,
+                    sessionId: sessionData.id,
+                    problemTags: problemData.tags ?? [],
+                    primaryPattern: problemData.primary_pattern ?? null,
+                    overallScore,
+                });
+            }
+        } catch (err) {
+            console.error('[save-session] KG update failed:', err);
+            // Non-fatal — session already saved successfully
+        }
 
         // 6. Update Kai Memory separately (fire & forget to avoid blocking UI)
         try {
