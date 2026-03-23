@@ -1291,6 +1291,56 @@ export type Database = {
         }
         Relationships: []
       }
+      placement_outcomes: {
+        Row: {
+          avg_score_before_placement: number | null
+          company_name: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          package_lpa: number | null
+          placed_at: string
+          role: string | null
+          sessions_before_placement: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_score_before_placement?: number | null
+          company_name: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          package_lpa?: number | null
+          placed_at: string
+          role?: string | null
+          sessions_before_placement?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_score_before_placement?: number | null
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          package_lpa?: number | null
+          placed_at?: string
+          role?: string | null
+          sessions_before_placement?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_outcomes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       problems: {
         Row: {
           avg_score_easy: number | null

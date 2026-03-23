@@ -58,7 +58,7 @@ export function Navbar() {
         fetchAccountType();
     }, [user?.id]);
 
-    const dashboardHref = accountType === 'employer'
+    const dashboardHref = accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
         ? '/employer/dashboard'
         : '/dashboard';
 
@@ -134,7 +134,7 @@ export function Navbar() {
                                     ...(user ? [
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
-                                        ...(accountType === 'employer'
+                                        ...(accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
                                             ? [{ href: '/employer/dashboard', label: 'Employer', authOnly: true }]
                                             : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
                                     ] : []),
@@ -220,7 +220,7 @@ export function Navbar() {
                                                 My Assessments
                                             </DropdownMenuItem>
 
-                                            {accountType === 'employer' && (
+                                            {accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true' && (
                                                 <DropdownMenuItem
                                                     onClick={() => router.push('/employer/dashboard')}
                                                     className="text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer focus:bg-white/5 rounded-xl px-3 py-2 text-xs font-bold"
@@ -239,7 +239,7 @@ export function Navbar() {
                                                 Settings
                                             </DropdownMenuItem>
 
-                                            {accountType === 'candidate' && (
+                                            {accountType === 'candidate' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true' && (
                                                 <DropdownMenuItem
                                                     onClick={() => router.push('/employer')}
                                                     className="text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 cursor-pointer focus:bg-emerald-500/10 rounded-xl px-3 py-2 text-xs font-bold"
@@ -321,7 +321,7 @@ export function Navbar() {
                     <div className="glass border-t border-white/5 px-2 py-1">
                         <div className="flex items-center justify-around">
                             {(user
-                                ? (accountType === 'employer'
+                                ? (accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
                                     ? [
                                         { href: '/', label: 'Home', icon: Home },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
