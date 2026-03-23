@@ -343,6 +343,21 @@ class VADManager implements VADManagerInterface {
 
 let _instance: VADManager | null = null;
 
+/**
+ * Starts loading VAD scripts in the background without initializing the mic.
+ * Call this when the interview page mounts so the 12MB WASM is ready
+ * before the user clicks start.
+ * Non-blocking — fire and forget. Never throws.
+ */
+export function prefetchVADAssets(): void {
+    if (typeof window === 'undefined') return;
+    if (_scriptsLoaded) return; // already done
+
+    // loadVADScripts uses its own promise deduplication (_scriptLoadPromise)
+    // so calling this multiple times is safe.
+    void loadVADScripts(DEFAULT_CONFIG.baseAssetPath);
+}
+
 export function getVADManager(): VADManager {
     if (typeof window !== 'undefined') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

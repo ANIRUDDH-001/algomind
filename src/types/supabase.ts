@@ -1819,10 +1819,12 @@ export type Database = {
           leetcode_fetch_error: string | null
           leetcode_fetch_status: string | null
           leetcode_username: string | null
+          placement_month: string | null
           practice_reminders: boolean | null
           preferred_voice_lang: string | null
           preferred_voice_name: string | null
           show_onboarding: boolean | null
+          target_companies: string[] | null
           theme: string | null
           tts_provider: string | null
           updated_at: string | null
@@ -1838,10 +1840,12 @@ export type Database = {
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null
+          placement_month?: string | null
           practice_reminders?: boolean | null
           preferred_voice_lang?: string | null
           preferred_voice_name?: string | null
           show_onboarding?: boolean | null
+          target_companies?: string[] | null
           theme?: string | null
           tts_provider?: string | null
           updated_at?: string | null
@@ -1857,10 +1861,12 @@ export type Database = {
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null
+          placement_month?: string | null
           practice_reminders?: boolean | null
           preferred_voice_lang?: string | null
           preferred_voice_name?: string | null
           show_onboarding?: boolean | null
+          target_companies?: string[] | null
           theme?: string | null
           tts_provider?: string | null
           updated_at?: string | null

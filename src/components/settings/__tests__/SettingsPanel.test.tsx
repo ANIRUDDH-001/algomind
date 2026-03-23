@@ -3,6 +3,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
 // ─── jsdom polyfills ───
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -157,6 +160,13 @@ describe('SettingsPanel', () => {
         mockGetFeatureFlag.mockReturnValue(false);
         mockIsDemoMode.mockReturnValue(false);
         mockShouldShowOnboarding.mockReturnValue(false);
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: vi.fn().mockResolvedValue({
+                emailNotifications: true,
+                practiceReminders: true,
+            }),
+        });
         mockUseAuth.mockReturnValue({
             user: { id: 'u1', email: 'test@test.com', user_metadata: {} },
             signOut: mockSignOut,
@@ -262,13 +272,14 @@ describe('SettingsPanel', () => {
         });
     });
 
-    it('7. No VAD switch present in settings', async () => {
+    it('7. Notifications section renders two persisted switches', async () => {
         mockGetFeatureFlag.mockReturnValue(true);
         await renderAndWait(<SettingsPanel />);
 
         await waitFor(() => {
             // VAD section removed — no switch should be rendered
-            expect(screen.queryByRole('switch')).toBeNull();
+            expect(screen.getByText(/^Notifications$/i)).toBeDefined();
+            expect(screen.getAllByRole('switch')).toHaveLength(2);
         });
     });
 

@@ -7,6 +7,7 @@ import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -18,6 +19,10 @@ export function SettingsPanel() {
     const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [_isClearing, setIsClearing] = useState(false);
+    const [emailNotifications, setEmailNotifications] = useState(true);
+    const [practiceReminders, setPracticeReminders] = useState(true);
+    const [notificationsLoading, setNotificationsLoading] = useState(true);
+    const [savingPreference, setSavingPreference] = useState<'email_notifications' | 'practice_reminders' | null>(null);
     const { user, signOut, isConfigured } = useAuth();
     const router = useRouter();
 
@@ -36,6 +41,41 @@ export function SettingsPanel() {
             window.removeEventListener('demo-mode-changed', handleDemoChange as EventListener);
         };
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) {
+            setNotificationsLoading(false);
+            return;
+        }
+
+        let active = true;
+        setNotificationsLoading(true);
+
+        fetch('/api/user/me', { cache: 'no-store' })
+            .then(async (response) => {
+                if (!response.ok) throw new Error('Failed to load preferences');
+                return response.json();
+            })
+            .then((data) => {
+                if (!active) return;
+                setEmailNotifications(data.emailNotifications ?? true);
+                setPracticeReminders(data.practiceReminders ?? true);
+            })
+            .catch(() => {
+                if (!active) return;
+                setEmailNotifications(true);
+                setPracticeReminders(true);
+            })
+            .finally(() => {
+                if (active) {
+                    setNotificationsLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [user?.id]);
 
     const _toggleIntro = () => {
         // ... (existing toggleIntro logic)
@@ -114,6 +154,44 @@ export function SettingsPanel() {
         router.push('/');
     };
 
+    const handleNotificationToggle = async (
+        field: 'email_notifications' | 'practice_reminders',
+        value: boolean
+    ) => {
+        const previousValue = field === 'email_notifications' ? emailNotifications : practiceReminders;
+
+        if (field === 'email_notifications') {
+            setEmailNotifications(value);
+        } else {
+            setPracticeReminders(value);
+        }
+
+        setSavingPreference(field);
+
+        try {
+            const response = await fetch('/api/user/preferences', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save preference');
+            }
+
+            toast.success('Notification preference saved');
+        } catch {
+            if (field === 'email_notifications') {
+                setEmailNotifications(previousValue);
+            } else {
+                setPracticeReminders(previousValue);
+            }
+            toast.error('Failed to save notification preference');
+        } finally {
+            setSavingPreference(null);
+        }
+    };
+
     if (!mounted) return null;
 
     return (
@@ -159,6 +237,46 @@ export function SettingsPanel() {
 
             {/* Voice Settings */}
             <VoiceSettings />
+
+            <div className="space-y-2 mb-8">
+                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-600">
+                    Notifications
+                </h2>
+                <div
+                    className="rounded-2xl overflow-hidden"
+                    style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}
+                >
+                    <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--surface-edge)]">
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-200">Email reminders when reviews are due</h3>
+                            <p className="text-xs text-zinc-500 mt-0.5">
+                                Get nudges when your spaced repetition queue needs attention.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={practiceReminders}
+                            onCheckedChange={(checked) => handleNotificationToggle('practice_reminders', checked)}
+                            disabled={!user || notificationsLoading || savingPreference === 'practice_reminders'}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between gap-4 px-5 py-4">
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-200">Email notifications</h3>
+                            <p className="text-xs text-zinc-500 mt-0.5">
+                                Master switch for account emails and reminder delivery.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={emailNotifications}
+                            onCheckedChange={(checked) => handleNotificationToggle('email_notifications', checked)}
+                            disabled={!user || notificationsLoading || savingPreference === 'email_notifications'}
+                        />
+                    </div>
+                </div>
+                {!user && (
+                    <p className="text-xs text-zinc-500">Sign in to manage notification preferences.</p>
+                )}
+            </div>
 
             {/* Storage Info */}
             <div className="space-y-2 mb-8">

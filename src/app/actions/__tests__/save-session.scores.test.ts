@@ -60,17 +60,23 @@ vi.mock('@/lib/cache/dashboardCache', () => ({
     invalidateDashboardCache: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('@/lib/knowledge-graph', () => ({
-    getKnowledgeGraphService: () => ({
-        onInterviewSessionCompleted: vi.fn().mockResolvedValue(undefined),
-    }),
-}));
+vi.mock('@/lib/knowledge-graph');
+
+let mockOnInterviewSessionCompleted: any;
 
 describe('saveInterviewSession scores & profile wiring', () => {
     let mockRpc: any;
 
     beforeEach(async () => {
         vi.clearAllMocks();
+        
+        // Setup KG mock
+        mockOnInterviewSessionCompleted = vi.fn().mockResolvedValue(undefined);
+        const { getKnowledgeGraphService } = await import('@/lib/knowledge-graph');
+        vi.mocked(getKnowledgeGraphService).mockReturnValue({
+            onInterviewSessionCompleted: mockOnInterviewSessionCompleted,
+        });
+        
         const supabase = await createServerSupabase();
         mockRpc = supabase.rpc;
     });
@@ -123,10 +129,6 @@ describe('saveInterviewSession scores & profile wiring', () => {
     });
 
     it('calls getKnowledgeGraphService().onInterviewSessionCompleted after saving', async () => {
-        const { getKnowledgeGraphService } = await import('@/lib/knowledge-graph');
-        const kg = getKnowledgeGraphService();
-        const onInterviewSessionCompletedSpy = vi.spyOn(kg, 'onInterviewSessionCompleted');
-
         // Mock RPC
         mockRpc.mockImplementation(async (name: string) => {
             if (name === 'ensure_learner_profile') {
@@ -137,16 +139,16 @@ describe('saveInterviewSession scores & profile wiring', () => {
 
         // Act: call saveInterviewSession
         const result = await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [
-            { role: 'user', text: 'I will use a hashmap', timestamp: 1000 },
-            { role: 'interviewer', text: 'Great approach', timestamp: 2000 },
-            { role: 'user', text: 'Here is my solution', timestamp: 3000 },
+            { role: 'user', content: 'I will use a hashmap' },
+            { role: 'assistant', content: 'Great approach' },
+            { role: 'user', content: 'Here is my solution' },
         ], 120);
 
         // Assert
         expect(result.success).toBe(true);
-        expect(onInterviewSessionCompletedSpy).toHaveBeenCalledOnce();
+        expect(mockOnInterviewSessionCompleted).toHaveBeenCalledOnce();
 
-        const callArgs = onInterviewSessionCompletedSpy.mock.calls[0][0];
+        const callArgs = mockOnInterviewSessionCompleted.mock.calls[0][0];
         expect(callArgs.userId).toBe('user-id');
         expect(callArgs.overallScore).toBeGreaterThanOrEqual(0);
         expect(callArgs.overallScore).toBeLessThanOrEqual(10);

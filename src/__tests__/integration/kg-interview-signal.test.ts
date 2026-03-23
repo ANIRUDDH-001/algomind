@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph/service';
+import * as supabaseServiceModule from '@/lib/supabase/service';
+import * as monitoringModule from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/service', () => ({
   getServiceClient: vi.fn(),
@@ -31,8 +33,7 @@ describe('KG Interview Signal Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockServiceClient = createChainableMock();
-    const { getServiceClient } = require('@/lib/supabase/service');
-    vi.mocked(getServiceClient).mockReturnValue(mockServiceClient);
+    vi.mocked(supabaseServiceModule.getServiceClient).mockReturnValue(mockServiceClient);
   });
 
   it('updates concept_states confidence upward for a passing score', async () => {
@@ -126,8 +127,6 @@ describe('KG Interview Signal Integration', () => {
   });
 
   it('does not throw when upsert fails — logs error instead', async () => {
-    const { logSystemEvent } = require('@/lib/monitoring/events');
-
     // Setup: mock existing state
     mockServiceClient.maybeSingle = vi.fn().mockResolvedValue({
       data: { confidence: 0.5, evidence_count: 1, signal_history: [] },
@@ -151,7 +150,7 @@ describe('KG Interview Signal Integration', () => {
     ).resolves.not.toThrow();
 
     // Assert: logSystemEvent was called
-    expect(logSystemEvent).toHaveBeenCalled();
+    expect(vi.mocked(monitoringModule.logSystemEvent)).toHaveBeenCalled();
   });
 
   it('handles multiple concept slugs from tags and primaryPattern', async () => {
