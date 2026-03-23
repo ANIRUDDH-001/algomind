@@ -107,6 +107,7 @@ export default function DiagnosticPage() {
   const sendToKai = async (userInput: string) => {
     addMsg('user', userInput);
     setKaiThinking(true);
+    setAudioState('processing');
 
     const updatedMessages = [
       ...messagesRef.current,
@@ -129,9 +130,11 @@ export default function DiagnosticPage() {
 
       if (data.response) {
         addMsg('assistant', data.response);
+        setAudioState('speaking');
       }
     } catch {
       addMsg('assistant', "I ran into a small issue. Could you repeat that?");
+      setAudioState('idle');
     } finally {
       setKaiThinking(false);
     }
