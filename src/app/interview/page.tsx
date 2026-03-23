@@ -14,6 +14,7 @@ import { resolveGuestConfig, resolvePracticeConfig, type InterviewConfig } from 
 import { getKaiMemory } from '@/app/actions/learn';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 import { getSupabase } from '@/lib/supabase/client';
+import { prefetchVADAssets } from '@/lib/voice/vad-manager';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -56,6 +57,10 @@ function InterviewContent() {
         if (localStorage.getItem(STALE_KEY) !== null) {
             localStorage.removeItem(STALE_KEY);
         }
+    }, []);
+
+    useEffect(() => {
+        prefetchVADAssets();
     }, []);
 
     useEffect(() => {
