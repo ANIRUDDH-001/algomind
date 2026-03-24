@@ -12,7 +12,7 @@
 - In progress: `None`
 - Pending: `None`
 - Last resolution review: `2026-03-24`
-- Active findings after pruning resolved items: `221` (`P0:18`, `P1:71`, `P2:111`, `P3:21`)
+- Active findings after pruning resolved items: `220` (`P0:18`, `P1:71`, `P2:110`, `P3:21`)
 
 ## Resolution Review (2026-03-24)
 - Removed as resolved: C02 middleware redundant auth/co-owner DB checks (ownership checks shifted to page/route level).
@@ -24,6 +24,7 @@
 - Removed as resolved: C40 service/browser Supabase singleton invalidation gap (explicit cache reset + env-fingerprint reinit controls added).
 - Removed as resolved: C40 silent cookie-write failure risk (middleware/server cookie sync paths now log failures for observability).
 - Removed as resolved: C37 admin events oversized/unfiltered default payload risk (bounded limit + metadata-stripped response default).
+- Removed as resolved: C38 owner control-plane auditability gap for sensitive actions (`admin_action` logging added for owner user/co-owner mutations).
 
 ---
 
@@ -994,14 +995,13 @@
 ### Findings
 - `P1` Service-role access patterns risk overexposure without fine-grained controls.
 - `P2` Rate-limit override fetching can be inefficient at scale.
-- `P2` Auditability for sensitive owner actions is insufficient.
 
 ### Test posture
 - Missing route-by-route authorization parity tests and audit-trail tests.
 
 ### Quick fix direction
 - Keep explicit permission levels (`owner` vs `co-owner`) codified per route and covered by parity tests.
-- Add action audit trails and field-level exposure controls.
+- Add field-level exposure controls and keep audit event schema stable.
 
 ---
 
