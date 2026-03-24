@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { DIAGNOSTIC_QUESTIONS, TOTAL_DIAGNOSTIC_QUESTIONS } from '@/lib/diagnostic/questions';
 
 type AssessmentState = 'intro' | 'active' | 'submitting' | 'complete';
@@ -28,9 +28,23 @@ export default function DiagnosticPage() {
 
   const currentQuestion = DIAGNOSTIC_QUESTIONS[currentQuestionIndex];
   const isAnswered = selectedValue !== null;
+  const progressPercent = Math.round(((currentQuestionIndex + 1) / TOTAL_DIAGNOSTIC_QUESTIONS) * 100);
 
   const handleSelectAnswer = (value: 1 | 2 | 3 | 4 | 5) => {
     setSelectedValue(value);
+
+    // Record answer immediately
+    const updatedAnswers = answers.filter(a => a.questionId !== currentQuestion.id);
+    const newAnswers = [...updatedAnswers, { questionId: currentQuestion.id, selectedValue: value }];
+    setAnswers(newAnswers);
+
+    // Auto-advance to next question (except last question)
+    if (currentQuestionIndex < TOTAL_DIAGNOSTIC_QUESTIONS - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setSelectedValue(null);
+      }, 800);
+    }
   };
 
   const handleNext = () => {
@@ -162,12 +176,12 @@ export default function DiagnosticPage() {
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-zinc-400">
-                    Question {currentQuestionIndex + 1} of {TOTAL_DIAGNOSTIC_QUESTIONS}
+                    Question {currentQuestionIndex + 1} of {TOTAL_DIAGNOSTIC_QUESTIONS} • {progressPercent}%
                   </span>
                   <div className="w-32 h-1 bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-indigo-600 transition-all"
-                      style={{ width: `${((currentQuestionIndex + 1) / TOTAL_DIAGNOSTIC_QUESTIONS) * 100}%` }}
+                      style={{ width: `${progressPercent}%` }}
                     />
                   </div>
                 </div>
@@ -222,28 +236,21 @@ export default function DiagnosticPage() {
                   <ChevronLeft size={18} />
                   Back
                 </button>
-                <button
-                  onClick={handleNext}
-                  disabled={!isAnswered}
-                  className="flex-1 py-3 px-6 rounded-lg font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {currentQuestionIndex === TOTAL_DIAGNOSTIC_QUESTIONS - 1 ? (
-                    <>
-                      Finish
-                      <ChevronRight size={18} />
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ChevronRight size={18} />
-                    </>
-                  )}
-                </button>
+                {currentQuestionIndex === TOTAL_DIAGNOSTIC_QUESTIONS - 1 && (
+                  <button
+                    onClick={handleNext}
+                    disabled={!isAnswered}
+                    className="flex-1 py-3 px-6 rounded-lg font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  >
+                    Finish
+                    <ChevronRight size={18} />
+                  </button>
+                )}
               </div>
 
               {/* Answer indicator */}
               <p className="text-center text-sm text-zinc-500 mt-4">
-                {isAnswered ? '✓ Answer selected' : 'Select an answer to continue'}
+                {isAnswered ? (currentQuestionIndex < TOTAL_DIAGNOSTIC_QUESTIONS - 1 ? '✓ Answer recorded - advancing in 0.8s...' : '✓ Answer selected - tap Finish to complete') : 'Select an answer to continue'}
               </p>
             </div>
           </motion.div>

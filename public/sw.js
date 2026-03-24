@@ -1,7 +1,7 @@
 // AlgoMind Service Worker
 // Provides offline caching for PWA functionality
 
-const CACHE_NAME = 'algomind-1774376753856';
+const CACHE_NAME = 'algomind-1774378418693';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
@@ -119,14 +119,26 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Default: network first
+    // Default: network first, always return valid Response
     event.respondWith(
         fetch(request)
             .then((response) => {
+                // Validate response before returning
+                if (!response || !(response instanceof Response)) {
+                    return caches.match(request).then(cached => cached || new Response('', { status: 200 }));
+                }
                 return response;
             })
-            .catch(() => {
-                return caches.match(request);
-            })
-    );
-});
+                .catch((err) => {
+                    console.warn('[SW] Navigate fetch failed:', err);
+                    // Offline - try cache, always return valid Response
+                    return caches.match(request)
+                        .then((cached) => {
+                            if (cached) return cached;
+                            return caches.match('/').then(home => home || new Response('', { status: 200 }));
+                        })
+                        .catch((cacheErr) => {
+                            console.warn('[SW] Cache match failed:', cacheErr);
+                            return new Response('Offline', { status: 503 });
+                        });
+                })
