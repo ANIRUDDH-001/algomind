@@ -287,4 +287,191 @@ describe('saveInterviewSession Action', () => {
             duration: 60
         }));
     });
+
+    it('assessment insert failure: returns success:true with assessmentPending:true', async () => {
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+        mockSupabase.from.mockImplementation((table: string) => {
+            if (table === 'interview_sessions') {
+                return {
+                    ...mockSupabase,
+                    insert: vi.fn().mockReturnValue({
+                        select: vi.fn().mockReturnValue({
+                            single: vi.fn().mockResolvedValue({
+                                data: { id: 'session-abc', user_id: 'user-123' },
+                                error: null
+                            })
+                        })
+                    }),
+                    select: vi.fn().mockImplementation((_columns?: string, options?: any) => {
+                        if (options?.count === 'exact' && options?.head === true) {
+                            return {
+                                eq: vi.fn().mockResolvedValue({ count: 1, error: null })
+                            };
+                        }
+                        return {
+                            eq: vi.fn().mockReturnValue({
+                                single: vi.fn().mockResolvedValue({
+                                    data: { description: 'Given...', difficulty: 'medium' },
+                                    error: null
+                                }),
+                                maybeSingle: vi.fn().mockResolvedValue({
+                                    data: { description: 'Given...', difficulty: 'medium' },
+                                    error: null
+                                })
+                            })
+                        };
+                    }),
+                    update: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockResolvedValue({ error: null })
+                        })
+                    })
+                };
+            }
+
+            if (table === 'problems') {
+                return {
+                    ...mockSupabase,
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            single: vi.fn().mockResolvedValue({
+                                data: { description: 'Given...', difficulty: 'medium' },
+                                error: null
+                            }),
+                            maybeSingle: vi.fn().mockResolvedValue({
+                                data: { difficulty: 'medium', tags: ['array'], primary_pattern: 'hash-map' },
+                                error: null
+                            })
+                        })
+                    })
+                };
+            }
+
+            if (table === 'assessments') {
+                return {
+                    ...mockSupabase,
+                    insert: vi.fn().mockResolvedValue({
+                        data: null,
+                        error: { message: 'DB constraint violation', code: '23505' }
+                    })
+                };
+            }
+
+            return { ...mockSupabase };
+        });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'problem-id',
+            'Two Sum',
+            [
+                { role: 'user', content: 'I would use a hashmap', timestamp: new Date() },
+                { role: 'assistant', content: 'Good approach', timestamp: new Date() }
+            ] as any,
+            120
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.sessionId).toBe('session-abc');
+        expect((result as any).assessmentPending).toBe(true);
+    });
+
+    it('memory update failure does not affect session save success', async () => {
+        const { updateKaiMemory } = await import('@/lib/ai/memory-generator');
+        vi.mocked(updateKaiMemory).mockRejectedValueOnce(new Error('Gemini timeout'));
+
+        mockSupabase.auth.getUser.mockResolvedValue({
+            data: { user: { id: 'user-123' } },
+            error: null
+        });
+
+        mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+        mockSupabase.from.mockImplementation((table: string) => {
+            if (table === 'interview_sessions') {
+                return {
+                    ...mockSupabase,
+                    insert: vi.fn().mockReturnValue({
+                        select: vi.fn().mockReturnValue({
+                            single: vi.fn().mockResolvedValue({
+                                data: { id: 'session-ok', user_id: 'user-123' },
+                                error: null
+                            })
+                        })
+                    }),
+                    select: vi.fn().mockImplementation((_columns?: string, options?: any) => {
+                        if (options?.count === 'exact' && options?.head === true) {
+                            return {
+                                eq: vi.fn().mockResolvedValue({ count: 1, error: null })
+                            };
+                        }
+                        return {
+                            eq: vi.fn().mockReturnValue({
+                                single: vi.fn().mockResolvedValue({
+                                    data: { description: 'Given...', difficulty: 'medium' },
+                                    error: null
+                                }),
+                                maybeSingle: vi.fn().mockResolvedValue({
+                                    data: { description: 'Given...', difficulty: 'medium' },
+                                    error: null
+                                })
+                            })
+                        };
+                    }),
+                    update: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockResolvedValue({ error: null })
+                        })
+                    })
+                };
+            }
+
+            if (table === 'problems') {
+                return {
+                    ...mockSupabase,
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            single: vi.fn().mockResolvedValue({
+                                data: { description: 'Given...', difficulty: 'medium' },
+                                error: null
+                            }),
+                            maybeSingle: vi.fn().mockResolvedValue({
+                                data: { difficulty: 'medium', tags: ['array'], primary_pattern: 'hash-map' },
+                                error: null
+                            })
+                        })
+                    })
+                };
+            }
+
+            if (table === 'assessments') {
+                return {
+                    ...mockSupabase,
+                    insert: vi.fn().mockResolvedValue({ data: null, error: null })
+                };
+            }
+
+            return { ...mockSupabase };
+        });
+
+        const result = await saveInterviewSession(
+            'user-123',
+            'problem-id',
+            'Two Sum',
+            [
+                { role: 'user', content: 'hashmap', timestamp: new Date() },
+                { role: 'assistant', content: 'correct', timestamp: new Date() }
+            ] as any,
+            120
+        );
+
+        expect(result.success).toBe(true);
+        expect((result as any).assessmentPending).toBeUndefined();
+    });
 });

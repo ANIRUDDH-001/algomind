@@ -625,7 +625,7 @@ export function InterviewSession({
                                 ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                                 : durationSecs;
 
-                            const { success, error: saveError, sessionId } = await saveInterviewSession(
+                            const { success, error: saveError, sessionId, assessmentPending } = await saveInterviewSession(
                                 user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
@@ -634,7 +634,8 @@ export function InterviewSession({
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
                                 // A5: Auto-navigate to analysis page
-                                router.push(`/interview/analysis?sessionId=${sessionId}`);
+                                const pendingQuery = assessmentPending ? '&pending=true' : '';
+                                router.push(`/interview/analysis?sessionId=${sessionId}${pendingQuery}`);
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);

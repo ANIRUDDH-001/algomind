@@ -136,6 +136,8 @@ export async function saveInterviewSession(
             return { success: false, error: error.message, status: 500 };
         }
 
+        let assessmentPending = false;
+
         // 4. Save assessment details (Requirement 6)
         if (finalResult) {
             // Map skill keys (hyphenated) to DB columns (underscored)
@@ -175,7 +177,39 @@ export async function saveInterviewSession(
 
             if (assessmentError) {
                 console.error('⚠️ [ACTION] Failed to save assessment object (partial success):', assessmentError);
-                // Requirement 6: We return success: true because the session itself is saved
+                assessmentPending = true;
+
+                const feedbackWithPending = {
+                    ...(typeof finalResult === 'object' && finalResult
+                        ? (finalResult as unknown as Record<string, unknown>)
+                        : {}),
+                    assessmentPending: true,
+                    assessmentWriteFailed: true,
+                    assessmentRetryRequired: true,
+                    assessmentWriteError: assessmentError.message,
+                };
+
+                try {
+                    const interviewSessionsQuery = supabase.from('interview_sessions') as any;
+
+                    if (typeof interviewSessionsQuery?.update === 'function') {
+                        const { error: pendingStatusError } = await interviewSessionsQuery
+                            .update({
+                                status: 'pending',
+                                feedback: feedbackWithPending,
+                            })
+                            .eq('id', sessionData.id)
+                            .eq('user_id', userId);
+
+                        if (pendingStatusError) {
+                            console.error('⚠️ [ACTION] Failed to set interview session pending state:', pendingStatusError);
+                        }
+                    } else {
+                        console.error('⚠️ [ACTION] interview_sessions pending-state update unavailable on query builder');
+                    }
+                } catch (pendingUpdateErr) {
+                    console.error('⚠️ [ACTION] Failed to apply pending-state fallback update:', pendingUpdateErr);
+                }
             }
 
             // Hire readiness trend tracking
@@ -286,13 +320,16 @@ export async function saveInterviewSession(
             // Non-fatal — session already saved successfully
         }
 
-        // 6. Update Kai Memory separately (fire & forget to avoid blocking UI)
+        // Memory update — awaited so failure is catchable and logged properly
         try {
-            updateKaiMemory(userId).catch(err => {
-                console.error('❌ Error updating Kai memory:', err);
-            });
+            await updateKaiMemory(userId);
+        } catch (memErr) {
+            console.error('[save-session] Kai memory update failed (non-fatal):', memErr);
+            // Non-fatal: session is already saved. Memory will be stale for next session.
+        }
 
-            // 7. Session 1 Baseline Check
+        // Session 1 baseline — only runs once, must succeed
+        try {
             const { count, error: countError } = await supabase
                 .from('interview_sessions')
                 .select('*', { count: 'exact', head: true })
@@ -312,17 +349,20 @@ export async function saveInterviewSession(
                     skills: skillsForBaseline,
                     completedAt: new Date().toISOString()
                 };
-                createAndSaveSession1Baseline(userId, sessionDataForBaseline).catch(err => {
-                    console.error('❌ Error saving Session 1 baseline:', err);
-                });
+                await createAndSaveSession1Baseline(userId, sessionDataForBaseline);
             }
-        } catch (memErr) {
-            console.error('❌ Unhandled error in memory/baseline generation:', memErr);
+        } catch (baselineErr) {
+            console.error('[save-session] Session 1 baseline failed (non-fatal):', baselineErr);
+            // Non-fatal: baseline is cosmetic. Student can still use the product.
         }
         try {
             const { invalidateDashboardCache } = await import('@/lib/cache/dashboardCache');
             await invalidateDashboardCache(userId);
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
+
+        if (assessmentPending) {
+            return { success: true, sessionId: sessionData.id, assessmentPending: true };
+        }
 
         return { success: true, sessionId: sessionData.id };
     } catch (e) {
