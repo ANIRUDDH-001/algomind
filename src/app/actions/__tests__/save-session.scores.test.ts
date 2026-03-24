@@ -75,7 +75,7 @@ describe('saveInterviewSession scores & profile wiring', () => {
         const { getKnowledgeGraphService } = await import('@/lib/knowledge-graph');
         vi.mocked(getKnowledgeGraphService).mockReturnValue({
             onInterviewSessionCompleted: mockOnInterviewSessionCompleted,
-        });
+        } as ReturnType<typeof getKnowledgeGraphService>);
         
         const supabase = await createServerSupabase();
         mockRpc = supabase.rpc;
