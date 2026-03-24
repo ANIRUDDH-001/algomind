@@ -2,9 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/owner/rate-limits/route';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 
 vi.mock('@/lib/supabase/server', () => ({
     createServerSupabase: vi.fn()
+}));
+
+vi.mock('@/lib/auth/account-type', () => ({
+    isOwnerOrCoOwner: vi.fn()
 }));
 
 describe('owner/rate-limits API', () => {
@@ -41,7 +46,6 @@ describe('owner/rate-limits API', () => {
             from: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { account_type: 'owner' } }),
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockResolvedValue({
                 data: [{ identifier: '1.2.3.4', success: false, attempted_at: new Date().toISOString() }],
@@ -49,6 +53,7 @@ describe('owner/rate-limits API', () => {
             })
         };
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
 
         const req = createGETRequest();
         const res = await GET();
@@ -66,11 +71,11 @@ describe('owner/rate-limits API', () => {
             from: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { account_type: 'owner' } }),
             gte: vi.fn().mockReturnThis(),
             order: vi.fn().mockRejectedValue(new Error('DB failure'))
         };
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
 
         const req = createGETRequest();
         const res = await GET();

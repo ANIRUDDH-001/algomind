@@ -55,7 +55,7 @@ describe('Per-skill FSRS scheduling (integration)', () => {
     });
 
     it('score 2/10 on complexity-analysis -> due sooner than score 8/10', () => {
-        const scheduler = new FSRS();
+        const scheduler = new FSRS({});
         const now = new Date();
 
         const bad = scheduler.next(createEmptyCard(), now, Rating.Again).card;
@@ -65,7 +65,7 @@ describe('Per-skill FSRS scheduling (integration)', () => {
     });
 
     it('multiple sessions on same skill accumulates reps correctly', () => {
-        const scheduler = new FSRS();
+        const scheduler = new FSRS({});
         let card = createEmptyCard();
         const stabilities: number[] = [];
 

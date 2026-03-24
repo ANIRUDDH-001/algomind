@@ -1,38 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const { user, errorResponse } = await requireOwnerForApi();
+        if (errorResponse) return errorResponse;
+
         const supabase = await createServerSupabase();
-
-        // Verify owner status
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('account_type')
-            .eq('id', user.id)
-            .single();
-
-        if (profile?.account_type !== 'owner') {
-            // Also check co_owners
-            const emailClause = user.email ? `,email.eq.${user.email}` : '';
-            const { data: coOwner } = await supabase
-                .from('co_owners')
-                .select('id')
-                .or(`user_id.eq.${user.id}${emailClause}`)
-                .limit(1)
-                .maybeSingle();
-
-            if (!coOwner) {
-                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-            }
-        }
 
         const { data } = await supabase
             .from('code_attempts')
