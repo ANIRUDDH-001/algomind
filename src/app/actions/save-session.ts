@@ -373,3 +373,102 @@ export async function saveInterviewSession(
         return { success: false, error: errorMessage, status: 500 };
     }
 }
+
+/**
+ * Re-run AI scoring for a session that has no assessment row.
+ * Called from the analysis page when assessment is missing.
+ */
+export async function retryAssessment(sessionId: string): Promise<{
+    success: boolean;
+    error?: string;
+}> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    // Fetch the session — must belong to this user
+    const { data: session, error: sessionErr } = await supabase
+        .from('interview_sessions')
+        .select('id, user_id, problem_id, problem_title, transcript, duration, difficulty_mode')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .single();
+
+    if (sessionErr || !session) {
+        return { success: false, error: 'Session not found' };
+    }
+
+    // Check no assessment already exists (prevent duplicate)
+    const { data: existing } = await supabase
+        .from('assessments')
+        .select('id')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+    if (existing) {
+        return { success: false, error: 'Assessment already exists' };
+    }
+
+    // Re-run the analyzer
+    try {
+        const { CognitiveAnalyzer } = await import('@/lib/assessment/analyzer');
+        const analyzer = new CognitiveAnalyzer();
+
+        const { data: prob } = await supabase
+            .from('problems')
+            .select('description, difficulty')
+            .eq('id', session.problem_id)
+            .single();
+
+        const transcript = Array.isArray(session.transcript) ? session.transcript : [];
+        const result = await analyzer.analyze(
+            sessionId,
+            {
+                title: session.problem_title || '',
+                description: prob?.description || '',
+                difficulty: prob?.difficulty || 'medium'
+            },
+            transcript as any[]
+        );
+
+        // Save the assessment row
+        const skills = result.skills || {};
+        const isWarmUp = session.difficulty_mode === 'warm-up';
+
+        const { error: insertErr } = await supabase
+            .from('assessments')
+            .insert({
+                session_id: sessionId,
+                user_id: user.id,
+                overall_score: result.rawScore ?? 0,
+                adjusted_score: result.adjustedScore ?? null,
+                overall_feedback: result.overallFeedback,
+                next_steps: result.nextSteps,
+                skill_evidence: result.skills,
+                hire_decision: isWarmUp ? null : (result.hireDecision ?? null),
+                problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
+                pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
+                algorithmic_thinking: (skills['algorithmic-thinking'] as any)?.score ?? null,
+                complexity_analysis: (skills['complexity-analysis'] as any)?.score ?? null,
+                communication_clarity: (skills['communication-clarity'] as any)?.score ?? null,
+                edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
+                optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
+                debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
+                model_used: result.modelUsed ?? 'unknown',
+                confidence: 0.8,
+                validation_pass_done: result.validationPassDone ?? false,
+                sub_criteria: Object.fromEntries(
+                    Object.entries(skills).map(([k, v]) => [k, (v as any).subCriteria || {}])
+                )
+            });
+
+        if (insertErr) {
+            return { success: false, error: insertErr.message };
+        }
+
+        return { success: true };
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Analysis failed';
+        return { success: false, error: msg };
+    }
+}

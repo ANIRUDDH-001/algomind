@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, MessageSquare, Calendar, TrendingUp, Plus, LayoutDashboard, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
 import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
+import { retryAssessment } from '@/app/actions/save-session';
 import dynamic from 'next/dynamic';
 import type { CognitiveSkill } from '@/types/assessment';
 import { ConceptImpactBadge, type ConceptImpact } from '@/components/interview/ConceptImpactBadge';
@@ -100,12 +102,61 @@ interface PreviousAttempt {
 interface AnalysisClientProps {
     session: SessionData;
     assessment: AssessmentData | null;
+    assessmentStatus?: 'pending' | 'ready';
     reviewData: SpacedReviewData | null;
     previousAttempts: PreviousAttempt[];
     flags: {
         enableComparative: boolean;
         enableLearnMode: boolean;
     };
+}
+
+function PendingRefreshButton({ sessionId }: { sessionId: string }) {
+    const router = useRouter();
+    const [countdown, setCountdown] = useState(15);
+    // After 30s of pending, show manual retry button
+    const [showRetry, setShowRetry] = useState(false);
+
+    useEffect(() => {
+        if (countdown <= 0) {
+            router.refresh();
+            return;
+        }
+
+        const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [countdown, router]);
+
+    useEffect(() => {
+        const t = setTimeout(() => setShowRetry(true), 30_000);
+        return () => clearTimeout(t);
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <p className="text-zinc-500 text-xs">
+                Auto-refreshing in {countdown}s...
+            </p>
+            <button
+                onClick={() => router.refresh()}
+                className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors"
+                aria-label={`Refresh analysis for session ${sessionId}`}
+            >
+                Refresh Now
+            </button>
+            {showRetry && (
+                <button
+                    onClick={async () => {
+                        const result = await retryAssessment(sessionId);
+                        if (result.success) router.refresh();
+                    }}
+                    className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors"
+                >
+                    Retry Analysis
+                </button>
+            )}
+        </div>
+    );
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -306,10 +357,33 @@ function formatDuration(seconds: number): string {
 export function AnalysisClient({
     session,
     assessment,
+    assessmentStatus,
     reviewData,
     previousAttempts,
     flags,
 }: AnalysisClientProps) {
+    // Show pending state if assessment is not ready
+    if (assessmentStatus === 'pending' || !assessment) {
+        return (
+            <div
+                className="min-h-screen flex flex-col items-center justify-center gap-6"
+                style={{ background: 'var(--surface-0)' }}
+            >
+                <div className="text-center space-y-3 max-w-md px-4">
+                    <div className="text-4xl">⏳</div>
+                    <h2 className="text-xl font-bold text-white">
+                        Analysis in Progress
+                    </h2>
+                    <p className="text-zinc-400 text-sm">
+                        Your interview has been saved. AI scoring takes up to 30 seconds.
+                        This page will refresh automatically.
+                    </p>
+                </div>
+                <PendingRefreshButton sessionId={session.id} />
+            </div>
+        );
+    }
+
     const skills = assessment?.skills;
     const weakSubCriteria = extractWeakSubCriteria(assessment?.subCriteria);
     const hasTranscript = session.transcript && session.transcript.length > 0;
