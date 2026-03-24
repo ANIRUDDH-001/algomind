@@ -123,8 +123,28 @@ export default async function middleware(request: NextRequest) {
             .select('has_completed_diagnostic')
             .eq('id', user.id)
             .single();
-        
-        if (!profile?.has_completed_diagnostic) {
+
+        let hasCompletedDiagnostic = Boolean(profile?.has_completed_diagnostic);
+
+        if (!hasCompletedDiagnostic) {
+            const { data: conceptStates, error: conceptStateError } = await supabase
+                .from('concept_states')
+                .select('id')
+                .eq('user_id', user.id)
+                .gt('evidence_count', 0)
+                .limit(1);
+
+            hasCompletedDiagnostic = !conceptStateError && (conceptStates?.length ?? 0) > 0;
+
+            if (hasCompletedDiagnostic) {
+                await supabase
+                    .from('profiles')
+                    .update({ has_completed_diagnostic: true })
+                    .eq('id', user.id);
+            }
+        }
+
+        if (!hasCompletedDiagnostic) {
             const url = request.nextUrl.clone();
             url.pathname = '/learn/diagnostic';
             return NextResponse.redirect(url);

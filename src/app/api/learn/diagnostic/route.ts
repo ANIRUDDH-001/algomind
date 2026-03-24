@@ -164,6 +164,36 @@ async function fallbackInitializeConceptStates(
   }
 }
 
+async function markDiagnosticCompletedProfile(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  userId: string,
+  context: string,
+): Promise<void> {
+  const maybeFrom = (supabase as { from?: unknown }).from;
+  if (typeof maybeFrom !== 'function') {
+    return;
+  }
+
+  const from = maybeFrom as (table: string) => {
+    update: (payload: { has_completed_diagnostic: boolean }) => {
+      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+
+  const { error } = await from('profiles')
+    .update({ has_completed_diagnostic: true })
+    .eq('id', userId);
+
+  if (error) {
+    await logSystemEvent({
+      type: 'db_error',
+      userId,
+      errorMessage: `Failed to set has_completed_diagnostic: ${error.message}`,
+      metadata: { context },
+    });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase();
@@ -200,6 +230,7 @@ export async function POST(req: NextRequest) {
 
       await getKnowledgeGraphService().initializeFromDiagnostic(user.id, body.results);
       await invalidateStudentContext(user.id);
+      await markDiagnosticCompletedProfile(supabase, user.id, 'learn_diagnostic.profile_update_legacy');
 
       const nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined;
 
@@ -238,6 +269,7 @@ export async function POST(req: NextRequest) {
       }
 
       await invalidateStudentContext(user.id);
+      await markDiagnosticCompletedProfile(supabase, user.id, 'learn_diagnostic.profile_update_mcq');
 
       let nextRecommendedConcept: string | undefined;
       try {

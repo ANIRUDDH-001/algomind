@@ -104,11 +104,34 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.error('ServiceWorker registration failed: ', err);
-                  });
-                });
+                (function () {
+                  const reloadKey = 'sw-kill-switch-reloaded';
+
+                  navigator.serviceWorker.getRegistrations()
+                    .then(function (registrations) {
+                      return Promise.all(registrations.map(function (registration) {
+                        return registration.unregister();
+                      }));
+                    })
+                    .then(function () {
+                      if ('caches' in window) {
+                        return caches.keys().then(function (keys) {
+                          return Promise.all(keys.map(function (key) {
+                            return caches.delete(key);
+                          }));
+                        });
+                      }
+                    })
+                    .then(function () {
+                      if (navigator.serviceWorker.controller && !sessionStorage.getItem(reloadKey)) {
+                        sessionStorage.setItem(reloadKey, '1');
+                        window.location.reload();
+                      }
+                    })
+                    .catch(function (err) {
+                      console.error('ServiceWorker cleanup failed: ', err);
+                    });
+                })();
               }
             `,
           }}
