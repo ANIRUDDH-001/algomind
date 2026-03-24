@@ -25,7 +25,41 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
         }
 
-        // 2. Aggregate stats & submsissions in one view (Using simpler joined approach)
+        // Prefer relational links over JSON blob
+        const { data: problemLinks } = await supabase
+            .from('campaign_problem_links')
+            .select(`
+                problem_id,
+                time_limit_min,
+                order_index,
+                problems (
+                    id,
+                    title,
+                    description,
+                    difficulty,
+                    tags
+                )
+            `)
+            .eq('campaign_id', id)
+            .order('order_index');
+
+        // If links exist, use them; otherwise fall back to JSON
+        const questions = problemLinks && problemLinks.length > 0
+            ? problemLinks.map(link => ({
+                problemId: link.problem_id,
+                timeLimitMin: link.time_limit_min,
+                orderIndex: link.order_index,
+                // Include problem data if joined
+                ...(link.problems ? {
+                    title: (link.problems as any).title,
+                    description: (link.problems as any).description,
+                    difficulty: (link.problems as any).difficulty,
+                    tags: (link.problems as any).tags,
+                } : {})
+            }))
+            : campaign.campaign_questions; // legacy fallback
+
+        // 2. Aggregate stats & submissions in one view (Using simpler joined approach)
         const { data: submissions, error: subError } = await supabase
             .from('candidate_submissions')
             .select('*, assessments(overall_score)')
@@ -47,7 +81,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const avgScore = count > 0 ? (totalScore / count) : 0;
 
         return NextResponse.json({
-            campaign,
+            campaign: {
+                ...campaign,
+                questions
+            },
             stats: {
                 total_submissions: submissions.length,
                 completed: count,

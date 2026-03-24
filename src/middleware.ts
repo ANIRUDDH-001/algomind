@@ -121,36 +121,9 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    // OWNER-001: Protect /owner routes — only owners & co-owners allowed
-    if (user && isOwnerRoute) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('account_type')
-            .eq('id', user.id)
-            .single();
-
-        const isOwner = profile?.account_type === 'owner';
-
-        // Check co_owners by user_id OR email for maximum reliability.
-        // user_id may not be backfilled yet for pre-existing co-owners.
-        let isCoOwner = false;
-        if (!isOwner) {
-            const emailClause = user.email ? `,email.eq.${user.email}` : '';
-            const { data: coOwner } = await supabase
-                .from('co_owners')
-                .select('id')
-                .or(`user_id.eq.${user.id}${emailClause}`)
-                .limit(1)
-                .maybeSingle();
-            isCoOwner = !!coOwner;
-        }
-
-        if (!isOwner && !isCoOwner) {
-            const url = request.nextUrl.clone();
-            url.pathname = '/dashboard';
-            return NextResponse.redirect(url);
-        }
-    }
+    // Owner/co-owner authorization is handled at the page/route level, not middleware.
+    // This reduces redundant DB calls. The owner page performs its own auth check
+    // before rendering. Non-owners who navigate to /owner/ will hit the page guard.
 
     return supabaseResponse;
 }
