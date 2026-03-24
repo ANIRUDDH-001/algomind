@@ -25,8 +25,10 @@ export async function createServerSupabase(): Promise<SupabaseClient> {
                         cookiesToSet.forEach(({ name, value, options }) => {
                             cookieStore.set(name, value, options);
                         });
-                    } catch {
-                        // Ignore — this runs in Server Components where cookies are read-only
+                    } catch (error) {
+                        // Server Components can have read-only cookie stores.
+                        // Log for observability to avoid silent auth state drift.
+                        console.warn('[createServerSupabase] Unable to persist auth cookies:', error);
                     }
                 },
             },
