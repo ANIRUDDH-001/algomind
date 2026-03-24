@@ -12,7 +12,7 @@
 - In progress: `None`
 - Pending: `None`
 - Last resolution review: `2026-03-24`
-- Active findings after pruning resolved items: `222` (`P0:18`, `P1:71`, `P2:112`, `P3:21`)
+- Active findings after pruning resolved items: `221` (`P0:18`, `P1:71`, `P2:111`, `P3:21`)
 
 ## Resolution Review (2026-03-24)
 - Removed as resolved: C02 middleware redundant auth/co-owner DB checks (ownership checks shifted to page/route level).
@@ -23,6 +23,7 @@
 - Removed as resolved: C39 export/transcript sanitization gap (CSV output hardened + transcript payload redaction + export rate limits).
 - Removed as resolved: C40 service/browser Supabase singleton invalidation gap (explicit cache reset + env-fingerprint reinit controls added).
 - Removed as resolved: C40 silent cookie-write failure risk (middleware/server cookie sync paths now log failures for observability).
+- Removed as resolved: C37 admin events oversized/unfiltered default payload risk (bounded limit + metadata-stripped response default).
 
 ---
 
@@ -970,7 +971,6 @@
 
 ### Findings
 - `P2` Server-side auth gating is weaker than desired for some page/API surfaces.
-- `P2` Event API defaults can return large unfiltered payloads.
 - `P3` Complex client-side aggregation logic is difficult to reason/test.
 - `P3` Model status pathways rely on stale/non-persistent telemetry sources.
 

@@ -6,6 +6,8 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 export const dynamic = 'force-dynamic';
 
 const CACHE_TTL_SECONDS = 30;
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 200;
 
 export async function GET(request: Request) {
     try {
@@ -15,17 +17,19 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
         const days = parseInt(searchParams.get('days') || '7', 10);
-        const limitStr = searchParams.get('limit') || '100';
+        const limitStr = searchParams.get('limit') || String(DEFAULT_LIMIT);
         const refresh = searchParams.get('refresh') === 'true';
+        const includeMetadata = searchParams.get('includeMetadata') === 'true';
         // Enforce max limit for safety
-        const limit = Math.min(parseInt(limitStr, 10), 1000);
+        const parsedLimit = Number.isNaN(parseInt(limitStr, 10)) ? DEFAULT_LIMIT : parseInt(limitStr, 10);
+        const limit = Math.max(1, Math.min(parsedLimit, MAX_LIMIT));
 
         // ── Cache keys ──
         const eventsCacheKey = `admin:events:${days}:${type || 'all'}`;
         const statsCacheKey = `admin:stats:${days}`;
 
         // ── Try cache first (unless ?refresh=true) ──
-        if (!refresh) {
+        if (!refresh && !includeMetadata) {
             const [cachedEvents, cachedStats] = await Promise.all([
                 redisGet(eventsCacheKey),
                 redisGet(statsCacheKey),
@@ -131,7 +135,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json({
-            events,
+            events: includeMetadata ? events : strippedEvents,
             analytics,
             systemStats,
             totalCount: count
