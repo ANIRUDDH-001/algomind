@@ -1,169 +1,306 @@
 /**
  * @page /learn/diagnostic
- * @description New user diagnostic onboarding — Kai-guided assessment.
- * @phase Phase 2J
+ * @description MCQ-based technical diagnostic assessment
+ * @phase Phase 5 - MCQ Implementation
  */
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, CheckCircle, Send, Loader2, Volume2, Square } from 'lucide-react';
+import { CheckCircle, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { DIAGNOSTIC_QUESTIONS, TOTAL_DIAGNOSTIC_QUESTIONS } from '@/lib/diagnostic/questions';
 
-type DiagnosticState = 'intro' | 'active' | 'processing' | 'complete';
-type AudioState = 'idle' | 'listening' | 'speaking' | 'processing';
+type AssessmentState = 'intro' | 'active' | 'submitting' | 'complete';
 
-interface MessageEntry {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
+interface Answer {
+  questionId: number;
+  selectedValue: 1 | 2 | 3 | 4 | 5;
 }
 
-type SpeechRecognitionResultEntry = {
-  transcript: string;
-};
+type AssessmentState = 'intro' | 'active' | 'submitting' | 'complete';
 
-type SpeechRecognitionResultLike = {
-  isFinal: boolean;
-  [index: number]: SpeechRecognitionResultEntry;
-};
-
-type SpeechRecognitionResultListLike = {
-  length: number;
-  [index: number]: SpeechRecognitionResultLike;
-};
-
-type SpeechRecognitionEventLike = {
-  resultIndex: number;
-  results: SpeechRecognitionResultListLike;
-};
-
-type SpeechRecognitionLike = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onstart?: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEventLike) => void | Promise<void>) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionCtorLike = new () => SpeechRecognitionLike;
-
-const DIAGNOSTIC_WELCOME = "Welcome to AlgoMind! I'm Kai, your AI tutor. I'll ask you a few quick questions to understand where you're at with Data Structures and Algorithms. There are no right or wrong answers — just be honest, and I'll calibrate your learning path. Ready to begin?";
+interface Answer {
+  questionId: number;
+  selectedValue: 1 | 2 | 3 | 4 | 5;
+}
 
 export default function DiagnosticPage() {
   const router = useRouter();
-  const [state, setState] = useState<DiagnosticState>('intro');
-  const [audioState, setAudioState] = useState<AudioState>('idle');
-  const [messages, setMessages] = useState<MessageEntry[]>([]);
-  const [sessionId] = useState(() => `diag-${Date.now()}`);
-  const [kaiThinking, setKaiThinking] = useState(false);
-  const [textInput, setTextInput] = useState('');
-  const [interimVoiceText, setInterimVoiceText] = useState('');
-  const [canComplete, setCanComplete] = useState(false);
-  const [totalQuestions, setTotalQuestions] = useState(8);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const messageIdCounter = useRef(0);
-  const messagesRef = useRef<MessageEntry[]>([]);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const [state, setState] = useState<AssessmentState>('intro');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [selectedValue, setSelectedValue] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
 
-  const addMsg = (role: 'user' | 'assistant', content: string) => {
-    const id = `msg-${Date.now()}-${messageIdCounter.current++}`;
-    setMessages(prev => {
-      const next = [...prev, { id, role, content }];
-      messagesRef.current = next;
-      return next;
-    });
+  const currentQuestion = DIAGNOSTIC_QUESTIONS[currentQuestionIndex];
+  const isAnswered = selectedValue !== null;
+
+  const handleSelectAnswer = (value: 1 | 2 | 3 | 4 | 5) => {
+    setSelectedValue(value);
   };
 
-  // Auto-start (guarded with ref to prevent double-mount in strict mode)
-  const hasBootstrappedRef = useRef(false);
-  useEffect(() => {
-    if (hasBootstrappedRef.current) return;
-    hasBootstrappedRef.current = true;
+  const handleNext = () => {
+    if (!isAnswered) return;
 
-    // Immediately add welcome message and set active state
-    addMsg('assistant', DIAGNOSTIC_WELCOME);
-    setState('active');
-  }, []);
+    // Record answer
+    const updatedAnswers = answers.filter(a => a.questionId !== currentQuestion.id);
+    setAnswers([...updatedAnswers, { questionId: currentQuestion.id, selectedValue: selectedValue! }]);
 
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Move to next or finish
+    if (currentQuestionIndex < TOTAL_DIAGNOSTIC_QUESTIONS - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setSelectedValue(null);
+    } else {
+      handleSubmit([...updatedAnswers, { questionId: currentQuestion.id, selectedValue: selectedValue! }]);
+    }
+  };
 
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  const handleBack = () => {
+    if (currentQuestionIndex > 0) {
+      const prevQuestion = DIAGNOSTIC_QUESTIONS[currentQuestionIndex - 1];
+      const prevAnswer = answers.find(a => a.questionId === prevQuestion.id);
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setSelectedValue(prevAnswer?.selectedValue || null);
+    }
+  };
 
-  useEffect(() => {
-    return () => {
-      recognitionRef.current?.stop();
-    };
-  }, []);
-
-  const sendToKai = async (userInput: string) => {
-    addMsg('user', userInput);
-    setKaiThinking(true);
-    setAudioState('processing');
-
-    const updatedMessages = [
-      ...messagesRef.current,
-      { id: 'user-new', role: 'user' as const, content: userInput },
-    ];
-    const nextUserTurns = updatedMessages.filter((message) => message.role === 'user').length;
+  const handleSubmit = async (finalAnswers: Answer[]) => {
+    setState('submitting');
+    console.log('[Diagnostic] Submitting answers:', finalAnswers);
 
     try {
       const res = await fetch('/api/learn/diagnostic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-          sessionId,
+          answers: finalAnswers,
+          action: 'complete',
         }),
       });
 
-      const data = await res.json().catch(() => ({} as {
-        response?: string;
-        shouldComplete?: boolean;
-        totalQuestions?: number;
-        error?: string;
-      }));
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to continue diagnostic');
+      const data = await res.json().catch(() => ({}));
+      console.log('[Diagnostic] API response:', { ok: res.ok, status: res.status, data });
+
+      if (!res.ok || data.success === false) {
+        const errorMsg = (data as { error?: string }).error || 'Failed to complete diagnostic';
+        console.error('[Diagnostic] Submission failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
-      if (typeof data.totalQuestions === 'number' && data.totalQuestions > 0) {
-        setTotalQuestions(data.totalQuestions);
-      }
+      // Success: show completion screen
+      setState('complete');
+      localStorage.setItem('diagnosticCompletedAt', new Date().toISOString());
+      console.log('[Diagnostic] Assessment complete, waiting 2s before redirect...');
 
-      setCanComplete(Boolean(data.shouldComplete) || nextUserTurns >= totalQuestions);
+      // Wait for user to see success message
+      await new Promise(r => setTimeout(r, 2000));
 
-      if (data.response) {
-        addMsg('assistant', data.response);
-        setAudioState('idle');
+      // Navigate to learn
+      console.log('[Diagnostic] Redirecting to /learn');
+      try {
+        router.replace('/learn');
+      } catch (routerErr) {
+        console.error('[Diagnostic] router.replace failed:', routerErr);
+        window.location.href = '/learn';
       }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'I ran into a small issue. Could you repeat that?';
-      addMsg('assistant', message);
-      setAudioState('idle');
-    } finally {
-      setKaiThinking(false);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[Diagnostic] Submission error:', errMsg);
+
+      // Fallback: redirect anyway after delay
+      setTimeout(() => {
+        console.warn('[Diagnostic] Fallback redirect to /learn');
+        window.location.href = '/learn';
+      }, 3000);
+
+      setState('active');
     }
   };
 
-  const completeDiagnostic = async (finalMessages: MessageEntry[], retryCount = 0) => {
-    setState('processing');
-    const startTime = Date.now();
-    
-    try {
-      // Step 1: Send completion request
-      console.log('[Diagnostic] Starting completion...', { sessionId, messageCount: finalMessages.length, attempt: retryCount + 1 });
-      
-      const res = await fetch('/api/learn/diagnostic', {
-        method: 'POST',
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-[#0A0A0F] to-[#1A1A2E] flex flex-col">
+      {/* Header */}
+      <div className="shrink-0 max-w-2xl mx-auto px-4 py-8 w-full">
+        <h1 className="text-3xl font-bold text-white">Technical Assessment</h1>
+        <p className="text-zinc-400 mt-2">Let's calibrate your knowledge level</p>
+      </div>
+
+      {/* Intro Screen */}
+      <AnimatePresence>
+        {state === 'intro' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1 flex items-center justify-center px-4 pb-20"
+          >
+            <div className="max-w-md w-full bg-[#1A1A2E] border border-indigo-500/20 rounded-xl p-8 text-center">
+              <h2 className="text-2xl font-bold text-white mb-4">Ready to begin?</h2>
+              <p className="text-zinc-400 mb-6">
+                Answer 8 quick questions to build your personalized learning profile. No right or wrong answers.
+              </p>
+              <p className="text-sm text-zinc-500 mb-8">
+                ~3 minutes to complete
+              </p>
+              <button
+                onClick={() => setState('active')}
+                className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Start Assessment
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Question Screen */}
+      <AnimatePresence>
+        {state === 'active' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex items-center justify-center px-4 pb-20"
+          >
+            <div className="w-full max-w-2xl">
+              {/* Progress Bar */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-zinc-400">
+                    Question {currentQuestionIndex + 1} of {TOTAL_DIAGNOSTIC_QUESTIONS}
+                  </span>
+                  <div className="w-32 h-1 bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-600 transition-all"
+                      style={{ width: `${((currentQuestionIndex + 1) / TOTAL_DIAGNOSTIC_QUESTIONS) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Question Card */}
+              <motion.div
+                key={currentQuestion.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-[#1A1A2E] border border-indigo-500/20 rounded-lg p-8 mb-8"
+              >
+                <h2 className="text-2xl font-bold text-white mb-3">{currentQuestion.title}</h2>
+                {currentQuestion.description && (
+                  <p className="text-zinc-300 mb-6">{currentQuestion.description}</p>
+                )}
+              </motion.div>
+
+              {/* Answer Options */}
+              <motion.div
+                className="space-y-3 mb-8"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {currentQuestion.answers.map((answer) => (
+                  <button
+                    key={answer.value}
+                    onClick={() => handleSelectAnswer(answer.value)}
+                    className={`w-full py-4 px-6 rounded-lg font-medium text-white transition-all text-center ${
+                      selectedValue === answer.value
+                        ? answer.color + ' ring-2 ring-offset-2 ring-offset-[#0A0A0F]'
+                        : 'bg-zinc-800 hover:bg-zinc-700 border border-zinc-700'
+                    }`}
+                  >
+                    <span className="inline-block mr-3 font-bold">
+                      {answer.value}
+                    </span>
+                    {answer.label}
+                  </button>
+                ))}
+              </motion.div>
+
+              {/* Navigation */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleBack}
+                  disabled={currentQuestionIndex === 0}
+                  className="flex-1 py-3 px-6 rounded-lg font-medium text-white bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  <ChevronLeft size={18} />
+                  Back
+                </button>
+                <button
+                  onClick={handleNext}
+                  disabled={!isAnswered}
+                  className="flex-1 py-3 px-6 rounded-lg font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {currentQuestionIndex === TOTAL_DIAGNOSTIC_QUESTIONS - 1 ? (
+                    <>
+                      Finish
+                      <ChevronRight size={18} />
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ChevronRight size={18} />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Answer indicator */}
+              <p className="text-center text-sm text-zinc-500 mt-4">
+                {isAnswered ? '✓ Answer selected' : 'Select an answer to continue'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Submitting Screen */}
+      <AnimatePresence>
+        {state === 'submitting' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#0A0A0F]/95 flex flex-col items-center justify-center gap-4 z-20"
+          >
+            <motion.div
+              className="w-12 h-12 rounded-full border-2 border-indigo-500 border-t-transparent"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+            />
+            <p className="text-zinc-300 font-medium">Analyzing your responses...</p>
+            <p className="text-zinc-500 text-sm">Building your profile</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Complete Screen */}
+      <AnimatePresence>
+        {state === 'complete' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#0A0A0F]/95 flex flex-col items-center justify-center gap-4 z-20"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+            >
+              <CheckCircle size={64} className="text-emerald-500" />
+            </motion.div>
+            <p className="text-white font-bold text-2xl">Profile Ready!</p>
+            <p className="text-zinc-400 text-sm">Taking you to your personalized learning path...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </main>
+  );
+}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: finalMessages.map(m => ({ role: m.role, content: m.content })),
