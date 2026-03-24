@@ -12,13 +12,15 @@
 - In progress: `None`
 - Pending: `None`
 - Last resolution review: `2026-03-24`
-- Active findings after pruning resolved items: `228` (`P0:18`, `P1:76`, `P2:113`, `P3:21`)
+- Active findings after pruning resolved items: `224` (`P0:18`, `P1:72`, `P2:113`, `P3:21`)
 
 ## Resolution Review (2026-03-24)
 - Removed as resolved: C02 middleware redundant auth/co-owner DB checks (ownership checks shifted to page/route level).
 - Removed as resolved: C02 query-driven redirect safelist risk in middleware (no user-controlled redirect target consumed there).
 - Removed as resolved: C08 assessment token brute-force/abuse protection gap (IP rate limiting added in assess start route).
 - Removed as resolved: C41 edge duplicate-processing idempotency race (completion atomic guard and edge idempotency guard present).
+- Removed as resolved: C38 owner mutation authorization drift (primary-owner enforcement applied for sensitive `/api/owner/users` mutations).
+- Removed as resolved: C39 export/transcript sanitization gap (CSV output hardened + transcript payload redaction + export rate limits).
 
 ---
 
@@ -988,7 +990,6 @@
 - src/app/api/owner/*
 
 ### Findings
-- `P1` Co-owner authorization consistency varies across owner endpoints.
 - `P1` Service-role access patterns risk overexposure without fine-grained controls.
 - `P2` Rate-limit override fetching can be inefficient at scale.
 - `P2` Auditability for sensitive owner actions is insufficient.
@@ -997,7 +998,7 @@
 - Missing route-by-route authorization parity tests and audit-trail tests.
 
 ### Quick fix direction
-- Standardize owner/co-owner permission middleware.
+- Keep explicit permission levels (`owner` vs `co-owner`) codified per route and covered by parity tests.
 - Add action audit trails and field-level exposure controls.
 
 ---
@@ -1013,7 +1014,6 @@
 ### Findings
 - `P0` Campaign-question modeling in JSON form weakens referential integrity guarantees.
 - `P1` Progress/save pathways need stronger transactional behavior.
-- `P1` Transcript/report access control and export sanitization need hardening.
 - `P2` Entry-code abuse/rate controls need stronger defenses.
 
 ### Test posture
@@ -1021,7 +1021,7 @@
 
 ### Quick fix direction
 - Normalize campaign-question schema to relational form.
-- Add atomic save transactions and export sanitization tests.
+- Add atomic save transactions and regression tests for export/transcript sanitization safeguards.
 - Add entry-code rate limiting and abuse telemetry.
 
 ---
@@ -1546,8 +1546,6 @@
 
 ### Major issues
 - `P0` Employer campaign question modeling lacks strong relational integrity.
-- `P1` Co-owner/owner authorization depth is inconsistent across endpoints.
-- `P1` Report/transcript/export flows require stronger access and sanitization controls.
 - `P2` Control-plane telemetry and pagination defaults are uneven.
 
 ### Redundancy and de-dup
@@ -1556,9 +1554,9 @@
 
 ### Prioritized implementation phases
 1. Normalize employer campaign schema and referential constraints.
-2. Apply one shared owner/co-owner authorization middleware.
-3. Harden transcript/report/export authorization and sanitization.
-4. Add route-by-route control-plane test matrix.
+2. Expand route-by-route permission parity tests for `owner` vs `co-owner` levels.
+3. Add regression tests for transcript/export sanitization and rate-limited export behavior.
+4. Tighten control-plane telemetry and pagination defaults.
 
 ---
 
