@@ -210,6 +210,16 @@ interface GeminiResult {
     skills: Record<string, { score: number; evidence: string }>;
 }
 
+const GEMINI_MAX_RETRIES = 3;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableGeminiStatus(status: number): boolean {
+    return status === 408 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
 async function runGeminiAnalysis({ problem, transcript }: {
     problem: { title: string; description: string; difficulty: string };
     transcript: Array<{ role: string; content: string }>;
@@ -243,35 +253,58 @@ Respond ONLY with valid JSON matching this schema exactly:
   }
 }`;
 
-    try {
-        const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-            ? AbortSignal.timeout(45000)
-            : undefined;
+    for (let attempt = 1; attempt <= GEMINI_MAX_RETRIES; attempt++) {
+        try {
+            const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+                ? AbortSignal.timeout(45000)
+                : undefined;
 
-        const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
-                }),
-                signal: timeoutSignal,
+            const resp = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
+                    }),
+                    signal: timeoutSignal,
+                }
+            );
+
+            if (!resp.ok) {
+                const body = await resp.text();
+                const retryable = isRetryableGeminiStatus(resp.status) && attempt < GEMINI_MAX_RETRIES;
+                console.error(
+                    `[run-assessment] Gemini error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`,
+                    resp.status,
+                    body
+                );
+
+                if (retryable) {
+                    const backoffMs = Math.min(8000, (2 ** (attempt - 1)) * 1000) + Math.floor(Math.random() * 300);
+                    await sleep(backoffMs);
+                    continue;
+                }
+
+                return null;
             }
-        );
 
-        if (!resp.ok) {
-            console.error('[run-assessment] Gemini error:', resp.status, await resp.text());
-            return null;
+            const data = await resp.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+            const cleaned = text.replace(/```json\n?|```/g, '').trim();
+            return JSON.parse(cleaned) as GeminiResult;
+        } catch (err) {
+            const shouldRetry = attempt < GEMINI_MAX_RETRIES;
+            console.error(`[run-assessment] Gemini parse/network error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`, err);
+            if (!shouldRetry) {
+                return null;
+            }
+
+            const backoffMs = Math.min(8000, (2 ** (attempt - 1)) * 1000) + Math.floor(Math.random() * 300);
+            await sleep(backoffMs);
         }
-
-        const data = await resp.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const cleaned = text.replace(/```json\n?|```/g, '').trim();
-        return JSON.parse(cleaned) as GeminiResult;
-    } catch (err) {
-        console.error('[run-assessment] Gemini parse error:', err);
-        return null;
     }
+
+    return null;
 }
