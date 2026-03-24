@@ -5,6 +5,7 @@ import { getSpacedReviewForProblem } from '@/app/actions/spaced-repetition';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import type { FeatureFlagKey } from '@/lib/feature-flags';
+import { tagsToFirstConceptSlug } from '@/lib/knowledge-graph/tag-concept-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,10 +45,11 @@ interface TranscriptTurn {
 export default async function AnalysisPage({
     searchParams,
 }: {
-    searchParams: Promise<{ sessionId?: string }>;
+    searchParams: Promise<{ sessionId?: string; pending?: string }>;
 }) {
     const params = await searchParams;
     const sessionId = params.sessionId;
+    const isPending = params.pending === 'true';
 
     if (!sessionId) {
         redirect('/practice');
@@ -71,6 +73,16 @@ export default async function AnalysisPage({
     if (!session) {
         redirect('/practice');
     }
+
+    const { data: problemData } = await supabase
+        .from('problems')
+        .select('tags, primary_pattern')
+        .eq('id', session.problem_id)
+        .maybeSingle();
+
+    const learnConceptSlug = problemData
+        ? tagsToFirstConceptSlug(problemData.tags ?? [], problemData.primary_pattern ?? null)
+        : null;
 
     // Detect limited evidence from transcript turn count
     const userTurnCount = ((session.transcript || []) as TranscriptTurn[]).filter(t => t.speaker === 'user' || t.speaker === 'USER').length;
@@ -120,6 +132,7 @@ export default async function AnalysisPage({
                 difficultyMode: session.difficulty_mode || undefined,
                 status: session.status || 'completed',
                 isLimitedEvidence,
+                learnConceptSlug,
             }}
             assessment={assessment ? {
                 overallScore: assessment.overall_score || 0,
@@ -183,6 +196,7 @@ export default async function AnalysisPage({
                 enableComparative: !!enableComparative,
                 enableLearnMode: !!enableLearnMode,
             }}
+            assessmentStatus={isPending || !assessment ? 'pending' : 'ready'}
         />
     );
 }

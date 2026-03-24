@@ -27,13 +27,21 @@ export default async function middleware(request: NextRequest) {
                     return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    try {
+                        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    } catch (error) {
+                        console.warn('[middleware] Failed to mirror auth cookies into request store:', error);
+                    }
                     supabaseResponse = NextResponse.next({
                         request: { headers: requestHeaders },
                     });
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    );
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            supabaseResponse.cookies.set(name, value, options)
+                        );
+                    } catch (error) {
+                        console.warn('[middleware] Failed to persist auth cookies on response:', error);
+                    }
                 },
             },
         }
@@ -52,9 +60,23 @@ export default async function middleware(request: NextRequest) {
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
     const isEmployer = pathname.startsWith('/employer');
+    const isEmployerAPI = pathname.startsWith('/api/employer');
     const isAssess = pathname.startsWith('/assess');
     const isOwnerRoute = pathname.startsWith('/owner');
     const isLearn = pathname.startsWith('/learn');
+
+    // Gate employer tier if feature flag is disabled
+    const enableEmployerTier = process.env.ENABLE_EMPLOYER_TIER === 'true';
+    if (!enableEmployerTier && (isEmployer || isEmployerAPI)) {
+        if (isEmployer) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard';
+            return NextResponse.redirect(url);
+        }
+        if (isEmployerAPI) {
+            return NextResponse.json({ error: 'Not available' }, { status: 404 });
+        }
+    }
 
     const isTestPage = pathname.startsWith('/test') ||
         pathname.startsWith('/tts-test') ||
@@ -82,46 +104,36 @@ export default async function middleware(request: NextRequest) {
             url.pathname = '/login';
             // Optionally append a redirect so they come back to the assessment link after login
             url.searchParams.set('redirect', pathname);
+            url.searchParams.set('reason', 'auth_required');
             return NextResponse.redirect(url);
         }
 
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
+            url.searchParams.set('reason', 'auth_required_interview');
             return NextResponse.redirect(url);
         }
     }
 
-    // OWNER-001: Protect /owner routes — only owners & co-owners allowed
-    if (user && isOwnerRoute) {
+    // Check if user needs to complete diagnostic before accessing learn features
+    if (user && isLearn && pathname === '/learn') {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('account_type')
+            .select('has_completed_diagnostic')
             .eq('id', user.id)
             .single();
-
-        const isOwner = profile?.account_type === 'owner';
-
-        // Check co_owners by user_id OR email for maximum reliability.
-        // user_id may not be backfilled yet for pre-existing co-owners.
-        let isCoOwner = false;
-        if (!isOwner) {
-            const emailClause = user.email ? `,email.eq.${user.email}` : '';
-            const { data: coOwner } = await supabase
-                .from('co_owners')
-                .select('id')
-                .or(`user_id.eq.${user.id}${emailClause}`)
-                .limit(1)
-                .maybeSingle();
-            isCoOwner = !!coOwner;
-        }
-
-        if (!isOwner && !isCoOwner) {
+        
+        if (!profile?.has_completed_diagnostic) {
             const url = request.nextUrl.clone();
-            url.pathname = '/dashboard';
+            url.pathname = '/learn/diagnostic';
             return NextResponse.redirect(url);
         }
     }
+
+    // Owner/co-owner authorization is handled at the page/route level, not middleware.
+    // This reduces redundant DB calls. The owner page performs its own auth check
+    // before rendering. Non-owners who navigate to /owner/ will hit the page guard.
 
     return supabaseResponse;
 }

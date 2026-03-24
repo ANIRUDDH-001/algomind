@@ -19,6 +19,7 @@ export function isSupabaseConfigured(): boolean {
 
 let _instance: SupabaseClient | null = null;
 let _currentUrl: string | null = null;
+let _currentAnonKey: string | null = null;
 
 export function createClient(): SupabaseClient | null {
     if (!isSupabaseConfigured()) return null;
@@ -30,9 +31,17 @@ export function createClient(): SupabaseClient | null {
 
 export function getSupabase(): SupabaseClient | null {
     const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-    if (!_instance || _currentUrl !== url) {
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    if (!_instance || _currentUrl !== url || _currentAnonKey !== anonKey) {
         _instance = createClient();
         _currentUrl = url || null;
+        _currentAnonKey = anonKey || null;
     }
     return _instance;
+}
+
+export function clearSupabaseClientCache(): void {
+    _instance = null;
+    _currentUrl = null;
+    _currentAnonKey = null;
 }

@@ -11,6 +11,7 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import type { Tables } from '@/types/supabase';
 import type { ConceptTag } from '@/types/knowledge-graph';
 import { getConfidenceLevel } from '@/types/knowledge-graph';
+import { tagsToConceptSlugs } from '@/lib/knowledge-graph/tag-concept-map';
 import type {
   KGConceptState,
   KGDiagnosticResult,
@@ -208,6 +209,76 @@ export class KnowledgeGraphService {
     } catch {
       // Cache invalidation lookup failure is non-fatal.
     }
+  }
+
+  async onInterviewSessionCompleted(params: {
+    userId: string;
+    sessionId: string;
+    problemTags: string[];
+    primaryPattern: string | null;
+    overallScore: number;
+  }): Promise<void> {
+    const conceptSlugs = tagsToConceptSlugs(params.problemTags, params.primaryPattern);
+
+    if (conceptSlugs.length === 0) {
+      return;
+    }
+
+    const confidenceDelta = (params.overallScore / 10 - 0.5) * 0.12;
+    const now = new Date().toISOString();
+
+    for (const conceptSlug of conceptSlugs) {
+      try {
+        const { data: existing } = await getServiceClient()
+          .from('concept_states')
+          .select('confidence, evidence_count, signal_history')
+          .eq('user_id', params.userId)
+          .eq('concept_slug', conceptSlug)
+          .maybeSingle();
+
+        const currentConfidence = existing?.confidence ?? 0.35;
+        const currentEvidence = existing?.evidence_count ?? 0;
+        const currentHistory = (existing?.signal_history as KGSignalHistoryEntry[] | null) ?? [];
+
+        const newConfidence = Math.min(1.0, Math.max(0.0, currentConfidence + confidenceDelta));
+
+        const newSignal: KGSignalHistoryEntry = {
+          type: 'session_complete',
+          delta: confidenceDelta,
+          at: now,
+        };
+
+        await getServiceClient()
+          .from('concept_states')
+          .upsert({
+            user_id: params.userId,
+            concept_slug: conceptSlug,
+            confidence: newConfidence,
+            evidence_count: currentEvidence + 1,
+            signal_history: [...currentHistory.slice(-19), newSignal],
+            last_session_id: params.sessionId,
+            last_session_type: 'interview',
+            last_signal_at: now,
+            updated_at: now,
+          }, {
+            onConflict: 'user_id,concept_slug',
+          });
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        await logSystemEvent({
+          type: 'db_error',
+          errorMessage: error.message,
+          metadata: {
+            context: 'knowledge_graph.on_interview_session_completed',
+            conceptSlug,
+            operation: 'upsert_concept_state',
+          },
+        });
+        // Continue to next concept
+      }
+    }
+
+    await this.invalidateCache(params.userId);
   }
 
   // Cache management

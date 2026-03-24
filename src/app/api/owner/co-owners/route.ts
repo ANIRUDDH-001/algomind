@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { isPrimaryOwner } from '@/lib/auth/account-type';
 
 // ONLY the primary owner can add or remove co-owners.
 export async function POST(req: NextRequest) {
@@ -9,14 +10,8 @@ export async function POST(req: NextRequest) {
 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Strict primary owner check
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('account_type')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.account_type !== 'owner') {
+    const primaryOwner = await isPrimaryOwner(user.id);
+    if (!primaryOwner) {
         return NextResponse.json({ error: 'Only the primary owner can grant co-owner access' }, { status: 403 });
     }
 
@@ -40,6 +35,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user.id,
+            metadata: {
+                route: 'owner/co-owners',
+                action: 'grant_co_owner',
+                coOwnerId: coOwner?.id,
+            },
+        });
+
         return NextResponse.json({ success: true, coOwner });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
@@ -54,14 +59,8 @@ export async function DELETE(req: NextRequest) {
 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Strict primary owner check
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('account_type')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.account_type !== 'owner') {
+    const primaryOwner = await isPrimaryOwner(user.id);
+    if (!primaryOwner) {
         return NextResponse.json({ error: 'Only the primary owner can revoke co-owner access' }, { status: 403 });
     }
 
@@ -81,6 +80,16 @@ export async function DELETE(req: NextRequest) {
             void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
+
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user.id,
+            metadata: {
+                route: 'owner/co-owners',
+                action: 'revoke_co_owner',
+                coOwnerId: id,
+            },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

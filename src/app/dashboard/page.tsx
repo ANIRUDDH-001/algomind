@@ -28,6 +28,8 @@ import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { RecommendationBanner } from '@/components/dashboard/RecommendationBanner';
 import { WeeklyUsageCard } from '@/components/dashboard/WeeklyUsageCard';
 import { KnowledgeInsightsCard } from '@/components/dashboard/KnowledgeInsightsCard';
+import { PlacementContextCard } from '@/components/onboarding/PlacementContextCard';
+import { PlacementOutcomeButton } from '@/components/dashboard/PlacementOutcomeButton';
 
 function DashboardContent() {
     const router = useRouter();
@@ -44,6 +46,7 @@ function DashboardContent() {
     const [direction, setDirection] = useState(1);
     const { count: reviewDueCount } = useReviewCount();
     const [recommendations, setRecommendations] = useState<Awaited<ReturnType<RecommendationEngine['analyze']>>>([]);
+    const [showPlacementCard, setShowPlacementCard] = useState(false);
 
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
@@ -74,6 +77,34 @@ function DashboardContent() {
             isMounted = false;
         };
     }, [progress]);
+
+    useEffect(() => {
+        if (!progress?.userId) return;
+
+        let cancelled = false;
+
+        fetch('/api/user/me')
+            .then((response) => response.json())
+            .then((data) => {
+                if (!cancelled) {
+                    setShowPlacementCard(!data.placementMonth);
+                }
+            })
+            .catch(() => null);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [progress?.userId]);
+
+    const handlePlacementComplete = async (data: { placementMonth: string; targetCompanies: string[] }) => {
+        await fetch('/api/user/placement-context', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        setShowPlacementCard(false);
+    };
 
     // Update URL when tab changes
     const handleTabChange = (tab: string) => {
@@ -151,6 +182,12 @@ function DashboardContent() {
                             {activeTab === 'overview' && (
                                 <>
                                     {/* Recommendation Banner — top of dashboard */}
+                                    {showPlacementCard && (
+                                        <PlacementContextCard
+                                            onComplete={handlePlacementComplete}
+                                            onSkip={() => setShowPlacementCard(false)}
+                                        />
+                                    )}
                                     <RecommendationBanner />
 
                                     {/* Review Queue — above stats when reviews are due */}
@@ -214,6 +251,11 @@ function DashboardContent() {
                                                 {progress.narrative}
                                             </p>
                                         </div>
+                                    )}
+
+                                    {/* Placement Outcome */}
+                                    {progress && progress.totalSessions >= 3 && (
+                                        <PlacementOutcomeButton />
                                     )}
 
                                     <SessionTimeline sessions={progress?.sessions || []} onSessionClick={handleSessionClick} />

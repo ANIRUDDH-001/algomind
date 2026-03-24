@@ -60,11 +60,23 @@ vi.mock('@/lib/cache/dashboardCache', () => ({
     invalidateDashboardCache: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@/lib/knowledge-graph');
+
+let mockOnInterviewSessionCompleted: any;
+
 describe('saveInterviewSession scores & profile wiring', () => {
     let mockRpc: any;
 
     beforeEach(async () => {
         vi.clearAllMocks();
+        
+        // Setup KG mock
+        mockOnInterviewSessionCompleted = vi.fn().mockResolvedValue(undefined);
+        const { getKnowledgeGraphService } = await import('@/lib/knowledge-graph');
+        vi.mocked(getKnowledgeGraphService).mockReturnValue({
+            onInterviewSessionCompleted: mockOnInterviewSessionCompleted,
+        } as ReturnType<typeof getKnowledgeGraphService>);
+        
         const supabase = await createServerSupabase();
         mockRpc = supabase.rpc;
     });
@@ -114,5 +126,31 @@ describe('saveInterviewSession scores & profile wiring', () => {
         // Assert
         expect(result.success).toBe(true);
         expect((result as any).streakDays).toBeUndefined();
+    });
+
+    it('calls getKnowledgeGraphService().onInterviewSessionCompleted after saving', async () => {
+        // Mock RPC
+        mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'ensure_learner_profile') {
+                return { data: null, error: null };
+            }
+            return { data: null, error: null };
+        });
+
+        // Act: call saveInterviewSession
+        const result = await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [
+            { role: 'user', content: 'I will use a hashmap' },
+            { role: 'assistant', content: 'Great approach' },
+            { role: 'user', content: 'Here is my solution' },
+        ], 120);
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(mockOnInterviewSessionCompleted).toHaveBeenCalledOnce();
+
+        const callArgs = mockOnInterviewSessionCompleted.mock.calls[0][0];
+        expect(callArgs.userId).toBe('user-id');
+        expect(callArgs.overallScore).toBeGreaterThanOrEqual(0);
+        expect(callArgs.overallScore).toBeLessThanOrEqual(10);
     });
 });

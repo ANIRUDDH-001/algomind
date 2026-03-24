@@ -1,8 +1,18 @@
 /**
- * F1: Module-level session cache for reducing redundant auth calls.
- * Stores minimal validated session data in memory (not persisted).
+ * @module session-cache
  *
- * Used by: AuthProvider, middleware (via JWT decode), useAdmin
+ * CLIENT-SIDE ONLY module.
+ *
+ * This module maintains a write-only in-memory record of the current session
+ * for the AuthProvider. It is populated client-side via onAuthStateChange events.
+ *
+ * IMPORTANT: Do NOT import this module in server components, API routes, or
+ * middleware. Server-side auth must always call `supabase.auth.getUser()` directly
+ * using the @supabase/ssr server client.
+ *
+ * In Vercel serverless, module state CAN persist between requests within the same
+ * warm worker. Reading identity from this cache server-side would be a security
+ * vulnerability. There is intentionally no read path exposed from this module.
  */
 
 interface CachedSession {
@@ -11,37 +21,8 @@ interface CachedSession {
     jwtExpiresAt: number;  // JWT exp timestamp in ms
 }
 
+// Write-only from AuthProvider. Read path removed — not needed in serverless.
 let _cache: CachedSession | null = null;
-
-/** Minimum JWT remaining life to trust cache (5 minutes) */
-const MIN_JWT_REMAINING_MS = 5 * 60 * 1000;
-
-/** Maximum age of a validated session before re-validation (15 minutes) */
-const MAX_VALIDATION_AGE_MS = 15 * 60 * 1000;
-
-/**
- * Check if the current cached session is still trusted.
- * Returns true if:
- * 1. Cache exists
- * 2. Was validated within the last 15 minutes
- * 3. JWT has > 5 minutes remaining
- */
-export function isSessionTrusted(): boolean {
-    if (!_cache) return false;
-
-    const now = Date.now();
-    const validationAge = now - _cache.validatedAt;
-    const jwtRemaining = _cache.jwtExpiresAt - now;
-
-    return validationAge < MAX_VALIDATION_AGE_MS && jwtRemaining > MIN_JWT_REMAINING_MS;
-}
-
-/**
- * Get the cached user ID if session is trusted.
- */
-export function getCachedUserId(): string | null {
-    return isSessionTrusted() ? _cache!.userId : null;
-}
 
 /**
  * Mark the session as validated after a successful auth check.

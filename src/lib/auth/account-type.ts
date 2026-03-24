@@ -41,6 +41,17 @@ export async function isOwnerOrCoOwner(userId: string): Promise<boolean> {
     return !!coOwner;
 }
 
+export async function isPrimaryOwner(userId: string): Promise<boolean> {
+    const svc = getServiceClient();
+    const { data: profile } = await svc
+        .from('profiles')
+        .select('account_type')
+        .eq('id', userId)
+        .single();
+
+    return profile?.account_type === 'owner';
+}
+
 export async function upgradeToEmployer(userId: string, companyName: string): Promise<void> {
     const supabase = await createServerSupabase();
     const { error } = await supabase

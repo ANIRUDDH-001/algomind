@@ -319,9 +319,21 @@ export function InterviewSession({
 
     const startTimeRef = useRef<number>(0);
     const transcriptLoadedRef = useRef(false);
+    const vadToastShown = useRef(false);
 
     const messagesRef = useRef(messages);
     useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+    // VAD fallback to push-to-talk: show one-time toast notification
+    useEffect(() => {
+        if (isPushToTalk && !vadToastShown.current && hasStarted) {
+            vadToastShown.current = true;
+            toast('Tap the mic button to speak — auto-detection is unavailable on this browser.', {
+                duration: 6000,
+                icon: '🎙️',
+            });
+        }
+    }, [isPushToTalk, hasStarted]);
 
     useEffect(() => {
         if (!observerEnabled || !hasStarted || readOnly || isAssessment) return;
@@ -625,7 +637,7 @@ export function InterviewSession({
                                 ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                                 : durationSecs;
 
-                            const { success, error: saveError, sessionId } = await saveInterviewSession(
+                            const { success, error: saveError, sessionId, assessmentPending } = await saveInterviewSession(
                                 user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
@@ -634,7 +646,8 @@ export function InterviewSession({
                                 toast.error('Session analyzed but could not be saved to history.');
                             } else if (sessionId) {
                                 // A5: Auto-navigate to analysis page
-                                router.push(`/interview/analysis?sessionId=${sessionId}`);
+                                const pendingQuery = assessmentPending ? '&pending=true' : '';
+                                router.push(`/interview/analysis?sessionId=${sessionId}${pendingQuery}`);
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);
@@ -919,6 +932,12 @@ export function InterviewSession({
                                                     />
                                                 </div>
                                             </div>
+                                            {isPushToTalk && (
+                                                <div className="flex items-center gap-1 text-[10px] text-amber-400/70 font-bold uppercase tracking-widest">
+                                                    <span>●</span>
+                                                    <span>Push to talk</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

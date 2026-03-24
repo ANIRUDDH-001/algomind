@@ -7,6 +7,7 @@ import { createAndSaveSession1Baseline } from '@/lib/ai/narrative-generator';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { type ConversationTurn } from '@/lib/assessment/prompts';
 import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
+import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 
 export async function saveInterviewSession(
     userId: string,
@@ -135,6 +136,8 @@ export async function saveInterviewSession(
             return { success: false, error: error.message, status: 500 };
         }
 
+        let assessmentPending = false;
+
         // 4. Save assessment details (Requirement 6)
         if (finalResult) {
             // Map skill keys (hyphenated) to DB columns (underscored)
@@ -174,7 +177,39 @@ export async function saveInterviewSession(
 
             if (assessmentError) {
                 console.error('⚠️ [ACTION] Failed to save assessment object (partial success):', assessmentError);
-                // Requirement 6: We return success: true because the session itself is saved
+                assessmentPending = true;
+
+                const feedbackWithPending = {
+                    ...(typeof finalResult === 'object' && finalResult
+                        ? (finalResult as unknown as Record<string, unknown>)
+                        : {}),
+                    assessmentPending: true,
+                    assessmentWriteFailed: true,
+                    assessmentRetryRequired: true,
+                    assessmentWriteError: assessmentError.message,
+                };
+
+                try {
+                    const interviewSessionsQuery = supabase.from('interview_sessions') as any;
+
+                    if (typeof interviewSessionsQuery?.update === 'function') {
+                        const { error: pendingStatusError } = await interviewSessionsQuery
+                            .update({
+                                status: 'pending',
+                                feedback: feedbackWithPending,
+                            })
+                            .eq('id', sessionData.id)
+                            .eq('user_id', userId);
+
+                        if (pendingStatusError) {
+                            console.error('⚠️ [ACTION] Failed to set interview session pending state:', pendingStatusError);
+                        }
+                    } else {
+                        console.error('⚠️ [ACTION] interview_sessions pending-state update unavailable on query builder');
+                    }
+                } catch (pendingUpdateErr) {
+                    console.error('⚠️ [ACTION] Failed to apply pending-state fallback update:', pendingUpdateErr);
+                }
             }
 
             // Hire readiness trend tracking
@@ -263,13 +298,38 @@ export async function saveInterviewSession(
             });
         } catch (err) { console.error('[save-session] updateSkillRepetition failed:', err); }
 
-        // 6. Update Kai Memory separately (fire & forget to avoid blocking UI)
+        // Knowledge Graph update — makes interview scores visible to recommendation engine
         try {
-            updateKaiMemory(userId).catch(err => {
-                console.error('❌ Error updating Kai memory:', err);
-            });
+            const { data: problemData } = await supabase
+                .from('problems')
+                .select('tags, primary_pattern')
+                .eq('id', problemId)
+                .maybeSingle();
 
-            // 7. Session 1 Baseline Check
+            if (problemData) {
+                await getKnowledgeGraphService().onInterviewSessionCompleted({
+                    userId,
+                    sessionId: sessionData.id,
+                    problemTags: problemData.tags ?? [],
+                    primaryPattern: problemData.primary_pattern ?? null,
+                    overallScore,
+                });
+            }
+        } catch (err) {
+            console.error('[save-session] KG update failed:', err);
+            // Non-fatal — session already saved successfully
+        }
+
+        // Memory update — awaited so failure is catchable and logged properly
+        try {
+            await updateKaiMemory(userId);
+        } catch (memErr) {
+            console.error('[save-session] Kai memory update failed (non-fatal):', memErr);
+            // Non-fatal: session is already saved. Memory will be stale for next session.
+        }
+
+        // Session 1 baseline — only runs once, must succeed
+        try {
             const { count, error: countError } = await supabase
                 .from('interview_sessions')
                 .select('*', { count: 'exact', head: true })
@@ -289,17 +349,20 @@ export async function saveInterviewSession(
                     skills: skillsForBaseline,
                     completedAt: new Date().toISOString()
                 };
-                createAndSaveSession1Baseline(userId, sessionDataForBaseline).catch(err => {
-                    console.error('❌ Error saving Session 1 baseline:', err);
-                });
+                await createAndSaveSession1Baseline(userId, sessionDataForBaseline);
             }
-        } catch (memErr) {
-            console.error('❌ Unhandled error in memory/baseline generation:', memErr);
+        } catch (baselineErr) {
+            console.error('[save-session] Session 1 baseline failed (non-fatal):', baselineErr);
+            // Non-fatal: baseline is cosmetic. Student can still use the product.
         }
         try {
             const { invalidateDashboardCache } = await import('@/lib/cache/dashboardCache');
             await invalidateDashboardCache(userId);
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
+
+        if (assessmentPending) {
+            return { success: true, sessionId: sessionData.id, assessmentPending: true };
+        }
 
         return { success: true, sessionId: sessionData.id };
     } catch (e) {
@@ -308,5 +371,104 @@ export async function saveInterviewSession(
         console.error('❌ [ACTION] Unexpected error in saveInterviewSession:', error);
         void logSystemEvent({ type: 'db_error', errorMessage, metadata: { operation: 'save_session' } });
         return { success: false, error: errorMessage, status: 500 };
+    }
+}
+
+/**
+ * Re-run AI scoring for a session that has no assessment row.
+ * Called from the analysis page when assessment is missing.
+ */
+export async function retryAssessment(sessionId: string): Promise<{
+    success: boolean;
+    error?: string;
+}> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    // Fetch the session — must belong to this user
+    const { data: session, error: sessionErr } = await supabase
+        .from('interview_sessions')
+        .select('id, user_id, problem_id, problem_title, transcript, duration, difficulty_mode')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .single();
+
+    if (sessionErr || !session) {
+        return { success: false, error: 'Session not found' };
+    }
+
+    // Check no assessment already exists (prevent duplicate)
+    const { data: existing } = await supabase
+        .from('assessments')
+        .select('id')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+    if (existing) {
+        return { success: false, error: 'Assessment already exists' };
+    }
+
+    // Re-run the analyzer
+    try {
+        const { CognitiveAnalyzer } = await import('@/lib/assessment/analyzer');
+        const analyzer = new CognitiveAnalyzer();
+
+        const { data: prob } = await supabase
+            .from('problems')
+            .select('description, difficulty')
+            .eq('id', session.problem_id)
+            .single();
+
+        const transcript = Array.isArray(session.transcript) ? session.transcript : [];
+        const result = await analyzer.analyze(
+            sessionId,
+            {
+                title: session.problem_title || '',
+                description: prob?.description || '',
+                difficulty: prob?.difficulty || 'medium'
+            },
+            transcript as any[]
+        );
+
+        // Save the assessment row
+        const skills = result.skills || {};
+        const isWarmUp = session.difficulty_mode === 'warm-up';
+
+        const { error: insertErr } = await supabase
+            .from('assessments')
+            .insert({
+                session_id: sessionId,
+                user_id: user.id,
+                overall_score: result.rawScore ?? 0,
+                adjusted_score: result.adjustedScore ?? null,
+                overall_feedback: result.overallFeedback,
+                next_steps: result.nextSteps,
+                skill_evidence: result.skills,
+                hire_decision: isWarmUp ? null : (result.hireDecision ?? null),
+                problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
+                pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
+                algorithmic_thinking: (skills['algorithmic-thinking'] as any)?.score ?? null,
+                complexity_analysis: (skills['complexity-analysis'] as any)?.score ?? null,
+                communication_clarity: (skills['communication-clarity'] as any)?.score ?? null,
+                edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
+                optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
+                debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
+                model_used: result.modelUsed ?? 'unknown',
+                confidence: 0.8,
+                validation_pass_done: result.validationPassDone ?? false,
+                sub_criteria: Object.fromEntries(
+                    Object.entries(skills).map(([k, v]) => [k, (v as any).subCriteria || {}])
+                )
+            });
+
+        if (insertErr) {
+            return { success: false, error: insertErr.message };
+        }
+
+        return { success: true };
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Analysis failed';
+        return { success: false, error: msg };
     }
 }

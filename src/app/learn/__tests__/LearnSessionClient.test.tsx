@@ -3,6 +3,8 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LearnSessionPageClient from '../[slug]/LearnSessionPageClient';
+import { tagsToFirstConceptSlug } from '@/lib/knowledge-graph/tag-concept-map';
+import { ALL_DSA_CONCEPT_SLUGS } from '@/types/knowledge-graph';
 
 const hoisted = vi.hoisted(() => {
     const push = vi.fn();
@@ -215,5 +217,28 @@ describe('LearnSessionPageClient', () => {
                 expect(hoisted.session.startSession).toHaveBeenCalledTimes(1);
             });
         });
+    });
+});
+
+describe('tagsToFirstConceptSlug', () => {
+    it('derives conceptSlug from problem tags', () => {
+        // Test with arrays tag
+        const result1 = tagsToFirstConceptSlug(['arrays', 'hashing'], null);
+        expect(result1).not.toBeNull();
+        if (result1 === null) throw new Error('expected non-null concept slug');
+        expect(typeof result1).toBe('string');
+        expect(result1.length).toBeGreaterThan(0);
+        expect(ALL_DSA_CONCEPT_SLUGS.some((slug) => slug === result1)).toBe(true);
+
+        // Test with hashing tag
+        const result2 = tagsToFirstConceptSlug(['hashing'], null);
+        expect(result2).not.toBeNull();
+        if (result2 === null) throw new Error('expected non-null concept slug');
+        expect(typeof result2).toBe('string');
+        expect(ALL_DSA_CONCEPT_SLUGS.some((slug) => slug === result2)).toBe(true);
+
+        // Test with empty tags falls back to null (component would use problem.id)
+        const result3 = tagsToFirstConceptSlug([], null);
+        expect(result3).toBeNull();
     });
 });

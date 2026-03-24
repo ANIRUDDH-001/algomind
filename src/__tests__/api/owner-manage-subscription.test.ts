@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/owner/manage-subscription/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { NextRequest } from 'next/server';
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -10,6 +11,10 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn()
+}));
+
+vi.mock('@/lib/auth/account-type', () => ({
+    isOwnerOrCoOwner: vi.fn()
 }));
 
 // Helper function to create a chainable mock
@@ -60,9 +65,7 @@ describe('POST /api/owner/manage-subscription', () => {
             }
         } as any);
 
-        const mockChain = createChainableMock();
-        mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'user' }, error: null });
-        vi.mocked(getServiceClient).mockReturnValue(mockChain as any);
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(false);
 
         const req = createPOSTRequest({ email: 'user@example.com', subscription_status: 'premium' });
         const res = await POST(req);
@@ -79,15 +82,14 @@ describe('POST /api/owner/manage-subscription', () => {
             }
         } as any);
 
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
+
         let callCount = 0;
         vi.mocked(getServiceClient).mockImplementation(() => {
             callCount++;
             const mockChain = createChainableMock();
             
             if (callCount === 1) {
-                // Check caller is owner/admin
-                mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            } else {
                 // Find target user by email - should not find
                 mockChain.single = vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } });
             }
@@ -112,18 +114,17 @@ describe('POST /api/owner/manage-subscription', () => {
             }
         } as any);
 
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
+
         let callCount = 0;
         vi.mocked(getServiceClient).mockImplementation(() => {
             callCount++;
             const mockChain = createChainableMock();
             
             if (callCount === 1) {
-                // Check caller is owner/admin
-                mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            } else if (callCount === 2) {
                 // Find target user by email
                 mockChain.single = vi.fn().mockResolvedValue({ data: { id: 'target-user-1' }, error: null });
-            } else if (callCount === 3) {
+            } else if (callCount === 2) {
                 // Update profiles
                 mockChain.update = vi.fn(function(this: any) { return this; });
                 // @ts-expect-error - Mock chain typing
@@ -154,16 +155,16 @@ describe('POST /api/owner/manage-subscription', () => {
             }
         } as any);
 
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
+
         let callCount = 0;
         vi.mocked(getServiceClient).mockImplementation(() => {
             callCount++;
             const mockChain = createChainableMock();
             
             if (callCount === 1) {
-                mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            } else if (callCount === 2) {
                 mockChain.single = vi.fn().mockResolvedValue({ data: { id: 'target-user-1' }, error: null });
-            } else if (callCount === 3) {
+            } else if (callCount === 2) {
                 mockChain.update = vi.fn(function(this: any) { return this; });
                 // @ts-expect-error - Mock chain typing
                 mockChain.eq = vi.fn(function(this: any) { return Promise.resolve({ data: null, error: null }); });
@@ -192,16 +193,16 @@ describe('POST /api/owner/manage-subscription', () => {
             }
         } as any);
 
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
+
         let callCount = 0;
         vi.mocked(getServiceClient).mockImplementation(() => {
             callCount++;
             const mockChain = createChainableMock();
             
             if (callCount === 1) {
-                mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            } else if (callCount === 2) {
                 mockChain.single = vi.fn().mockResolvedValue({ data: { id: 'target-user-1' }, error: null });
-            } else if (callCount === 3) {
+            } else if (callCount === 2) {
                 mockChain.update = vi.fn(function(this: any) { return this; });
                 // @ts-expect-error - Mock chain typing
                 mockChain.eq = vi.fn(function(this: any) { return Promise.resolve({ data: null, error: null }); });
