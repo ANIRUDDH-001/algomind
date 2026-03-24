@@ -75,6 +75,12 @@ vi.mock('@/hooks/useSwipeNavigation', () => ({
     })
 }));
 
+vi.mock('@/components/ui/resizable', () => ({
+    ResizablePanelGroup: ({ children, className }: any) => <div data-testid="resizable-group" className={className}>{children}</div>,
+    ResizablePanel: ({ children }: any) => <div data-testid="resizable-panel">{children}</div>,
+    ResizableHandle: () => <div data-testid="resizable-handle" />,
+}));
+
 vi.mock('@/components/voice/MicrophoneButton', () => ({
     MicrophoneButton: ({ onClick }: any) => <button data-testid="mic-btn" onClick={onClick}>Mic</button>
 }));

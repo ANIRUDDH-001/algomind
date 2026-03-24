@@ -4,6 +4,41 @@ import React from 'react';
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const mockStartInterview = vi.fn();
+const mockResetInterview = vi.fn();
+const mockSubmitUserResponse = vi.fn();
+const mockHandleInterruption = vi.fn();
+const mockLoadTranscript = vi.fn();
+const mockEnterCodingMode = vi.fn();
+const mockExitCodingMode = vi.fn();
+const mockShareCode = vi.fn();
+const mockEndInterview = vi.fn();
+
+const mockVoice = {
+    isListening: false,
+    isSpeaking: false,
+    error: null,
+    startListening: vi.fn(),
+    stopListening: vi.fn(),
+    stopSpeaking: vi.fn(),
+    transcript: '',
+    interimTranscript: '',
+};
+
+const mockInterviewState = {
+    state: 'idle',
+    messages: [],
+    isProcessing: false,
+    roundCount: 0,
+    interviewStartTime: null,
+    isLimitReached: false,
+    limitReason: null,
+    micStoppedManually: false,
+    sendCountdown: null,
+    ttsError: false,
+    isPushToTalk: false,
+};
+
 // ─── jsdom polyfills ───
 global.ResizeObserver = class {
     observe() { }
@@ -52,23 +87,17 @@ vi.mock('@/components/auth/AuthProvider', () => ({
 // ─── Mock all hooks ───
 vi.mock('@/hooks/useInterview', () => ({
     useInterview: () => ({
-        state: 'idle', messages: [], isProcessing: false,
-        startInterview: vi.fn(), resetInterview: vi.fn(),
-        submitUserResponse: vi.fn(), handleInterruption: vi.fn(),
-        loadTranscript: vi.fn(),
-        voice: {
-            isListening: false, isSpeaking: false, error: null,
-            startListening: vi.fn(), stopListening: vi.fn(), stopSpeaking: vi.fn(),
-            transcript: '', interimTranscript: '',
-        },
-        roundCount: 0,
-        interviewStartTime: null,
-        isLimitReached: false,
-        limitReason: null,
-        enterCodingMode: vi.fn(),
-        exitCodingMode: vi.fn(),
-        shareCode: vi.fn(),
-        endInterview: vi.fn(),
+        ...mockInterviewState,
+        startInterview: mockStartInterview,
+        resetInterview: mockResetInterview,
+        submitUserResponse: mockSubmitUserResponse,
+        handleInterruption: mockHandleInterruption,
+        loadTranscript: mockLoadTranscript,
+        voice: mockVoice,
+        enterCodingMode: mockEnterCodingMode,
+        exitCodingMode: mockExitCodingMode,
+        shareCode: mockShareCode,
+        endInterview: mockEndInterview,
     }),
 }));
 
@@ -181,7 +210,12 @@ vi.mock('sonner', () => ({
 
 // ─── Mock all heavy child components ───
 vi.mock('../CodeEditor', () => ({
-    CodeEditor: () => <div data-testid="mock-code-editor">CodeEditor</div>,
+    CodeEditor: ({ onCodeChange, runDisabled }: any) => {
+        React.useEffect(() => {
+            onCodeChange?.('print("hello")');
+        }, [onCodeChange]);
+        return <div data-testid="mock-code-editor" data-run-disabled={runDisabled ? 'true' : 'false'}>CodeEditor</div>;
+    },
 }));
 vi.mock('../TestCasePanel', () => ({
     TestCasePanel: () => <div data-testid="mock-test-case-panel" />,
@@ -230,85 +264,108 @@ const mockConfig: any = {
     maxTurnsPerProblem: 20,
 };
 
-describe('InterviewSession 3-Panel Desktop Layout', () => {
+describe('InterviewSession 4-Quadrant Desktop Layout', () => {
     beforeEach(() => {
         Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 });
         vi.clearAllMocks();
+        mockInterviewState.state = 'idle';
+        mockInterviewState.messages = [];
+        mockInterviewState.isProcessing = false;
+        mockInterviewState.roundCount = 0;
+        mockInterviewState.interviewStartTime = null;
+        mockInterviewState.isLimitReached = false;
+        mockInterviewState.limitReason = null;
+        mockInterviewState.micStoppedManually = false;
+        mockInterviewState.sendCountdown = null;
+        mockInterviewState.ttsError = false;
+        mockInterviewState.isPushToTalk = false;
+        mockVoice.isListening = false;
+        mockVoice.isSpeaking = false;
+        mockVoice.transcript = '';
+        mockVoice.interimTranscript = '';
     });
 
     afterEach(() => {
         cleanup();
     });
 
-    it('1. Renders the top bar with problem title', () => {
+    it('1. Renders desktop resizable shell', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // problem title appears in both TopBar span and ProblemPanel card (desktop+mobile both in jsdom DOM)
-        const titleElements = screen.getAllByText('Two Sum');
-        expect(titleElements.length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByTestId('resizable-group').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByTestId('resizable-panel').length).toBeGreaterThanOrEqual(4);
+        expect(screen.getAllByTestId('resizable-handle').length).toBeGreaterThanOrEqual(3);
     });
 
-    it('2. Renders the desktop drawer layout shell', () => {
+    it('2. Shows LeetCode link and problem description in top-left context panel', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        expect(screen.getAllByText('Problem').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('History').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByRole('link', { name: /LeetCode/i }).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByText('Find two numbers that add up to target.')).toBeTruthy();
     });
 
-    it('3. Code editor is shown after start and Code toggle', async () => {
+    it('3. Keeps code editor mounted in desktop layout', () => {
+        render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
+        expect(screen.getAllByTestId('mock-code-editor').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('4. Shows begin CTA before interview starts', () => {
+        render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
+        const beginBtns = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
+        expect(beginBtns.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('5. Shows desktop voice and submit controls after start', async () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
         const beginButtons = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
         await act(async () => {
             fireEvent.click(beginButtons[0]);
         });
 
-        const codeButtons = screen.getAllByRole('button', { name: /^Code$/i });
-        await act(async () => {
-            fireEvent.click(codeButtons[0]);
-        });
-
-        expect(screen.getAllByTestId('mock-code-editor').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByTestId('mock-mic-button').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByRole('button', { name: /Submit to Kai/i }).length).toBeGreaterThanOrEqual(1);
     });
 
-    it('4. Voice panel shows "Begin Interview Experience" before start', () => {
+    it('6. Keeps mobile swipe tabs mounted', () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // desktop + mobile both render in jsdom, so we use getAllBy
-        const beginBtns = screen.getAllByText('Begin Interview Experience');
-        expect(beginBtns.length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByRole('tablist', { name: /Interview mobile panels/i })).toBeTruthy();
     });
 
-    it('5. "Begin Interview Experience" is visible before interview starts', () => {
+    it('7. Submit to Kai sends code-only payload', async () => {
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
+
         const beginButtons = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
-        expect(beginButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('6. Problem panel contains problem title and description', () => {
-        render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        // problem title appears multiple times (TopBar + ProblemPanel + mobile)
-        const titles = screen.getAllByText('Two Sum');
-        expect(titles.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('7. Problem title appears in TopBar', () => {
-        render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        const titles = screen.getAllByText('Two Sum');
-        expect(titles.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('8. Problem panel toggle hides problem card content', async () => {
-        render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        expect(screen.getAllByText(/Practice on LeetCode/i).length).toBeGreaterThanOrEqual(1);
-
-        const problemToggleButtons = screen.getAllByRole('button', { name: /Problem/i });
         await act(async () => {
-            fireEvent.click(problemToggleButtons[0]);
+            fireEvent.click(beginButtons[0]);
         });
 
-        expect(screen.queryByText(/Practice on LeetCode/i)).toBeNull();
+        const submitButtons = screen.getAllByRole('button', { name: /Submit to Kai/i });
+        await act(async () => {
+            fireEvent.click(submitButtons[0]);
+        });
+
+        expect(mockSubmitUserResponse).toHaveBeenCalled();
+        const payload = String(mockSubmitUserResponse.mock.calls[0][0]);
+        expect(payload).toContain('[Submitted Code]');
+        expect(payload).toContain('print("hello")');
+        expect(payload).not.toContain('[Execution Result]');
+        expect(payload).not.toContain('Code executed successfully');
+        expect(payload).not.toContain('Code failed with exit code');
+        expect(mockShareCode).toHaveBeenCalledWith('print("hello")');
     });
 
-    it('9. Desktop shell is present on desktop width', () => {
+    it('8. Limit reached locks editor run and submit actions', async () => {
+        mockInterviewState.isLimitReached = true;
+
         render(<InterviewSession problem={mockProblem as any} interviewConfig={mockConfig} />);
-        expect(screen.getAllByText('Problem').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('History').length).toBeGreaterThanOrEqual(1);
+
+        const beginButtons = screen.getAllByRole('button', { name: /Begin Interview Experience/i });
+        await act(async () => {
+            fireEvent.click(beginButtons[0]);
+        });
+
+        const submitButtons = screen.getAllByRole('button', { name: /Submit to Kai/i });
+        expect((submitButtons[0] as HTMLButtonElement).disabled).toBe(true);
+
+        const codeEditors = screen.getAllByTestId('mock-code-editor');
+        expect(codeEditors[0].getAttribute('data-run-disabled')).toBe('true');
     });
 });

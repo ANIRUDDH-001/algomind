@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Play, Loader2 } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { OnMount } from '@monaco-editor/react';
-import { TestCasePanel } from './TestCasePanel';
 
 export interface ExecutionResult {
     stdout: string;
@@ -94,6 +93,7 @@ interface CodeEditorProps {
     onExecutionResult?: (result: ExecutionResult) => void;
     readOnly?: boolean;
     onKeyDown?: () => void;
+    runDisabled?: boolean;
 }
 
 const LANGUAGE_API_MAP: Record<string, string> = {
@@ -104,7 +104,7 @@ const LANGUAGE_API_MAP: Record<string, string> = {
     cpp: 'cpp',
 };
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false, onKeyDown }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false, onKeyDown, runDisabled = false }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
     const [isRunning, setIsRunning] = useState(false);
@@ -138,7 +138,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
         const currentCode = codeRef.current;
         const currentLang = languageRef.current;
 
-        if (!currentCode.trim()) return;
+        if (!currentCode.trim() || runDisabled) return;
 
         setIsRunning(true);
         setExecutionResult(null);
@@ -154,13 +154,15 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                setExecutionResult({
+                const result: ExecutionResult = {
                     stdout: '',
                     stderr: errorData.error || `Execution failed with status ${res.status}`,
                     exit_code: 1,
                     runtime_ms: 0,
                     language: apiLang,
-                });
+                };
+                setExecutionResult(result);
+                onExecutionResult?.(result);
                 setActiveTab('error');
             } else {
                 const data = await res.json();
@@ -177,7 +179,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
         } catch (error) {
             const msg = error instanceof Error ? error.message : 'Unknown execution error';
             const isNetwork = msg.includes('fetch') || msg.includes('Failed to fetch') || msg.includes('Load failed') || msg.includes('network');
-            setExecutionResult({
+            const result: ExecutionResult = {
                 stdout: '',
                 stderr: isNetwork
                     ? 'Code execution service unavailable. Please try again in a moment.'
@@ -185,7 +187,9 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                 exit_code: 1,
                 runtime_ms: 0,
                 language: currentLang,
-            });
+            };
+            setExecutionResult(result);
+            onExecutionResult?.(result);
             setActiveTab('error');
         } finally {
             setIsRunning(false);
@@ -233,7 +237,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleRunCode}
-                        disabled={isRunning || !code.trim()}
+                        disabled={isRunning || !code.trim() || runDisabled}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
                     >
                         {isRunning ? (
@@ -242,22 +246,6 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                             <Play className="w-4 h-4 fill-current" />
                         )}
                         Run
-                    </button>
-                    <div className="w-px h-5 bg-slate-700 mx-1"></div>
-                    <button
-                        onClick={() => {
-                            setCode('');
-                            onCodeChange('');
-                        }}
-                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
-                    >
-                        Clear
-                    </button>
-                    <button
-                        onClick={() => navigator.clipboard.writeText(code)}
-                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
-                    >
-                        Copy
                     </button>
                 </div>
             </div>

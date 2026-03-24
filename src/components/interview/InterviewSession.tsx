@@ -11,7 +11,7 @@ import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { InterviewLimitBar } from './InterviewLimitBar';
-import { TextInterviewMode } from './TextInterviewMode';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -32,12 +32,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Assessment & Core
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 // ReportCard deprecated — users now redirect to /interview/analysis (A5)
-import { SkillBadge } from '@/components/assessment/SkillBadge';
 
 // Tools & Helpers
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
-import { CodeEditor } from './CodeEditor';
+import { CodeEditor, type ExecutionResult } from './CodeEditor';
+import { TestCasePanel, type TestCase } from './TestCasePanel';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
@@ -118,12 +118,10 @@ export function InterviewSession({
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
+    const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+    const [isCodeRunning, setIsCodeRunning] = useState(false);
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
     const [weeklyLimitStatus, setWeeklyLimitStatus] = useState<WeeklyLimitStatus | null>(null);
-
-    // Desktop Layout State
-    const [showProblemPanel, setShowProblemPanel] = useState(true);
-    const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
     // --- 2. Supporting Hooks ---
     const { analyzeSession, isAnalyzing, result, reset: resetAssessment } = useAssessment();
@@ -543,11 +541,9 @@ export function InterviewSession({
 
     const shareCodeWithAI = useCallback((code: string) => {
         if (!code.trim()) return;
-        const codeMessage = `Here's my code solution:\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
+        const codeMessage = `[Submitted Code]\n\n\`\`\`${codeLanguage}\n${code}\n\`\`\``;
         submitUserResponse(codeMessage, { problemTitle: activeProblem.title, problemContent: activeProblem.description });
         shareCode(code); // A3: transition state machine back to ai-feedback
-        setShowCodeEditor(false);
-        setActiveTab('interview');
     }, [codeLanguage, activeProblem, submitUserResponse, shareCode]);
 
     const isSavingRef = useRef(false);
@@ -714,7 +710,7 @@ export function InterviewSession({
     const limitAutoFinishRef = useRef(false);
 
     // A5: Derived flag — all interactive inputs are locked after limit
-    const isLimitLocked = isAutoSubmitting || showLimitModal || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));
+    const isLimitLocked = isAutoSubmitting || showLimitModal || isLimitReached || (hasStarted && !readOnly && (limits.isTimeUp || limits.isTurnsUp));
 
     useEffect(() => {
         if (showBadge) {
@@ -759,7 +755,51 @@ export function InterviewSession({
 
     // --- Sub-components (Visual Rendering) --- //
 
-    const renderProblemCardContent = () => {
+    const normalizedExamples = useCallback((examplesRaw: unknown): TestCase[] => {
+        let parsed: unknown = examplesRaw;
+        if (typeof examplesRaw === 'string') {
+            try {
+                parsed = JSON.parse(examplesRaw);
+            } catch {
+                parsed = [];
+            }
+        }
+        if (!Array.isArray(parsed)) return [];
+
+        return parsed
+            .map((example: any) => ({
+                input: String(example?.input ?? ''),
+                expected: String(example?.output ?? example?.expected ?? ''),
+                explanation: typeof example?.explanation === 'string' ? example.explanation : undefined,
+            }))
+            .filter((example: TestCase) => Boolean(example.input || example.expected));
+    }, []);
+
+    const derivedTestCases = normalizedExamples((activeProblem as any).examples).slice(0, 2);
+
+    const constraintsText = useCallback(() => {
+        const explicit = (activeProblem as any).constraints;
+        if (typeof explicit === 'string' && explicit.trim().length > 0) {
+            return explicit.trim();
+        }
+        const marker = 'Constraints:';
+        const idx = activeProblem.description?.indexOf(marker) ?? -1;
+        if (idx >= 0) {
+            return activeProblem.description.slice(idx + marker.length).trim();
+        }
+        return '';
+    }, [activeProblem]);
+
+    const descriptionText = useCallback(() => {
+        const marker = 'Constraints:';
+        const idx = activeProblem.description?.indexOf(marker) ?? -1;
+        if (idx >= 0) {
+            return activeProblem.description.slice(0, idx).trim();
+        }
+        return activeProblem.description;
+    }, [activeProblem]);
+
+    const renderProblemCardContent = (showExamples = true, showHeader = true) => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
         const headerMode = interviewConfig.mode === 'employer'
             ? 'employer'
@@ -767,25 +807,34 @@ export function InterviewSession({
 
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent" data-tour="problem-panel">
-                <CardHeader className="bg-black/20 rounded-2xl border py-3 shrink-0 mb-4" style={{ borderColor: 'var(--surface-edge)' }}>
-                    <div className="flex flex-col gap-2">
-                        <InterviewHeader
-                            problemTitle={activeProblem.title}
-                            difficulty={activeProblem.difficulty}
-                            mode={headerMode}
-                            conceptTags={activeProblem.tags ?? []}
-                        />
-                        <a href={leetcodeUrl} target="_blank" rel="noopener noreferrer"
-                            className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-lg text-[11px] font-bold text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-indigo-500/10"
-                        >
-                            🔗 Practice on LeetCode
-                        </a>
-                    </div>
-                </CardHeader>
+                {showHeader && (
+                    <CardHeader className="bg-black/20 rounded-2xl border py-3 shrink-0 mb-4" style={{ borderColor: 'var(--surface-edge)' }}>
+                        <div className="flex flex-col gap-2">
+                            <InterviewHeader
+                                problemTitle={activeProblem.title}
+                                difficulty={activeProblem.difficulty}
+                                mode={headerMode}
+                                conceptTags={activeProblem.tags ?? []}
+                            />
+                            <a href={leetcodeUrl} target="_blank" rel="noopener noreferrer"
+                                className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-lg text-[11px] font-bold text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-indigo-500/10"
+                            >
+                                🔗 Practice on LeetCode
+                            </a>
+                        </div>
+                    </CardHeader>
+                )}
                 <CardContent className="p-0 flex-1 text-zinc-300 text-sm lg:text-[15px] leading-relaxed space-y-3 lg:space-y-6 min-h-0 overflow-y-auto custom-scrollbar">
-                    <div className="whitespace-pre-wrap font-medium">{activeProblem.description}</div>
-                    <div className="space-y-3 lg:space-y-4 pt-2">
-                        {activeProblem.examples && activeProblem.examples.map((example, idx) => (
+                    <div className="whitespace-pre-wrap font-medium">{descriptionText()}</div>
+                    {constraintsText() && (
+                        <div className="rounded-xl p-3 lg:p-4 border" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
+                            <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-zinc-500 mb-2">Constraints</p>
+                            <p className="whitespace-pre-wrap text-zinc-300 text-sm leading-relaxed">{constraintsText()}</p>
+                        </div>
+                    )}
+                    {showExamples && (
+                        <div className="space-y-3 lg:space-y-4 pt-2">
+                            {normalizedExamples((activeProblem as any).examples).map((example, idx) => (
                             <div key={idx} className="rounded-xl p-3 lg:p-4 border shadow-inner group transition-colors" style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}>
                                 <p className="text-[12px] lg:text-[13px] font-black uppercase tracking-wider text-zinc-500 mb-2 lg:mb-3 group-hover:text-indigo-400 transition-colors">Example {idx + 1}:</p>
                                 <div className="space-y-2 font-mono text-xs lg:text-sm">
@@ -795,7 +844,7 @@ export function InterviewSession({
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:gap-2">
                                         <span className="text-zinc-500 shrink-0 select-none">Output:</span>
-                                        <span className="text-emerald-400 break-all">{example.output}</span>
+                                        <span className="text-emerald-400 break-all">{example.expected}</span>
                                     </div>
                                     {example.explanation && (
                                         <div className="pt-2 mt-2 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
@@ -807,10 +856,209 @@ export function InterviewSession({
                                     )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card >
+        );
+    };
+
+    const renderDesktopLayout = () => {
+        const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
+
+        return (
+            <div className="hidden lg:flex flex-1 min-h-0 w-full">
+                <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+                    <ResizablePanel defaultSize={50} minSize={35}>
+                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
+                            <ResizablePanel defaultSize={48} minSize={32}>
+                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)', borderBottom: '1px solid var(--surface-edge)' }}>
+                                    <div className="h-full rounded-xl border p-3 flex flex-col" style={{ borderColor: 'var(--surface-edge)' }}>
+                                        <div className="flex items-center justify-between gap-3 border-b pb-2" style={{ borderColor: 'var(--surface-edge)' }}>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-zinc-100 truncate">{activeProblem.title}</p>
+                                                <div className="mt-1 flex items-center gap-2 min-w-0">
+                                                <Badge variant="outline" className="uppercase border-indigo-500/40 bg-indigo-500/10 text-indigo-300">{activeProblem.difficulty}</Badge>
+                                                <div className={cn(
+                                                    'text-xs font-mono px-2 py-1 rounded border',
+                                                    limits.timeRemaining <= 60 ? 'text-red-400 border-red-500/40 bg-red-500/10' :
+                                                        limits.timeRemaining <= 300 ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' :
+                                                            'text-zinc-300 border-zinc-700 bg-zinc-900/40'
+                                                )}>
+                                                    {limits.formattedElapsed}
+                                                </div>
+                                                </div>
+                                            </div>
+                                            <a
+                                                href={leetcodeUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-200"
+                                            >
+                                                <BookOpen className="w-3.5 h-3.5" />
+                                                LeetCode
+                                            </a>
+                                        </div>
+                                        <div className="mt-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                                            {renderProblemCardContent(true, false)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={52} minSize={30}>
+                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)' }}>
+                                    <div className="h-full rounded-xl border relative overflow-hidden" style={{ borderColor: 'var(--surface-edge)' }}>
+                                        <div className="absolute inset-0 flex flex-col">
+                                            <div className="px-3 py-2 border-b text-xs uppercase tracking-wider text-zinc-500 font-bold" style={{ borderColor: 'var(--surface-edge)' }}>AI Interaction Hub</div>
+                                            <div className="flex-1 min-h-0 relative">
+                                                <ConversationView
+                                                    messages={messages}
+                                                    isAISpeaking={voice.isSpeaking}
+                                                    isProcessing={isProcessing}
+                                                />
+                                                {(voice.isListening || voice.isSpeaking) && (
+                                                    <div className="absolute inset-x-3 bottom-3 pointer-events-none rounded-xl border bg-black/40 backdrop-blur-sm p-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                                                        <ZoomTranscript
+                                                            kaiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content ?? null}
+                                                            userTranscript={voice.transcript || voice.interimTranscript}
+                                                            isKaiSpeaking={voice.isSpeaking}
+                                                            isUserSpeaking={voice.isListening}
+                                                            isThinking={isProcessing}
+                                                            conceptSlug="interview"
+                                                            conceptIcon="🎯"
+                                                            exchangeCount={messages.filter(m => m.role === 'user').length}
+                                                            className="gap-2"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="px-3 py-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
+                                                {!hasStarted ? (
+                                                    <Button
+                                                        size="lg"
+                                                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-12 rounded-xl"
+                                                        onClick={handleStart}
+                                                        data-tour="begin-button"
+                                                        data-testid="begin-interview-btn"
+                                                    >
+                                                        Begin Interview Experience
+                                                    </Button>
+                                                ) : (
+                                                    <div className="relative flex items-center justify-center">
+                                                        <div className="absolute">
+                                                            <MicPulse
+                                                                size="full"
+                                                                state={voice.isListening ? 'listening' : isProcessing ? 'processing' : voice.isSpeaking ? 'speaking' : 'idle'}
+                                                                className="scale-125"
+                                                            />
+                                                        </div>
+                                                        <div className="relative z-10">
+                                                            <MicrophoneButton
+                                                                isListening={voice.isListening}
+                                                                error={voice.error?.message}
+                                                                onClick={() => {
+                                                                    if (voice.isSpeaking) {
+                                                                        voice.stopSpeaking();
+                                                                        handleInterruption();
+                                                                        return;
+                                                                    }
+                                                                    if (voice.isListening) {
+                                                                        voice.stopListening();
+                                                                    } else if (!isProcessing) {
+                                                                        voice.startListening();
+                                                                    }
+                                                                }}
+                                                                onRetry={() => {
+                                                                    setVoiceErrorDismissed(false);
+                                                                    voice.startListening();
+                                                                }}
+                                                                disabled={isProcessing || isLimitLocked}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                        </ResizablePanelGroup>
+                    </ResizablePanel>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel defaultSize={50} minSize={35}>
+                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
+                            <ResizablePanel defaultSize={62} minSize={36}>
+                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderBottom: '1px solid var(--surface-edge)' }}>
+                                    <div className="h-full rounded-xl border overflow-hidden relative" style={{ borderColor: 'var(--surface-edge)' }}>
+                                        <div className="absolute top-3 right-3 z-30 pointer-events-none">
+                                            <AnimatePresence>
+                                                {showBadge && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: -10, scale: 0.96 }}
+                                                        transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                                                        className="relative overflow-hidden rounded-xl border px-3 py-2.5 bg-white/10 backdrop-blur-3xl shadow-[0_16px_56px_rgba(0,0,0,0.45)] ring-1 ring-white/20"
+                                                        style={{ borderColor: 'rgba(255,255,255,0.28)' }}
+                                                    >
+                                                        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-300/16 via-white/4 to-violet-300/12" />
+                                                        <p className="text-[10px] uppercase tracking-wider text-indigo-200 font-bold">Cognitive signal</p>
+                                                        <p className="text-xs text-white font-semibold">{lastBadgeSkill}</p>
+                                                        <p className="text-[11px] text-zinc-100/90">{badgeTriggerPhrase}</p>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                        <CodeEditor
+                                            onCodeChange={setUserCode}
+                                            defaultLanguage={codeLanguage}
+                                            initialCode={userCode}
+                                            onLanguageChange={setCodeLanguage}
+                                            onExecutionStart={() => {
+                                                setIsCodeRunning(true);
+                                                setExecutionResult(null);
+                                            }}
+                                            onExecutionResult={(result) => {
+                                                setExecutionResult(result);
+                                                setIsCodeRunning(false);
+                                            }}
+                                            readOnly={readOnly}
+                                            runDisabled={isLimitLocked || !hasStarted}
+                                        />
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={38} minSize={26}>
+                                <div className="h-full p-3" style={{ background: 'var(--surface-1)' }}>
+                                    <div className="h-full rounded-xl border p-3 flex flex-col gap-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                                        <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Console & Control</div>
+                                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                                            <TestCasePanel
+                                                testCases={derivedTestCases}
+                                                executionResult={executionResult}
+                                                isRunning={isCodeRunning}
+                                            />
+                                        </div>
+                                        <div className="pt-1 border-t flex gap-2" style={{ borderColor: 'var(--surface-edge)' }}>
+                                            <Button
+                                                onClick={() => shareCodeWithAI(userCode)}
+                                                disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked || !hasStarted}
+                                                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-lg"
+                                            >
+                                                <Send className="w-4 h-4 mr-2" />
+                                                Submit to Kai
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                        </ResizablePanelGroup>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
         );
     };
 
@@ -1191,136 +1439,10 @@ export function InterviewSession({
                 </div>
             )}
 
-            <div className="fixed top-24 right-6 z-[60] flex flex-col gap-4 pointer-events-none">
-                <SkillBadge skillId={lastBadgeSkill} triggerPhrase={badgeTriggerPhrase} shown={showBadge} />
-            </div>
-
             {hasStarted && <VoiceOnboarding />}
 
             {/* NEW DESKTOP LAYOUT */}
-            <div className="hidden lg:flex flex-1 relative min-h-0 w-full overflow-hidden">
-                {/* Left Drawer (Problem) */}
-                <AnimatePresence>
-                    {showProblemPanel && (
-                        <motion.div
-                            initial={{ x: -400, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: -400, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-                            className="absolute left-0 top-0 bottom-0 w-[380px] z-30 flex flex-col shadow-2xl"
-                            style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)' }}
-                        >
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
-                                <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2"><BookOpen className="w-4 h-4" /> Problem</span>
-                                <button onClick={() => setShowProblemPanel(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
-                                    ×
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-                                {renderProblemCardContent()}
-                            </div>
-                            <div className="p-3 border-t bg-black/20 backdrop-blur-xl" style={{ borderColor: 'var(--surface-edge)' }}>
-                                {renderControlsCard()}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-h-0 transition-all duration-300 relative w-full"
-                    style={{
-                        marginLeft: showProblemPanel ? '380px' : '0',
-                        marginRight: showHistoryPanel ? '340px' : '0',
-                    }}>
-
-                    {!showCodeEditor ? renderInteractionArea(false) : (
-                        <div className="flex-1 w-full h-full p-6 animate-in fade-in zoom-in-95 duration-200">
-                            <Card className="h-full flex flex-col shadow-2xl rounded-2xl overflow-hidden border" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                                <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--surface-edge)' }}>
-                                    <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
-                                        <Code className="w-4 h-4" /> Code Editor
-                                    </div>
-                                    <button onClick={() => setShowCodeEditor(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
-                                        ×
-                                    </button>
-                                </div>
-                                <div className="flex-1 flex flex-col gap-3 p-4">
-                                    <CodeEditor
-                                        onCodeChange={setUserCode}
-                                        defaultLanguage={codeLanguage}
-                                        initialCode={userCode}
-                                        onLanguageChange={setCodeLanguage}
-                                        onExecutionResult={(result) => {
-                                            if (result.stdout || result.stderr) {
-                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
-                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
-                                            }
-                                        }}
-                                    />
-                                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-12 shadow-lg shadow-indigo-900/20 rounded-xl">
-                                        <Send className="w-4 h-4 mr-2" /> Share Code with Kai
-                                    </Button>
-                                </div>
-                            </Card>
-                        </div>
-                    )}
-
-                </div>
-
-                {/* Right Drawer (History) */}
-                <AnimatePresence>
-                    {showHistoryPanel && (
-                        <motion.div
-                            initial={{ x: 340, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 340, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-                            className="absolute right-0 top-0 bottom-0 w-[340px] z-30 flex flex-col shadow-2xl"
-                            style={{ background: 'var(--surface-1)', borderLeft: '1px solid var(--surface-edge)' }}
-                        >
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
-                                <span className="text-sm font-semibold text-zinc-300 flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Conversation</span>
-                                <button onClick={() => setShowHistoryPanel(false)} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
-                                    ×
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-                                {renderHistoryArea()}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Floating sidebar toggles (always visible) */}
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2">
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowProblemPanel(v => !v)}
-                        className="w-8 h-24 rounded-xl flex flex-col items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest font-bold transition-all shadow-xl"
-                        style={{
-                            background: showProblemPanel ? 'var(--accent-primary)' : 'var(--surface-2)',
-                            border: '1px solid var(--surface-edge)',
-                            color: showProblemPanel ? 'white' : '#71717a',
-                            writingMode: 'vertical-rl',
-                        }}>
-                        <BookOpen className="w-3.5 h-3.5" style={{ writingMode: 'initial' }} />
-                        Problem
-                    </motion.button>
-                </div>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-40">
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowHistoryPanel(v => !v)}
-                        className="w-8 h-24 rounded-xl flex flex-col items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest font-bold transition-all shadow-xl"
-                        style={{
-                            background: showHistoryPanel ? 'var(--accent-primary)' : 'var(--surface-2)',
-                            border: '1px solid var(--surface-edge)',
-                            color: showHistoryPanel ? 'white' : '#71717a',
-                            writingMode: 'vertical-rl',
-                        }}>
-                        <MessageSquare className="w-3.5 h-3.5" style={{ writingMode: 'initial' }} />
-                        History
-                    </motion.button>
-                </div>
-            </div>
+            {renderDesktopLayout()}
 
             {/* MOBILE LAYOUT w/ Swipe Tabs */}
             <div
@@ -1359,14 +1481,17 @@ export function InterviewSession({
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
                                         onLanguageChange={setCodeLanguage}
-                                        onExecutionResult={(result) => {
-                                            if (result.stdout || result.stderr) {
-                                                const execSummary = result.exit_code === 0 ? `Code executed successfully.\nOutput:\n${result.stdout.slice(0, 500)}` : `Code failed with exit code ${result.exit_code}.\nError:\n${result.stderr.slice(0, 500)}`;
-                                                shareCodeWithAI(userCode + '\n\n[Execution Result]\n' + execSummary);
-                                            }
+                                        onExecutionStart={() => {
+                                            setIsCodeRunning(true);
+                                            setExecutionResult(null);
                                         }}
+                                        onExecutionResult={(result) => {
+                                            setExecutionResult(result);
+                                            setIsCodeRunning(false);
+                                        }}
+                                        runDisabled={isLimitLocked || !hasStarted}
                                     />
-                                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
+                                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
                                         <Send className="w-3.5 h-3.5 mr-1.5" /> Share
                                     </Button>
                                 </div>
