@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -25,12 +25,24 @@ export default function DiagnosticPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [selectedValue, setSelectedValue] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentQuestion = DIAGNOSTIC_QUESTIONS[currentQuestionIndex];
   const isAnswered = selectedValue !== null;
   const progressPercent = Math.round(((currentQuestionIndex + 1) / TOTAL_DIAGNOSTIC_QUESTIONS) * 100);
 
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSelectAnswer = (value: 1 | 2 | 3 | 4 | 5) => {
+    if (isAdvancing) return;
+
     setSelectedValue(value);
 
     // Record answer immediately
@@ -40,9 +52,15 @@ export default function DiagnosticPage() {
 
     // Auto-advance to next question (except last question)
     if (currentQuestionIndex < TOTAL_DIAGNOSTIC_QUESTIONS - 1) {
-      setTimeout(() => {
+      setIsAdvancing(true);
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      autoAdvanceTimerRef.current = setTimeout(() => {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setSelectedValue(null);
+        setIsAdvancing(false);
+        autoAdvanceTimerRef.current = null;
       }, 800);
     }
   };
@@ -64,6 +82,12 @@ export default function DiagnosticPage() {
   };
 
   const handleBack = () => {
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+      setIsAdvancing(false);
+    }
+
     if (currentQuestionIndex > 0) {
       const prevQuestion = DIAGNOSTIC_QUESTIONS[currentQuestionIndex - 1];
       const prevAnswer = answers.find(a => a.questionId === prevQuestion.id);
@@ -212,10 +236,13 @@ export default function DiagnosticPage() {
                   <button
                     key={answer.value}
                     onClick={() => handleSelectAnswer(answer.value)}
+                    disabled={isAdvancing}
                     className={`w-full py-4 px-6 rounded-lg font-medium text-white transition-all text-center ${
                       selectedValue === answer.value
                         ? answer.color + ' ring-2 ring-offset-2 ring-offset-[#0A0A0F]'
                         : 'bg-zinc-800 hover:bg-zinc-700 border border-zinc-700'
+                    } ${
+                      isAdvancing ? 'opacity-80 cursor-not-allowed' : ''
                     }`}
                   >
                     <span className="inline-block mr-3 font-bold">
