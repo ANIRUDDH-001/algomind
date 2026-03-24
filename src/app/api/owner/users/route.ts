@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
-import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
+import { isOwnerOrCoOwner, isPrimaryOwner } from '@/lib/auth/account-type';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function GET(req: NextRequest) {
@@ -53,9 +53,11 @@ export async function PATCH(req: NextRequest) {
 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Check if the caller is an owner/co-owner
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Restrict user account mutations to the primary owner.
+    const primaryOwner = await isPrimaryOwner(user.id);
+    if (!primaryOwner) {
+        return NextResponse.json({ error: 'Only the primary owner can modify user accounts' }, { status: 403 });
+    }
 
     // Use service role client for data modifications (bypasses RLS)
     const adminSupabase = await createServiceRoleSupabase();
@@ -81,7 +83,7 @@ export async function PATCH(req: NextRequest) {
             }
         }
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (accountType !== undefined) updates.account_type = accountType;
         if (suspend !== undefined) {
             updates.is_suspended = suspend;
@@ -108,6 +110,17 @@ export async function PATCH(req: NextRequest) {
                 .from('user_preferences')
                 .upsert({ user_id: userId, tts_provider: ttsProvider }, { onConflict: 'user_id' });
         }
+
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user.id,
+            metadata: {
+                route: 'owner/users',
+                targetUserId: userId,
+                changedFields: Object.keys(updates),
+                updatedTtsProvider: ttsProvider !== undefined,
+            },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

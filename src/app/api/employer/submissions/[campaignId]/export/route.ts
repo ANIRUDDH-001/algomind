@@ -1,10 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
+import { logSystemEvent } from '@/lib/monitoring/events';
+
+function sanitizeCsvCell(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    const raw = String(value).replace(/[\r\n\t]+/g, ' ').trim();
+    const formulaSafe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+    return formulaSafe.includes(',') || formulaSafe.includes('"')
+        ? `"${formulaSafe.replace(/"/g, '""')}"`
+        : formulaSafe;
+}
+
+function maskEmail(email: string | null): string {
+    if (!email) return '';
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return 'redacted';
+    const visible = local.slice(0, 2);
+    return `${visible}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ campaignId: string }> }) {
     try {
         const { campaignId } = await params;
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            ?? req.headers.get('x-real-ip')
+            ?? 'unknown';
+
+        if (clientIp !== 'unknown') {
+            const exportLimit = await checkIpRateLimit(clientIp, {
+                maxRequests: 20,
+                windowSeconds: 300,
+                endpoint: 'employer_export',
+            });
+
+            if (!exportLimit.success) {
+                return NextResponse.json({ error: 'Too many export attempts. Please retry shortly.' }, { status: 429 });
+            }
+        }
+
         const auth = await requireEmployer();
 
         if (auth.error || !auth.user) {
@@ -105,16 +140,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 dQ[0] = { status: sub.status, time: (originalSessionDuration / 60).toFixed(1) };
             }
 
-            const escapeCSV = (str: any) => {
-                if (str === null || str === undefined) return '';
-                const s = String(str);
-                return s.includes(',') ? `"${s.replace(/"/g, '""')}"` : s;
-            };
-
             const row = [
                 rank,
-                escapeCSV(sub.candidate_name),
-                escapeCSV(sub.candidate_email),
+                sanitizeCsvCell(sub.candidate_name),
+                sanitizeCsvCell(maskEmail(sub.candidate_email)),
                 sub.status,
                 sub.overall_score && sub.status === 'completed' ? sub.overall_score.toFixed(1) : '0.0',
                 assessment?.problem_decomposition ?? '0',
@@ -150,6 +179,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
 
     } catch (error: unknown) {
         console.error('[SUBMISSIONS_EXPORT_ERROR]', error);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'employer/submissions/export' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
