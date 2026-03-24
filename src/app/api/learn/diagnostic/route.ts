@@ -37,31 +37,111 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function buildDiagnosticResults(messages: { role: 'user' | 'assistant'; content: string }[]): KGDiagnosticResult[] {
-  const userText = messages
-    .filter((message) => message.role === 'user')
-    .map((message) => message.content.toLowerCase())
-    .join(' ');
+/**
+ * Score user answer sentiment (quality/confidence level)
+ * Returns number in [0, 1] range
+ */
+function scoreAnswerSentiment(answer: string): number {
+  const lower = answer.toLowerCase();
+  
+  // High confidence: strong positive responses
+  if (/\b(very well|excellent|strong|confident|master|expert|easy)\b/i.test(lower)) {
+    return 0.80;
+  }
+  
+  // Medium-high: "can do" / situational responses
+  if (/\b(well|good|comfortable|depending|situation|sometimes|usually|case by case)\b/i.test(lower)) {
+    return 0.60;
+  }
+  
+  // Medium: unsure but has some knowledge
+  if (/\b(not sure|maybe|some|bit|decent|alright|okay)\b/i.test(lower)) {
+    return 0.40;
+  }
+  
+  // Low: clearly weak areas
+  if (/\b(don't know|no idea|weak|intimidat|fear|never|don't|lack)\b/i.test(lower)) {
+    return 0.25;
+  }
+  
+  // Fallback for dry run / testing / process-based answers
+  if (/\b(dry run|test|edge case|validate|check|trace)\b/i.test(lower)) {
+    return 0.50;
+  }
+  
+  // Default for unmapped answers
+  return 0.35;
+}
 
-  const keywordRules: Array<{ slug: typeof ALL_DSA_CONCEPT_SLUGS[number]; terms: RegExp[] }> = [
-    { slug: 'arrays-strings', terms: [/array/i, /string/i, /substring/i] },
-    { slug: 'hashmaps-sets', terms: [/hash/i, /map/i, /set/i] },
-    { slug: 'two-pointers', terms: [/two pointer/i, /left right/i] },
-    { slug: 'sliding-window', terms: [/sliding window/i, /window/i] },
-    { slug: 'binary-search', terms: [/binary search/i, /sorted/i] },
-    { slug: 'graphs-bfs-dfs', terms: [/graph/i, /bfs/i, /dfs/i] },
-    { slug: 'trees-traversal', terms: [/tree/i, /traversal/i] },
-    { slug: 'dynamic-programming', terms: [/dynamic programming/i, /dp/i, /memo/i, /tabulation/i] },
+function buildDiagnosticResults(messages: { role: 'user' | 'assistant'; content: string }[]): KGDiagnosticResult[] {
+  const userMessages = messages.filter((message) => message.role === 'user');
+
+  // Question-to-concept mapping per diagnostic flow
+  // Each question maps to specific DSA concepts that are tested
+  // Meta-skills like edge case validation apply to all concepts
+  // Q1: first mental checklist → arrays-strings, hashmaps-sets (general readiness)
+  // Q2: comfort with arrays/hashmaps → arrays-strings, hashmaps-sets
+  // Q3: two-pointers vs sliding window → two-pointers, sliding-window
+  // Q4: recursion vs iterative on trees/graphs → trees-traversal, graphs-bfs-dfs
+  // Q5: dynamic programming state design → dynamic-programming, binary-search
+  // Q6: validate edge cases → all concepts (meta-skill, apply 0.10 boost)
+  // Q7: complexity analysis → all concepts (meta-skill, apply 0.10 boost)
+  // Q8: intimidating problems → weak areas, apply 0.15 penalty
+
+  const questionToConceptsMap: Array<{ concepts: (typeof ALL_DSA_CONCEPT_SLUGS[number])[]; isMetaSkill?: boolean; penalty?: number }> = [
+    { concepts: ['arrays-strings', 'hashmaps-sets'] },              // Q1: mental checklist
+    { concepts: ['arrays-strings', 'hashmaps-sets'] },              // Q2: comfort with arrays/hashmaps
+    { concepts: ['two-pointers', 'sliding-window'] },               // Q3: two-pointers vs sliding window
+    { concepts: ['trees-traversal', 'graphs-bfs-dfs'] },            // Q4: recursion vs iterative
+    { concepts: ['dynamic-programming', 'binary-search'] },         // Q5: DP state design
+    { concepts: ['arrays-strings', 'hashmaps-sets', 'two-pointers', 'sliding-window', 'trees-traversal', 'graphs-bfs-dfs', 'binary-search', 'dynamic-programming'], isMetaSkill: true }, // Q6: edge cases (meta)
+    { concepts: ['arrays-strings', 'hashmaps-sets', 'two-pointers', 'sliding-window', 'trees-traversal', 'graphs-bfs-dfs', 'binary-search', 'dynamic-programming'], isMetaSkill: true }, // Q7: complexity (meta)
+    { concepts: ['dynamic-programming', 'binary-search'], penalty: 0.15 },  // Q8: intimidating (recursion/bit manipulation) → weak areas
   ];
 
-  const baseline = 0.35;
+  // Initialize confidence scores for all concepts
+  const confidenceMap = new Map<typeof ALL_DSA_CONCEPT_SLUGS[number], number[]>();
+  ALL_DSA_CONCEPT_SLUGS.forEach(slug => {
+    confidenceMap.set(slug, []);
+  });
 
-  return keywordRules.map((rule) => {
-    const matches = rule.terms.reduce((count, regex) => (regex.test(userText) ? count + 1 : count), 0);
-    const confidence = clamp(baseline + matches * 0.14, 0.2, 0.9);
+  // Score each user answer and apply to mapped concepts
+  userMessages.forEach((msg, idx) => {
+    const answerConfidence = scoreAnswerSentiment(msg.content);
+    const conceptMapping = questionToConceptsMap[idx];
+
+    if (conceptMapping) {
+      const { concepts, isMetaSkill, penalty } = conceptMapping;
+      let adjustedConfidence = answerConfidence;
+
+      // Meta-skills (edge cases, complexity analysis) apply softer boost/penalty
+      if (isMetaSkill) {
+        adjustedConfidence = 0.5 + (answerConfidence - 0.5) * 0.5; // Dampen swing
+      }
+
+      // Apply penalty for intimidating problems
+      if (penalty) {
+        adjustedConfidence = Math.max(0.2, answerConfidence - penalty);
+      }
+
+      // Record score for each concept this question maps to
+      concepts.forEach(concept => {
+        const scores = confidenceMap.get(concept) ?? [];
+        scores.push(adjustedConfidence);
+        confidenceMap.set(concept, scores);
+      });
+    }
+  });
+
+  // Average the scores for each concept, clamp to [0.2, 0.9]
+  return Array.from(confidenceMap.entries()).map(([slug, scores]) => {
+    const avgConfidence = scores.length > 0
+      ? scores.reduce((a, b) => a + b, 0) / scores.length
+      : 0.35;
+
     return {
-      conceptSlug: rule.slug,
-      confidence: Number(confidence.toFixed(2)),
+      conceptSlug: slug,
+      confidence: Number(clamp(avgConfidence, 0.2, 0.9).toFixed(2)),
     };
   });
 }
@@ -81,6 +161,7 @@ async function fallbackInitializeConceptStates(
   supabase: Awaited<ReturnType<typeof createServerSupabase>>,
   userId: string,
   results: KGDiagnosticResult[],
+  sessionId?: string,
 ): Promise<void> {
   const now = new Date().toISOString();
   const rows = results.map((result) => ({
@@ -95,6 +176,7 @@ async function fallbackInitializeConceptStates(
         type: 'diagnostic_initial',
         delta: 0,
         at: now,
+        diagnostic_session_id: sessionId,
       },
     ],
   }));
@@ -164,8 +246,7 @@ export async function POST(req: NextRequest) {
       await getKnowledgeGraphService().initializeFromDiagnostic(user.id, body.results);
       void invalidateStudentContext(user.id);
 
-      let nextRecommendedConcept: string | undefined;
-      nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined;
+      const nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined;
 
       return NextResponse.json({
         success: true,
@@ -196,7 +277,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Fallback: write concept states directly so diagnostic completion still persists.
-        await fallbackInitializeConceptStates(supabase, user.id, results);
+        await fallbackInitializeConceptStates(supabase, user.id, results, body.sessionId);
         initializedWithFallback = true;
       }
       
@@ -204,7 +285,7 @@ export async function POST(req: NextRequest) {
 
       let nextRecommendedConcept: string | undefined;
       try {
-        nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined;
+        nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined; // Can be reassigned in catch
       } catch (recommendError: unknown) {
         const recErrorMsg = recommendError instanceof Error ? recommendError.message : String(recommendError);
         await logSystemEvent({
@@ -247,5 +328,46 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ error: 'Failed to initialize diagnostic results' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has completed diagnostic by querying concept_states for evidenceCount
+    const { data: conceptStates, error } = await supabase
+      .from('concept_states')
+      .select('concept_slug, evidence_count')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // If any concept_state has evidenceCount > 0, diagnostic has been completed
+    const hasCompletedDiagnostic = conceptStates && conceptStates.length > 0 && 
+      conceptStates.some((cs: Record<string, unknown>) => (cs.evidence_count as number) > 0);
+
+    return NextResponse.json({
+      hasCompletedDiagnostic,
+      conceptStateCount: conceptStates?.length ?? 0,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logSystemEvent({
+      type: 'db_error',
+      errorMessage,
+      metadata: { context: 'learn_diagnostic.verify' },
+    });
+
+    return NextResponse.json({ error: 'Failed to verify diagnostic completion' }, { status: 500 });
   }
 }

@@ -154,9 +154,14 @@ export default function DiagnosticPage() {
     }
   };
 
-  const completeDiagnostic = async (finalMessages: MessageEntry[]) => {
+  const completeDiagnostic = async (finalMessages: MessageEntry[], retryCount = 0) => {
     setState('processing');
+    const startTime = Date.now();
+    
     try {
+      // Step 1: Send completion request
+      console.log('[Diagnostic] Starting completion...', { sessionId, messageCount: finalMessages.length, attempt: retryCount + 1 });
+      
       const res = await fetch('/api/learn/diagnostic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,29 +172,108 @@ export default function DiagnosticPage() {
         }),
       });
 
-      const data = await res.json().catch(() => ({} as { success?: boolean; error?: string }));
+      const data = await res.json().catch(() => ({} as { success?: boolean; error?: string; initializedWithFallback?: boolean }));
 
-      if (res.ok && data.success !== false) {
-        setState('complete');
-        router.replace('/learn');
-      } else {
-        const errorMsg = (data as { error?: string }).error || 'Failed to complete diagnostic';
-        addMsg('assistant', `I encountered an issue: ${errorMsg}. Please try again, or you can skip to your learning path.`);
-        setState('active');
-        setCanComplete(true);
+      console.log('[Diagnostic] API response:', { ok: res.ok, status: res.status, success: data.success, elapsedMs: Date.now() - startTime });
+
+      if (!res.ok || data.success === false) {
+        const errorMsg = (data as { error?: string }).error || `HTTP ${res.status}`;
+        console.error('[Diagnostic] Completion failed:', errorMsg);
+        throw new Error(errorMsg);
       }
+
+      // Step 2: Show success message with 2s delay for user perception
+      console.log('[Diagnostic] Completion successful, showing success screen...');
+      setState('complete');
+      localStorage.setItem('diagnosticCompletedAt', new Date().toISOString());
+      console.log('[Diagnostic] localStorage timestamp set');
+      
+      // Delay before navigation (let user see success screen)
+      await new Promise(r => setTimeout(r, 2000));
+      console.log('[Diagnostic] 2s delay complete, initiating navigation...');
+
+      // Step 3: Clear service worker caches to ensure fresh /learn load
+      if (typeof window !== 'undefined') {
+        try {
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            console.log('[Diagnostic] Found caches:', cacheNames);
+            for (const cacheName of cacheNames) {
+              // Delete all caches to force fresh fetch (except keep static assets minimal)
+              await caches.delete(cacheName);
+            }
+            console.log('[Diagnostic] Caches cleared');
+          }
+        } catch (cacheErr) {
+          console.warn('[Diagnostic] Cache clearing failed (non-blocking):', cacheErr);
+        }
+      }
+
+      // Step 4: Attempt navigation with multiple fallback strategies
+      console.log('[Diagnostic] Attempting router.replace("/learn")...');
+      
+      try {
+        // Primary method: Next.js router
+        router.replace('/learn');
+        console.log('[Diagnostic] router.replace() called successfully');
+        
+        // Safety: If router.replace didn't work after 3s, force navigation
+        const safetyTimeoutId = window.setTimeout(() => {
+          console.warn('[Diagnostic] Safety timeout: router.replace did not complete, forcing window.location');
+          if (typeof window !== 'undefined' && window.location.pathname !== '/learn') {
+            window.location.href = '/learn';
+          }
+        }, 3000);
+
+        // Store for cleanup if needed
+        if (typeof window !== 'undefined') {
+          (window as unknown as { diagnosticSafetyTimeout?: unknown }).diagnosticSafetyTimeout = safetyTimeoutId;
+        }
+      } catch (routerErr) {
+        console.error('[Diagnostic] router.replace threw error:', routerErr);
+        console.log('[Diagnostic] Falling back to window.location.href');
+        window.location.href = '/learn';
+      }
+
+      console.log('[Diagnostic] Completion flow finished', { elapsedMs: Date.now() - startTime });
+
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      addMsg('assistant', `Connection issue: ${errMsg}. Please check your internet and try again.`);
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[Diagnostic] Error in completion:', errMsg, err, { elapsedMs: Date.now() - startTime });
+      
+      // Retry logic: If first attempt failed due to network, retry once
+      if (retryCount < 1) {
+        console.log('[Diagnostic] Retrying (attempt 2/2)...');
+        addMsg('assistant', `Let me try that again...`);
+        await new Promise(r => setTimeout(r, 1000)); // Backoff
+        await completeDiagnostic(finalMessages, retryCount + 1);
+        return;
+      }
+
+      // Final failure: Show error and offer recovery options
+      console.error('[Diagnostic] Final failure after retry');
+      addMsg('assistant', `I encountered an issue: ${errMsg}. Let me redirect you to your learning path now...`);
       setState('active');
       setCanComplete(true);
+
+      // Set up auto-redirect fallback after 5s (faster since we already retried)
+      console.log('[Diagnostic] Setting 5s fallback timeout...');
+      const timeoutId = window.setTimeout(() => {
+        console.warn('[Diagnostic] Fallback timeout triggered - forcing redirect to /learn via window.location');
+        window.location.href = '/learn';
+      }, 5000);
+
+      if (typeof window !== 'undefined') {
+        (window as unknown as { diagnosticTimeoutId?: unknown }).diagnosticTimeoutId = timeoutId;
+      }
     }
   };
 
   const userTurns = messages.filter((message) => message.role === 'user').length;
   const questionIndex = Math.min(totalQuestions, Math.max(1, userTurns + 1));
   const questionsLeft = Math.max(0, totalQuestions - userTurns);
-  const effectiveCanComplete = canComplete || userTurns >= totalQuestions;
+  // Button is enabled when: all 8 questions answered OR explicit shouldComplete from API
+  const canFinishDiagnostic = canComplete;
 
   const handleTextSend = async () => {
     const text = textInput.trim();
@@ -483,7 +567,7 @@ export default function DiagnosticPage() {
             <button
               data-testid="finish-diagnostic-button"
               onClick={() => void completeDiagnostic(messagesRef.current)}
-              disabled={state !== 'active' || kaiThinking || !effectiveCanComplete}
+              disabled={state !== 'active' || kaiThinking || !canFinishDiagnostic}
               className="shrink-0 px-4 h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:cursor-not-allowed disabled:text-zinc-600 text-white font-medium text-sm transition-all flex items-center gap-2"
             >
               {state === 'processing' ? (

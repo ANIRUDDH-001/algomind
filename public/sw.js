@@ -1,7 +1,7 @@
 // AlgoMind Service Worker
 // Provides offline caching for PWA functionality
 
-const CACHE_NAME = 'algomind-1774373962284';
+const CACHE_NAME = 'algomind-1774375201640';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
@@ -63,19 +63,35 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(request)
                 .then((response) => {
+                    // Validate response object
+                    if (!response || !(response instanceof Response)) {
+                        console.warn('[SW] Navigate: Invalid response object, using cache fallback');
+                        return caches.match(request).then((cached) => {
+                            return cached || caches.match('/');
+                        });
+                    }
+
                     // Cache the page (only if cacheable)
                     if (isCacheableUrl(url)) {
                         const clone = response.clone();
                         caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, clone);
+                            cache.put(request, clone).catch((err) => {
+                                console.warn('[SW] Cache put failed:', err);
+                            });
+                        }).catch((err) => {
+                            console.warn('[SW] Cache open failed:', err);
                         });
                     }
                     return response;
                 })
-                .catch(() => {
+                .catch((err) => {
+                    console.warn('[SW] Navigate fetch failed:', err);
                     // Offline - try cache
                     return caches.match(request).then((cached) => {
                         return cached || caches.match('/');
+                    }).catch((cacheErr) => {
+                        console.warn('[SW] Cache match failed:', cacheErr);
+                        return new Response('Offline', { status: 503 });
                     });
                 })
         );
