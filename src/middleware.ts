@@ -96,12 +96,14 @@ export default async function middleware(request: NextRequest) {
             url.pathname = '/login';
             // Optionally append a redirect so they come back to the assessment link after login
             url.searchParams.set('redirect', pathname);
+            url.searchParams.set('reason', 'auth_required');
             return NextResponse.redirect(url);
         }
 
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
+            url.searchParams.set('reason', 'auth_required_interview');
             return NextResponse.redirect(url);
         }
     }
