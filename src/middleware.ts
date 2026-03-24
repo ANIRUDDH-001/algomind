@@ -27,13 +27,21 @@ export default async function middleware(request: NextRequest) {
                     return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    try {
+                        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                    } catch (error) {
+                        console.warn('[middleware] Failed to mirror auth cookies into request store:', error);
+                    }
                     supabaseResponse = NextResponse.next({
                         request: { headers: requestHeaders },
                     });
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    );
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            supabaseResponse.cookies.set(name, value, options)
+                        );
+                    } catch (error) {
+                        console.warn('[middleware] Failed to persist auth cookies on response:', error);
+                    }
                 },
             },
         }

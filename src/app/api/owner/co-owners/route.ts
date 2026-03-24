@@ -35,6 +35,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user.id,
+            metadata: {
+                route: 'owner/co-owners',
+                action: 'grant_co_owner',
+                coOwnerId: coOwner?.id,
+            },
+        });
+
         return NextResponse.json({ success: true, coOwner });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
@@ -70,6 +80,16 @@ export async function DELETE(req: NextRequest) {
             void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
+
+        void logSystemEvent({
+            type: 'admin_action',
+            userId: user.id,
+            metadata: {
+                route: 'owner/co-owners',
+                action: 'revoke_co_owner',
+                coOwnerId: id,
+            },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

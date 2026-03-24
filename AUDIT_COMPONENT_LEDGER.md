@@ -12,7 +12,7 @@
 - In progress: `None`
 - Pending: `None`
 - Last resolution review: `2026-03-24`
-- Active findings after pruning resolved items: `224` (`P0:18`, `P1:72`, `P2:113`, `P3:21`)
+- Active findings after pruning resolved items: `222` (`P0:18`, `P1:71`, `P2:112`, `P3:21`)
 
 ## Resolution Review (2026-03-24)
 - Removed as resolved: C02 middleware redundant auth/co-owner DB checks (ownership checks shifted to page/route level).
@@ -21,6 +21,8 @@
 - Removed as resolved: C41 edge duplicate-processing idempotency race (completion atomic guard and edge idempotency guard present).
 - Removed as resolved: C38 owner mutation authorization drift (primary-owner enforcement applied for sensitive `/api/owner/users` mutations).
 - Removed as resolved: C39 export/transcript sanitization gap (CSV output hardened + transcript payload redaction + export rate limits).
+- Removed as resolved: C40 service/browser Supabase singleton invalidation gap (explicit cache reset + env-fingerprint reinit controls added).
+- Removed as resolved: C40 silent cookie-write failure risk (middleware/server cookie sync paths now log failures for observability).
 
 ---
 
@@ -1036,8 +1038,6 @@
 - src/lib/supabase/problems.ts
 
 ### Findings
-- `P1` Service/client singleton lifecycle lacks robust invalidation controls.
-- `P2` Cookie write failures can be swallowed and create ambiguous session state.
 - `P2` Type mapping round-trip can lose attached skill/evidence detail unless joined correctly.
 - `P2` Problem-query caching strategy is limited for repeated access patterns.
 
@@ -1046,7 +1046,6 @@
 - Missing env-invalidation, cookie-failure, and round-trip integrity suites.
 
 ### Quick fix direction
-- Add explicit invalidation utilities and strict cookie failure handling.
 - Add typed round-trip helpers and caching for hot problem reads.
 
 ---
