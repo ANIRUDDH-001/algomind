@@ -224,16 +224,18 @@ describe('tagsToFirstConceptSlug', () => {
     it('derives conceptSlug from problem tags', () => {
         // Test with arrays tag
         const result1 = tagsToFirstConceptSlug(['arrays', 'hashing'], null);
-        expect(result1).toBeTruthy();
+        expect(result1).not.toBeNull();
+        if (result1 === null) throw new Error('expected non-null concept slug');
         expect(typeof result1).toBe('string');
         expect(result1.length).toBeGreaterThan(0);
-        expect(ALL_DSA_CONCEPT_SLUGS.includes(result1)).toBe(true);
+        expect(ALL_DSA_CONCEPT_SLUGS.some((slug) => slug === result1)).toBe(true);
 
         // Test with hashing tag
         const result2 = tagsToFirstConceptSlug(['hashing'], null);
-        expect(result2).toBeTruthy();
+        expect(result2).not.toBeNull();
+        if (result2 === null) throw new Error('expected non-null concept slug');
         expect(typeof result2).toBe('string');
-        expect(ALL_DSA_CONCEPT_SLUGS.includes(result2)).toBe(true);
+        expect(ALL_DSA_CONCEPT_SLUGS.some((slug) => slug === result2)).toBe(true);
 
         // Test with empty tags falls back to null (component would use problem.id)
         const result3 = tagsToFirstConceptSlug([], null);

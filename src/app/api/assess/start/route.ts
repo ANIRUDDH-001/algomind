@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
+import { logSystemEvent } from '@/lib/monitoring/events';
 // RAG context is now fetched lazily per-phase in assess/chat, not pre-fetched here
 
 validateEnv();
@@ -12,6 +13,9 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { campaignToken, candidateName, candidateEmail, entryCode } = body;
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            ?? req.headers.get('x-real-ip')
+            ?? 'unknown';
 
         if (!campaignToken || !candidateName) {
             return NextResponse.json({ error: 'campaignToken and candidateName are required' }, { status: 400 });
@@ -34,6 +38,15 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (lookupError || !campaignRef) {
+            void logSystemEvent({
+                type: 'route_error',
+                errorMessage: 'assess_start_campaign_not_found',
+                metadata: {
+                    route: 'assess_start',
+                    clientIp,
+                    campaignToken: String(campaignToken ?? '').slice(0, 16),
+                },
+            });
             return NextResponse.json(
                 { error: 'Assessment link not found or no longer available.' },
                 { status: 404 }
@@ -50,6 +63,15 @@ export async function POST(req: NextRequest) {
                 });
             const verifyResult = Array.isArray(verifyData) ? verifyData[0] : verifyData;
             if (verifyError || !verifyResult?.valid) {
+                void logSystemEvent({
+                    type: 'route_error',
+                    errorMessage: 'assess_start_invalid_entry_code',
+                    metadata: {
+                        route: 'assess_start',
+                        clientIp,
+                        campaignId: campaignRef.id,
+                    },
+                });
                 return NextResponse.json(
                     { error: 'Invalid entry code. Please go back and re-enter your code.' },
                     { status: 403 }
@@ -59,10 +81,6 @@ export async function POST(req: NextRequest) {
 
         // Rate-limit assessment starts: max 5 per IP per 10 minutes
         // Prevents slot exhaustion from refresh loops or automated bots
-        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-            ?? req.headers.get('x-real-ip')
-            ?? 'unknown';
-
         if (clientIp !== 'unknown') {
             const { checkIpRateLimit } = await import('@/lib/rate-limit/ip-rate-limiter');
             const rateCheck = await checkIpRateLimit(clientIp, {
