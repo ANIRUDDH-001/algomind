@@ -2,7 +2,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useInterview } from '@/hooks/useInterview';
+import { useLearnSession } from '@/hooks/useLearnSession';
+import { useTTS } from '@/hooks/useTTS';
+import { tagsToFirstConceptSlug } from '@/lib/knowledge-graph/tag-concept-map';
 import { useRouter } from 'next/navigation';
 import { ConversationView } from '@/components/interview/ConversationView';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
@@ -11,7 +13,7 @@ import { CodeEditor } from '@/components/interview/CodeEditor';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Code, StopCircle, ArrowRight } from 'lucide-react';
+import { Code, StopCircle, ArrowRight } from 'lucide-react';
 import type { Problem } from '@/lib/supabase/problems';
 import { recordLearnSession } from '@/app/actions/learn';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -23,10 +25,9 @@ import { useCallback, useMemo } from 'react';
 interface LearnSessionClientProps {
     problem: Problem;
     sessionCount: number;
-    fromSessionId?: string;
 }
 
-export function LearnSessionClient({ problem, sessionCount, fromSessionId }: LearnSessionClientProps) {
+export function LearnSessionClient({ problem, sessionCount }: LearnSessionClientProps) {
     const router = useRouter();
     const { user } = useAuth();
 
@@ -34,18 +35,22 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
     const startTimeRef = useRef<number>(Date.now());
     const initialGreetingSent = useRef(false);
 
-    const {
-        messages,
-        isProcessing,
-        voice,
-        submitUserResponse,
-        loadTranscript,
-        handleInterruption,
-        startInterview
-    } = useInterview({
-        config: { mode: 'practice' } as any,
-        apiEndpoint: '/api/learn/chat',
+    // Derive concept slug from problem tags
+    const conceptSlug = tagsToFirstConceptSlug(problem.tags ?? [], null) ?? problem.id;
+
+    // TTS hook for speaking Kai's responses
+    const { speak, isSpeaking, stop: stopSpeaking } = useTTS();
+
+    // Learn session hook
+    const session = useLearnSession({
+        conceptSlug,
+        onSpeakMessage: async (text) => {
+            await speak(text);
+        },
     });
+
+    // Local UI state for listening (just for mic button visual feedback)
+    const [isListening, setIsListening] = useState(false);
 
     const [userCode, setUserCode] = useState('');
     const [learnLanguage, setLearnLanguage] = useState('python');
@@ -55,12 +60,13 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
         setLastExecResult(result);
         // Narrate the result to Kai so it can give feedback
         if (result.stdout || result.stderr) {
+            if (session.state !== 'active' || session.kaiTyping) return;
             const summary = result.exit_code === 0
                 ? `My code ran successfully. Output: ${result.stdout.slice(0, 300)}`
                 : `My code failed (exit ${result.exit_code}). Error: ${result.stderr.slice(0, 300)}`;
-            submitUserResponse(summary, { problemTitle: problem.title, problemContent: problem.description || '' });
+            session.sendMessage(summary);
         }
-    }, [submitUserResponse, problem]);
+    }, [session]);
 
     // Derive test cases from problem examples
     const testCases: TestCase[] = useMemo(() => {
@@ -76,40 +82,27 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
     // Keyboard shortcut for Share
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && userCode.trim() && !isProcessing) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && userCode.trim() && session.state === 'active' && !session.kaiTyping) {
                 const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
-                submitUserResponse(msg, { problemTitle: problem.title, problemContent: problem.description || '' });
+                session.sendMessage(msg);
             }
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [userCode, learnLanguage, isProcessing, submitUserResponse, problem]);
+    }, [userCode, learnLanguage, session]);
 
-    // Start immediately
+    // Start session when component mounts
     useEffect(() => {
         if (!hasStarted && !initialGreetingSent.current) {
             setHasStarted(true);
             initialGreetingSent.current = true;
 
-            // Initialize interview context
-            startInterview({
-                problemTitle: problem.title,
-                problemContent: problem.description || '', // Keep problem.description for content as per original code's intent
-                difficultyMode: 'practice' as const,
-                difficulty: (problem.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
-                problemId: problem.id,
-                language: 'typescript'
-            });
-
-            // Inject the first assistant message manually and speak it
-            const introMsg = `Namaste! Main Kai hoon, aapka DSA tutor. Aaj hum ${problem.title} samjhenge.`;
-            // Add a small delay so state machine is ready
-            setTimeout(() => {
-                loadTranscript([{ role: 'assistant', content: introMsg, timestamp: new Date() }]);
-                if (voice.speak) voice.speak(introMsg);
-            }, 500);
+            // Start the session
+            if (session.state === 'idle') {
+                session.startSession();
+            }
         }
-    }, [hasStarted, problem.title, problem.description, problem.id, loadTranscript, voice, startInterview]);
+    }, [hasStarted, session]);
 
     const handlePracticeMode = async () => {
         if (user) {
@@ -193,9 +186,14 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                 <div className="w-[55%] flex flex-col border-r border-white/5 bg-black/20 p-6 relative">
                     <div className="flex-1 min-h-0 border rounded-2xl bg-zinc-900/40 border-white/5 overflow-hidden flex flex-col">
                         <ConversationView
-                            messages={messages}
-                            isAISpeaking={voice.isSpeaking}
-                            isProcessing={isProcessing}
+                            messages={session.transcript.map(t => ({
+                                id: t.id,
+                                role: t.role,
+                                content: t.content,
+                                timestamp: new Date(t.at),
+                            }))}
+                            isAISpeaking={isSpeaking}
+                            isProcessing={session.kaiTyping}
                         />
                     </div>
 
@@ -203,27 +201,27 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                     <div className="shrink-0 pt-6 flex flex-col items-center justify-center gap-4">
                         <div className="flex items-center justify-center gap-4 relative">
                             <MicrophoneButton
-                                isListening={voice.isListening}
+                                isListening={isListening}
                                 onClick={() => {
-                                    if (voice.isListening) {
-                                        voice.stopListening();
-                                    } else if (!isProcessing && !voice.isSpeaking) {
-                                        voice.startListening();
+                                    if (isListening) {
+                                        setIsListening(false);
+                                    } else if (session.state === 'active' && !session.kaiTyping && !isSpeaking) {
+                                        setIsListening(true);
                                     }
                                 }}
-                                disabled={isProcessing || voice.isSpeaking}
+                                disabled={session.state !== 'active' || session.kaiTyping || isSpeaking}
                             />
                             <div className="absolute top-1/2 -translate-y-1/2 -right-16">
                                 <MicPulse
                                     size="compact"
-                                    state={voice.isListening ? 'listening' : isProcessing ? 'processing' : voice.isSpeaking ? 'speaking' : 'idle'}
+                                    state={isListening ? 'listening' : session.kaiTyping ? 'processing' : isSpeaking ? 'speaking' : 'idle'}
                                 />
                             </div>
                         </div>
-                        {voice.isSpeaking && (
+                        {isSpeaking && (
                             <Button
                                 size="sm"
-                                onClick={voice.stopSpeaking}
+                                onClick={stopSpeaking}
                                 className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-8 shadow-xl shadow-red-900/40 transition-all rounded-full"
                             >
                                 <StopCircle className="mr-1.5 h-4 w-4" /> Stop Kai
@@ -264,11 +262,11 @@ export function LearnSessionClient({ problem, sessionCount, fromSessionId }: Lea
                                 )}
                                 <Button
                                     onClick={() => {
-                                        if (!userCode.trim()) return;
+                                        if (!userCode.trim() || session.state !== 'active' || session.kaiTyping) return;
                                         const msg = `Here's my code attempt:\n\`\`\`${learnLanguage}\n${userCode}\n\`\`\``;
-                                        submitUserResponse(msg, { problemTitle: problem.title, problemContent: problem.description || '' });
+                                        session.sendMessage(msg);
                                     }}
-                                    disabled={!userCode.trim() || isProcessing}
+                                    disabled={!userCode.trim() || session.state !== 'active' || session.kaiTyping}
                                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-xl"
                                 >
                                     Share Code with Kai
