@@ -24,7 +24,8 @@ vi.mock('@/lib/kai-context', () => ({
 }));
 
 vi.mock('razorpay', () => ({
-  default: vi.fn().mockImplementation(() => ({
+  default: vi.fn().mockImplementation(function MockRazorpay() {
+    return {
     orders: {
       create: vi.fn().mockResolvedValue({
         id: 'order_test123',
@@ -32,7 +33,8 @@ vi.mock('razorpay', () => ({
         currency: 'INR',
       }),
     },
-  })),
+    };
+  }),
 }));
 
 const createRequest = (body: any, method = 'POST') => {
