@@ -1,0 +1,442 @@
+/**
+ * @module api/learn/concept
+ * @description Kai-Tutor concept-scoped teaching session API.
+ *              Replaces the old /api/learn/chat route.
+ * @phase Phase 2C
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabase } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
+import { getAIClient } from '@/lib/ai/client';
+import { buildKaiTutorSystemPrompt } from '@/lib/learn/tutor-prompt';
+import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
+import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
+import { logSystemEvent } from '@/lib/monitoring/events';
+import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import type { ConceptTag } from '@/types/knowledge-graph';
+import type { KaiTutorAssessment } from '@/lib/knowledge-graph/types';
+
+export const maxDuration = 60;
+
+const LEARN_SESSION_MAX_TURNS = 20;
+
+interface LearnConceptRequestBody {
+  conceptSlug: string;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  sessionId?: string;
+  action?: 'start' | 'turn' | 'end';
+}
+
+async function verifySessionOwnership(sessionId: string, userId: string): Promise<boolean> {
+  const { data, error } = await getServiceClient()
+    .from('learn_sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  return !error && Boolean(data?.id);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? req.headers.get('x-real-ip')
+      ?? 'unknown';
+    const ipRateLimit = await checkIpRateLimit(ip, {
+      maxRequests: 30,
+      windowSeconds: 60,
+      endpoint: 'learn_concept',
+    });
+    if (ipRateLimit.allowed === false) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
+    let body: LearnConceptRequestBody;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const { conceptSlug, messages, sessionId, action = 'turn' } = body;
+
+    if (!conceptSlug) {
+      return NextResponse.json({ error: 'conceptSlug is required' }, { status: 400 });
+    }
+
+    if (!Array.isArray(messages)) {
+      return NextResponse.json({ error: 'messages must be an array' }, { status: 400 });
+    }
+
+    const { data: conceptTag, error: tagError } = await getServiceClient()
+      .from('concept_tags')
+      .select('*')
+      .eq('id', conceptSlug)
+      .eq('is_active', true)
+      .single();
+
+    if (tagError || !conceptTag) {
+      console.error('[learn/concept 400] tagError:', JSON.stringify(tagError), '| conceptSlug received:', conceptSlug);
+      return NextResponse.json({ error: 'Invalid or unknown concept slug' }, { status: 400 });
+    }
+
+    let activeSessionId = sessionId;
+    const isFirstTurn = action === 'start' || !sessionId;
+
+    if (isFirstTurn) {
+      const limitResult = await checkWeeklySessionLimit(user.id, 'learn');
+      if (!limitResult.allowed) {
+        return NextResponse.json(
+          {
+            error: 'Weekly learn session limit reached.',
+            code: 'LIMIT_REACHED',
+            sessionsUsed: limitResult.sessionsUsed,
+            limit: limitResult.limit,
+            sessionType: 'learn',
+          },
+          { status: 429 }
+        );
+      }
+
+      const { data: newSession, error: sessionError } = await getServiceClient()
+        .from('learn_sessions')
+        .insert({
+          user_id: user.id,
+          concept_slug: conceptSlug,
+          status: 'active',
+          session_type: 'concept',
+          transcript: [],
+          exchange_count: 0,
+        })
+        .select('id')
+        .single();
+
+      if (sessionError || !newSession) {
+        await logSystemEvent({
+          type: 'db_error',
+          userId: user.id,
+          errorMessage: sessionError?.message ?? 'create learn session failed',
+          metadata: { context: 'learn_concept.create_session', conceptSlug },
+        });
+        return NextResponse.json({ error: 'Failed to start learning session' }, { status: 500 });
+      }
+
+      activeSessionId = newSession.id;
+      let incremented = false;
+      try {
+        incremented = await incrementWeeklyUsage(user.id, 'learn');
+      } catch (incrementError: unknown) {
+        const errorMessage = incrementError instanceof Error ? incrementError.message : String(incrementError);
+        await logSystemEvent({
+          type: 'db_error',
+          userId: user.id,
+          errorMessage,
+          metadata: { context: 'learn_concept.increment_usage', sessionId: activeSessionId },
+        });
+      }
+
+      if (!incremented) {
+        await getServiceClient()
+          .from('learn_sessions')
+          .update({
+            status: 'abandoned',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', activeSessionId)
+          .eq('user_id', user.id);
+
+        return NextResponse.json(
+          {
+            error: 'Weekly learn session limit reached.',
+            code: 'LIMIT_REACHED',
+            sessionType: 'learn',
+          },
+          { status: 429 }
+        );
+      }
+    } else {
+      if (!activeSessionId) {
+        return NextResponse.json({ error: 'sessionId is required for turn/end actions' }, { status: 400 });
+      }
+      const ownedByUser = await verifySessionOwnership(activeSessionId, user.id);
+      if (!ownedByUser) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+    }
+
+    if (action === 'end' && activeSessionId) {
+      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug);
+    }
+
+    if (messages.length > LEARN_SESSION_MAX_TURNS * 2) {
+      return handleSessionEnd(activeSessionId ?? '', user.id, messages, conceptSlug);
+    }
+
+    let studentContext;
+    try {
+      studentContext = await buildStudentContext(user.id);
+    } catch {
+      // Context build failure is non-fatal.
+    }
+
+    let currentConfidence: number | undefined;
+    try {
+      const state = await getKnowledgeGraphService().getSingleConceptState(user.id, conceptSlug);
+      currentConfidence = state?.confidence;
+    } catch {
+      // Confidence fetch failure is non-fatal.
+    }
+
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
+    const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
+    const spokenLanguage: 'english' | 'hinglish' = hinglishEnabled
+      ? detectSpokenLanguage(lastUserMessage)
+      : 'english';
+
+    const proactiveNudge = detectProactiveNudge(lastUserMessage);
+
+    const systemPrompt = buildKaiTutorSystemPrompt({
+      conceptTag: conceptTag as ConceptTag,
+      studentContext,
+      currentConfidence,
+      exchangeCount: Math.floor(messages.length / 2),
+      spokenLanguage,
+      proactiveNudge,
+    });
+
+    const promptTokensEstimate = Math.round(systemPrompt.length / 4);
+    if (promptTokensEstimate > 2000) {
+      console.warn(`[Learn API] System prompt too large: ~${promptTokensEstimate} tokens`);
+      void logSystemEvent({
+        type: 'prompt_size_warning',
+        userId: user.id,
+        metadata: { tokens: promptTokensEstimate, concept: conceptSlug },
+      });
+    }
+
+    const aiClient = getAIClient();
+    const aiResult = await aiClient.generateResponse(
+      messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      {
+        preferredModel: 'auto',
+        category: 'chat',
+        maxTokens: 4096,
+        systemPrompt,
+        estimatedTokens: 600,
+        temperature: 0.7,
+      }
+    );
+
+    if (!aiResult.success || !aiResult.response) {
+      await logSystemEvent({
+        type: 'model_error',
+        userId: user.id,
+        errorMessage: aiResult.error ?? 'AI response failed',
+        metadata: { context: 'learn_concept.ai_call', conceptSlug, sessionId: activeSessionId },
+      });
+      return NextResponse.json({ error: 'AI response failed' }, { status: 503 });
+    }
+
+    const response = aiResult.response;
+
+    if (activeSessionId) {
+      const newTranscript = [
+        ...messages,
+        { role: 'assistant' as const, content: response, at: new Date().toISOString() },
+      ];
+
+      void getServiceClient()
+        .from('learn_sessions')
+        .update({
+          transcript: newTranscript,
+          exchange_count: Math.floor(messages.length / 2) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', activeSessionId)
+        .eq('user_id', user.id);
+    }
+
+    return NextResponse.json({
+      response,
+      sessionId: activeSessionId,
+      conceptSlug,
+      exchangeCount: Math.floor(messages.length / 2) + 1,
+      isFirstTurn,
+      proactiveNudgeApplied: Boolean(proactiveNudge),
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logSystemEvent({
+      type: 'db_error',
+      errorMessage,
+      metadata: { context: 'learn_concept.unhandled' },
+    });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function handleSessionEnd(
+  sessionId: string,
+  userId: string,
+  messages: { role: string; content: string }[],
+  conceptSlug: string
+): Promise<NextResponse> {
+  try {
+    const assessment = await generateSessionAssessment(messages, conceptSlug);
+
+    const startTime = await getSessionStartTime(sessionId, userId);
+    const durationSeconds = startTime
+      ? Math.round((Date.now() - new Date(startTime).getTime()) / 1000)
+      : null;
+
+    await getServiceClient()
+      .from('learn_sessions')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        transcript: messages,
+        duration_seconds: durationSeconds,
+        exchange_count: Math.floor(messages.length / 2),
+        tutor_assessment: {
+          notes: assessment.notes,
+          confidence_delta: assessment.confidenceDelta,
+        },
+        concepts_understood: assessment.understood,
+        concepts_struggled: assessment.struggled,
+      })
+      .eq('id', sessionId)
+      .eq('user_id', userId);
+
+    await getKnowledgeGraphService().onLearnSessionCompleted(sessionId, assessment);
+    void invalidateStudentContext(userId);
+
+    return NextResponse.json({
+      sessionComplete: true,
+      sessionId,
+      assessment,
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logSystemEvent({
+      type: 'db_error',
+      userId,
+      errorMessage,
+      metadata: { context: 'learn_concept.handle_session_end', sessionId },
+    });
+    return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });
+  }
+}
+
+async function generateSessionAssessment(
+  messages: { role: string; content: string }[],
+  conceptSlug: string
+): Promise<KaiTutorAssessment> {
+  const assessmentPrompt = `You are analyzing a Kai-Tutor learning session transcript.
+Concept taught: ${conceptSlug}
+
+Transcript:
+${messages.map((message) => `${message.role}: ${message.content}`).join('\n')}
+
+Assess this session. Respond in JSON only:
+{
+  "understood": ["concept-slug-1"],
+  "struggled": ["concept-slug-2"],
+  "notes": "Brief qualitative note about student's understanding",
+  "confidence_delta": 0.05
+}
+understood/struggled are subsets of [${conceptSlug}] - only include if clearly evident.
+confidence_delta: -0.1 to +0.15 (positive if understood, negative if struggled, 0 if neutral).`;
+
+  try {
+    const aiClient = getAIClient();
+    const result = await aiClient.generateResponse(
+      [{ role: 'user', content: assessmentPrompt }],
+      {
+        preferredModel: 'auto',
+        category: 'analysis',
+        maxTokens: 800,
+        systemPrompt: 'You are an assessment AI. Respond with valid JSON only.',
+        estimatedTokens: 500,
+        temperature: 0.2,
+      }
+    );
+
+    if (result.success && result.response) {
+      const parsed = JSON.parse(result.response.replace(/```json|```/g, '').trim()) as {
+        understood?: unknown;
+        struggled?: unknown;
+        notes?: unknown;
+        confidence_delta?: unknown;
+      };
+      return {
+        understood: Array.isArray(parsed.understood)
+          ? parsed.understood.filter((value): value is string => typeof value === 'string')
+          : [],
+        struggled: Array.isArray(parsed.struggled)
+          ? parsed.struggled.filter((value): value is string => typeof value === 'string')
+          : [],
+        notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+        confidenceDelta: Number(parsed.confidence_delta) || 0,
+      };
+    }
+  } catch {
+    // Non-fatal: neutral assessment fallback below.
+  }
+
+  return {
+    understood: [],
+    struggled: [],
+    notes: 'Assessment unavailable',
+    confidenceDelta: 0,
+  };
+}
+
+async function getSessionStartTime(sessionId: string, userId: string): Promise<string | null> {
+  if (!sessionId) {
+    return null;
+  }
+
+  const { data } = await getServiceClient()
+    .from('learn_sessions')
+    .select('started_at')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
+
+  return data?.started_at ?? null;
+}
+
+function detectProactiveNudge(lastUserMessage: string): string | null {
+  const trimmed = lastUserMessage.trim().toLowerCase();
+  if (!trimmed) {
+    return 'Learner appears silent. Offer a gentle nudge and ask one simple guiding question.';
+  }
+
+  const silencePatterns = [
+    /20\s*s(ec(onds?)?)?\s*(silence|pause)/i,
+    /\b(still thinking|thinking\.\.\.|hmm+|umm+)\b/i,
+    /^\.{3,}$/,
+  ];
+
+  const isSilentPattern = silencePatterns.some((pattern) => pattern.test(trimmed));
+  if (!isSilentPattern) {
+    return null;
+  }
+
+  return 'Learner likely paused for around 20 seconds. Provide a supportive nudge before the next Socratic question.';
+}

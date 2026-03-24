@@ -3,6 +3,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { retryWithBackoff } from '@/lib/utils/retry';
 
+export const maxDuration = 30;
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
@@ -126,10 +128,31 @@ export async function POST(req: NextRequest) {
                 }
 
                 // Confidence gate: reject low-confidence hallucinations (0.15 for short utterances)
-                if (confidence !== undefined && confidence < 0.15) {
-                    console.warn(`[Transcribe] Low confidence (${confidence.toFixed(3)}), discarding: "${data.text?.substring(0, 60)}"`);
+                const MIN_CONFIDENCE_THRESHOLD = 0.3;  // Accommodates accents
+                const MIN_TRANSCRIPT_WORDS = 2;
+
+                const confidenceOk = confidence === undefined || confidence >= MIN_CONFIDENCE_THRESHOLD;
+                const hasSubstantiveText = (data.text?.trim().split(/\s+/).length ?? 0) >= MIN_TRANSCRIPT_WORDS;
+
+                // Drop only if BOTH confidence low AND text too short (likely noise)
+                if (!confidenceOk && !hasSubstantiveText) {
+                    console.log(`[Transcribe] Dropping: conf=${confidence?.toFixed(3)}, text="${data.text?.substring(0, 60)}"`);
                     return NextResponse.json({ text: '', model, confidence, duration: data.duration });
                 }
+
+                // If text is substantive, always pass through regardless of confidence
+                // Hinglish and Indian accents regularly score 0.3-0.6 on Whisper
+                if (hasSubstantiveText) {
+                    console.log(`[Transcribe] Passing: conf=${confidence?.toFixed(3)}, words=${MIN_TRANSCRIPT_WORDS}+`);
+                }
+
+                // Add response logging before return:
+                console.log('[Transcribe] Result:', {
+                    confidence: confidence?.toFixed(3),
+                    length: data.text?.length ?? 0,
+                    wordCount: data.text?.trim().split(/\s+/).length ?? 0,
+                    passed: true,
+                });
 
                 return NextResponse.json({
                     text: data.text?.trim() || '',

@@ -9,7 +9,7 @@ import { Brain } from 'lucide-react';
 // ── Main Login Content ────────────────────────────────────────────────────────
 
 function LoginContent() {
-    const { user, signIn, loading, isConfigured } = useAuth();
+    const { user, signIn, signInWithEmail, loading, isConfigured } = useAuth();
     const router = useGuardedRouter();
     const searchParams = useSearchParams();
 
@@ -71,15 +71,42 @@ function LoginContent() {
                         <p className="text-slate-400 text-sm">Sign in to track your DSA interview progress</p>
                     </div>
 
-                    {!isConfigured && (
-                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 text-sm">
-                            ⚠️ Supabase is not configured. Check environment variables.
+                    {isConfigured && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (
+                        <div className="p-3 bg-slate-800/50 border border-slate-700 rounded-xl space-y-2">
+                            <p className="text-xs text-slate-400">TEST AUTH (Dev/Test Only)</p>
+                            <input 
+                                data-testid="email-input"
+                                type="email" 
+                                placeholder="test@example.com"
+                                id="test-email"
+                                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm placeholder:text-slate-500"
+                            />
+                            <input 
+                                data-testid="password-input"
+                                type="password" 
+                                placeholder="password"
+                                id="test-password"
+                                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm placeholder:text-slate-500"
+                            />
+                            <button 
+                                data-testid="sign-in-button"
+                                onClick={() => {
+                                    const email = (document.getElementById('test-email') as HTMLInputElement)?.value;
+                                    const password = (document.getElementById('test-password') as HTMLInputElement)?.value;
+                                    if (email && password) {
+                                        signInWithEmail(email, password);
+                                    }
+                                }}
+                                className="w-full h-10 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-all text-sm"
+                            >
+                                Sign In with Email
+                            </button>
                         </div>
                     )}
 
                     {/* OAuth Buttons */}
                     <div className="space-y-3">
-                        <button onClick={() => handleOAuth('google')} disabled={!!oauthProvider || !isConfigured}
+                        <button data-testid="oauth-google" onClick={() => handleOAuth('google')} disabled={!!oauthProvider || !isConfigured}
                             className="w-full h-12 flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-semibold rounded-xl transition-all disabled:opacity-40 text-sm">
                             <svg className="w-5 h-5" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

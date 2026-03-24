@@ -1,3 +1,8 @@
+/**
+ * @deprecated Legacy learn prompt builder for problem-scoped flow.
+ * Use src/lib/learn/tutor-prompt.ts for the concept-scoped Kai-Tutor architecture.
+ */
+
 export function buildLearnSystemPrompt(params: {
     problemTitle: string;
     problemDifficulty: string;

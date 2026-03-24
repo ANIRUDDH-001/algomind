@@ -1,133 +1,219 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import LearnSessionPageClient from '../[slug]/LearnSessionPageClient';
 
-// ─── jsdom polyfills ───
+const hoisted = vi.hoisted(() => {
+    const push = vi.fn();
+
+    const session = {
+        state: 'active' as 'idle' | 'starting' | 'active' | 'ending' | 'complete' | 'error',
+        transcript: [] as Array<{ id: string; role: 'user' | 'assistant'; content: string; at?: string }>,
+        sessionId: 'session-1',
+        results: null,
+        error: null as string | null,
+        kaiTyping: false,
+        startSession: vi.fn(),
+        sendMessage: vi.fn(),
+        endSession: vi.fn(),
+        reset: vi.fn(),
+    };
+
+    const tts = {
+        speak: vi.fn().mockResolvedValue(undefined),
+        speakAndWait: vi.fn().mockResolvedValue(true),
+        stop: vi.fn(),
+        isSpeaking: false,
+        provider: 'browser',
+    };
+
+    const vad = {
+        mode: 'push-to-talk' as 'onnx' | 'push-to-talk',
+        isListening: false,
+        isReady: true,
+        startListening: vi.fn(),
+        stopListening: vi.fn(),
+    };
+
+    const stt = {
+        isListening: false,
+        transcript: '',
+        interimTranscript: '',
+        isTranscribing: false,
+        startListening: vi.fn(),
+        stopListening: vi.fn(),
+        resetTranscript: vi.fn(),
+        transcribeAudio: vi.fn(),
+        resolvedProvider: 'whisper',
+        permissionState: 'unknown',
+    };
+
+    return { push, session, tts, vad, stt };
+});
+
+// jsdom polyfills
 global.ResizeObserver = class {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
 };
+
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-        matches: false, media: query, onchange: null,
-        addListener: vi.fn(), removeListener: vi.fn(),
-        addEventListener: vi.fn(), removeEventListener: vi.fn(),
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
     })),
 });
+
 Element.prototype.scrollIntoView = vi.fn();
 
-vi.mock('next/navigation', () => ({
-    useRouter: vi.fn().mockReturnValue({ push: vi.fn() })
-}));
-
-vi.mock('@/components/auth/AuthProvider', () => ({
-    useAuth: vi.fn().mockReturnValue({ user: { id: 'user-123' } })
-}));
-
-vi.mock('@/hooks/useInterview', () => ({
-    useInterview: vi.fn().mockReturnValue({
-        messages: [],
-        isProcessing: false,
-        voice: {
-            isSpeaking: false,
-            isListening: false,
-            speak: vi.fn(),
-            stopSpeaking: vi.fn(),
-            startListening: vi.fn(),
-            stopListening: vi.fn()
-        },
-        submitUserResponse: vi.fn(),
-        loadTranscript: vi.fn(),
-        handleInterruption: vi.fn(),
-        startInterview: vi.fn(),
-    })
-}));
-
-// Mock CodeEditor
-vi.mock('@/components/interview/CodeEditor', () => ({
-    CodeEditor: ({ onCodeChange, readOnly }: any) => (
-        <div data-testid="code-editor" data-readonly={readOnly ?? false}>
-            <button onClick={() => onCodeChange?.('new code')}>Change Code</button>
-        </div>
-    )
-}));
-
-vi.mock('@/components/interview/ConversationView', () => ({
-    ConversationView: () => <div data-testid="conversation-view">Conversations</div>,
-}));
-
-vi.mock('@/components/voice/MicrophoneButton', () => ({
-    MicrophoneButton: ({ onClick, disabled }: any) => (
-        <button data-testid="mic-btn" onClick={onClick} disabled={disabled}>Mic</button>
+vi.mock('next/link', () => ({
+    default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
+        <a href={href} {...rest}>{children}</a>
     ),
 }));
 
-vi.mock('@/components/voice/MicPulse', () => ({
-    MicPulse: () => <div data-testid="mic-pulse" />,
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({ push: hoisted.push }),
 }));
 
-vi.mock('@/components/interview/TestCasePanel', () => ({
-    TestCasePanel: () => <div data-testid="test-case-panel">Test Cases</div>,
+vi.mock('@/components/upgrade/UpgradeModal', () => ({
+    UpgradeModal: () => null,
 }));
 
-vi.mock('@/app/actions/learn', () => ({
-    recordLearnSession: vi.fn().mockResolvedValue(undefined),
+vi.mock('@/components/voice/ZoomTranscript', () => ({
+    ZoomTranscript: () => <div data-testid="zoom-transcript" />,
 }));
 
-import { LearnSessionClient } from '../LearnSessionClient';
+vi.mock('@/components/voice/VoiceModeToggle', () => ({
+    VoiceModeToggle: ({ onToggle }: { onToggle: (next: boolean) => void }) => (
+        <button data-testid="voice-mode-toggle" onClick={() => onToggle(false)}>toggle</button>
+    ),
+}));
 
-const mockProblem = {
-    id: 'prob-1',
-    title: 'Two Sum',
-    difficulty: 'easy',
-    description: 'Find two numbers that sum to target',
-    tags: ['array', 'hash-table'],
-    examples: [
-        { input: '[2,7,11,15], 9', output: '[0,1]' }
-    ]
-};
+vi.mock('@/hooks/useLearnSession', () => ({
+    useLearnSession: () => hoisted.session,
+}));
 
-describe('LearnSessionClient', () => {
+vi.mock('@/hooks/useTTS', () => ({
+    useTTS: () => hoisted.tts,
+}));
+
+vi.mock('@/hooks/useVAD', () => ({
+    useVAD: () => hoisted.vad,
+}));
+
+vi.mock('@/hooks/useSTT', () => ({
+    useSTT: () => hoisted.stt,
+}));
+
+describe('LearnSessionPageClient', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+
+        hoisted.session.state = 'active';
+        hoisted.session.transcript = [];
+        hoisted.session.error = null;
+        hoisted.session.kaiTyping = false;
+
+        hoisted.vad.mode = 'push-to-talk';
+        hoisted.vad.isListening = false;
+
+        hoisted.stt.isListening = false;
+        hoisted.stt.transcript = '';
+        hoisted.stt.interimTranscript = '';
+        hoisted.stt.isTranscribing = false;
     });
 
     afterEach(() => {
         cleanup();
     });
 
-    it('renders CodeEditor', () => {
-        render(<LearnSessionClient problem={mockProblem as any} sessionCount={0} />);
-        const editor = screen.getByTestId('code-editor');
-        expect(editor).toBeDefined();
-        // Since no readOnly prop is passed, our mock defaults it to false
-        expect(editor.getAttribute('data-readonly')).toBe('false');
+    describe('Text input', () => {
+        it('renders text input', () => {
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            expect(screen.getByTestId('text-input')).toBeInTheDocument();
+        });
+
+        it('send button disabled when input empty', () => {
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            expect(screen.getByTestId('send-text-button')).toBeDisabled();
+        });
+
+        it('Enter key submits text', async () => {
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+
+            const input = screen.getByTestId('text-input');
+            fireEvent.change(input, { target: { value: 'Two pointers is my answer' } });
+            fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', shiftKey: false });
+
+            await waitFor(() => {
+                expect(hoisted.session.sendMessage).toHaveBeenCalledWith('Two pointers is my answer');
+            });
+        });
+
+        it('send button submits and clears input', async () => {
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+
+            const input = screen.getByTestId('text-input') as HTMLTextAreaElement;
+            fireEvent.change(input, { target: { value: 'Sliding window' } });
+            fireEvent.click(screen.getByTestId('send-text-button'));
+
+            await waitFor(() => {
+                expect(hoisted.session.sendMessage).toHaveBeenCalledWith('Sliding window');
+            });
+            expect(input.value).toBe('');
+        });
     });
 
-    it('renders TestCasePanel when problem has examples', () => {
-        render(<LearnSessionClient problem={mockProblem as any} sessionCount={0} />);
-        const panels = screen.getAllByTestId('test-case-panel');
-        expect(panels.length).toBeGreaterThanOrEqual(1);
+    describe('Mic button', () => {
+        it('renders mic button', () => {
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            expect(screen.getByTestId('send-button')).toBeInTheDocument();
+        });
+
+        it('mic button disabled when session not active', () => {
+            hoisted.session.state = 'starting';
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            expect(screen.getByTestId('send-button')).toBeDisabled();
+        });
+
+        it('mic button starts STT in push-to-talk mode', async () => {
+            hoisted.vad.mode = 'push-to-talk';
+            hoisted.vad.isListening = false;
+
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            fireEvent.click(screen.getByTestId('send-button'));
+
+            await waitFor(() => {
+                expect(hoisted.stt.resetTranscript).toHaveBeenCalledTimes(1);
+                expect(hoisted.stt.startListening).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        it('mic button disabled while Kai is thinking', () => {
+            hoisted.session.kaiTyping = true;
+            render(<LearnSessionPageClient slug="arrays-strings" />);
+            expect(screen.getByTestId('send-button')).toBeDisabled();
+        });
     });
 
-    it('does NOT render TestCasePanel when problem has no examples', () => {
-        const problemNoExamples = { ...mockProblem, examples: [] };
-        render(<LearnSessionClient problem={problemNoExamples as any} sessionCount={0} />);
-        // The mock renders "Test Cases" text if it mounts
-        expect(screen.queryByText('Test Cases')).toBeNull();
-    });
+    describe('useEffect double-start fix', () => {
+        it('startSession called exactly once on mount', async () => {
+            hoisted.session.state = 'idle';
+            render(<LearnSessionPageClient slug="arrays-strings" />);
 
-    it('renders "Share Code with Kai" button', async () => {
-        const { container } = render(<LearnSessionClient problem={mockProblem as any} sessionCount={0} />);
-        
-        // Wait for asynchronous renders (like initial load delays) to finish
-        await waitFor(() => {
-            const allButtons = screen.getAllByRole('button');
-            const shareBtn = allButtons.find(b => b.textContent?.includes('Share Code with Kai'));
-            expect(shareBtn).toBeDefined();
-        }, { timeout: 2000 });
+            await waitFor(() => {
+                expect(hoisted.session.startSession).toHaveBeenCalledTimes(1);
+            });
+        });
     });
 });

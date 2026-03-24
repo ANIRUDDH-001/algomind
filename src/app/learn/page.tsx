@@ -1,53 +1,67 @@
-import { redirect } from 'next/navigation';
-import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+/**
+ * @page /learn
+ * @description Learn mode home — concept picker or diagnostic prompt.
+ * @phase Phase 2J
+ */
+import { Suspense } from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { LearnSessionClient } from './LearnSessionClient';
+import { redirect } from 'next/navigation';
+import { ConceptPicker } from '@/components/learn/ConceptPicker';
+import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
+import { buildStudentContext } from '@/lib/kai-context';
 
-export default async function LearnModePage({
-    searchParams
-}: {
-    searchParams: { problemId?: string; fromSessionId?: string }
-}) {
-    const isEnabled = await getGlobalFeatureFlag('ENABLE_LEARN_MODE');
-    if (!isEnabled) {
-        redirect('/practice?toast=learn-coming-soon');
-    }
+export const metadata = {
+  title: 'Learn | AlgoMind',
+  description: 'Master DSA concepts with Kai, your AI tutor',
+};
 
-    const { problemId, fromSessionId } = searchParams;
-    if (!problemId) {
-        redirect('/practice');
-    }
+export default async function LearnPage() {
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+  const [summaries, context] = await Promise.all([
+    getKnowledgeGraphService().getConceptSummaries(user.id),
+    buildStudentContext(user.id),
+  ]);
 
-    if (!user) {
-        redirect('/login');
-    }
+  if (!context.hasCompletedDiagnostic) {
+    redirect('/learn/diagnostic');
+  }
 
-    const { data: problem } = await supabase
-        .from('problems')
-        .select('*')
-        .eq('id', problemId)
-        .single();
+  return (
+    <div className="min-h-screen bg-[#0A0A0F]">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white">Learn with Kai</h1>
+          <p className="text-zinc-400 mt-1 text-sm">
+            Voice-first Socratic tutoring. Pick a concept and Kai will guide you through it.
+          </p>
+        </div>
 
-    if (!problem) {
-        redirect('/practice');
-    }
+        <Suspense fallback={<ConceptPickerSkeleton />}>
+          <ConceptPicker
+            concepts={summaries}
+            studentContext={{
+              hasCompletedDiagnostic: context.hasCompletedDiagnostic,
+              nextRecommendedConcept: context.nextRecommendedConcept,
+              weakestConcepts: context.weakestConcepts,
+              subscription: context.subscription,
+            }}
+          />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
 
-    const memoryCountResult = await supabase
-        .from('learner_profiles')
-        .select('sessions_at_last_narrative')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-    const sessionCount = memoryCountResult.data?.sessions_at_last_narrative || 0;
-
-    return (
-        <LearnSessionClient
-            problem={problem}
-            sessionCount={sessionCount}
-            fromSessionId={fromSessionId}
-        />
-    );
+function ConceptPickerSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-24 rounded-xl bg-zinc-900/40 animate-pulse" />
+      ))}
+    </div>
+  );
 }

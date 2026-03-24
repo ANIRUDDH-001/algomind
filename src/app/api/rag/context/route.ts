@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { getServiceClient } from '@/lib/supabase/service';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ chunks: [] }, { status: 401 });
+        }
+
         const { query } = await req.json();
 
         if (!query || typeof query !== 'string') {

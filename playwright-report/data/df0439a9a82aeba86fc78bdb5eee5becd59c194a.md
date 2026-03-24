@@ -1,0 +1,135 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - button "AlgoMind Logo AlgoMind" [ref=e6]:
+          - img "AlgoMind Logo" [ref=e7]
+          - generic [ref=e8]: AlgoMind
+        - button "T" [ref=e10]:
+          - generic [ref=e12]: T
+  - navigation [ref=e14]:
+    - generic [ref=e16]:
+      - link "Home" [ref=e17] [cursor=pointer]:
+        - /url: /
+        - img [ref=e19]
+        - generic [ref=e22]: Home
+      - link "Practice" [ref=e23] [cursor=pointer]:
+        - /url: /practice
+        - img [ref=e25]
+        - generic [ref=e27]: Practice
+      - link "Learn" [ref=e28] [cursor=pointer]:
+        - /url: /learn
+        - img [ref=e30]
+        - generic [ref=e38]: Learn
+      - link "Progress" [ref=e39] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e41]
+        - generic [ref=e42]: Progress
+      - link "Settings" [ref=e44] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e46]
+        - generic [ref=e49]: Settings
+  - main [ref=e51]:
+    - generic [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - paragraph [ref=e57]: Welcome back
+            - heading "test — keep pushing." [level=1] [ref=e58]
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]: Sessions
+              - generic [ref=e62]: "0"
+            - generic [ref=e63]:
+              - generic [ref=e64]: Avg Score
+              - generic [ref=e65]: 0.0/10
+            - generic [ref=e66]:
+              - generic [ref=e67]: Last Practice
+              - generic [ref=e68]: —
+            - link "LeetCode —" [ref=e69] [cursor=pointer]:
+              - /url: /settings
+              - generic [ref=e70]: LeetCode
+              - generic [ref=e71]: —
+        - generic [ref=e72]:
+          - button "Download Report" [disabled]:
+            - img
+            - text: Download Report
+          - link "Start Practice" [ref=e73] [cursor=pointer]:
+            - /url: /practice
+            - button "Start Practice" [ref=e74]:
+              - img
+              - text: Start Practice
+      - navigation [ref=e76]:
+        - button "Overview" [ref=e77]:
+          - img [ref=e78]
+          - generic [ref=e83]: Overview
+        - button "Skills" [ref=e84]:
+          - img [ref=e85]
+          - generic [ref=e87]: Skills
+        - button "History" [ref=e88]:
+          - img [ref=e89]
+          - generic [ref=e93]: History
+        - button "Insights" [ref=e94]:
+          - img [ref=e95]
+          - generic [ref=e97]: Insights
+        - button "Assessments" [ref=e98]:
+          - img [ref=e99]
+          - generic [ref=e101]: Assessments
+      - generic [ref=e107]:
+        - img [ref=e109]
+        - heading "Your journey hasn't started yet!" [level=3] [ref=e114]
+        - paragraph [ref=e115]: Complete your first voice-enabled interview to see your cognitive skill profile here.
+      - generic [ref=e117]:
+        - generic [ref=e118]:
+          - img [ref=e119]
+          - heading "What's Coming to AlgoMind" [level=3] [ref=e122]
+        - generic [ref=e123]:
+          - button "Q2 2026 🏗️ System Design Interviews Design WhatsApp, YouTube, Uber — walk through your architecture Whiteboard-style system design prep with AI interviewer Get notified when this launches →" [ref=e124]:
+            - generic [ref=e125]: Q2 2026
+            - generic [ref=e126]:
+              - img [ref=e128]
+              - heading "🏗️ System Design Interviews" [level=4] [ref=e130]
+            - paragraph [ref=e131]: Design WhatsApp, YouTube, Uber — walk through your architecture
+            - paragraph [ref=e132]: Whiteboard-style system design prep with AI interviewer
+            - generic [ref=e133]: Get notified when this launches →
+          - button "Q3 2026 ⚡ Full Stack Debugging Find and fix bugs in React/Node.js code under time pressure Debug real codebases, explain your process out loud Get notified when this launches →" [ref=e134]:
+            - generic [ref=e135]: Q3 2026
+            - generic [ref=e136]:
+              - img [ref=e138]
+              - heading "⚡ Full Stack Debugging" [level=4] [ref=e147]
+            - paragraph [ref=e148]: Find and fix bugs in React/Node.js code under time pressure
+            - paragraph [ref=e149]: Debug real codebases, explain your process out loud
+            - generic [ref=e150]: Get notified when this launches →
+          - button "Q2 2026 📊 Resume Analyzer AI scores your resume against target job descriptions ATS optimization, keyword gaps, achievement quantification Get notified when this launches →" [ref=e151]:
+            - generic [ref=e152]: Q2 2026
+            - generic [ref=e153]:
+              - img [ref=e155]
+              - heading "📊 Resume Analyzer" [level=4] [ref=e158]
+            - paragraph [ref=e159]: AI scores your resume against target job descriptions
+            - paragraph [ref=e160]: ATS optimization, keyword gaps, achievement quantification
+            - generic [ref=e161]: Get notified when this launches →
+          - button "Q3 2026 📱 WhatsApp Practice Bot Daily problems sent to WhatsApp. Reply with voice notes. Practice wherever you are — no app needed Get notified when this launches →" [ref=e162]:
+            - generic [ref=e163]: Q3 2026
+            - generic [ref=e164]:
+              - img [ref=e166]
+              - heading "📱 WhatsApp Practice Bot" [level=4] [ref=e168]
+            - paragraph [ref=e169]: Daily problems sent to WhatsApp. Reply with voice notes.
+            - paragraph [ref=e170]: Practice wherever you are — no app needed
+            - generic [ref=e171]: Get notified when this launches →
+  - region "Notifications alt+T"
+  - generic [ref=e176] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e177]:
+      - img [ref=e178]
+    - generic [ref=e181]:
+      - button "Open issues overlay" [ref=e182]:
+        - generic [ref=e183]:
+          - generic [ref=e184]: "0"
+          - generic [ref=e185]: "1"
+        - generic [ref=e186]: Issue
+      - button "Collapse issues badge" [ref=e187]:
+        - img [ref=e188]
+  - alert [ref=e190]
+```

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { upsertSpacedRepetition, getReviewQueue, getSpacedRepForProblem } from '../spaced-repetition';
+import { upsertSpacedRepetition, getReviewQueue, getSpacedReviewForProblem } from '../spaced-repetition';
 import { addToQueue } from '@/lib/spaced-repetition/queue';
 import { getServiceClient } from '@/lib/supabase/service';
 import { formatNextReviewDate } from '@/lib/spaced-repetition/types';
@@ -51,10 +51,9 @@ describe('Spaced Repetition Server Actions', () => {
     describe('upsertSpacedRepetition', () => {
         it('should call addToQueue and read back the new record', async () => {
             const mockDbData = {
-                next_review: '2026-02-26',
-                interval: 1,
-                repetitions: 1,
-                use_fsrs: false,
+                fsrs_due: '2026-02-26T00:00:00.000Z',
+                fsrs_scheduled_days: 1,
+                fsrs_reps: 1,
             };
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(mockDbData));
             (addToQueue as any).mockResolvedValue(undefined);
@@ -74,9 +73,9 @@ describe('Spaced Repetition Server Actions', () => {
             });
 
             expect(result).toEqual({
-                nextReview: '2026-02-26',
+                nextReview: '2026-02-26T00:00:00.000Z',
                 intervalDays: 1,
-                repetitions: 1,
+                reviewCount: 1,
             });
         });
 
@@ -101,19 +100,17 @@ describe('Spaced Repetition Server Actions', () => {
                     problem_id: 'p1',
                     problem_title: 'Title 1',
                     problem_difficulty: 'easy',
-                    next_review: '2026-02-25',
-                    repetitions: 2,
+                    fsrs_due: '2026-02-25T00:00:00.000Z',
+                    fsrs_reps: 2,
                     last_quality: 4,
-                    use_fsrs: false,
                 },
                 {
                     problem_id: 'p2',
                     problem_title: 'Title 2',
                     problem_difficulty: 'hard',
-                    next_review: '2026-02-26',
-                    repetitions: 1,
+                    fsrs_due: '2026-02-26T00:00:00.000Z',
+                    fsrs_reps: 1,
                     last_quality: 3,
-                    use_fsrs: false,
                 },
             ];
 
@@ -127,8 +124,8 @@ describe('Spaced Repetition Server Actions', () => {
                 problemId: 'p1',
                 problemTitle: 'Title 1',
                 difficulty: 'easy',
-                nextReview: '2026-02-25',
-                repetitions: 2,
+                nextReview: '2026-02-25T00:00:00.000Z',
+                reviewCount: 2,
                 lastQuality: 4,
             });
 
@@ -144,36 +141,31 @@ describe('Spaced Repetition Server Actions', () => {
         });
     });
 
-    describe('getSpacedRepForProblem', () => {
-        it('should return the SM2 record for a user and problem', async () => {
+    describe('getSpacedReviewForProblem', () => {
+        it('should return the review schedule for a user and problem', async () => {
             const mockDbData = {
                 interval: 6,
-                next_review: '2026-03-03',
-                repetitions: 2,
-                ease_factor: 2.6,
-                use_fsrs: false,
-                fsrs_scheduled_days: null,
-                fsrs_due: null,
+                fsrs_scheduled_days: 6,
+                fsrs_due: '2026-03-03T00:00:00.000Z',
                 fsrs_difficulty: null,
                 fsrs_stability: null,
                 fsrs_state: null,
-                fsrs_reps: null,
+                fsrs_reps: 2,
                 fsrs_lapses: null,
             };
 
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(mockDbData));
 
-            const result = await getSpacedRepForProblem('user-1', 'prob-1');
+            const result = await getSpacedReviewForProblem('user-1', 'prob-1');
 
             expect(result).toEqual({
                 intervalDays: 6,
-                nextReview: '2026-03-03',
-                repetitions: 2,
-                easeFactor: 2.6,
+                nextReview: '2026-03-03T00:00:00.000Z',
+                reviewCount: 2,
                 fsrsDifficulty: null,
                 fsrsStability: null,
                 fsrsState: null,
-                fsrsReps: null,
+                fsrsReps: 2,
                 fsrsLapses: null,
             });
         });
@@ -181,7 +173,7 @@ describe('Spaced Repetition Server Actions', () => {
         it('should return null if the record does not exist', async () => {
             (getServiceClient as any).mockReturnValue(mockSupabaseResponse(null));
 
-            const result = await getSpacedRepForProblem('user-1', 'prob-none');
+            const result = await getSpacedReviewForProblem('user-1', 'prob-none');
 
             expect(result).toBeNull();
         });

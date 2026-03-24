@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getRedis } from '@/lib/upstash/client';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ interface HealthResult {
 }
 
 export async function GET() {
+    try {
     const [dbResult, redisResult, stuckResult] = await Promise.allSettled([
         getServiceClient()
             .from('global_feature_flags')
@@ -68,4 +70,10 @@ export async function GET() {
     return NextResponse.json(result, {
         status: status === 'unhealthy' ? 503 : 200,
     });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error('[health] Error:', errMsg);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'health' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }

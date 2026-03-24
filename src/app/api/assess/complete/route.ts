@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
+import { invalidateStudentContext } from '@/lib/kai-context';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
@@ -38,7 +39,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
         }
 
-        const supabase = await createServerSupabase();
         const supabaseAdmin = getServiceClient();
 
         // 1. Validate candidate JWT securely
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
             })
             .eq('id', submissionId)
             .eq('status', 'in_progress')
-            .select('id')
+            .select('id, candidate_id')
             .single();
 
         if (pendingErr && pendingErr.code !== 'PGRST116') throw pendingErr;
@@ -93,6 +93,11 @@ export async function POST(req: NextRequest) {
                 alreadyCompleted: true,
                 message: 'Assessment was already marked as completed.',
             });
+        }
+
+        if (updated.candidate_id) {
+            // Non-blocking cache invalidation to keep next student context fresh.
+            void invalidateStudentContext(updated.candidate_id);
         }
 
         // 4. Kick off async analysis (fire and forget — edge function handles its own errors)

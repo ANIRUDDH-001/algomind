@@ -10,6 +10,7 @@ import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
 import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
 import dynamic from 'next/dynamic';
 import type { CognitiveSkill } from '@/types/assessment';
+import { ConceptImpactBadge, type ConceptImpact } from '@/components/interview/ConceptImpactBadge';
 
 const ExportReportButton = dynamic(
     () => import('@/components/dashboard/ExportReportButton').then(m => ({ default: m.ExportReportButton })),
@@ -77,11 +78,10 @@ interface AssessmentData {
     improvementExamples?: ImprovementExample[];
 }
 
-interface SM2Data {
+interface SpacedReviewData {
     intervalDays: number;
     nextReview: string;
-    repetitions: number;
-    easeFactor: number;
+    reviewCount: number;
     fsrsDifficulty: number | null;
     fsrsStability: number | null;
     fsrsState: number | null;
@@ -99,7 +99,7 @@ interface PreviousAttempt {
 interface AnalysisClientProps {
     session: SessionData;
     assessment: AssessmentData | null;
-    sm2: SM2Data | null;
+    reviewData: SpacedReviewData | null;
     previousAttempts: PreviousAttempt[];
     flags: {
         enableComparative: boolean;
@@ -305,7 +305,7 @@ function formatDuration(seconds: number): string {
 export function AnalysisClient({
     session,
     assessment,
-    sm2,
+    reviewData,
     previousAttempts,
     flags,
 }: AnalysisClientProps) {
@@ -318,7 +318,30 @@ export function AnalysisClient({
     const isWarmUp = session.difficultyMode === 'warm-up';
     const isIncompleteSession = session.status === 'incomplete' || session.isLimitedEvidence;
     const [queueStatus, setQueueStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
-    const [localSm2, setLocalSm2] = useState(sm2);
+    const [localReviewData, setLocalReviewData] = useState(reviewData);
+    const [conceptImpacts, setConceptImpacts] = useState<ConceptImpact[]>([]);
+
+    useEffect(() => {
+        if (!session.id) return;
+
+        let cancelled = false;
+        fetch(`/api/knowledge/session-impacts?sessionId=${session.id}`)
+            .then((response) => response.json())
+            .then((data) => {
+                if (!cancelled) {
+                    setConceptImpacts(Array.isArray(data.impacts) ? data.impacts : []);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setConceptImpacts([]);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [session.id]);
 
     const handleAddToQueue = useCallback(async () => {
         setQueueStatus('adding');
@@ -330,11 +353,10 @@ export function AnalysisClient({
                 overallScore: session.overallScore || assessment?.overallScore || 5,
             });
             if (result) {
-                setLocalSm2({
+                setLocalReviewData({
                     intervalDays: result.intervalDays,
                     nextReview: result.nextReview,
-                    repetitions: result.repetitions,
-                    easeFactor: 2.5,
+                    reviewCount: result.reviewCount,
                     fsrsDifficulty: null,
                     fsrsStability: null,
                     fsrsState: null,
@@ -451,6 +473,12 @@ export function AnalysisClient({
                         <Clock className="w-3.5 h-3.5" />
                         Completed in {formatDuration(session.duration)}
                     </div>
+
+                    {conceptImpacts.length > 0 && (
+                        <div className="mt-2 pt-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
+                            <ConceptImpactBadge impacts={conceptImpacts} />
+                        </div>
+                    )}
 
                     {/* 8 Skill Bars */}
                     {skills && (
@@ -674,22 +702,20 @@ export function AnalysisClient({
                     )}
 
                     {/* FSRS / Spaced Repetition Section */}
-                    {localSm2 ? (() => {
-                        const reviewDate = new Date(localSm2.nextReview);
+                    {localReviewData ? (() => {
+                        const reviewDate = new Date(localReviewData.nextReview);
                         const now = new Date();
                         const daysUntilReview = Math.max(0, Math.ceil((reviewDate.getTime() - now.getTime()) / 86400000));
                         const isDue = daysUntilReview === 0;
-                        const difficultyVal = localSm2.fsrsDifficulty ?? localSm2.easeFactor;
-                        // FSRS difficulty is 1-10 scale; normalize to 0-100%
-                        const difficultyPct = localSm2.fsrsDifficulty != null
-                            ? Math.round(localSm2.fsrsDifficulty * 10)
-                            : Math.round(((5 - localSm2.easeFactor) / 3.7) * 100); // SM2 ease 1.3-5.0 → inverted
+                        const difficultyVal = localReviewData.fsrsDifficulty;
+                        // FSRS difficulty is 1-10 scale; normalize to 0-100%.
+                        const difficultyPct = difficultyVal != null ? Math.round(difficultyVal * 10) : 50;
                         const difficultyLabel = difficultyPct <= 30 ? 'Easy' : difficultyPct <= 60 ? 'Moderate' : 'Hard';
                         const difficultyColor = difficultyPct <= 30 ? 'text-emerald-400' : difficultyPct <= 60 ? 'text-amber-400' : 'text-red-400';
                         const difficultyBarColor = difficultyPct <= 30 ? 'bg-emerald-500' : difficultyPct <= 60 ? 'bg-amber-500' : 'bg-red-500';
-                        const stabilityDays = localSm2.fsrsStability != null ? Math.round(localSm2.fsrsStability) : localSm2.intervalDays;
-                        const reps = localSm2.fsrsReps ?? localSm2.repetitions;
-                        const lapses = localSm2.fsrsLapses ?? 0;
+                        const stabilityDays = localReviewData.fsrsStability != null ? Math.round(localReviewData.fsrsStability) : localReviewData.intervalDays;
+                        const reps = localReviewData.fsrsReps ?? localReviewData.reviewCount;
+                        const lapses = localReviewData.fsrsLapses ?? 0;
 
                         return (
                             <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
@@ -705,7 +731,7 @@ export function AnalysisClient({
                                             {isDue ? '📅 Review Due Today!' : `Next: ${reviewDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
                                         </p>
                                         <p className="text-[10px] text-zinc-500">
-                                            {isDue ? 'Time to practice again' : `In ${daysUntilReview} day${daysUntilReview !== 1 ? 's' : ''} · Interval: ${localSm2.intervalDays}d`}
+                                            {isDue ? 'Time to practice again' : `In ${daysUntilReview} day${daysUntilReview !== 1 ? 's' : ''} · Interval: ${localReviewData.intervalDays}d`}
                                         </p>
                                     </div>
                                     <div className="text-right">
@@ -733,7 +759,7 @@ export function AnalysisClient({
                                         <p className="text-[9px] text-zinc-600 uppercase font-bold">Stability</p>
                                     </div>
                                     <div className="text-center p-2 rounded-lg" style={{ background: 'var(--surface-3, rgba(255,255,255,0.03))' }}>
-                                        <p className="text-xs font-bold text-zinc-300">{localSm2.intervalDays}d</p>
+                                        <p className="text-xs font-bold text-zinc-300">{localReviewData.intervalDays}d</p>
                                         <p className="text-[9px] text-zinc-600 uppercase font-bold">Interval</p>
                                     </div>
                                     <div className="text-center p-2 rounded-lg" style={{ background: 'var(--surface-3, rgba(255,255,255,0.03))' }}>
@@ -753,7 +779,7 @@ export function AnalysisClient({
                             </div>
                         );
                     })() : (
-                        /* No SM2 data — Add to Queue CTA */
+                        /* No review schedule data - Add to Queue CTA */
                         <div className="rounded-xl p-4" style={{ background: 'var(--surface-2)', border: '1px dashed var(--surface-edge)' }}>
                             <div className="flex items-center gap-2 mb-2">
                                 <TrendingUp className="w-4 h-4 text-zinc-500" />

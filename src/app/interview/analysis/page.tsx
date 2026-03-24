@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getSpacedRepForProblem } from '@/app/actions/spaced-repetition';
+import { getSpacedReviewForProblem } from '@/app/actions/spaced-repetition';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import type { FeatureFlagKey } from '@/lib/feature-flags';
@@ -88,8 +88,8 @@ export default async function AnalysisPage({
         .eq('session_id', sessionId)
         .maybeSingle();
 
-    // 3. Fetch SM2 data
-    const sm2Data = await getSpacedRepForProblem(user.id, session.problem_id);
+    // 3. Fetch review schedule data
+    const reviewData = await getSpacedReviewForProblem(user.id, session.problem_id);
 
     // 4. Previous attempts for comparison
     const { data: previousAttempts } = await supabase
@@ -172,7 +172,7 @@ export default async function AnalysisPage({
                 })(),
                 improvementExamples: (assessment.skill_evidence as any)?.improvementExamples || [],
             } : null}
-            sm2={sm2Data}
+            reviewData={reviewData}
             previousAttempts={(previousAttempts || []).map(a => ({
                 id: a.id,
                 score: a.overall_score || 0,

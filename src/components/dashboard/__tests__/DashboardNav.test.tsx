@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 // Mock lucide-react so icons don't need SVG support
 vi.mock('lucide-react', () => ({
     LayoutGrid: () => <svg data-testid="icon-overview" />,
+    Brain: () => <svg data-testid="icon-knowledge" />,
     BarChart3: () => <svg data-testid="icon-skills" />,
     History: () => <svg data-testid="icon-history" />,
     Lightbulb: () => <svg data-testid="icon-insights" />,
@@ -29,9 +30,10 @@ describe('DashboardNav', () => {
         vi.clearAllMocks();
     });
 
-    it('1. Renders the 4 main tab buttons: Overview, Skills, History, Insights', () => {
+    it('1. Renders the main dashboard tabs including Knowledge', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
         expect(screen.getByText('Overview')).toBeDefined();
+        expect(screen.getByText('Knowledge')).toBeDefined();
         expect(screen.getByText('Skills')).toBeDefined();
         expect(screen.getByText('History')).toBeDefined();
         expect(screen.getByText('Insights')).toBeDefined();
@@ -63,7 +65,7 @@ describe('DashboardNav', () => {
 
     it('5. All tabs have accessible text labels (not just icons)', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
-        const labels = ['Overview', 'Skills', 'History', 'Insights'];
+        const labels = ['Overview', 'Knowledge', 'Skills', 'History', 'Insights'];
         labels.forEach(label => {
             expect(screen.getByText(label)).toBeDefined();
         });
@@ -77,18 +79,18 @@ describe('DashboardNav', () => {
 
     it('6b. All tabs have correct data-tour attributes', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
-        const tourIds = ['tab-overview', 'tab-skills', 'tab-history', 'tab-insights', 'tab-campaigns'];
+        const tourIds = ['tab-overview', 'tab-knowledge', 'tab-skills', 'tab-history', 'tab-insights', 'tab-campaigns'];
         tourIds.forEach(tourId => {
             expect(document.querySelector(`[data-tour="${tourId}"]`)).not.toBeNull();
         });
     });
 
-    it('7. Total of 5 tab buttons rendered (including Assessments)', () => {
+    it('7. Total of 6 tab buttons rendered (including Assessments)', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
         const nav = document.querySelector('nav')!;
         const buttons = nav.querySelectorAll('button');
-        // 4 main + 1 Assessments tab
-        expect(buttons).toHaveLength(5);
+        // 5 main + 1 Assessments tab
+        expect(buttons).toHaveLength(6);
     });
 
     it('8. Passing activeTab="skills" marks Skills button as active with gradient', () => {

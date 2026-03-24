@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function GET() {
-    const { errorResponse } = await requireAdminForApi();
-    if (errorResponse) return errorResponse;
+    try {
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
-    const serviceClient = getServiceClient();
+        const serviceClient = getServiceClient();
 
     // Fetch all profiles where account_type is 'employer'
-    const { data, error } = await serviceClient
-        .from('profiles')
-        .select('*')
-        .eq('account_type', 'employer')
-        .order('created_at', { ascending: false });
+        const { data, error } = await serviceClient
+            .from('profiles')
+            .select('*')
+            .eq('account_type', 'employer')
+            .order('created_at', { ascending: false });
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
+
+        return NextResponse.json({ employers: data });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    return NextResponse.json({ employers: data });
 }

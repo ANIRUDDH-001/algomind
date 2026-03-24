@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getAIClient } from '@/lib/ai/client';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-    const { errorResponse } = await requireAdminForApi();
-    if (errorResponse) return errorResponse;
+    try {
+        const { errorResponse } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
-    const supabase = await createServerSupabase();
-    const view = new URL(req.url).searchParams.get('view') || 'gaps';
+        const supabase = await createServerSupabase();
+        const view = new URL(req.url).searchParams.get('view') || 'gaps';
 
-    if (view === 'gaps') {
+        if (view === 'gaps') {
         const { data } = await supabase
             .from('knowledge_gaps')
             .select('*')
@@ -21,10 +23,10 @@ export async function GET(req: NextRequest) {
             .order('upvotes', { ascending: false })
             .limit(100);
 
-        return NextResponse.json({ gaps: data || [] });
-    }
+            return NextResponse.json({ gaps: data || [] });
+        }
 
-    if (view === 'chunks') {
+        if (view === 'chunks') {
         const { data, count } = await supabase
             .from('knowledge_chunks')
             .select('id, topic, subtopic, title, usage_count, effectiveness_score, embedding_status, created_at',
@@ -43,21 +45,28 @@ export async function GET(req: NextRequest) {
                 }, {} as Record<string, number>)
             }));
 
-        return NextResponse.json({ chunks: data || [], total: count, stats });
-    }
+            return NextResponse.json({ chunks: data || [], total: count, stats });
+        }
 
-    return NextResponse.json({ error: 'Invalid view' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid view' }, { status: 400 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error('[admin/rag] Error:', errMsg);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/rag' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }
 
 export async function POST(req: NextRequest) {
-    const { errorResponse, user } = await requireAdminForApi();
-    if (errorResponse) return errorResponse;
+    try {
+        const { errorResponse, user } = await requireAdminForApi();
+        if (errorResponse) return errorResponse;
 
-    const supabase = await createServerSupabase();
-    const body = await req.json();
-    const { action } = body;
+        const supabase = await createServerSupabase();
+        const body = await req.json();
+        const { action } = body;
 
-    if (action === 'draft') {
+        if (action === 'draft') {
         // AI drafts an answer for the gap
         const { gapId } = body;
         const { data: gap } = await supabase
@@ -99,14 +108,14 @@ KEYWORDS: [comma-separated list of keywords]`
             })
             .eq('id', gapId);
 
-        return NextResponse.json({
-            title: titleMatch?.[1]?.trim(),
-            content: contentMatch?.[1]?.trim(),
-            keywords: keywordsMatch?.[1]?.split(',').map((k: string) => k.trim()),
-        });
-    }
+            return NextResponse.json({
+                title: titleMatch?.[1]?.trim(),
+                content: contentMatch?.[1]?.trim(),
+                keywords: keywordsMatch?.[1]?.split(',').map((k: string) => k.trim()),
+            });
+        }
 
-    if (action === 'approve') {
+        if (action === 'approve') {
         // Admin approves content and triggers embedding
         const { gapId, title, content, topic, subtopic, keywords, difficulty } = body;
 
@@ -146,10 +155,10 @@ KEYWORDS: [comma-separated list of keywords]`
         // Trigger background embedding (fire and forget)
         triggerEmbedding(chunk.id).catch(console.error);
 
-        return NextResponse.json({ success: true, chunkId: chunk.id });
-    }
+            return NextResponse.json({ success: true, chunkId: chunk.id });
+        }
 
-    if (action === 'process_pending') {
+        if (action === 'process_pending') {
         const { data: pending } = await supabase
             .from('knowledge_chunks')
             .select('id')
@@ -161,10 +170,16 @@ KEYWORDS: [comma-separated list of keywords]`
             triggerEmbedding(chunk.id).catch(console.error);
         }
 
-        return NextResponse.json({ success: true, count });
-    }
+            return NextResponse.json({ success: true, count });
+        }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error('[admin/rag] Error:', errMsg);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/rag' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }
 
 async function triggerEmbedding(chunkId: string): Promise<void> {

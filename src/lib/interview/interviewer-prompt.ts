@@ -48,6 +48,8 @@
 
 import { Problem } from '@/types/problem';
 import type { KaiMemoryStructured } from '@/types/kai-memory';
+import { buildStudentContextPromptBlock } from '@/lib/kai-context';
+import type { StudentContext } from '@/lib/kai-context';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GUEST INTRO — SINGLE SOURCE OF TRUTH
@@ -125,6 +127,50 @@ export interface InterviewConfig {
      * Populate from problem.solution.
      */
     optimalApproach?: string;
+    /**
+     * Assembled per-user personalization context. Optional for graceful degradation.
+     */
+    studentContext?: StudentContext;
+    /**
+     * Optional employer-specific assessment context.
+     */
+    employerConfig?: {
+        companyName: string;
+        roleTitle: string;
+        requiredSkills: string[];
+        customInstructions?: string;
+    };
+}
+
+export function buildEmployerModePromptBlock(
+    assessmentConfig: {
+        companyName: string;
+        roleTitle: string;
+        requiredSkills: string[];
+        customInstructions?: string;
+    }
+): string {
+    return `<employer_assessment_mode>
+CONTEXT: You are conducting a technical assessment on behalf of ${assessmentConfig.companyName} for the role: ${assessmentConfig.roleTitle}.
+
+REQUIRED SKILLS TO EVALUATE: ${assessmentConfig.requiredSkills.join(', ')}
+
+SCORING CRITERIA:
+- Problem Solving (30%): Can candidate break down the problem systematically?
+- Communication (25%): Does candidate think aloud and explain reasoning?
+- Code Quality (25%): Is the solution clean, optimized, and correct?
+- Technical Depth (20%): Does candidate know time/space complexity?
+
+EMPLOYER INSTRUCTIONS:
+${assessmentConfig.customInstructions ?? 'Follow standard technical assessment protocol.'}
+
+IMPORTANT:
+- Do NOT reveal you are an AI to the candidate during assessment
+- Maintain professional, neutral tone throughout
+- Do NOT give hints unless the candidate is completely stuck (>5 min silence)
+- Score against the rubric objectively — do not factor in nervousness
+- At session end, produce a structured assessment report for the employer
+</employer_assessment_mode>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -385,6 +431,8 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         sprintProblemIndex,
         secondProblem,
         spokenLanguage,
+        studentContext,
+        employerConfig,
     } = config;
 
     const difficultyMode = config.difficultyMode ?? 'practice';
@@ -418,6 +466,14 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         ? `\n<rag_context>\n${ragContext.trim()}\n</rag_context>`
         : '';
 
+    const studentContextBlock = studentContext
+        ? `\n\n${buildStudentContextPromptBlock(studentContext)}`
+        : '';
+
+    const employerModeBlock = difficultyMode === 'employer' && employerConfig
+        ? `\n\n${buildEmployerModePromptBlock(employerConfig)}`
+        : '';
+
     let prompt = `# ROLE: Kai — Technical Interviewer, AlgoMind
 
 OUTPUT FORMAT: Plain conversational speech only. Never include XML tags, markdown headers, code blocks, or reasoning blocks in your response. Speak as if in a live voice call.
@@ -427,7 +483,7 @@ Your goal is to assess problem-solving ability, algorithmic thinking, communicat
 
 ${guestNote}
 
-${hinglishBlock}
+${hinglishBlock}${studentContextBlock}${employerModeBlock}
 
 ${modeConfig.behaviourBlock}
 
@@ -576,6 +632,10 @@ Demonstrate it through your questions and observations.
     }
 
     return prompt;
+}
+
+export function buildInterviewerSystemPrompt(config: InterviewConfig): string {
+    return generateInterviewerSystemPrompt(config);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

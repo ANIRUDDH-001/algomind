@@ -3,6 +3,7 @@ import { POST } from '../chat/route';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { checkUserRateLimit, incrementUserUsage } from '@/lib/rate-limit/user-rate-limiter';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { supabaseHybridSearch } from '@/lib/rag/supabaseVectorStore';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
@@ -12,6 +13,7 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/ai/client');
 vi.mock('@/lib/supabase/server');
 vi.mock('@/lib/rate-limit/user-rate-limiter');
+vi.mock('@/lib/rate-limit/weekly-session-limiter');
 vi.mock('@/lib/rag/supabaseVectorStore');
 vi.mock('@/lib/monitoring/events');
 vi.mock('@/lib/rate-limit/ip-rate-limiter');
@@ -68,6 +70,8 @@ describe('Chat API (/api/chat)', () => {
 
         vi.mocked(checkUserRateLimit).mockResolvedValue({ allowed: true, remaining: 5, isAdmin: false });
         vi.mocked(incrementUserUsage).mockResolvedValue(undefined as any);
+        vi.mocked(checkWeeklySessionLimit).mockResolvedValue({ allowed: true, sessionsUsed: 0, limit: 5, sessionsRemaining: 5, reason: 'within_limit' });
+        vi.mocked(incrementWeeklyUsage).mockResolvedValue(true);
         vi.mocked(supabaseHybridSearch).mockResolvedValue([]);
         vi.mocked(logSystemEvent).mockResolvedValue(undefined);
         vi.mocked(checkIpRateLimit).mockResolvedValue({ success: true, remaining: 19 } as any);
@@ -288,5 +292,53 @@ describe('Chat API (/api/chat)', () => {
 
         const data = await res.json();
         expect(data.response).toBe('AI response text');
+    });
+
+    it('15. Interview first turn blocked by weekly session limit -> 429', async () => {
+        vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+            allowed: false,
+            sessionsUsed: 5,
+            limit: 5,
+            sessionsRemaining: 0,
+            reason: 'limit_exceeded',
+        });
+
+        const req = createRequest({
+            messages: [{ role: 'user', content: 'hello' }],
+            systemPrompt: 'ROLE: Kai - Technical Interviewer',
+        });
+
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(429);
+        expect(data.code).toBe('LIMIT_REACHED');
+        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
+    });
+
+    it('16. Interview first turn allowed -> increments weekly interview usage', async () => {
+        const req = createRequest({
+            messages: [{ role: 'user', content: 'hello' }],
+            systemPrompt: 'ROLE: Kai - Technical Interviewer',
+        });
+
+        const res = await POST(req);
+
+        expect(res.status).toBe(200);
+        expect(checkWeeklySessionLimit).toHaveBeenCalledWith('user-123', 'interview');
+        expect(incrementWeeklyUsage).toHaveBeenCalledWith('user-123', 'interview');
+    });
+
+    it('17. Non-interviewer prompt does not trigger weekly session checks', async () => {
+        const req = createRequest({
+            messages: [{ role: 'user', content: 'hello' }],
+            systemPrompt: 'General assistant mode',
+        });
+
+        const res = await POST(req);
+
+        expect(res.status).toBe(200);
+        expect(checkWeeklySessionLimit).not.toHaveBeenCalled();
+        expect(incrementWeeklyUsage).not.toHaveBeenCalled();
     });
 });

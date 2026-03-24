@@ -3,7 +3,7 @@ import { FSRS, Card, Grade, Rating, createEmptyCard, State } from 'ts-fsrs';
 // FSRS instance with recommended settings for DSA problem review
 const fsrs = new FSRS({
     request_retention: 0.85,  // 85% recall target (good for DSA — not too aggressive)
-    maximum_interval: 180,    // Keep 180-day max from original SM2 implementation
+    maximum_interval: 180,    // Keep 180-day max from original implementation
     enable_fuzz: true,        // Slight randomness prevents review day clustering
     w: [
         // FSRS-6 default weights (full 21-parameter vector)
@@ -94,7 +94,7 @@ export function computeNextReviewFSRS(
         fsrs_last_review: now.toISOString(),
         fsrs_due: nextCard.due.toISOString(), // Use what FSRS gives natively for due date
 
-        // SM2-compatible fields (kept for backward compat during migration period)
+        // Shared compatibility fields used by UI and actions
         intervalDays,
         nextReviewDate: nextCard.due.toISOString().split('T')[0],
         lastQuality: rating,

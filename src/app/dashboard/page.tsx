@@ -9,46 +9,41 @@ import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { ExportReportButton } from '@/components/dashboard/ExportReportButton';
 import { StatsOverview } from '@/components/dashboard/StatsOverview';
-import { RadarChart } from '@/components/charts/RadarChart';
-import { RadarChartLegend } from '@/components/charts/RadarChartLegend';
 import { EmptyState } from '@/components/assessment/EmptyState';
 import { SessionTimeline } from '@/components/dashboard/SessionTimeline';
 import { ReviewQueueWidget } from '@/components/dashboard/ReviewQueueWidget';
-import { SkillDrillDown } from '@/components/charts/SkillDrillDown';
 import { SkillTrendCard } from '@/components/dashboard/SkillTrendCard';
 import { RecommendationsPanel } from '@/components/dashboard/RecommendationsPanel';
-import { RecommendationEngine, Recommendation } from '@/lib/recommendations/engine';
+import { RecommendationEngine } from '@/lib/recommendations/engine';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 import { ShareReplayButton } from '@/components/dashboard/ShareReplayButton';
-import { ComingSoonSection } from '@/components/dashboard/ComingSoonSection';
 import { useReviewCount } from '@/hooks/useReviewCount';
+import { RadarChart } from '@/components/charts/RadarChart';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { Brain, ChevronRight, Activity, Sparkles, UserCheck } from 'lucide-react';
-import { format, differenceInHours } from 'date-fns';
+import { Brain, ChevronRight } from 'lucide-react';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
-import { getSupabase } from '@/lib/supabase/client';
+import { RecommendationBanner } from '@/components/dashboard/RecommendationBanner';
+import { WeeklyUsageCard } from '@/components/dashboard/WeeklyUsageCard';
+import { KnowledgeInsightsCard } from '@/components/dashboard/KnowledgeInsightsCard';
 
 function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { progress, isLoading, error } = useProgress();
 
-    // Initialize tab from URL or default to overview
-    const initialTab = (searchParams.get('tab') as string) || 'overview';
-    const validTabs = ['overview', 'skills', 'history', 'insights'] as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const defaultTab: typeof validTabs[number] = validTabs.includes(initialTab as any) ? (initialTab as any) : 'overview';
-    const [activeTab, setActiveTab] = useState<typeof validTabs[number]>(defaultTab);
+    const validTabs = ['overview', 'knowledge', 'skills', 'history', 'insights'] as const;
+    type DashboardTab = typeof validTabs[number];
+    const isValidTab = (tab: string | null): tab is DashboardTab => {
+        return tab !== null && (validTabs as readonly string[]).includes(tab);
+    };
+    const tabParam = searchParams.get('tab');
+    const activeTab: DashboardTab = isValidTab(tabParam) ? tabParam : 'overview';
     const [direction, setDirection] = useState(1);
-    const [showPrevious, setShowPrevious] = useState(false);
-    const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
     const { count: reviewDueCount } = useReviewCount();
-
-    // Feature state for "All-time" averages logic
-    const [allTimeData, setAllTimeData] = useState<Record<string, number> | undefined>(undefined);
-    const [showAllTime, setShowAllTime] = useState(true);
+    const [recommendations, setRecommendations] = useState<Awaited<ReturnType<RecommendationEngine['analyze']>>>([]);
 
     // Handler for clicking on a session in history or timeline
     const handleSessionClick = useCallback((session: SessionHistory) => {
@@ -56,60 +51,41 @@ function DashboardContent() {
         router.push(`/interview/analysis?sessionId=${session.sessionId}`);
     }, [router]);
 
-    // State for asynchronous recommendations (memoized to avoid render cycle issues)
-    const recommendations = React.useMemo(() => {
-        if (!progress) return [];
-        return new RecommendationEngine().analyze(progress);
-    }, [progress]);
-
-    // Async Fetch RPC for All-Time Averages mapped from recent 20 sessions (cached)
     useEffect(() => {
-        const fetchAllTimeAverages = async () => {
-            if (!progress?.userId) return;
-            try {
-                const { getDashboardAveragesAction } = await import('@/app/actions/dashboard');
-                const averages = await getDashboardAveragesAction(progress.userId);
+        let isMounted = true;
 
-                if (averages) {
-                    setAllTimeData(averages);
+        const loadRecommendations = async () => {
+            if (!progress) {
+                if (isMounted) {
+                    setRecommendations([]);
                 }
-            } catch (err) {
-                console.error('Failed to load all-time session averages', err);
+                return;
+            }
+
+            const next = await new RecommendationEngine().analyze(progress);
+            if (isMounted) {
+                setRecommendations(next);
             }
         };
 
-        fetchAllTimeAverages();
-    }, [progress?.userId]);
+        void loadRecommendations();
 
-    // Sync tab state with URL parameters
-    useEffect(() => {
-        const tabParam = searchParams.get('tab');
-        if (tabParam && ['overview', 'skills', 'history', 'insights'].includes(tabParam)) {
-            setActiveTab((current) => {
-                if (current !== tabParam) {
-                    const tempValidTabs = ['overview', 'skills', 'history', 'insights'];
-                    setDirection(tempValidTabs.indexOf(tabParam) >= tempValidTabs.indexOf(current) ? 1 : -1);
-                    return tabParam as 'overview' | 'skills' | 'history' | 'insights';
-                }
-                return current;
-            });
-        }
-    }, [searchParams]);
+        return () => {
+            isMounted = false;
+        };
+    }, [progress]);
 
     // Update URL when tab changes
     const handleTabChange = (tab: string) => {
-        setActiveTab((current) => {
-            if (current !== tab) {
-                const tempValidTabs = ['overview', 'skills', 'history', 'insights'];
-                setDirection(tempValidTabs.indexOf(tab) >= tempValidTabs.indexOf(current) ? 1 : -1);
-            }
-            return tab as 'overview' | 'skills' | 'history' | 'insights';
-        });
+        if (activeTab !== tab) {
+            const tempValidTabs = ['overview', 'knowledge', 'skills', 'history', 'insights'];
+            setDirection(tempValidTabs.indexOf(tab) >= tempValidTabs.indexOf(activeTab) ? 1 : -1);
+        }
         router.push(`?tab=${tab}`, { scroll: false });
     };
 
     // Swipe handlers
-    const tabs = ['overview', 'skills', 'history', 'insights'] as const;
+    const tabs = ['overview', 'knowledge', 'skills', 'history', 'insights'] as const;
     const { handlers, currentIndex } = useSwipeNavigation({
         tabs,
         activeTab,
@@ -128,9 +104,6 @@ function DashboardContent() {
             </div>
         );
     }
-
-    const latestSession = progress?.sessions[0];
-    const previousSession = progress?.sessions[1];
 
     return (
         <div {...handlers} className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
@@ -177,75 +150,16 @@ function DashboardContent() {
                         >
                             {activeTab === 'overview' && (
                                 <>
+                                    {/* Recommendation Banner — top of dashboard */}
+                                    <RecommendationBanner />
+
                                     {/* Review Queue — above stats when reviews are due */}
                                     {progress?.userId && reviewDueCount > 0 && (
                                         <ReviewQueueWidget userId={progress.userId} />
                                     )}
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                        {/* Radar Chart - Left Half */}
-                                        <div className="lg:col-span-12 xl:col-span-7 h-full">
-                                            <DashboardCard
-                                                title="Cognitive Skill Profile"
-                                                subtitle="Assessment based on your latest interactions"
-                                                isLoading={isLoading}
-                                                data-tour="cognitive-profile"
-                                            >
-                                                <div className="flex flex-col xl:flex-row items-center justify-center h-full py-4 w-full">
-                                                    {latestSession ? (
-                                                        <>
-                                                            <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0">
-                                                                {allTimeData && (
-                                                                    <button
-                                                                        onClick={() => setShowAllTime(!showAllTime)}
-                                                                        className={cn(
-                                                                            "self-end mb-2 mr-4 px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 border",
-                                                                            showAllTime
-                                                                                ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_10px_rgba(255,255,255,0.05)]"
-                                                                                : "bg-slate-900/50 text-slate-500 border-slate-800 hover:text-slate-300"
-                                                                        )}
-                                                                    >
-                                                                        <Activity className="w-3 h-3" />
-                                                                        Show avg
-                                                                    </button>
-                                                                )}
-                                                                <RadarChart
-                                                                    currentScores={latestSession.skills}
-                                                                    previousScores={previousSession?.skills}
-                                                                    showComparison={showPrevious}
-                                                                    size="medium"
-                                                                    onSkillClick={(skill) => setSelectedSkill(skill === selectedSkill ? null : skill)}
-                                                                    selectedSkill={selectedSkill}
-                                                                    allTimeData={allTimeData}
-                                                                    showAllTime={showAllTime}
-                                                                />
-                                                                <RadarChartLegend
-                                                                    showPrevious={showPrevious}
-                                                                    onToggle={(type) => type === 'previous' && setShowPrevious(!showPrevious)}
-                                                                />
-                                                            </div>
-                                                            {selectedSkill && (
-                                                                <div className="w-full xl:w-80 shrink-0 xl:ml-6 mt-6 xl:mt-0 max-w-sm mx-auto animate-in fade-in slide-in-from-right-8 duration-500">
-                                                                    <SkillDrillDown
-                                                                        skill={selectedSkill}
-                                                                        sessions={progress?.sessions || []}
-                                                                        onClose={() => setSelectedSkill(null)}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <div className="flex flex-col items-center justify-center py-20 opacity-30 text-slate-500">
-                                                            <Brain className="w-16 h-16 mb-4" />
-                                                            <p>No assessment data available</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </DashboardCard>
-                                        </div>
-
-                                        {/* Stats & Overview - Right Half */}
-                                        <div className="lg:col-span-12 xl:col-span-5 space-y-6">
+                                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                                        <div className="xl:col-span-7">
                                             <DashboardCard
                                                 title="Performance Insights"
                                                 subtitle="Practice stats and skill distribution"
@@ -254,7 +168,27 @@ function DashboardContent() {
                                                 <StatsOverview progress={progress} />
                                             </DashboardCard>
                                         </div>
+
+                                        <div className="xl:col-span-5 space-y-6">
+                                            <WeeklyUsageCard />
+                                        </div>
                                     </div>
+
+                                    {/* 8D Cognitive Profile Radar */}
+                                    {progress && progress.sessions.length > 0 && (
+                                        <DashboardCard
+                                            title="8-Dimensional Cognitive Profile"
+                                            subtitle="Your mastery across 8 core algorithmic skills"
+                                            isLoading={isLoading}
+                                        >
+                                            <RadarChart
+                                                currentScores={progress.sessions[progress.sessions.length - 1]?.skills || {}}
+                                                previousScores={progress.sessions.length > 1 ? progress.sessions[progress.sessions.length - 2]?.skills : undefined}
+                                                showComparison={progress.sessions.length > 1}
+                                                size="medium"
+                                            />
+                                        </DashboardCard>
+                                    )}
 
                                     {progress?.userId && reviewDueCount === 0 && (
                                         <ReviewQueueWidget userId={progress.userId} />
@@ -286,6 +220,20 @@ function DashboardContent() {
                                 </>
                             )}
 
+                            {activeTab === 'knowledge' && (
+                                <div className="space-y-6">
+                                    <KnowledgeInsightsCard />
+
+                                    <DashboardCard
+                                        title="Targeted Recommendations"
+                                        subtitle="Practice prompts based on your current weak spots"
+                                        isLoading={isLoading}
+                                    >
+                                        <RecommendationsPanel recommendations={recommendations} />
+                                    </DashboardCard>
+                                </div>
+                            )}
+
                             {activeTab === 'skills' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tour="skills-grid">
                                     {Object.keys(SKILL_DEFINITIONS).map((skillId, i) => (
@@ -311,7 +259,7 @@ function DashboardContent() {
                                         subtitle="Detailed list of all your practice sessions"
                                         isLoading={isLoading}
                                     >
-                                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar" data-tour="history-list">
+                                        <div className="space-y-4 max-h-150 overflow-y-auto pr-2 custom-scrollbar" data-tour="history-list">
                                             {progress?.sessions.map((session) => (
                                                 <div
                                                     key={session.sessionId}
@@ -397,10 +345,7 @@ function DashboardContent() {
                     </AnimatePresence>
                 )}
 
-                {/* Coming Soon Section — always visible regardless of session count */}
-                <div className="mt-8">
-                    <ComingSoonSection />
-                </div>
+
             </div>
         </div>
     );

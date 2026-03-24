@@ -107,6 +107,7 @@ vi.mock('lucide-react', () => ({
     Flag: (props: any) => <span data-testid="icon-flag" className={props.className} />,
     Briefcase: (props: any) => <span data-testid="icon-briefcase" className={props.className} />,
     BookOpen: (props: any) => <span data-testid="icon-bookopen" className={props.className} />,
+    Brain: (props: any) => <span data-testid="icon-brain" className={props.className} />,
     Sparkles: (props: any) => <span data-testid="icon-sparkles" className={props.className} />,
 }));
 
@@ -182,14 +183,15 @@ describe('Navbar Component', () => {
         expect(links?.length).toBe(2);
     });
 
-    it('4. Bottom nav has 4 items for candidate account type', async () => {
+    it('4. Bottom nav has correct number of items for candidate account type', async () => {
         window.innerWidth = 375;
         const { container } = render(<Navbar />);
         await waitFor(() => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
             const links = bottomNav?.querySelectorAll('a');
-            expect(links?.length).toBe(4);
+            // Candidate has: Home, Practice, Learn, Progress, Settings (Total 5)
+            expect(links?.length).toBe(5);
         });
     });
 
@@ -276,10 +278,8 @@ describe('Navbar Component', () => {
     });
 
     it('14. Sign out option calls signOut and redirects', async () => {
-        const { container } = render(<Navbar />);
-        const menuItems = container.querySelectorAll('[data-testid="dropdown-item"]');
-        // Sign Out is the last menu item
-        const signOutItem = Array.from(menuItems).find(el => el.textContent?.includes('Sign Out'));
+        render(<Navbar />);
+        const signOutItem = screen.getByTestId('sign-out-button');
         expect(signOutItem).toBeDefined();
 
         await act(async () => {

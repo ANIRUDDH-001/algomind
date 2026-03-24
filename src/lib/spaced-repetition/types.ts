@@ -1,7 +1,6 @@
 /**
  * Shared types and utilities for spaced repetition.
- * Migrated from sm2.ts during SM-2 algorithm removal.
- * The SM-2 algorithm (computeNextReview) has been removed.
+ * Legacy algorithm code was removed.
  * All scheduling now uses FSRS-5 (see fsrs.ts).
  */
 
@@ -10,10 +9,9 @@ export interface SpacedRepetitionRecord {
     problemTitle: string;
     problemDifficulty: 'easy' | 'medium' | 'hard';
     intervalDays: number;
-    easeFactor: number;        // Kept for display of pre-FSRS records in AnalysisClient
-    repetitions: number;
+    fsrsReps: number;
     lastQuality: number | null;
-    nextReviewDate: string;
+    fsrsDueDate: string;
     lastReviewedAt: string | null;
 }
 

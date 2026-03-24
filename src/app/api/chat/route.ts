@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
+import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
@@ -10,6 +11,10 @@ import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
+import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
+import type { StudentContext } from '@/lib/kai-context';
+
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     try {
@@ -188,6 +193,54 @@ export async function POST(req: NextRequest) {
         }
 
         let enhancedSystemPrompt = baseSystemPrompt;
+    const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
+
+        const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
+        const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
+            || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
+
+        const isNewInterviewSession = !guestMode && Boolean(user?.id) && isFirstTurn && looksLikeInterviewerPrompt;
+
+        if (isNewInterviewSession && user?.id) {
+            const limitResult = await checkWeeklySessionLimit(user.id, 'interview');
+            if (!limitResult.allowed) {
+                return NextResponse.json(
+                    {
+                        error: 'Weekly interview session limit reached.',
+                        code: 'LIMIT_REACHED',
+                        sessionsUsed: limitResult.sessionsUsed,
+                        limit: limitResult.limit,
+                        sessionType: 'interview',
+                    },
+                    { status: 429 }
+                );
+            }
+
+            const incremented = await incrementWeeklyUsage(user.id, 'interview');
+            if (!incremented) {
+                return NextResponse.json(
+                    {
+                        error: 'Weekly interview session limit reached.',
+                        code: 'LIMIT_REACHED',
+                        sessionType: 'interview',
+                    },
+                    { status: 429 }
+                );
+            }
+        }
+
+        let studentContext: StudentContext | undefined;
+        if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
+            try {
+                studentContext = await buildStudentContext(user.id);
+            } catch {
+                // Student context build is non-fatal.
+            }
+        }
+
+        if (studentContext && !hasStudentContextBlock) {
+            enhancedSystemPrompt += `\n\n${buildStudentContextPromptBlock(studentContext)}`;
+        }
 
         if (companyPersona) {
             enhancedSystemPrompt += `\n\n<company_persona>\n${companyPersona}\n</company_persona>`;

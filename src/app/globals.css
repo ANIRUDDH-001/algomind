@@ -172,14 +172,31 @@
   background: transparent;
 }
 
-@media (max-width: 767px) {
-  main {
-    padding-bottom: 56px;
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
+}
 
-  body {
-    padding-bottom: 56px;
-  }
+/* Prevent double-tap zoom on buttons */
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Tap highlight removal for better mobile UX */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS smooth scrolling for scroll containers */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Input font size iOS fix - 16px prevents auto-zoom */
+input, textarea, select {
+  font-size: 16px;
 }
 
 :root {

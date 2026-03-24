@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { getServiceClient } from '@/lib/supabase/service';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,14 +22,20 @@ export async function GET() {
             .select('*')
             .order('priority', { ascending: true });
 
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
 
         const chat = (data ?? []).filter((r) => r.use_case === 'chat');
         const analysis = (data ?? []).filter((r) => r.use_case === 'analysis');
 
         return NextResponse.json({ chat, analysis });
-    } catch {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -70,12 +77,16 @@ export async function POST(req: NextRequest) {
             if (error.code === '23505') {
                 return NextResponse.json({ error: 'Model already exists for this use case' }, { status: 409 });
             }
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, entry: data });
-    } catch {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -105,10 +116,12 @@ export async function PATCH(req: NextRequest) {
                     .update(updateFields)
                     .eq('id', item.id);
 
-                if (error) errors.push(`${item.id}: ${error.message}`);
+                if (error) errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`);
             }
             if (errors.length > 0) {
-                return NextResponse.json({ error: errors.join('; ') }, { status: 500 });
+                const errMsg = errors.join('; ');
+                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+                return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
             }
             return NextResponse.json({ success: true });
         }
@@ -126,13 +139,19 @@ export async function PATCH(req: NextRequest) {
                 .update(updateFields)
                 .eq('id', body.id);
 
-            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+            if (error) {
+                const errMsg = error instanceof Error ? error.message : String(error);
+                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+                return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+            }
             return NextResponse.json({ success: true });
         }
 
         return NextResponse.json({ error: 'Missing id or updates array' }, { status: 400 });
-    } catch {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -155,9 +174,15 @@ export async function DELETE(req: NextRequest) {
             .delete()
             .eq('id', id);
 
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
         return NextResponse.json({ success: true });
-    } catch {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

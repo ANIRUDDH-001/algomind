@@ -1,9 +1,0 @@
-# Page snapshot
-
-```yaml
-- generic [active] [ref=e1]:
-  - main [ref=e2]
-  - region "Notifications alt+T"
-  - button "Open Next.js Dev Tools" [ref=e10] [cursor=pointer]:
-    - img [ref=e11]
-```

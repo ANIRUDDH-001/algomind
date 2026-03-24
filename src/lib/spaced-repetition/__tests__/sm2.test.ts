@@ -1,19 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { formatNextReviewDate, SpacedRepetitionRecord } from '../types';
 
-// ── Verify SM-2 algorithm was removed ────────────────────────────────────────
+// ── Verify legacy algorithm exports are removed ─────────────────────────────
 
-describe('SM-2 Migration: computeNextReview removed', () => {
+describe('Spaced repetition migration: computeNextReview removed', () => {
     it('computeNextReview is NOT exported from types.ts', async () => {
-        // This test documents that the SM-2 algorithm has been intentionally removed.
+        // This test documents that the old algorithm has been intentionally removed.
         // All scheduling now uses FSRS-5 (see fsrs.ts and skill-scheduler.ts).
         const typesModule = await import('../types');
         expect((typesModule as any).computeNextReview).toBeUndefined();
-    });
-
-    it('computeNextReview is NOT exported from sm2.ts (deprecated)', async () => {
-        const sm2Module = await import('../sm2');
-        expect((sm2Module as any).computeNextReview).toBeUndefined();
     });
 });
 
@@ -56,13 +51,12 @@ describe('SpacedRepetitionRecord type', () => {
             problemTitle: 'Two Sum',
             problemDifficulty: 'easy',
             intervalDays: 6,
-            easeFactor: 2.5,       // legacy field, kept for display of old records
-            repetitions: 2,
+            fsrsReps: 2,
             lastQuality: 4,
-            nextReviewDate: '2026-03-01',
+            fsrsDueDate: '2026-03-01T00:00:00.000Z',
             lastReviewedAt: '2026-02-21',
         };
         expect(record.problemId).toBe('test-problem');
-        expect(record.easeFactor).toBe(2.5); // still accessible for display purposes
+        expect(record.fsrsReps).toBe(2);
     });
 });

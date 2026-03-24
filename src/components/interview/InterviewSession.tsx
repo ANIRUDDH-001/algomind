@@ -21,7 +21,8 @@ import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiveTranscript } from '@/components/voice/LiveTranscript';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
@@ -40,6 +41,7 @@ import { CodeEditor } from './CodeEditor';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
+import { InterviewHeader } from './InterviewHeader';
 
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
@@ -69,6 +71,14 @@ interface InterviewSessionProps {
     assessmentApiEndpoint?: string;
     startTimeOffsetSeconds?: number;
     onAssessmentComplete?: (duration: number, transcript: any[], flags?: string[]) => Promise<void>;
+}
+
+interface WeeklyLimitStatus {
+    allowed: boolean;
+    sessionsUsed: number;
+    limit: number;
+    sessionsRemaining?: number | null;
+    status?: 'free' | 'premium' | 'college';
 }
 
 const mobileTabs = ['problem', 'interview', 'code', 'history'] as const;
@@ -109,6 +119,7 @@ export function InterviewSession({
     const [userCode, setUserCode] = useState('');
     const [codeLanguage, setCodeLanguage] = useState('python');
     const [voiceErrorDismissed, setVoiceErrorDismissed] = useState(false);
+    const [weeklyLimitStatus, setWeeklyLimitStatus] = useState<WeeklyLimitStatus | null>(null);
 
     // Desktop Layout State
     const [showProblemPanel, setShowProblemPanel] = useState(true);
@@ -413,8 +424,51 @@ export function InterviewSession({
             transcriptLoadedRef.current = true;
         }
     }, [readOnly, initialTranscript, loadTranscript]);
+    const openUpgradeModal = useCallback((payload?: { reason?: string; sessionsUsed?: number; limit?: number }) => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
+            detail: {
+                source: 'interview',
+                reason: payload?.reason,
+                sessionsUsed: payload?.sessionsUsed,
+                limit: payload?.limit,
+            },
+        }));
+    }, []);
+
+    const fetchWeeklyLimitStatus = useCallback(async (): Promise<WeeklyLimitStatus | null> => {
+        if (isGuest || readOnly) return null;
+        try {
+            const res = await fetch('/api/knowledge/session-limit', { method: 'GET' });
+            if (!res.ok) {
+                return null;
+            }
+            const data = await res.json() as WeeklyLimitStatus;
+            setWeeklyLimitStatus(data);
+            return data;
+        } catch {
+            return null;
+        }
+    }, [isGuest, readOnly]);
+
+    useEffect(() => {
+        void fetchWeeklyLimitStatus();
+    }, [fetchWeeklyLimitStatus]);
 
     const handleStart = async () => {
+        if (!isGuest && !readOnly && !isAssessment) {
+            const latest = await fetchWeeklyLimitStatus();
+            if (latest && !latest.allowed) {
+                setError('Weekly session limit reached. Upgrade to continue.');
+                openUpgradeModal({
+                    reason: 'Weekly free session quota reached for interview mode.',
+                    sessionsUsed: latest.sessionsUsed,
+                    limit: latest.limit,
+                });
+                return;
+            }
+        }
+
         // Phase 5a: Pre-interview microphone permission check
         try {
             const perm = await navigator.permissions.query({
@@ -674,24 +728,20 @@ export function InterviewSession({
 
     const renderProblemCardContent = () => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
+        const headerMode = interviewConfig.mode === 'employer'
+            ? 'employer'
+            : interviewConfig.difficultyMode;
 
         return (
             <Card className="h-full flex flex-col shadow-2xl border-none bg-transparent" data-tour="problem-panel">
                 <CardHeader className="bg-black/20 rounded-2xl border py-3 shrink-0 mb-4" style={{ borderColor: 'var(--surface-edge)' }}>
                     <div className="flex flex-col gap-2">
-                        <div className="flex items-start justify-between gap-3">
-                            <CardTitle className="text-sm font-bold text-white whitespace-normal break-words flex-1">
-                                {activeProblem.title}
-                            </CardTitle>
-                            <Badge className={cn(
-                                "text-[10px] px-2 py-0 h-5 shrink-0 border mt-0.5",
-                                activeProblem.difficulty === 'easy' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-                                activeProblem.difficulty === 'medium' && 'bg-amber-500/15 text-amber-400 border-amber-500/25',
-                                activeProblem.difficulty === 'hard' && 'bg-red-500/15 text-red-400 border-red-500/25'
-                            )}>
-                                {activeProblem.difficulty}
-                            </Badge>
-                        </div>
+                        <InterviewHeader
+                            problemTitle={activeProblem.title}
+                            difficulty={activeProblem.difficulty}
+                            mode={headerMode}
+                            conceptTags={activeProblem.tags ?? []}
+                        />
                         <a href={leetcodeUrl} target="_blank" rel="noopener noreferrer"
                             className="relative z-50 cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-lg text-[11px] font-bold text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/50 hover:from-indigo-600/30 hover:to-purple-600/30 transition-all shadow-lg shadow-indigo-500/10"
                         >
@@ -790,6 +840,16 @@ export function InterviewSession({
                                                 maxRounds={interviewConfig.maxTurnsPerProblem}
                                                 isLimitReached={isLimitReached}
                                                 limitReason={limitReason}
+                                                weeklyUsage={weeklyLimitStatus && weeklyLimitStatus.limit > 0 ? {
+                                                    sessionsUsed: weeklyLimitStatus.sessionsUsed,
+                                                    limit: weeklyLimitStatus.limit,
+                                                    allowed: weeklyLimitStatus.allowed,
+                                                } : undefined}
+                                                onUpgrade={() => openUpgradeModal({
+                                                    reason: 'Upgrade to keep practicing with unlimited sessions.',
+                                                    sessionsUsed: weeklyLimitStatus?.sessionsUsed,
+                                                    limit: weeklyLimitStatus?.limit,
+                                                })}
                                             />
                                         ) : (
                                             <div className={cn(
@@ -862,6 +922,15 @@ export function InterviewSession({
                                         </div>
                                     )}
 
+                                    {/* ZoomTranscript Overlay */}
+                                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-xl px-4 z-10">
+                                        <LiveTranscript
+                                            entries={messages.slice(-2).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))}
+                                            interimTranscript={voice.interimTranscript}
+                                            isVisible={hasStarted && !readOnly}
+                                        />
+                                    </div>
+
                                     {readOnly && (
                                         <div className="flex justify-center pb-6">
                                             <div className="bg-zinc-800/80 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 text-sm font-medium flex items-center gap-2">
@@ -895,15 +964,14 @@ export function InterviewSession({
                                         <div className="flex-1 bg-zinc-900/40 rounded-xl border border-white/5 backdrop-blur-sm overflow-hidden flex flex-col relative" data-testid="transcript-area">
                                             <div className="absolute inset-0 p-1">
                                                 <ZoomTranscript
-                                                    lastAiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content}
-                                                    isSpeaking={voice.isSpeaking}
-                                                    isProcessing={isProcessing}
-                                                    transcript={voice.transcript}
-                                                    interimTranscript={voice.interimTranscript}
-                                                    isListening={voice.isListening}
-                                                    micStoppedManually={micStoppedManually}
-                                                    isPushToTalk={isPushToTalk}
-                                                    isTranscribing={voice.isTranscribing}
+                                                    kaiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content ?? null}
+                                                    userTranscript={voice.transcript}
+                                                    isKaiSpeaking={voice.isSpeaking}
+                                                    isUserSpeaking={voice.isListening}
+                                                    isThinking={isProcessing}
+                                                    conceptSlug="interview"
+                                                    conceptIcon="🎯"
+                                                    exchangeCount={messages.filter(m => m.role === 'user').length}
                                                 />
                                             </div>
                                         </div>
@@ -921,11 +989,11 @@ export function InterviewSession({
                                         )}
 
                                         {/* Send button: shown when mic is manually stopped AND there is content (or Whisper is in-flight) */}
-                                        {micStoppedManually && (voice.transcript || voice.isTranscribing) && (
+                                        {micStoppedManually && (voice.transcript || voice.isTranscribing || voice.interimTranscript) && (
                                             <Button
                                                 className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 onClick={() => {
-                                                    const content = voice.transcript;
+                                                    const content = voice.transcript || voice.interimTranscript;
                                                     if (content) {
                                                         submitUserResponse(content, { problemTitle: activeProblem.title, problemContent: activeProblem.description });
                                                     }

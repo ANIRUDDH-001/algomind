@@ -3,7 +3,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 
 /**
  * Keepalive ping to prevent Supabase free tier auto-pause (7 days idle).
- * Called by Vercel cron every 6 days.
+ * Optional endpoint for external uptime pings.
  */
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     } catch (err) {
         console.error('[Keepalive] DB ping failed:', err);
         return NextResponse.json(
-            { alive: false, error: String(err) },
+            { alive: false, error: 'Internal server error' },
             { status: 500 }
         );
     }

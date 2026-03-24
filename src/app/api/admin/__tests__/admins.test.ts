@@ -18,6 +18,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             select: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
             maybeSingle: vi.fn().mockReturnThis(),
             insert: vi.fn().mockReturnThis(),
             delete: vi.fn().mockReturnThis(),
@@ -82,7 +83,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(500);
-            expect(data).toEqual({ error: 'DB Error' });
+            expect(data).toEqual({ error: 'Internal server error' });
         });
     });
 
@@ -165,8 +166,12 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
                 errorResponse: null
             });
 
-            mockSupabase.select.mockResolvedValue({ count: 2, error: null }); // More than 1 admin
-            mockSupabase.eq.mockResolvedValue({ error: null }); // Successful deletion
+            mockSupabase.select
+                .mockReturnValueOnce(mockSupabase) // system_config select(...)
+                .mockResolvedValueOnce({ count: 2, error: null }); // admin count query
+            mockSupabase.eq
+                .mockReturnValueOnce(mockSupabase) // system_config eq('key', ...)
+                .mockResolvedValueOnce({ error: null }); // delete eq('email', ...)
 
             const req = createRequest({ email: 'otheradmin@test.com' });
             const response = await DELETE(req);
@@ -182,7 +187,11 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
                 errorResponse: null
             });
 
-            mockSupabase.select.mockResolvedValue({ count: 1, error: null }); // Only 1 admin left
+            mockSupabase.select
+                .mockReturnValueOnce(mockSupabase) // system_config select(...)
+                .mockResolvedValueOnce({ count: 1, error: null }); // Only 1 admin left
+            mockSupabase.eq
+                .mockReturnValueOnce(mockSupabase); // system_config eq('key', ...)
 
             const req = createRequest({ email: 'admin@test.com' });
             const response = await DELETE(req);
