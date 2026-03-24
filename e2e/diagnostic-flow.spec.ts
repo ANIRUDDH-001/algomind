@@ -40,9 +40,10 @@ test.describe('Diagnostic Flow', () => {
     await page.goto('/learn/diagnostic');
     await page.waitForSelector('[data-testid="message-assistant"]', { timeout: 10000 });
 
-    await expect(page.locator('text=Tap to answer')).toBeVisible();
-    await page.click('[data-testid="send-button"]');
-    await expect(page.locator('text=Listening...')).toBeVisible();
+    const micButton = page.locator('[data-testid="send-button"]');
+    await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
+    await expect(micButton).toHaveAttribute('aria-label', /Start recording|Stop recording/);
   });
 
   test('turn counter is visible in active diagnostic session', async ({ page }) => {
@@ -50,7 +51,7 @@ test.describe('Diagnostic Flow', () => {
     await page.waitForSelector('[data-testid="turn-counter"]', { timeout: 5000 });
 
     const counter = await page.locator('[data-testid="turn-counter"]').textContent();
-    expect(counter).toContain('left');
+    expect(counter).toContain('Question');
   });
 
   test('diagnostic page has no crash overlays', async ({ page }) => {

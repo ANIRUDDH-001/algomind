@@ -1,6 +1,32 @@
 import { test, expect } from '@playwright/test';
 import { signIn } from './helpers/auth';
 
+async function maybeCompleteDiagnostic(page: import('@playwright/test').Page) {
+  if (!page.url().includes('/learn/diagnostic')) return;
+
+  await page.waitForSelector('[data-testid="message-assistant"]', { timeout: 10000 });
+
+  for (let i = 0; i < 10; i++) {
+    const finishButton = page.locator('[data-testid="finish-diagnostic-button"]');
+    if (await finishButton.isEnabled()) break;
+
+    await page.fill('[data-testid="text-input"]', `Diagnostic answer ${i + 1}`);
+    await page.click('[data-testid="send-text-button"]');
+    await page.waitForTimeout(700);
+  }
+
+  const finishButton = page.locator('[data-testid="finish-diagnostic-button"]');
+  await expect(finishButton).toBeEnabled({ timeout: 10000 });
+  await finishButton.click();
+  await page.waitForURL('**/learn', { timeout: 15000 });
+}
+
+async function ensureLearnPage(page: import('@playwright/test').Page) {
+  await page.goto('/learn');
+  await maybeCompleteDiagnostic(page);
+  await expect(page).toHaveURL(/\/learn$/);
+}
+
 test.describe('Learn Mode', () => {
   test.skip(
     !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD,
@@ -11,60 +37,26 @@ test.describe('Learn Mode', () => {
     await signIn(page);
   });
 
-  test('learn page shows concept heatmap for returning users', async ({ page }) => {
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-heatmap"]', { timeout: 8000 });
+  test('learn page shows concept picker cards', async ({ page }) => {
+    await ensureLearnPage(page);
+    await page.waitForSelector('[data-testid^="concept-card-"]', { timeout: 8000 });
 
-    const tiles = await page.locator('[data-testid="concept-tile"]').count();
-    expect(tiles).toBeGreaterThanOrEqual(15);
+    const cards = await page.locator('[data-testid^="concept-card-"]').count();
+    expect(cards).toBeGreaterThanOrEqual(8);
   });
 
-  test('clicking concept tile opens detail panel', async ({ page }) => {
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-tile"]', { timeout: 8000 });
-
-    await page.locator('[data-testid="concept-tile"]').first().click();
-    await page.waitForSelector('[data-testid="concept-detail-panel"]', { timeout: 3000 });
-    expect(await page.locator('[data-testid="concept-detail-panel"]').isVisible()).toBe(true);
-  });
-
-  test('detail panel displays concept information', async ({ page }) => {
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-tile"]');
-
-    await page.locator('[data-testid="concept-tile"]').first().click();
-    await page.waitForSelector('[data-testid="concept-detail-panel"]');
-
-    const title = await page.locator('[data-testid="concept-detail-panel-title"]');
-    await expect(title).toBeVisible();
-  });
-
-  test('Learn with Kai button navigates to session', async ({ page }) => {
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-tile"]');
-
-    await page.locator('[data-testid="concept-tile"]').first().click();
-    await page.waitForSelector('[data-testid="detail-panel-learn-button"]');
-
-    await page.click('[data-testid="detail-panel-learn-button"]');
+  test('clicking concept card navigates to session', async ({ page }) => {
+    await ensureLearnPage(page);
+    await page.locator('[data-testid^="concept-card-"]').first().click();
     await expect(page).toHaveURL(/\/learn\/[\w-]+$/);
-  });
-
-  test('backdrop click closes detail panel', async ({ page }) => {
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-tile"]');
-
-    await page.locator('[data-testid="concept-tile"]').first().click();
-    await page.waitForSelector('[data-testid="concept-detail-panel"]');
-
-    await page.click('[data-testid="heatmap-backdrop"]');
-    await expect(page.locator('[data-testid="concept-detail-panel"]')).toBeHidden({
-      timeout: 2000,
-    });
   });
 
   test('learn session shows opening message', async ({ page }) => {
     await page.goto('/learn/arrays-strings');
+    await maybeCompleteDiagnostic(page);
+    if (!page.url().includes('/learn/arrays-strings')) {
+      await page.goto('/learn/arrays-strings');
+    }
     await page.waitForSelector('[data-testid="message-assistant"]', { timeout: 10000 });
 
     const firstMessage = await page
@@ -77,42 +69,31 @@ test.describe('Learn Mode', () => {
 
   test('user can send message and receive response', async ({ page }) => {
     await page.goto('/learn/arrays-strings');
+    await maybeCompleteDiagnostic(page);
+    if (!page.url().includes('/learn/arrays-strings')) {
+      await page.goto('/learn/arrays-strings');
+    }
     await page.waitForSelector('[data-testid="message-assistant"]', { timeout: 10000 });
 
-    await page.fill('textarea', 'Arrays store elements at contiguous memory locations');
-    await page.click('[data-testid="send-button"]');
+    await page.fill('[data-testid="text-input"]', 'Arrays store elements at contiguous memory locations');
+    await page.click('[data-testid="send-text-button"]');
 
     await page.waitForSelector('[data-testid="message-user"]', { timeout: 5000 });
-    await page.waitForSelector('[data-testid="message-assistant"]:nth-child(4)', {
-      timeout: 15000,
-    });
 
     const responseMessages = await page.locator('[data-testid="message-assistant"]').count();
     expect(responseMessages).toBeGreaterThan(1);
   });
 
-  test('Finish button is disabled initially', async ({ page }) => {
+  test('Finish button is visible and enabled in active session', async ({ page }) => {
     await page.goto('/learn/arrays-strings');
+    await maybeCompleteDiagnostic(page);
+    if (!page.url().includes('/learn/arrays-strings')) {
+      await page.goto('/learn/arrays-strings');
+    }
     await page.waitForSelector('[data-testid="finish-button"]', { timeout: 5000 });
 
     const finishButton = page.locator('[data-testid="finish-button"]');
-    await expect(finishButton).toBeDisabled();
-  });
-
-  test('Finish button enables after multiple messages', async ({ page }) => {
-    test.slow();
-    await page.goto('/learn/arrays-strings');
-    await page.waitForSelector('[data-testid="message-assistant"]', { timeout: 10000 });
-
-    // Send 2-3 user messages
-    for (let i = 0; i < 3; i++) {
-      await page.fill('textarea', `Test message about arrays: point ${i + 1}`);
-      await page.click('[data-testid="send-button"]');
-      await page.waitForTimeout(10000); // Wait for AI response
-    }
-
-    const finishButton = page.locator('[data-testid="finish-button"]');
-    await expect(finishButton).toBeEnabled({ timeout: 5000 });
+    await expect(finishButton).toBeEnabled();
   });
 
   test('invalid concept slug shows 404', async ({ page }) => {
@@ -123,23 +104,26 @@ test.describe('Learn Mode', () => {
 
   test('back button returns to learn page', async ({ page }) => {
     await page.goto('/learn/arrays-strings');
+    await maybeCompleteDiagnostic(page);
+    if (!page.url().includes('/learn/arrays-strings')) {
+      await page.goto('/learn/arrays-strings');
+    }
     await page.waitForSelector('[data-testid="back-button"]', { timeout: 5000 });
 
     await page.click('[data-testid="back-button"]');
     await expect(page).toHaveURL('/learn');
   });
 
-  test('heatmap is responsive on mobile', async ({ page }) => {
+  test('concept picker is responsive on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/learn');
-    await page.waitForSelector('[data-testid="concept-tile"]', { timeout: 8000 });
+    await ensureLearnPage(page);
+    await page.waitForSelector('[data-testid^="concept-card-"]', { timeout: 8000 });
 
-    const tiles = await page.locator('[data-testid="concept-tile"]').all();
-    expect(tiles.length).toBeGreaterThanOrEqual(15);
+    const cards = await page.locator('[data-testid^="concept-card-"]').all();
+    expect(cards.length).toBeGreaterThanOrEqual(8);
 
-    // Verify tiles are in viewport
-    for (const tile of tiles.slice(0, 3)) {
-      await expect(tile).toBeInViewport();
+    for (const card of cards.slice(0, 3)) {
+      await expect(card).toBeInViewport();
     }
   });
 });

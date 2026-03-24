@@ -76,7 +76,7 @@ interface InterviewSessionProps {
 interface WeeklyLimitStatus {
     allowed: boolean;
     sessionsUsed: number;
-    limit: number;
+    limit: number | null;
     sessionsRemaining?: number | null;
     status?: 'free' | 'premium' | 'college';
 }
@@ -455,9 +455,29 @@ export function InterviewSession({
             if (!res.ok) {
                 return null;
             }
-            const data = await res.json() as WeeklyLimitStatus;
-            setWeeklyLimitStatus(data);
-            return data;
+            const data = await res.json() as WeeklyLimitStatus & {
+                interview?: {
+                    used?: number;
+                    limit?: number | null;
+                    remaining?: number | null;
+                    allowed?: boolean;
+                };
+            };
+
+            const normalized: WeeklyLimitStatus = {
+                allowed: typeof data.allowed === 'boolean'
+                    ? data.allowed
+                    : (typeof data.interview?.allowed === 'boolean' ? data.interview.allowed : true),
+                sessionsUsed: typeof data.sessionsUsed === 'number'
+                    ? data.sessionsUsed
+                    : (data.interview?.used ?? 0),
+                limit: data.limit ?? data.interview?.limit ?? null,
+                sessionsRemaining: data.sessionsRemaining ?? data.interview?.remaining ?? null,
+                status: data.status,
+            };
+
+            setWeeklyLimitStatus(normalized);
+            return normalized;
         } catch {
             return null;
         }
@@ -470,12 +490,12 @@ export function InterviewSession({
     const handleStart = async () => {
         if (!isGuest && !readOnly && !isAssessment) {
             const latest = await fetchWeeklyLimitStatus();
-            if (latest && !latest.allowed) {
+            if (latest?.allowed === false) {
                 setError('Weekly session limit reached. Upgrade to continue.');
                 openUpgradeModal({
                     reason: 'Weekly free session quota reached for interview mode.',
                     sessionsUsed: latest.sessionsUsed,
-                    limit: latest.limit,
+                    limit: typeof latest.limit === 'number' ? latest.limit : undefined,
                 });
                 return;
             }
@@ -853,7 +873,7 @@ export function InterviewSession({
                                                 maxRounds={interviewConfig.maxTurnsPerProblem}
                                                 isLimitReached={isLimitReached}
                                                 limitReason={limitReason}
-                                                weeklyUsage={weeklyLimitStatus && weeklyLimitStatus.limit > 0 ? {
+                                                weeklyUsage={weeklyLimitStatus && typeof weeklyLimitStatus.limit === 'number' && weeklyLimitStatus.limit > 0 ? {
                                                     sessionsUsed: weeklyLimitStatus.sessionsUsed,
                                                     limit: weeklyLimitStatus.limit,
                                                     allowed: weeklyLimitStatus.allowed,
@@ -861,7 +881,7 @@ export function InterviewSession({
                                                 onUpgrade={() => openUpgradeModal({
                                                     reason: 'Upgrade to keep practicing with unlimited sessions.',
                                                     sessionsUsed: weeklyLimitStatus?.sessionsUsed,
-                                                    limit: weeklyLimitStatus?.limit,
+                                                    limit: weeklyLimitStatus?.limit ?? undefined,
                                                 })}
                                             />
                                         ) : (

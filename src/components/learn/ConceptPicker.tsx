@@ -99,6 +99,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
       {/* Recommendation banner */}
       {nextRecommendedConcept && !isLimitReached && (
         <motion.div
+          data-testid="recommendation-banner"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20"
@@ -113,6 +114,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
             </p>
           </div>
           <button
+            data-testid="recommendation-start-button"
             onClick={() => router.push(`/learn/${nextRecommendedConcept}`)}
             className="shrink-0 text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
           >
@@ -123,11 +125,12 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
 
       {/* Session limit warning */}
       {isLimitReached && (
-        <div className="p-4 rounded-xl bg-red-950/30 border border-red-500/20 flex items-center gap-3">
+        <div data-testid="limit-warning" className="p-4 rounded-xl bg-red-950/30 border border-red-500/20 flex items-center gap-3">
           <Zap size={16} className="text-red-400 shrink-0" />
           <p className="text-sm text-zinc-300">
             You've used all {subscription.weeklyLimit} sessions this week.{' '}
             <button
+              data-testid="upgrade-trigger"
               onClick={() => window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
                 detail: {
                   source: 'learn-concept-picker',
@@ -151,6 +154,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
 
           return (
             <motion.button
+              data-testid={`concept-card-${concept.slug}`}
               key={concept.slug}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}

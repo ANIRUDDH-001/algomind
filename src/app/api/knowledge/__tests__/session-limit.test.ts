@@ -2,15 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/knowledge/session-limit/route';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkWeeklySessionLimit, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
-import { getSystemConfig, isSessionGatingEnabled } from '@/lib/config/system-config';
+import { isSessionGatingEnabled } from '@/lib/config/system-config';
 
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabase: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit/weekly-session-limiter', () => ({
+  checkWeeklySessionLimit: vi.fn(),
   getWeeklySessionCount: vi.fn(),
 }));
 
@@ -19,7 +20,6 @@ vi.mock('@/lib/supabase/user-preferences', () => ({
 }));
 
 vi.mock('@/lib/config/system-config', () => ({
-  getSystemConfig: vi.fn(),
   isSessionGatingEnabled: vi.fn(),
 }));
 
@@ -35,8 +35,14 @@ describe('GET /api/knowledge/session-limit', () => {
     } as never);
 
     vi.mocked(getWeeklySessionCount).mockResolvedValue({ interview: 2, learn: 1, total: 3 });
+    vi.mocked(checkWeeklySessionLimit).mockImplementation(async (_userId, type) => ({
+      allowed: true,
+      sessionsUsed: type === 'interview' ? 2 : 1,
+      limit: 5,
+      sessionsRemaining: type === 'interview' ? 3 : 4,
+      reason: 'within_limit',
+    }));
     vi.mocked(getUserSubscriptionStatus).mockResolvedValue({ status: 'free', expiresAt: null });
-    vi.mocked(getSystemConfig).mockResolvedValue('5');
     vi.mocked(isSessionGatingEnabled).mockResolvedValue(true);
   });
 
@@ -54,13 +60,29 @@ describe('GET /api/knowledge/session-limit', () => {
 
     expect(res.status).toBe(200);
     expect(data.subscriptionStatus).toBe('free');
+    expect(data.allowed).toBe(true);
     expect(data.interview.remaining).toBe(3);
     expect(data.learn.remaining).toBe(4);
     expect(data.gatingEnabled).toBe(true);
+    expect(data.sessionsUsed).toBe(2);
   });
 
   it('returns null sessionsRemaining for premium users', async () => {
     vi.mocked(getUserSubscriptionStatus).mockResolvedValueOnce({ status: 'premium', expiresAt: null });
+    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+      allowed: true,
+      sessionsUsed: 0,
+      limit: null,
+      sessionsRemaining: null,
+      reason: 'premium',
+    });
+    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+      allowed: true,
+      sessionsUsed: 0,
+      limit: null,
+      sessionsRemaining: null,
+      reason: 'premium',
+    });
 
     const res = await GET();
     const data = await res.json();
@@ -68,6 +90,32 @@ describe('GET /api/knowledge/session-limit', () => {
     expect(data.sessionsRemaining).toBeNull();
     expect(data.subscriptionStatus).toBe('premium');
     expect(data.interview.limit).toBeNull();
+  });
+
+  it('returns allowed=false when interview weekly gate is exceeded', async () => {
+    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+      allowed: false,
+      sessionsUsed: 5,
+      limit: 5,
+      sessionsRemaining: 0,
+      reason: 'limit_exceeded',
+    });
+    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+      allowed: true,
+      sessionsUsed: 2,
+      limit: 5,
+      sessionsRemaining: 3,
+      reason: 'within_limit',
+    });
+    vi.mocked(getWeeklySessionCount).mockResolvedValueOnce({ interview: 5, learn: 2, total: 7 });
+
+    const res = await GET();
+    const data = await res.json();
+
+    expect(data.allowed).toBe(false);
+    expect(data.sessionsUsed).toBe(5);
+    expect(data.limit).toBe(5);
+    expect(data.sessionsRemaining).toBe(0);
   });
 
   it('returns 500 when session-limit lookup throws', async () => {

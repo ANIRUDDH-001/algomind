@@ -17,6 +17,18 @@ import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { getSystemConfig, isSessionGatingEnabled } from '@/lib/config/system-config';
 import { SYSTEM_CONFIG_KEYS } from '@/lib/config/system-config-keys';
 
+async function isCoOwner(userId: string, email?: string | null): Promise<boolean> {
+  const emailClause = email ? `,email.eq.${email}` : '';
+  const { data: coOwner } = await getServiceClient()
+    .from('co_owners')
+    .select('id')
+    .or(`user_id.eq.${userId}${emailClause}`)
+    .limit(1)
+    .maybeSingle();
+
+  return Boolean(coOwner);
+}
+
 export type SessionType = 'interview' | 'learn';
 
 export interface WeeklySessionLimitResult {
@@ -50,13 +62,16 @@ export async function checkWeeklySessionLimit(
   // 3. Admin / owner bypass
   const { data: profile } = await getServiceClient()
     .from('profiles')
-    .select('account_type, rate_limit_override')
+    .select('account_type, rate_limit_override, email')
     .eq('id', userId)
     .single();
+
+  const coOwner = await isCoOwner(userId, profile?.email);
 
   if (
     profile?.account_type === 'admin' ||
     profile?.account_type === 'owner' ||
+    coOwner ||
     profile?.rate_limit_override === 0
   ) {
     return { allowed: true, sessionsUsed: 0, limit: null, sessionsRemaining: null, reason: 'admin' };

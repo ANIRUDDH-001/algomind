@@ -25,6 +25,8 @@ const DIAGNOSTIC_QUESTIONS = [
   'Last one: what type of problems currently feels most intimidating to you?',
 ];
 
+const TOTAL_DIAGNOSTIC_QUESTIONS = DIAGNOSTIC_QUESTIONS.length;
+
 function isValidMessage(value: unknown): value is { role: 'user' | 'assistant'; content: string } {
   if (!value || typeof value !== 'object') return false;
   const msg = value as Record<string, unknown>;
@@ -169,6 +171,7 @@ export async function POST(req: NextRequest) {
         success: true,
         initializedCount: body.results.length,
         nextRecommendedConcept,
+        totalQuestions: TOTAL_DIAGNOSTIC_QUESTIONS,
       });
     }
 
@@ -216,19 +219,24 @@ export async function POST(req: NextRequest) {
         initializedCount: results.length,
         initializedWithFallback,
         nextRecommendedConcept,
+        totalQuestions: TOTAL_DIAGNOSTIC_QUESTIONS,
       });
     }
 
-    if (userTurns >= DIAGNOSTIC_QUESTIONS.length) {
+    if (userTurns >= TOTAL_DIAGNOSTIC_QUESTIONS) {
       return NextResponse.json({
         response: "Excellent. I have enough signal to calibrate your AlgoMind profile. Tap 'Finish Diagnostic' and I will generate your personalized learning path.",
         shouldComplete: true,
+        userTurns,
+        totalQuestions: TOTAL_DIAGNOSTIC_QUESTIONS,
       });
     }
 
     return NextResponse.json({
-      response: DIAGNOSTIC_QUESTIONS[userTurns] ?? DIAGNOSTIC_QUESTIONS[DIAGNOSTIC_QUESTIONS.length - 1],
-      shouldComplete: userTurns + 1 >= DIAGNOSTIC_QUESTIONS.length,
+      response: DIAGNOSTIC_QUESTIONS[userTurns] ?? DIAGNOSTIC_QUESTIONS[TOTAL_DIAGNOSTIC_QUESTIONS - 1],
+      shouldComplete: userTurns + 1 >= TOTAL_DIAGNOSTIC_QUESTIONS,
+      userTurns,
+      totalQuestions: TOTAL_DIAGNOSTIC_QUESTIONS,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -221,8 +221,8 @@ export function useInterviewApi({
                     ragContext: optionsRef.current.config?.ragContext,
                     tags: currentProblemParams.tags ?? [],
                 },
-                // problemId and exchangeCount are required by /api/learn/chat
-                // Harmless for /api/chat and /api/assess/chat (they ignore unknown fields)
+                // problemId and exchangeCount are used by learn/assess pipelines when present.
+                // Harmless for /api/chat and /api/assess/chat (they ignore unknown fields).
                 problemId: currentProblemParams.problemId ?? null,
                 exchangeCount,
                 sessionToken: optionsRef.current.sessionToken,

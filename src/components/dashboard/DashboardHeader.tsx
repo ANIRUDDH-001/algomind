@@ -46,13 +46,13 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                         const content = (
                             <>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{stat.label}</span>
-                                <span className={stat.accent ? 'text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400' : 'text-lg font-bold text-zinc-200'}>
+                                <span className={stat.accent ? 'text-lg font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-cyan-400' : 'text-lg font-bold text-zinc-200'}>
                                     {stat.value}{stat.sub && <span className="text-xs text-zinc-600 ml-0.5">{stat.sub}</span>}
                                 </span>
                             </>
                         );
 
-                        const className = "flex-shrink-0 px-4 py-3 rounded-xl flex flex-col gap-0.5 min-w-[100px]";
+                        const className = "shrink-0 px-4 py-3 rounded-xl flex flex-col gap-0.5 min-w-25";
                         const style = { background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' };
 
                         return (
@@ -66,8 +66,8 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0 md:pb-1">
                 <ExportReportButton progress={progress} />
-                {learnModeEnabled && latestSession?.problemId && (
-                    <Link href={`/learn?problemId=${latestSession.problemId}&fromSessionId=${latestSession.sessionId}`}>
+                {learnModeEnabled && (
+                    <Link href="/learn">
                         <Button variant="outline" className="border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300 font-bold h-11 px-6 w-full sm:w-auto transition-all active:scale-95">
                             <BookOpen className="w-4 h-4 mr-2" />
                             Learn Mode

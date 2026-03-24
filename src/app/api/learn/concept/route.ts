@@ -31,6 +31,13 @@ interface LearnConceptRequestBody {
   action?: 'start' | 'turn' | 'end';
 }
 
+interface ConceptProgressSnapshot {
+  conceptSlug: string;
+  confidenceBefore: number;
+  confidenceAfter: number;
+  confidenceDelta: number;
+}
+
 async function verifySessionOwnership(sessionId: string, userId: string): Promise<boolean> {
   const { data, error } = await getServiceClient()
     .from('learn_sessions')
@@ -181,7 +188,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (messages.length > LEARN_SESSION_MAX_TURNS * 2) {
-      return handleSessionEnd(activeSessionId ?? '', user.id, messages, conceptSlug);
+      if (!activeSessionId) {
+        return NextResponse.json({ error: 'sessionId is required to auto-complete this session' }, { status: 400 });
+      }
+      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug);
     }
 
     let studentContext;
@@ -266,7 +276,7 @@ export async function POST(req: NextRequest) {
         { role: 'assistant' as const, content: response, at: new Date().toISOString() },
       ];
 
-      void getServiceClient()
+      await getServiceClient()
         .from('learn_sessions')
         .update({
           transcript: newTranscript,
@@ -318,7 +328,7 @@ async function handleSessionEnd(
         transcript: messages,
         duration_seconds: durationSeconds,
         exchange_count: Math.floor(messages.length / 2),
-        tutor_assessment: {
+        kai_assessment: {
           notes: assessment.notes,
           confidence_delta: assessment.confidenceDelta,
         },
@@ -331,10 +341,13 @@ async function handleSessionEnd(
     await getKnowledgeGraphService().onLearnSessionCompleted(sessionId, assessment);
     void invalidateStudentContext(userId);
 
+    const progress = await getConceptProgressSnapshot(userId, conceptSlug, assessment.confidenceDelta);
+
     return NextResponse.json({
       sessionComplete: true,
       sessionId,
       assessment,
+      conceptProgress: progress,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -346,6 +359,32 @@ async function handleSessionEnd(
     });
     return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });
   }
+}
+
+async function getConceptProgressSnapshot(
+  userId: string,
+  conceptSlug: string,
+  fallbackDelta: number,
+): Promise<ConceptProgressSnapshot> {
+  let confidenceAfter = 0.5;
+  try {
+    const state = await getKnowledgeGraphService().getSingleConceptState(userId, conceptSlug);
+    if (typeof state?.confidence === 'number') {
+      confidenceAfter = state.confidence;
+    }
+  } catch {
+    // Non-fatal: keep default confidence.
+  }
+
+  const confidenceDelta = Number.isFinite(fallbackDelta) ? fallbackDelta : 0;
+  const confidenceBefore = Math.max(0, Math.min(1, confidenceAfter - confidenceDelta));
+
+  return {
+    conceptSlug,
+    confidenceBefore: Number(confidenceBefore.toFixed(3)),
+    confidenceAfter: Number(confidenceAfter.toFixed(3)),
+    confidenceDelta: Number(confidenceDelta.toFixed(3)),
+  };
 }
 
 async function generateSessionAssessment(

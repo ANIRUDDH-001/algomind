@@ -1,6 +1,9 @@
 # AlgoMind 🧠
 
 > **Voice-first AI technical interview coach — speaks, listens, scores, and teaches.**
+**
+
+![AlgoMind Dashboard](dashboard-screenshot.png)
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=vercel)](https://algomind-drab.vercel.app/)
 [![Tests](https://img.shields.io/badge/Tests-880%20passing-success?style=for-the-badge)](https://github.com/ANIRUDDH-001/algomind)
@@ -58,16 +61,6 @@ Proprietary scoring engine measuring:
 - **Co-Owner System** — database-backed co-owner table with RLS policies
 - **Feature Flags** — Redis + Supabase backed, per-user and global flags
 
-### 🏢 Employer Assessment Platform
-- **Campaign Creation Wizard** — 2-step builder: select 1–3 questions (or random by difficulty), set per-question time limits (5–120 min, total ≤ 360 min), configure expiry and max uses
-- **Entry Code System** — unique codes generated via RPC; candidates verify code + enter name/email to start; IP-based rate limiting (5 attempts/2 min) with timing-attack prevention
-- **Zero-Hint Employer Mode** — maximum strictness interviews with no encouragement or hints; evaluation-only AI prompts
-- **Ranked Submissions Dashboard** — sortable table with 8 individual skill scores (color-coded), hire decision, integrity flags, status filters with live counts
-- **2-Candidate Radar Comparison** — overlay two candidates' 8-dim skill profiles on a single RadarChart
-- **Full Transcript Viewer** — per-question chat-bubble replay (system messages hidden from employer)
-- **CSV Export** — one-click download of all submission data per campaign
-- **JWT-Secured Sessions** — HMAC-SHA256 signed tokens with campaign-scoped expiry; atomic slot claiming prevents race conditions
-
 ### 💎 Additional Features
 - **Visual Radar Charts** — Recharts-powered strength/weakness visualization
 - **PDF Export** — professional assessment reports via `@react-pdf/renderer`
@@ -95,7 +88,7 @@ Proprietary scoring engine measuring:
 ### Backend & Database
 | Technology | Purpose |
 |-----------|---------|
-| [Supabase](https://supabase.com/) | PostgreSQL 17.6 + Auth + RLS + Realtime (29 tables) |
+| [Supabase](https://supabase.com/) | PostgreSQL + Auth + RLS + Realtime |
 | [Upstash Redis](https://upstash.com/) | Caching (model routing, feature flags, rate limits) |
 | [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) | FSRS-5 spaced repetition engine |
 | Hybrid RAG | JSON Vector Store (MVP) + pgvector (production scale) |
@@ -146,7 +139,6 @@ src/
 │   ├── interview/          # ConversationView, CodeEditor, Timer
 │   ├── analysis/           # AnalysisClient, radar charts, FSRS section
 │   ├── dashboard/          # Stats, history, progress cards
-│   ├── enterprise/         # EmployerDashboard, CreateCampaignModal, TranscriptViewer
 │   └── ui/                 # shadcn/ui primitives
 ├── config/                 # Voice config, provider config
 ├── hooks/                  # 18 custom hooks (useVAD, useSTT, useTTS, etc.)
@@ -163,25 +155,6 @@ src/
 ```
 
 ---
-
-### Database Schema (29 Tables)
-
-All tables live in the `public` schema on Supabase PostgreSQL 17.6 with pgvector extension.
-
-| Category | Tables |
-|----------|--------|
-| **Core Interview** | `profiles`, `interview_sessions`, `assessments`, `problems` |
-| **Spaced Repetition** | `spaced_repetition` (per-problem FSRS-5 + SM-2), `skill_repetition` (per-skill FSRS) |
-| **AI Infrastructure** | `ai_models`, `model_routing`, `model_registry`, `model_performance_logs`, `system_config`, `global_feature_flags`, `system_events` |
-| **RAG & Knowledge** | `knowledge_chunks` (pgvector 768-dim embeddings), `knowledge_gaps` |
-| **User Experience** | `learner_profiles`, `user_preferences`, `leetcode_profiles`, `insight_snapshots`, `session_replays`, `user_daily_usage` |
-| **Employer / Enterprise** | `assessment_campaigns`, `candidate_submissions`, `company_profiles`, `code_attempts`, `employer_invites` |
-| **Access Control** | `admin_users`, `co_owners` |
-| **Analytics** | `score_benchmarks` |
-
-**Key extensions:** pgvector (768-dim embeddings), pgcrypto, uuid-ossp, pg_cron, pg_graphql
-
-> Full schema reference with columns, functions, and RLS policies: see [`Algomind.md` §6](Algomind.md) or [`schema details/supabase_schema.sql`](schema%20details/supabase_schema.sql)
 
 
 ---

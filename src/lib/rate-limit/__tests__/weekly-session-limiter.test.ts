@@ -21,6 +21,9 @@ import { getServiceClient } from '@/lib/supabase/service';
 describe('weekly-session-limiter', () => {
   const profilesSingle = vi.fn();
   const usageMaybeSingle = vi.fn();
+  const coOwnerMaybeSingle = vi.fn();
+  const coOwnerLimit = vi.fn();
+  const coOwnerOr = vi.fn();
   const usageEqWeek = vi.fn();
   const usageEqUser = vi.fn();
   const profileEqId = vi.fn();
@@ -35,11 +38,15 @@ describe('weekly-session-limiter', () => {
     vi.mocked(isSessionGatingEnabled).mockResolvedValue(true);
     vi.mocked(getSystemConfig).mockResolvedValue('5');
 
-    profilesSingle.mockResolvedValue({ data: { account_type: 'user', rate_limit_override: null }, error: null });
+    profilesSingle.mockResolvedValue({
+      data: { account_type: 'user', rate_limit_override: null, email: 'test@example.com' },
+      error: null,
+    });
     usageMaybeSingle.mockResolvedValue({
       data: { interview_sessions_used: 1, learn_sessions_used: 1 },
       error: null,
     });
+    coOwnerMaybeSingle.mockResolvedValue({ data: null, error: null });
     rpc.mockResolvedValue({ data: true, error: null });
 
     usageEqWeek.mockImplementation((col: string, value: unknown) => {
@@ -55,6 +62,9 @@ describe('weekly-session-limiter', () => {
       return { single: profilesSingle };
     });
 
+    coOwnerLimit.mockReturnValue({ maybeSingle: coOwnerMaybeSingle });
+    coOwnerOr.mockReturnValue({ limit: coOwnerLimit });
+
     vi.mocked(getServiceClient).mockReturnValue({
       from: vi.fn((table: string) => {
         if (table === 'profiles') {
@@ -69,6 +79,14 @@ describe('weekly-session-limiter', () => {
           return {
             select: () => ({
               eq: usageEqUser,
+            }),
+          };
+        }
+
+        if (table === 'co_owners') {
+          return {
+            select: () => ({
+              or: coOwnerOr,
             }),
           };
         }
@@ -135,12 +153,30 @@ describe('weekly-session-limiter', () => {
   });
 
   it('treats rate_limit_override=0 as unlimited bypass', async () => {
-    profilesSingle.mockResolvedValueOnce({ data: { account_type: 'user', rate_limit_override: 0 }, error: null });
+    profilesSingle.mockResolvedValueOnce({
+      data: { account_type: 'user', rate_limit_override: 0, email: 'test@example.com' },
+      error: null,
+    });
 
     const result = await checkWeeklySessionLimit('staff-user', 'interview');
 
     expect(result.allowed).toBe(true);
     expect(result.sessionsUsed).toBe(0);
+    expect(result.limit).toBeNull();
+    expect(result.reason).toBe('admin');
+    expect(usageMaybeSingle).not.toHaveBeenCalled();
+  });
+
+  it('treats co-owner as unlimited bypass', async () => {
+    profilesSingle.mockResolvedValueOnce({
+      data: { account_type: 'candidate', rate_limit_override: null, email: 'co@example.com' },
+      error: null,
+    });
+    coOwnerMaybeSingle.mockResolvedValueOnce({ data: { id: 'co-1' }, error: null });
+
+    const result = await checkWeeklySessionLimit('co-owner-user', 'learn');
+
+    expect(result.allowed).toBe(true);
     expect(result.limit).toBeNull();
     expect(result.reason).toBe('admin');
     expect(usageMaybeSingle).not.toHaveBeenCalled();

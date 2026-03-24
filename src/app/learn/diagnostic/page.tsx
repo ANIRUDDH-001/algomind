@@ -64,8 +64,8 @@ export default function DiagnosticPage() {
   const [textInput, setTextInput] = useState('');
   const [interimVoiceText, setInterimVoiceText] = useState('');
   const [canComplete, setCanComplete] = useState(false);
+  const [totalQuestions, setTotalQuestions] = useState(8);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const exchangeCount = useRef(0);
   const messageIdCounter = useRef(0);
   const messagesRef = useRef<MessageEntry[]>([]);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -113,6 +113,7 @@ export default function DiagnosticPage() {
       ...messagesRef.current,
       { id: 'user-new', role: 'user' as const, content: userInput },
     ];
+    const nextUserTurns = updatedMessages.filter((message) => message.role === 'user').length;
 
     try {
       const res = await fetch('/api/learn/diagnostic', {
@@ -124,16 +125,29 @@ export default function DiagnosticPage() {
         }),
       });
 
-      const data = await res.json();
-      exchangeCount.current++;
-      setCanComplete(Boolean(data.shouldComplete) || exchangeCount.current >= 8);
+      const data = await res.json().catch(() => ({} as {
+        response?: string;
+        shouldComplete?: boolean;
+        totalQuestions?: number;
+        error?: string;
+      }));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to continue diagnostic');
+      }
+
+      if (typeof data.totalQuestions === 'number' && data.totalQuestions > 0) {
+        setTotalQuestions(data.totalQuestions);
+      }
+
+      setCanComplete(Boolean(data.shouldComplete) || nextUserTurns >= totalQuestions);
 
       if (data.response) {
         addMsg('assistant', data.response);
-        setAudioState('speaking');
+        setAudioState('idle');
       }
-    } catch {
-      addMsg('assistant', "I ran into a small issue. Could you repeat that?");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'I ran into a small issue. Could you repeat that?';
+      addMsg('assistant', message);
       setAudioState('idle');
     } finally {
       setKaiThinking(false);
@@ -171,6 +185,11 @@ export default function DiagnosticPage() {
       setCanComplete(true);
     }
   };
+
+  const userTurns = messages.filter((message) => message.role === 'user').length;
+  const questionIndex = Math.min(totalQuestions, Math.max(1, userTurns + 1));
+  const questionsLeft = Math.max(0, totalQuestions - userTurns);
+  const effectiveCanComplete = canComplete || userTurns >= totalQuestions;
 
   const handleTextSend = async () => {
     const text = textInput.trim();
@@ -244,7 +263,7 @@ export default function DiagnosticPage() {
   };
 
   return (
-    <div className="h-screen bg-[#0A0A0F] flex flex-col overflow-hidden">
+    <main className="min-h-screen bg-[#0A0A0F] flex flex-col">
       {/* Page Header */}
       <div className="shrink-0 max-w-5xl mx-auto px-4 py-8 w-full">
         <h1 className="text-2xl font-bold text-white">Diagnostic Assessment</h1>
@@ -283,7 +302,7 @@ export default function DiagnosticPage() {
       </AnimatePresence>
 
       {/* Message Transcript Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto max-w-2xl mx-auto px-4 pb-32 md:pb-12 w-full space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto max-w-2xl mx-auto px-4 pb-40 md:pb-24 w-full space-y-4">
         {messages.map(msg => (
           <motion.div
             key={msg.id}
@@ -376,8 +395,8 @@ export default function DiagnosticPage() {
                 <span className="text-zinc-500 text-xs">Ready to respond</span>
               )}
             </div>
-            <span className="text-xs text-zinc-500">
-              ~{Math.max(0, 12 - exchangeCount.current)} questions left
+            <span data-testid="turn-counter" className="text-xs text-zinc-500" aria-live="polite">
+              Question {questionIndex} of {totalQuestions} • {questionsLeft} left
             </span>
           </div>
 
@@ -464,7 +483,7 @@ export default function DiagnosticPage() {
             <button
               data-testid="finish-diagnostic-button"
               onClick={() => void completeDiagnostic(messagesRef.current)}
-              disabled={state !== 'active' || kaiThinking || !canComplete}
+              disabled={state !== 'active' || kaiThinking || !effectiveCanComplete}
               className="shrink-0 px-4 h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:cursor-not-allowed disabled:text-zinc-600 text-white font-medium text-sm transition-all flex items-center gap-2"
             >
               {state === 'processing' ? (
@@ -486,6 +505,6 @@ export default function DiagnosticPage() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

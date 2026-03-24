@@ -171,7 +171,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
 
     if (vadMode === 'push-to-talk') {
       // Push-to-talk: first tap = start recording, second tap = send
-      if (!vadHook.isListening) {
+      if (!stt.isListening) {
         stt.resetTranscript();
         setUserTranscript('');
         stt.startListening();
@@ -185,7 +185,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
       }
     }
     // In ONNX mode the VAD auto-manages start/stop: tap has no effect
-  }, [vadMode, vadHook.isListening, stt, session.state, session.kaiTyping, handleVoiceSend]);
+  }, [vadMode, stt, session.state, session.kaiTyping, handleVoiceSend]);
 
   const isListening = vadHook.isListening || stt.isListening;
   const showUpgrade = session.error === 'LIMIT_REACHED';
