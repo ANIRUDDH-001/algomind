@@ -19,7 +19,6 @@ vi.mock('lucide-react', () => ({
     BarChart3: () => <svg data-testid="icon-skills" />,
     History: () => <svg data-testid="icon-history" />,
     Lightbulb: () => <svg data-testid="icon-insights" />,
-    Flag: () => <svg data-testid="icon-campaigns" />,
 }));
 
 describe('DashboardNav', () => {
@@ -79,18 +78,17 @@ describe('DashboardNav', () => {
 
     it('6b. All tabs have correct data-tour attributes', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
-        const tourIds = ['tab-overview', 'tab-knowledge', 'tab-skills', 'tab-history', 'tab-insights', 'tab-campaigns'];
+        const tourIds = ['tab-overview', 'tab-knowledge', 'tab-skills', 'tab-history', 'tab-insights'];
         tourIds.forEach(tourId => {
             expect(document.querySelector(`[data-tour="${tourId}"]`)).not.toBeNull();
         });
     });
 
-    it('7. Total of 6 tab buttons rendered (including Assessments)', () => {
+    it('7. Total of 5 tab buttons rendered', () => {
         render(<DashboardNav activeTab="overview" onTabChange={mockOnTabChange} />);
         const nav = document.querySelector('nav')!;
         const buttons = nav.querySelectorAll('button');
-        // 5 main + 1 Assessments tab
-        expect(buttons).toHaveLength(6);
+        expect(buttons).toHaveLength(5);
     });
 
     it('8. Passing activeTab="skills" marks Skills button as active with gradient', () => {

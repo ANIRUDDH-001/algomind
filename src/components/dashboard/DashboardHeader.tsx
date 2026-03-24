@@ -12,10 +12,9 @@ import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 interface DashboardHeaderProps {
     progress: UserProgress | null;
-    leetcodeUsername?: string | null;
 }
 
-export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderProps) {
+export function DashboardHeader({ progress }: DashboardHeaderProps) {
     const { user } = useAuth();
     const learnModeEnabled = useGlobalFeatureFlag('ENABLE_LEARN_MODE', false);
     const latestSession = progress?.sessions?.[0];
@@ -43,7 +42,6 @@ export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderP
                         { label: 'Sessions', value: totalSessions, sub: null },
                         { label: 'Avg Score', value: `${avgScore.toFixed(1)}`, sub: '/10', accent: true },
                         { label: 'Last Practice', value: lastDate, sub: null },
-                        { label: 'LeetCode', value: leetcodeUsername || '—', sub: null, action: !leetcodeUsername ? '/settings' : null },
                     ].map((stat) => {
                         const content = (
                             <>
@@ -56,14 +54,6 @@ export function DashboardHeader({ progress, leetcodeUsername }: DashboardHeaderP
 
                         const className = "flex-shrink-0 px-4 py-3 rounded-xl flex flex-col gap-0.5 min-w-[100px]";
                         const style = { background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' };
-
-                        if (stat.action) {
-                            return (
-                                <Link href={stat.action} key={stat.label} className={`${className} hover:brightness-110 transition-all`} style={style}>
-                                    {content}
-                                </Link>
-                            );
-                        }
 
                         return (
                             <div key={stat.label} className={className} style={style}>

@@ -61,7 +61,7 @@ export default async function AssessmentHistoryPage() {
                     progress={assessmentProgress as any}
                 />
 
-                <DashboardNav activeTab="campaigns" isLinkMode={true} />
+                <DashboardNav activeTab="history" isLinkMode={true} />
 
                 {(!submissions || submissions.length === 0) ? (
                     <EmptyState

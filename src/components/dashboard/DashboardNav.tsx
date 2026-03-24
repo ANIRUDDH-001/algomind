@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, Brain, BarChart3, History, Lightbulb, Flag } from 'lucide-react';
+import { LayoutGrid, Brain, BarChart3, History, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export type TabId = 'overview' | 'knowledge' | 'skills' | 'history' | 'insights' | 'campaigns';
+export type TabId = 'overview' | 'knowledge' | 'skills' | 'history' | 'insights';
 
 interface DashboardNavProps {
     activeTab: TabId;
@@ -22,22 +22,13 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
         { id: 'skills', label: 'Skills', icon: BarChart3 },
         { id: 'history', label: 'History', icon: History },
         { id: 'insights', label: 'Insights', icon: Lightbulb },
-        { id: 'campaigns', label: 'Assessments', icon: Flag },
     ] as const;
 
     const handleTabClick = (tabId: TabId) => {
         if (isLinkMode) {
-            if (tabId === 'campaigns') {
-                router.push('/dashboard/interview-history');
-            } else {
-                router.push(`/dashboard?tab=${tabId}`);
-            }
+            router.push(`/dashboard?tab=${tabId}`);
         } else {
-            if (tabId === 'campaigns') {
-                router.push('/dashboard/interview-history');
-            } else {
-                onTabChange?.(tabId);
-            }
+            onTabChange?.(tabId);
         }
     };
 

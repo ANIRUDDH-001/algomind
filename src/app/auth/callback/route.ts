@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code');
     const tokenHash = searchParams.get('token_hash');
     const type = searchParams.get('type');
-    const next = searchParams.get('next') ?? '/dashboard';
+    const next = searchParams.get('next') ?? '/';
     const error = searchParams.get('error');
 
     if (error) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 
     // Create a redirect response first so we can attach cookies to it
-    const redirectTo = next.startsWith('/') ? `${origin}${next}` : `${origin}/dashboard`;
+    const redirectTo = next.startsWith('/') ? `${origin}${next}` : `${origin}/`;
     const response = NextResponse.redirect(redirectTo);
 
     const supabase = createServerClient(

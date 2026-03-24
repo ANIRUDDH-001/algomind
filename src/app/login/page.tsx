@@ -22,7 +22,7 @@ function LoginContent() {
         if (user && !hasRedirected.current) {
             hasRedirected.current = true;
             const urlRedirect = searchParams.get('redirect');
-            const target = urlRedirect || '/dashboard';
+            const target = urlRedirect || '/';
             router.push(target);
         }
     }, [user, searchParams]); // removed router from deps
