@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
       }
 
       await getKnowledgeGraphService().initializeFromDiagnostic(user.id, body.results);
-      void invalidateStudentContext(user.id);
+      await invalidateStudentContext(user.id);
 
       const nextRecommendedConcept = (await getKnowledgeGraphService().getNextRecommendedConcept(user.id)) ?? undefined;
 
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
         initializedWithFallback = true;
       }
 
-      void invalidateStudentContext(user.id);
+      await invalidateStudentContext(user.id);
 
       let nextRecommendedConcept: string | undefined;
       try {
