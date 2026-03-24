@@ -24,7 +24,7 @@ interface DiagnosticRequestBody {
 // MCQ diagnostic question-to-concept mapping
 // Each question tests specific DSA concepts
 // Questions 7-8 (Q7: edge cases, Q8: complexity) are meta-skills applying to all concepts
-const QUESTION_TO_CONCEPTS_MAP: Record<number, { concepts: string[]; isMeta?: boolean }> = {
+const QUESTION_TO_CONCEPTS_MAP: Record<number, { concepts: readonly string[]; isMeta?: boolean }> = {
   1: { concepts: ['arrays-strings'] },                                      // Q1: Arrays & Strings
   2: { concepts: ['hashmaps-sets'] },                                       // Q2: Hashmaps & Sets
   3: { concepts: ['two-pointers', 'sliding-window'] },                      // Q3: Two-Pointers & Sliding Window
