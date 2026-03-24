@@ -45,10 +45,11 @@ interface TranscriptTurn {
 export default async function AnalysisPage({
     searchParams,
 }: {
-    searchParams: Promise<{ sessionId?: string }>;
+    searchParams: Promise<{ sessionId?: string; pending?: string }>;
 }) {
     const params = await searchParams;
     const sessionId = params.sessionId;
+    const isPending = params.pending === 'true';
 
     if (!sessionId) {
         redirect('/practice');
@@ -195,6 +196,7 @@ export default async function AnalysisPage({
                 enableComparative: !!enableComparative,
                 enableLearnMode: !!enableLearnMode,
             }}
+            assessmentStatus={isPending || !assessment ? 'pending' : 'ready'}
         />
     );
 }

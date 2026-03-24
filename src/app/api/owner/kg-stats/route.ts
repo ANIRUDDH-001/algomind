@@ -1,23 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { data: profile } = await getServiceClient()
-      .from('profiles')
-      .select('account_type')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.account_type !== 'owner' && profile?.account_type !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user, errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     const [
       sessionCountRes,

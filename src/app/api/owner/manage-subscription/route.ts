@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { data: caller } = await getServiceClient()
-      .from('profiles')
-      .select('account_type')
-      .eq('id', user.id)
-      .single();
-
-    if (!['owner', 'admin'].includes(caller?.account_type ?? '')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user, errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     const { email, subscription_status, expires_at } = await req.json();
     if (!email || !subscription_status) {

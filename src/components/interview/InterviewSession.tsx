@@ -319,9 +319,21 @@ export function InterviewSession({
 
     const startTimeRef = useRef<number>(0);
     const transcriptLoadedRef = useRef(false);
+    const vadToastShown = useRef(false);
 
     const messagesRef = useRef(messages);
     useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+    // VAD fallback to push-to-talk: show one-time toast notification
+    useEffect(() => {
+        if (isPushToTalk && !vadToastShown.current && hasStarted) {
+            vadToastShown.current = true;
+            toast('Tap the mic button to speak — auto-detection is unavailable on this browser.', {
+                duration: 6000,
+                icon: '🎙️',
+            });
+        }
+    }, [isPushToTalk, hasStarted]);
 
     useEffect(() => {
         if (!observerEnabled || !hasStarted || readOnly || isAssessment) return;
@@ -920,6 +932,12 @@ export function InterviewSession({
                                                     />
                                                 </div>
                                             </div>
+                                            {isPushToTalk && (
+                                                <div className="flex items-center gap-1 text-[10px] text-amber-400/70 font-bold uppercase tracking-widest">
+                                                    <span>●</span>
+                                                    <span>Push to talk</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

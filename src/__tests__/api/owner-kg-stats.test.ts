@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '@/app/api/owner/kg-stats/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 
 vi.mock('@/lib/supabase/server', () => ({
     createServerSupabase: vi.fn()
@@ -9,6 +10,10 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn()
+}));
+
+vi.mock('@/lib/auth/account-type', () => ({
+    isOwnerOrCoOwner: vi.fn()
 }));
 
 // Helper function to create a chainable mock
@@ -51,9 +56,7 @@ describe('GET /api/owner/kg-stats', () => {
             }
         } as any);
 
-        const mockChain = createChainableMock();
-        mockChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'user' }, error: null });
-        vi.mocked(getServiceClient).mockReturnValue(mockChain as any);
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(false);
 
         const res = await GET();
         expect(res.status).toBe(403);
@@ -68,13 +71,9 @@ describe('GET /api/owner/kg-stats', () => {
             }
         } as any);
 
+        vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
+
         const mockChain = createChainableMock();
-        
-        // Mock successful auth check
-        mockChain.single = vi.fn()
-            .mockResolvedValueOnce({ data: { account_type: 'owner' }, error: null })
-            // For other single() calls
-            .mockResolvedValue({ data: { account_type: 'owner' }, error: null });
         
         // Mock all the Promise.all queries
         vi.mocked(getServiceClient).mockImplementation(() => {
