@@ -29,6 +29,15 @@ vi.mock('lucide-react', () => ({
   BookOpen: () => <span>Book</span>,
   TrendingUp: () => <span>Up</span>,
   TrendingDown: () => <span>Down</span>,
+  Brain: () => <span>Brain</span>,
+  Code2: () => <span>Code2</span>,
+  Search: () => <span>Search</span>,
+  Database: () => <span>Database</span>,
+  Activity: () => <span>Activity</span>,
+  BarChart3: () => <span>Chart</span>,
+  Target: () => <span>Target</span>,
+  Clock: () => <span>Clock</span>,
+  LayoutDashboard: () => <span>Layout</span>,
 }));
 
 const mockConcept = {

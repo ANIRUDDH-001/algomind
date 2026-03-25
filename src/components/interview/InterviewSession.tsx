@@ -919,7 +919,7 @@ export function InterviewSession({
                                                     isProcessing={isProcessing}
                                                 />
                                                 {(voice.isListening || voice.isSpeaking) && (
-                                                    <div className="absolute inset-x-3 bottom-3 pointer-events-none rounded-xl border bg-black/40 backdrop-blur-sm p-3" style={{ borderColor: 'var(--surface-edge)' }}>
+                                                    <div className="absolute inset-x-3 bottom-3 pointer-events-none rounded-xl border bg-black/25 p-3" style={{ borderColor: 'var(--surface-edge)' }}>
                                                         <ZoomTranscript
                                                             kaiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content ?? null}
                                                             userTranscript={voice.transcript || voice.interimTranscript}
@@ -927,7 +927,7 @@ export function InterviewSession({
                                                             isUserSpeaking={voice.isListening}
                                                             isThinking={isProcessing}
                                                             conceptSlug="interview"
-                                                            conceptIcon="🎯"
+                                                            conceptIcon=""
                                                             exchangeCount={messages.filter(m => m.role === 'user').length}
                                                             className="gap-2"
                                                         />
@@ -1033,25 +1033,34 @@ export function InterviewSession({
                             <ResizableHandle withHandle />
                             <ResizablePanel defaultSize={38} minSize={26}>
                                 <div className="h-full p-3" style={{ background: 'var(--surface-1)' }}>
-                                    <div className="h-full rounded-xl border p-3 flex flex-col gap-3" style={{ borderColor: 'var(--surface-edge)' }}>
-                                        <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Console & Control</div>
-                                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                                            <TestCasePanel
-                                                testCases={derivedTestCases}
-                                                executionResult={executionResult}
-                                                isRunning={isCodeRunning}
-                                            />
-                                        </div>
-                                        <div className="pt-1 border-t flex gap-2" style={{ borderColor: 'var(--surface-edge)' }}>
-                                            <Button
-                                                onClick={() => shareCodeWithAI(userCode)}
-                                                disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked || !hasStarted}
-                                                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-lg"
-                                            >
-                                                <Send className="w-4 h-4 mr-2" />
-                                                Submit to Kai
-                                            </Button>
-                                        </div>
+                                    <div className="h-full rounded-xl border overflow-hidden" style={{ borderColor: 'var(--surface-edge)' }}>
+                                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
+                                            <ResizablePanel defaultSize={74} minSize={40}>
+                                                <div className="h-full p-3 flex flex-col gap-3">
+                                                    <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Console & Control</div>
+                                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                                                        <TestCasePanel
+                                                            testCases={derivedTestCases}
+                                                            executionResult={executionResult}
+                                                            isRunning={isCodeRunning}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </ResizablePanel>
+                                            <ResizableHandle withHandle />
+                                            <ResizablePanel defaultSize={26} minSize={16}>
+                                                <div className="h-full p-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--surface-edge)' }}>
+                                                    <Button
+                                                        onClick={() => shareCodeWithAI(userCode)}
+                                                        disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked || !hasStarted}
+                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-lg"
+                                                    >
+                                                        <Send className="w-4 h-4 mr-2" />
+                                                        Submit to Kai
+                                                    </Button>
+                                                </div>
+                                            </ResizablePanel>
+                                        </ResizablePanelGroup>
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -1257,7 +1266,7 @@ export function InterviewSession({
                                                     isUserSpeaking={voice.isListening}
                                                     isThinking={isProcessing}
                                                     conceptSlug="interview"
-                                                    conceptIcon="🎯"
+                                                    conceptIcon=""
                                                     exchangeCount={messages.filter(m => m.role === 'user').length}
                                                 />
                                             </div>

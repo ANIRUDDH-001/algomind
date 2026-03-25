@@ -40,6 +40,15 @@ vi.mock('lucide-react', () => ({
   BookOpen: () => <svg data-testid="icon-book" />,
   TrendingUp: () => <svg data-testid="icon-trending-up" />,
   TrendingDown: () => <svg data-testid="icon-trending-down" />,
+  Brain: () => <svg data-testid="icon-brain" />,
+  Code2: () => <svg data-testid="icon-code2" />,
+  Search: () => <svg data-testid="icon-search" />,
+  Database: () => <svg data-testid="icon-database" />,
+  Activity: () => <svg data-testid="icon-activity" />,
+  BarChart3: () => <svg data-testid="icon-chart" />,
+  Target: () => <svg data-testid="icon-target" />,
+  Clock: () => <svg data-testid="icon-clock" />,
+  LayoutDashboard: () => <svg data-testid="icon-layout" />,
 }));
 
 const mockConcepts: KGConceptSummary[] = [
@@ -192,7 +201,7 @@ describe('ConceptTile', () => {
   it('renders concept name and icon', () => {
     render(<ConceptTile concept={baseConcept} index={0} />);
     expect(screen.getByText('Arrays')).toBeDefined();
-    expect(screen.getByText('[]')).toBeDefined();
+    expect(screen.getByRole('button').querySelector('svg')).toBeTruthy();
   });
 
   it('shows confidence percentage when evidence exists', () => {

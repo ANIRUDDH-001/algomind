@@ -32,7 +32,7 @@ describe('ConceptTile', () => {
   it('does render icon, name, and confidence percentage', () => {
     render(<ConceptTile concept={baseConcept} index={0} />);
 
-    expect(screen.getByText('[]')).toBeDefined();
+    expect(screen.getByRole('button').querySelector('svg')).toBeTruthy();
     expect(screen.getByText('Arrays')).toBeDefined();
     expect(screen.getByText('75%')).toBeDefined();
   });

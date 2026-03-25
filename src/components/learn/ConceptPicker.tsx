@@ -9,14 +9,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Target, Zap } from 'lucide-react';
+import { Sparkles, ArrowRight, Target, Zap, Brain, BookOpen, Code2, Search, Database, Activity, BarChart3, Clock, LayoutDashboard } from 'lucide-react';
 import type { KGConceptSummary } from '@/lib/knowledge-graph';
+import { getConceptIconKey } from '@/lib/knowledge-graph/concept-icon-keys';
 
 interface StudentContextProps {
   hasCompletedDiagnostic: boolean;
   nextRecommendedConcept: string | null;
   weakestConcepts: { slug: string; displayName: string; confidence: number }[];
-  subscription: { sessionsRemaining: number | null; weeklyLimit: number | null };
+  subscription: { sessionsUsedThisWeek: number; sessionsRemaining: number | null; weeklyLimit: number | null };
 }
 
 interface ConceptPickerProps {
@@ -44,6 +45,29 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
   const router = useRouter();
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const { hasCompletedDiagnostic, nextRecommendedConcept, weakestConcepts, subscription } = studentContext;
+
+  const ICON_BY_KEY = {
+    code: Code2,
+    search: Search,
+    brain: Brain,
+    database: Database,
+    activity: Activity,
+    chart: BarChart3,
+    book: BookOpen,
+    target: Target,
+    clock: Clock,
+    layout: LayoutDashboard,
+  } as const;
+
+  const showLimitReachedModal = () => {
+    window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
+      detail: {
+        source: 'learn-concept-picker',
+        sessionsUsed: subscription.sessionsUsedThisWeek,
+        limit: subscription.weeklyLimit ?? undefined,
+      },
+    }));
+  };
 
   // Show diagnostic prompt for new users
   if (!hasCompletedDiagnostic) {
@@ -128,16 +152,10 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
         <div data-testid="limit-warning" className="p-4 rounded-xl bg-red-950/30 border border-red-500/20 flex items-center gap-3">
           <Zap size={16} className="text-red-400 shrink-0" />
           <p className="text-sm text-zinc-300">
-            You've used all {subscription.weeklyLimit} sessions this week.{' '}
+            Weekly limit reached: {subscription.sessionsUsedThisWeek}/{subscription.weeklyLimit} sessions used.{" "}
             <button
               data-testid="upgrade-trigger"
-              onClick={() => window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
-                detail: {
-                  source: 'learn-concept-picker',
-                  sessionsUsed: subscription.weeklyLimit ?? undefined,
-                  limit: subscription.weeklyLimit ?? undefined,
-                },
-              }))}
+              onClick={showLimitReachedModal}
               className="text-indigo-400 hover:text-indigo-300"
             >
               Upgrade for unlimited access
@@ -159,20 +177,25 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.025 }}
-              whileHover={{ scale: isLimitReached ? 1 : 1.01 }}
-              whileTap={{ scale: isLimitReached ? 1 : 0.99 }}
-              onClick={() => !isLimitReached && router.push(`/learn/${concept.slug}`)}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => {
+                if (isLimitReached) {
+                  showLimitReachedModal();
+                  return;
+                }
+                router.push(`/learn/${concept.slug}`);
+              }}
               onMouseEnter={() => setHoveredSlug(concept.slug)}
               onMouseLeave={() => setHoveredSlug(null)}
-              disabled={isLimitReached}
               className={`
                 relative text-left p-4 rounded-xl border transition-all
-                ${isLimitReached ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                cursor-pointer
                 ${isRecommended
                   ? 'bg-indigo-950/30 border-indigo-500/40 hover:border-indigo-400/60'
                   : 'bg-[#111118] border-[#1E1E2E] hover:border-zinc-600/50'
                 }
-                ${hoveredSlug === concept.slug && !isLimitReached ? 'shadow-lg shadow-black/20' : ''}
+                ${hoveredSlug === concept.slug ? 'shadow-lg shadow-black/20' : ''}
               `}
             >
               {isRecommended && (
@@ -182,7 +205,10 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
               )}
 
               <div className="flex items-start gap-3 mb-3">
-                <span className="text-xl">{concept.icon}</span>
+                {(() => {
+                  const Icon = ICON_BY_KEY[getConceptIconKey(concept.slug)];
+                  return <Icon size={18} className="text-zinc-300 mt-0.5" aria-hidden="true" />;
+                })()}
                 <div>
                   <h3 className="text-sm font-semibold text-white leading-tight">{concept.displayName}</h3>
                   <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${LEVEL_BADGE[concept.level]}`}>

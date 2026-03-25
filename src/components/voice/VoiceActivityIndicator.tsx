@@ -7,6 +7,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Mic } from 'lucide-react';
 
 type VoiceState = 'idle' | 'kai-speaking' | 'user-speaking' | 'thinking';
 
@@ -30,7 +31,7 @@ const RING_COLORS = {
   thinking: 'border-amber-500/20',
 };
 
-export function VoiceActivityIndicator({ state, conceptIcon = '🤖', className = '' }: VoiceActivityIndicatorProps) {
+export function VoiceActivityIndicator({ state, conceptIcon, className = '' }: VoiceActivityIndicatorProps) {
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       {/* Pulsing rings for active states */}
@@ -68,7 +69,9 @@ export function VoiceActivityIndicator({ state, conceptIcon = '🤖', className 
         {state === 'thinking' ? (
           <div className="w-5 h-5 border-2 border-amber-500/60 border-t-amber-400 rounded-full animate-spin" />
         ) : (
-          <span className="text-2xl">{conceptIcon}</span>
+          conceptIcon
+            ? <span className="text-2xl">{conceptIcon}</span>
+            : <Mic className="w-5 h-5 text-zinc-300" />
         )}
       </motion.div>
 

@@ -23,6 +23,15 @@ vi.mock('lucide-react', () => ({
   ArrowRight: () => <span>Arrow</span>,
   Target: () => <span>Target</span>,
   Zap: () => <span>Zap</span>,
+  Brain: () => <span>Brain</span>,
+  BookOpen: () => <span>BookOpen</span>,
+  Code2: () => <span>Code2</span>,
+  Search: () => <span>Search</span>,
+  Database: () => <span>Database</span>,
+  Activity: () => <span>Activity</span>,
+  BarChart3: () => <span>BarChart3</span>,
+  Clock: () => <span>Clock</span>,
+  LayoutDashboard: () => <span>LayoutDashboard</span>,
 }));
 
 const mockConcepts = Array.from({ length: 20 }, (_, i) => ({
@@ -50,7 +59,7 @@ describe('ConceptPicker', () => {
           hasCompletedDiagnostic: false,
           nextRecommendedConcept: null,
           weakestConcepts: [],
-          subscription: { sessionsRemaining: 5, weeklyLimit: 5 },
+          subscription: { sessionsUsedThisWeek: 0, sessionsRemaining: 5, weeklyLimit: 5 },
         }}
       />
     );
@@ -67,7 +76,7 @@ describe('ConceptPicker', () => {
           hasCompletedDiagnostic: false,
           nextRecommendedConcept: null,
           weakestConcepts: [],
-          subscription: { sessionsRemaining: 5, weeklyLimit: 5 },
+          subscription: { sessionsUsedThisWeek: 0, sessionsRemaining: 5, weeklyLimit: 5 },
         }}
       />
     );
@@ -84,7 +93,7 @@ describe('ConceptPicker', () => {
           hasCompletedDiagnostic: true,
           nextRecommendedConcept: 'concept-2',
           weakestConcepts: [{ slug: 'concept-2', displayName: 'Concept 2', confidence: 0.2 }],
-          subscription: { sessionsRemaining: 3, weeklyLimit: 5 },
+          subscription: { sessionsUsedThisWeek: 2, sessionsRemaining: 3, weeklyLimit: 5 },
         }}
       />
     );
@@ -94,7 +103,9 @@ describe('ConceptPicker', () => {
     expect(pushMock).toHaveBeenCalledWith('/learn/concept-0');
   });
 
-  it('does disable concept cards when weekly limit reached', () => {
+  it('does show limit warning and keeps concept cards clickable when weekly limit reached', () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
     render(
       <ConceptPicker
         concepts={mockConcepts}
@@ -102,13 +113,15 @@ describe('ConceptPicker', () => {
           hasCompletedDiagnostic: true,
           nextRecommendedConcept: null,
           weakestConcepts: [],
-          subscription: { sessionsRemaining: 0, weeklyLimit: 5 },
+          subscription: { sessionsUsedThisWeek: 5, sessionsRemaining: 0, weeklyLimit: 5 },
         }}
       />
     );
 
-    expect(screen.getByText(/used all 5 sessions this week/i)).toBeDefined();
-    expect(screen.getAllByRole('button', { name: /concept 0/i })[0]?.hasAttribute('disabled')).toBe(true);
+    expect(screen.getByText(/weekly limit reached: 5\/5 sessions used/i)).toBeDefined();
+    fireEvent.click(screen.getAllByRole('button', { name: /concept 0/i })[0]);
+    expect(pushMock).not.toHaveBeenCalledWith('/learn/concept-0');
+    expect(dispatchSpy).toHaveBeenCalled();
   });
 
   it('does dispatch upgrade event from warning banner action', async () => {
@@ -121,7 +134,7 @@ describe('ConceptPicker', () => {
           hasCompletedDiagnostic: true,
           nextRecommendedConcept: null,
           weakestConcepts: [],
-          subscription: { sessionsRemaining: 0, weeklyLimit: 5 },
+          subscription: { sessionsUsedThisWeek: 5, sessionsRemaining: 0, weeklyLimit: 5 },
         }}
       />
     );

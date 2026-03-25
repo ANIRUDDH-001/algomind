@@ -7,8 +7,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Brain, BookOpen, Code2, Search, Database, Activity, BarChart3, Target, Clock, LayoutDashboard } from 'lucide-react';
 import type { KGConceptSummary } from '@/lib/knowledge-graph';
 import type { ConceptConfidenceLevel } from '@/types/knowledge-graph';
+import { getConceptIconKey } from '@/lib/knowledge-graph/concept-icon-keys';
 
 const CONFIDENCE_COLORS: Record<ConceptConfidenceLevel, { bg: string; border: string; text: string; bar: string }> = {
   unknown: { bg: 'bg-zinc-900/60', border: 'border-zinc-700/30', text: 'text-zinc-500', bar: 'bg-zinc-700' },
@@ -27,6 +29,19 @@ interface ConceptTileProps {
 }
 
 export function ConceptTile({ concept, index, isSelected, isActiveLearning, onClick }: ConceptTileProps) {
+  const ICON_BY_KEY = {
+    code: Code2,
+    search: Search,
+    brain: Brain,
+    database: Database,
+    activity: Activity,
+    chart: BarChart3,
+    book: BookOpen,
+    target: Target,
+    clock: Clock,
+    layout: LayoutDashboard,
+  } as const;
+
   const colors = CONFIDENCE_COLORS[concept.level] ?? CONFIDENCE_COLORS.unknown;
   const pct = Math.round(concept.confidence * 100);
   const descId = `tile-desc-${concept.slug}`;
@@ -74,7 +89,10 @@ export function ConceptTile({ concept, index, isSelected, isActiveLearning, onCl
 
       <div className="relative">
         <div className="flex items-start gap-2 mb-2">
-          <span className="text-lg leading-none flex-shrink-0">{concept.icon}</span>
+          {(() => {
+            const Icon = ICON_BY_KEY[getConceptIconKey(concept.slug)];
+            return <Icon size={16} className="text-zinc-300 mt-0.5 flex-shrink-0" aria-hidden="true" />;
+          })()}
           <span className={`text-xs font-semibold leading-tight line-clamp-2 ${colors.text}`}>
             {concept.displayName}
           </span>

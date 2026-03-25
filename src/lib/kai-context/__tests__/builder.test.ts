@@ -7,6 +7,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { getWeeklySessionLimit } from '@/lib/config/system-config';
+import { checkWeeklySessionLimit } from '@/lib/rate-limit/weekly-session-limiter';
 
 vi.mock('@/lib/upstash/client', () => ({
   getRedis: vi.fn(),
@@ -26,6 +27,10 @@ vi.mock('@/lib/supabase/user-preferences', () => ({
 
 vi.mock('@/lib/config/system-config', () => ({
   getWeeklySessionLimit: vi.fn(),
+}));
+
+vi.mock('@/lib/rate-limit/weekly-session-limiter', () => ({
+  checkWeeklySessionLimit: vi.fn(),
 }));
 
 function buildMockStudentContext(
@@ -93,6 +98,13 @@ describe('StudentContext Builder', () => {
 
     vi.mocked(getUserSubscriptionStatus).mockResolvedValue({ status: 'free', expiresAt: null });
     vi.mocked(getWeeklySessionLimit).mockResolvedValue(5);
+    vi.mocked(checkWeeklySessionLimit).mockResolvedValue({
+      allowed: true,
+      sessionsUsed: 3,
+      limit: 5,
+      sessionsRemaining: 2,
+      reason: 'within_limit',
+    });
 
     mockSingle.mockReset();
     mockMaybeSingle.mockReset();
@@ -232,6 +244,13 @@ describe('StudentContext Builder', () => {
 
     it('sets sessionsRemaining to null for premium user', async () => {
       vi.mocked(getUserSubscriptionStatus).mockResolvedValueOnce({ status: 'premium', expiresAt: null });
+      vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+        allowed: true,
+        sessionsUsed: 0,
+        limit: null,
+        sessionsRemaining: null,
+        reason: 'premium',
+      });
 
       const result = await buildStudentContext('user-1');
 
@@ -277,6 +296,7 @@ describe('StudentContext Builder', () => {
 
     it('uses safe defaults when weekly usage and subscription fetch fail', async () => {
       vi.mocked(getUserSubscriptionStatus).mockRejectedValueOnce(new Error('sub down'));
+      vi.mocked(checkWeeklySessionLimit).mockRejectedValueOnce(new Error('limit down'));
       mockFrom.mockImplementation((table: string) => {
         if (table === 'user_weekly_usage') {
           return {

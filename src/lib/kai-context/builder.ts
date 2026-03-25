@@ -10,6 +10,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { getWeeklySessionLimit } from '@/lib/config/system-config';
+import { checkWeeklySessionLimit } from '@/lib/rate-limit/weekly-session-limiter';
 import type {
   StudentContext,
   ConceptSnapshot,
@@ -118,6 +119,7 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
     subscriptionData,
     weeklyLimit,
     weeklyUsageResult,
+    weeklyLearnLimitResult,
     nextRecommendedConceptResult,
   ] = await Promise.allSettled([
     getKnowledgeGraphService().getConceptSummaries(userId),
@@ -125,7 +127,8 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
     fetchPerformanceData(userId),
     getUserSubscriptionStatus(userId),
     getWeeklySessionLimit(),
-    fetchWeeklyUsage(userId),
+    fetchWeeklyLearnUsage(userId),
+    checkWeeklySessionLimit(userId, 'learn'),
     getKnowledgeGraphService().getNextRecommendedConcept(userId),
   ]);
 
@@ -137,6 +140,7 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
     : { status: 'free' as const, expiresAt: null };
   const limit = weeklyLimit.status === 'fulfilled' ? weeklyLimit.value : 5;
   const weeklyUsage = weeklyUsageResult.status === 'fulfilled' ? weeklyUsageResult.value : 0;
+  const weeklyLearnLimit = weeklyLearnLimitResult.status === 'fulfilled' ? weeklyLearnLimitResult.value : null;
   const nextRecommendedConcept = nextRecommendedConceptResult.status === 'fulfilled'
     ? nextRecommendedConceptResult.value
     : null;
@@ -153,7 +157,13 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
   const weakest = [...withEvidence].sort((a, b) => a.confidence - b.confidence).slice(0, 5);
   const strongest = [...withEvidence].sort((a, b) => b.confidence - a.confidence).slice(0, 3);
 
-  const sessionsRemaining = sub.status === 'free' ? Math.max(0, limit - weeklyUsage) : null;
+  const sessionsUsedThisWeek = weeklyLearnLimit ? weeklyLearnLimit.sessionsUsed : weeklyUsage;
+  const effectiveWeeklyLimit = weeklyLearnLimit
+    ? weeklyLearnLimit.limit
+    : (sub.status === 'free' ? limit : null);
+  const sessionsRemaining = weeklyLearnLimit
+    ? weeklyLearnLimit.sessionsRemaining
+    : (sub.status === 'free' ? Math.max(0, limit - weeklyUsage) : null);
 
   return {
     userId,
@@ -168,8 +178,8 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
     kaiMemoryStructured: profile?.kaiMemoryStructured ?? null,
     subscription: {
       status: sub.status,
-      sessionsUsedThisWeek: weeklyUsage,
-      weeklyLimit: sub.status === 'free' ? limit : null,
+      sessionsUsedThisWeek,
+      weeklyLimit: effectiveWeeklyLimit,
       sessionsRemaining,
     },
     accountType: profile?.accountType ?? 'candidate',
@@ -233,11 +243,11 @@ async function fetchPerformanceData(userId: string): Promise<PerformanceSummary>
   };
 }
 
-async function fetchWeeklyUsage(userId: string): Promise<number> {
+async function fetchWeeklyLearnUsage(userId: string): Promise<number> {
   const weekStart = getWeekStart();
   const { data } = await getServiceClient()
     .from('user_weekly_usage')
-    .select('interview_sessions_used, learn_sessions_used')
+    .select('learn_sessions_used')
     .eq('user_id', userId)
     .eq('week_start', weekStart)
     .maybeSingle();
@@ -245,7 +255,7 @@ async function fetchWeeklyUsage(userId: string): Promise<number> {
   if (!data) {
     return 0;
   }
-  return (data.interview_sessions_used ?? 0) + (data.learn_sessions_used ?? 0);
+  return data.learn_sessions_used ?? 0;
 }
 
 function getWeekStart(): string {
