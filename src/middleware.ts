@@ -1,10 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const DIAGNOSTIC_COMPLETE_COOKIE = 'diagnostic_complete';
+const DIAGNOSTIC_COMPLETE_COOKIE = 'diag_done';
 
 export default async function middleware(request: NextRequest) {
     const correlationId = request.headers.get('x-correlation-id') ?? crypto.randomUUID();
+    let shouldSetDiagnosticCookie = false;
     const withCorrelationId = (response: NextResponse) => {
         response.headers.set('x-correlation-id', correlationId);
         return response;
@@ -135,7 +136,7 @@ export default async function middleware(request: NextRequest) {
     if (user && isLearn && !pathname.startsWith('/learn/diagnostic')) {
         const diagnosticCookie = request.cookies.get(DIAGNOSTIC_COMPLETE_COOKIE);
 
-        if (diagnosticCookie?.value !== 'true') {
+        if (!diagnosticCookie?.value) {
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('has_completed_diagnostic')
@@ -168,12 +169,7 @@ export default async function middleware(request: NextRequest) {
                 return withCorrelationId(NextResponse.redirect(url));
             }
 
-            supabaseResponse.cookies.set(DIAGNOSTIC_COMPLETE_COOKIE, 'true', {
-                maxAge: 300,
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/learn',
-            });
+            shouldSetDiagnosticCookie = true;
         }
     }
 
@@ -183,6 +179,15 @@ export default async function middleware(request: NextRequest) {
 
     if (!user) {
         clearDiagnosticCookie(supabaseResponse);
+    }
+
+    if (shouldSetDiagnosticCookie) {
+        supabaseResponse.cookies.set(DIAGNOSTIC_COMPLETE_COOKIE, '1', {
+            maxAge: 600,
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/learn',
+        });
     }
 
     return withCorrelationId(supabaseResponse);
