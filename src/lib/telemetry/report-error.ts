@@ -1,42 +1,36 @@
-export type ErrorSeverity = 'error' | 'warning' | 'fatal';
-
-export interface ReportErrorContext {
-    componentStack?: string;
-    severity?: ErrorSeverity;
-    extra?: Record<string, string>;
-}
-
 /**
- * Report an error to the server.
- * Fire-and-forget and never throws.
+ * Report a client-side error to the server. Non-blocking, never throws.
  */
-export function reportError(error: Error, context?: ReportErrorContext): void {
+export function reportError(
+    error: Error,
+    context?: {
+        componentStack?: string;
+        severity?: 'error' | 'warning' | 'fatal';
+        extra?: Record<string, string>;
+    }
+) {
     try {
-        const body = {
-            error_message: String(error.message || 'Unknown error').slice(0, 2000),
-            error_stack: String(error.stack || '').slice(0, 5000),
-            component_stack: String(context?.componentStack || '').slice(0, 2000),
+        const body = JSON.stringify({
+            error_message: error.message,
+            error_stack: error.stack,
+            component_stack: context?.componentStack,
             url: typeof window !== 'undefined' ? window.location.href : undefined,
-            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+            user_agent:
+                typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
             severity: context?.severity || 'error',
-            ...(context?.extra || {}),
-        };
-
-        if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-            const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
-            navigator.sendBeacon('/api/log-error', blob);
-            return;
-        }
-
-        void fetch('/api/log-error', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-            keepalive: true,
-        }).catch(() => {
-            // Swallow reporter failures to avoid cascading errors.
         });
+
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+            navigator.sendBeacon('/api/log-error', body);
+        } else {
+            fetch('/api/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+                keepalive: true,
+            }).catch(() => {});
+        }
     } catch {
-        // Never throw from telemetry path.
+        // Never throw from error reporter
     }
 }
