@@ -1,10 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const DIAGNOSTIC_COMPLETE_COOKIE = 'diagnostic_complete';
+
 export default async function middleware(request: NextRequest) {
     const correlationId = request.headers.get('x-correlation-id') ?? crypto.randomUUID();
     const withCorrelationId = (response: NextResponse) => {
         response.headers.set('x-correlation-id', correlationId);
+        return response;
+    };
+    const clearDiagnosticCookie = (response: NextResponse) => {
+        response.cookies.delete(DIAGNOSTIC_COMPLETE_COOKIE);
         return response;
     };
 
@@ -114,55 +120,70 @@ export default async function middleware(request: NextRequest) {
             // Optionally append a redirect so they come back to the assessment link after login
             url.searchParams.set('redirect', pathname);
             url.searchParams.set('reason', 'auth_required');
-            return withCorrelationId(NextResponse.redirect(url));
+            return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
         }
 
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             url.searchParams.set('reason', 'auth_required_interview');
-            return withCorrelationId(NextResponse.redirect(url));
+            return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
         }
     }
 
     // Check if user needs to complete diagnostic before accessing learn features
-    if (user && isLearn && pathname === '/learn') {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('has_completed_diagnostic')
-            .eq('id', user.id)
-            .single();
+    if (user && isLearn && !pathname.startsWith('/learn/diagnostic')) {
+        const diagnosticCookie = request.cookies.get(DIAGNOSTIC_COMPLETE_COOKIE);
 
-        let hasCompletedDiagnostic = Boolean(profile?.has_completed_diagnostic);
+        if (diagnosticCookie?.value !== 'true') {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('has_completed_diagnostic')
+                .eq('id', user.id)
+                .single();
 
-        if (!hasCompletedDiagnostic) {
-            const { data: conceptStates, error: conceptStateError } = await supabase
-                .from('concept_states')
-                .select('id')
-                .eq('user_id', user.id)
-                .gt('evidence_count', 0)
-                .limit(1);
+            let hasCompletedDiagnostic = Boolean(profile?.has_completed_diagnostic);
 
-            hasCompletedDiagnostic = !conceptStateError && (conceptStates?.length ?? 0) > 0;
+            if (!hasCompletedDiagnostic) {
+                const { data: conceptStates, error: conceptStateError } = await supabase
+                    .from('concept_states')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .gt('evidence_count', 0)
+                    .limit(1);
 
-            if (hasCompletedDiagnostic) {
-                await supabase
-                    .from('profiles')
-                    .update({ has_completed_diagnostic: true })
-                    .eq('id', user.id);
+                hasCompletedDiagnostic = !conceptStateError && (conceptStates?.length ?? 0) > 0;
+
+                if (hasCompletedDiagnostic) {
+                    await supabase
+                        .from('profiles')
+                        .update({ has_completed_diagnostic: true })
+                        .eq('id', user.id);
+                }
             }
-        }
 
-        if (!hasCompletedDiagnostic) {
-            const url = request.nextUrl.clone();
-            url.pathname = '/learn/diagnostic';
-            return withCorrelationId(NextResponse.redirect(url));
+            if (!hasCompletedDiagnostic) {
+                const url = request.nextUrl.clone();
+                url.pathname = '/learn/diagnostic';
+                return withCorrelationId(NextResponse.redirect(url));
+            }
+
+            supabaseResponse.cookies.set(DIAGNOSTIC_COMPLETE_COOKIE, 'true', {
+                maxAge: 300,
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/learn',
+            });
         }
     }
 
     // Owner/co-owner authorization is handled at the page/route level, not middleware.
     // This reduces redundant DB calls. The owner page performs its own auth check
     // before rendering. Non-owners who navigate to /owner/ will hit the page guard.
+
+    if (!user) {
+        clearDiagnosticCookie(supabaseResponse);
+    }
 
     return withCorrelationId(supabaseResponse);
 }
