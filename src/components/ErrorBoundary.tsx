@@ -2,6 +2,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
+import { reportError } from '@/lib/telemetry/report-error';
 
 interface Props {
     children: ReactNode;
@@ -26,6 +27,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error('ErrorBoundary caught:', error, errorInfo);
+        reportError(error, {
+            componentStack: errorInfo.componentStack || undefined,
+            severity: 'fatal',
+        });
         this.setState({ errorInfo });
     }
 
