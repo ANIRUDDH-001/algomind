@@ -133,65 +133,46 @@ export async function POST(req: NextRequest) {
 
         if (redis && submissionId) {
             const messageCountKey = `assess:${submissionId}:msgCount`;
-            let messageCount: string | null = null;
-            let dbMessageCount = 0;
+            const jwtExp = payload.exp as number | undefined;
+            const expirySeconds = jwtExp
+                ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
+                : 90 * 60;
 
-            try {
-                messageCount = await redis.get<string | null>(messageCountKey);
-            } catch (err) {
-                console.warn('[Assess Chat] Redis get failed:', err);
-                messageCount = null;
-            }
-
-            if (messageCount === null || messageCount === '0') {
-                // Redis was cleared or never set — re-sync from DB
-                const { data: submission } = await getServiceClient()
+            const getDbMessageCount = async (): Promise<number> => {
+                const { data: submissionWithTranscript } = await getServiceClient()
                     .from('candidate_submissions')
                     .select('current_transcript')
                     .eq('id', submissionId)
                     .single();
 
-                dbMessageCount = submission?.current_transcript
-                    ? (Array.isArray(submission.current_transcript) ? submission.current_transcript.length : 0)
+                return submissionWithTranscript?.current_transcript
+                    ? (Array.isArray(submissionWithTranscript.current_transcript)
+                        ? submissionWithTranscript.current_transcript.length
+                        : 0)
                     : 0;
-
-                if (dbMessageCount > 0) {
-                    // Re-seed Redis counter from DB
-                    // Ensure TTL stays in sync with JWT
-                    const jwtExp = payload.exp as number | undefined;
-                    const expirySeconds = jwtExp
-                        ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
-                        : 90 * 60;
-
-                    try {
-                        await redis.set(messageCountKey, String(dbMessageCount), { ex: expirySeconds });
-                        console.log(`[Assess Chat] Re-synced message count from DB: ${dbMessageCount}`);
-                    } catch (err) {
-                        console.warn('[Assess Chat] Redis set failed:', err);
-                    }
-                    messageCount = String(dbMessageCount);
-                }
-            } else {
-                dbMessageCount = parseInt(messageCount, 10);
-            }
+            };
 
             try {
+                // Atomic increment. For missing keys Redis initializes to 1.
                 currentCount = await redis.incr(messageCountKey);
 
                 if (currentCount === 1) {
-                    // First message — synchronize TTL with remaining JWT lifetime so the
-                    // counter expires naturally when the session does.
-                    const jwtExp = payload.exp as number | undefined;
-                    const expirySeconds = jwtExp
-                        ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
-                        : 90 * 60; // fallback: 90 min
+                    // Key was created by this request; seed from DB baseline to avoid
+                    // undercounting after cache clears.
+                    const dbMessageCount = await getDbMessageCount();
+
+                    if (dbMessageCount > 0) {
+                        // Counter is currently 1 for this request; jump by DB count so
+                        // final value becomes dbMessageCount + 1.
+                        currentCount = await redis.incrby(messageCountKey, dbMessageCount);
+                    }
+
                     await redis.expire(messageCountKey, expirySeconds);
                 }
             } catch (redisErr) {
-                console.warn('[Assess Chat] Redis incr failed, using DB count as limit:', redisErr);
+                console.warn('[Assess Chat] Redis counter failed, falling back to DB count:', redisErr);
+                const dbMessageCount = await getDbMessageCount();
                 currentCount = dbMessageCount + 1;
-                // Persist the increment to DB so at least it's tracked
-                // Non-fatal: persist increment to DB so at least it's tracked
             }
 
             if (currentCount > sessionMessageLimit) {
