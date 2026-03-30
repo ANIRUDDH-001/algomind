@@ -277,6 +277,8 @@ export async function POST(req: NextRequest) {
             estimatedTokens: 500,
             enableLLMPass: false, // BUG-AI-004 regex only — saves one Groq RPM per request
             correlationId,
+            userId: user?.id,
+            sessionId: effectiveSessionId ?? undefined,
         });
 
         if (!result.success) {

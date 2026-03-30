@@ -13,6 +13,7 @@ import { getActiveModels } from './model-registry';
 import { getModelsForUseCase, isCrossTierFallbackEnabled, resolveToModelConfig } from './model-routing';
 import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
+import { checkTokenBudget, recordTokenUsage } from './cost-guard';
 
 // Types
 export interface Message {
@@ -34,6 +35,8 @@ export interface CompletionOptions {
     /** OpenAI-compatible response_format for structured output (e.g. { type: 'json_object' }) */
     responseFormat?: { type: string; [key: string]: unknown };
     correlationId?: string;
+    userId?: string;
+    sessionId?: string;
 }
 
 export interface CompletionResult {
@@ -43,6 +46,7 @@ export interface CompletionResult {
     response?: string;
     error?: string;
     attemptedModels: string[];
+    budgetExceeded?: boolean;
 }
 
 // Unified AI Client
@@ -74,6 +78,26 @@ export class UnifiedAIClient {
     ): Promise<CompletionResult> {
         const attemptedModels: string[] = [];
         const correlationId = options.correlationId ?? crypto.randomUUID();
+
+        if (options.userId && options.sessionId) {
+            const budget = await checkTokenBudget(
+                options.userId,
+                options.sessionId,
+                options.estimatedTokens || 500
+            );
+
+            if (!budget.allowed) {
+                return {
+                    success: true,
+                    modelUsed: 'budget_guard',
+                    response: budget.reason === 'daily_limit'
+                        ? "You've reached your daily usage limit. Your limit resets in a few hours."
+                        : 'This session has reached its token limit. Please start a new session.',
+                    attemptedModels,
+                    budgetExceeded: true,
+                };
+            }
+        }
 
         // Determine use case from options
         const useCase: 'chat' | 'analysis' =
@@ -113,6 +137,10 @@ export class UnifiedAIClient {
                             options.systemPrompt,
                             options.maxTokens
                         );
+                        const tokensUsed = Math.ceil(response.length / 4);
+                        if (options.userId && options.sessionId && tokensUsed > 0) {
+                            void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
+                        }
                         // Log Bedrock usage for budget tracking
                         const inputChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0) + (options.systemPrompt?.length || 0);
                         logAWSUsage({
@@ -162,8 +190,11 @@ export class UnifiedAIClient {
                 attemptedModels.push(modelConfig.id);
 
                 if (result.success) {
-                    const tokensUsed = (result.response?.length || 0) / 4;
+                    const tokensUsed = Math.ceil((result.response?.length || 0) / 4);
                     this.rateLimiter.recordRequest(modelConfig.id, tokensUsed);
+                    if (options.userId && options.sessionId && tokensUsed > 0) {
+                        void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
+                    }
                     return {
                         success: true,
                         modelUsed: modelConfig.id,
@@ -197,8 +228,11 @@ export class UnifiedAIClient {
                     attemptedModels.push(modelConfig.id);
 
                     if (result.success) {
-                        const tokensUsed = (result.response?.length || 0) / 4;
+                        const tokensUsed = Math.ceil((result.response?.length || 0) / 4);
                         this.rateLimiter.recordRequest(modelConfig.id, tokensUsed);
+                        if (options.userId && options.sessionId && tokensUsed > 0) {
+                            void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
+                        }
                         return {
                             success: true,
                             modelUsed: modelConfig.id,
@@ -269,8 +303,11 @@ export class UnifiedAIClient {
             if (result.success) {
                 // Record Success
                 // Estimate tokens from response length if not provided (4 chars ~= 1 token)
-                const tokensUsed = (result.response?.length || 0) / 4;
+                const tokensUsed = Math.ceil((result.response?.length || 0) / 4);
                 this.rateLimiter.recordRequest(model.id, tokensUsed);
+                if (options.userId && options.sessionId && tokensUsed > 0) {
+                    void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
+                }
 
                 return {
                     success: true,
@@ -572,6 +609,8 @@ export class UnifiedAIClient {
                 category: options.category,
                 signal: options.signal,
                 correlationId: options.correlationId,
+                userId: options.userId,
+                sessionId: options.sessionId,
             });
 
             return {
@@ -613,6 +652,8 @@ export class UnifiedAIClient {
             category: options.category,
             signal: options.signal,
             correlationId: options.correlationId,
+            userId: options.userId,
+            sessionId: options.sessionId,
         });
 
         // Fallback: if routed provider failed, try the alternate (only if it was gemini)
@@ -630,6 +671,8 @@ export class UnifiedAIClient {
                 category: options.category,
                 signal: options.signal,
                 correlationId: options.correlationId,
+                userId: options.userId,
+                sessionId: options.sessionId,
             });
         }
 

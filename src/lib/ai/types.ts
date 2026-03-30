@@ -35,6 +35,10 @@ export interface GenerateResponseOptions {
     enableLLMPass?: boolean;
     /** Correlation ID propagated from request middleware for tracing */
     correlationId?: string;
+    /** Authenticated user identifier for per-user token budget checks */
+    userId?: string;
+    /** Session identifier for per-session token budget checks */
+    sessionId?: string;
 }
 
 export interface AIResponse {
@@ -50,6 +54,8 @@ export interface AIResponse {
     attemptedModels: string[];
     /** Error message if failed */
     error?: string;
+    /** Whether response was degraded by cost guard limits */
+    budgetExceeded?: boolean;
     /** Routing metadata (only present when smart routing is active) */
     routing?: {
         classification: IntentClassification;

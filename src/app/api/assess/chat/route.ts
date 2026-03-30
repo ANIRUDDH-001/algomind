@@ -217,6 +217,8 @@ export async function POST(req: NextRequest) {
             systemPrompt: enhancedSystemPrompt,
             estimatedTokens: 500,
             correlationId,
+            userId: typeof payload.sub === 'string' ? payload.sub : undefined,
+            sessionId: submissionId,
         });
 
         if (!result.success) {
