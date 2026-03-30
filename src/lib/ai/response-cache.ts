@@ -12,7 +12,6 @@
  * @module response-cache
  */
 
-import { levenshtein } from './intent-classifier';
 import { redisGet, redisSet, redisDel } from '@/lib/upstash/client';
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -32,6 +31,8 @@ export interface CacheEntry {
     avgLatency: number;
     /** Estimated size in bytes (query + response) */
     sizeBytes: number;
+    /** Optional additional metadata */
+    metadata?: Record<string, unknown>;
 }
 
 export interface CacheStats {
@@ -66,7 +67,6 @@ export interface ResponseCacheOptions {
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;  // 24h
 const DEFAULT_FUZZY_THRESHOLD = 2;
-const LEGACY_MAX_MEMORY_PLACEHOLDER = 10 * 1024 * 1024;
 const CACHE_KEY_PREFIX = 'ai:cache:';
 const CACHE_INDEX_KEY = 'ai:cache:keys';
 
@@ -89,9 +89,10 @@ function estimateBytes(s: string): number {
 // ── ResponseCache ───────────────────────────────────────────────────
 
 export class ResponseCache {
-    private queryStats = new Map<string, { hitCount: number; model: 'groq' | 'gemini'; avgLatency: number }>();
     private totalHits = 0;
     private totalMisses = 0;
+    private totalEntries = 0;
+    private totalLatencySaved = 0;
     private readonly opts: Required<ResponseCacheOptions>;
 
     constructor(options: ResponseCacheOptions = {}) {
@@ -104,11 +105,7 @@ export class ResponseCache {
 
     // ── Read ────────────────────────────────────────────────────────
 
-    /**
-     * Look up a cached response for the given query.
-     * Checks exact match first, then fuzzy match within threshold.
-     * Returns null on miss.
-     */
+    /** Look up a cached response for the given query. */
     async get(query: string): Promise<CacheEntry | null> {
         const key = normaliseCacheKey(query);
         if (!key) {
@@ -116,37 +113,33 @@ export class ResponseCache {
             return null;
         }
 
-        // 1. Exact match (Redis)
-        const exact = await this.readEntryFromRedis(key);
-        if (exact) {
-            return this.registerHitAndPersist(key, exact);
-        }
+        try {
+            const redisValue = await redisGet(`${CACHE_KEY_PREFIX}${key}`);
+            if (redisValue) {
+                const entry = JSON.parse(
+                    typeof redisValue === 'string' ? redisValue : JSON.stringify(redisValue)
+                ) as CacheEntry;
 
-        // 2. Fuzzy match (Redis key index)
-        if (key.length <= 100) { // perf guard
-            let bestKey: string | null = null;
-            let bestDist = Infinity;
-            const indexedKeys = await this.getIndexedKeys();
-
-            for (const indexedKey of indexedKeys) {
-                if (indexedKey === key) continue;
-                if (Math.abs(indexedKey.length - key.length) > this.opts.fuzzyThreshold) continue;
-
-                const dist = levenshtein(key, indexedKey);
-                if (dist <= this.opts.fuzzyThreshold && dist < bestDist) {
-                    bestDist = dist;
-                    bestKey = indexedKey;
+                if (Date.now() - entry.timestamp < this.opts.ttlMs) {
+                    this.totalHits++;
+                    entry.hitCount = (entry.hitCount || 0) + 1;
+                    this.totalLatencySaved += entry.avgLatency || 0;
+                    // Update hit count in background
+                    void redisSet(
+                        `${CACHE_KEY_PREFIX}${key}`,
+                        JSON.stringify(entry),
+                        Math.floor(this.opts.ttlMs / 1000)
+                    );
+                    return entry;
                 }
-            }
 
-            if (bestKey) {
-                const fuzzyEntry = await this.readEntryFromRedis(bestKey);
-                if (fuzzyEntry) {
-                    return this.registerHitAndPersist(bestKey, fuzzyEntry);
-                }
+                void redisDel(`${CACHE_KEY_PREFIX}${key}`);
+                void this.removeKeyFromIndex(key);
+                this.totalEntries = Math.max(0, this.totalEntries - 1);
             }
+        } catch {
+            // suppress
         }
-
         this.totalMisses++;
         return null;
     }
@@ -159,31 +152,32 @@ export class ResponseCache {
     async set(
         query: string,
         response: string,
-        model: 'groq' | 'gemini',
+        modelOrMetadata?: 'groq' | 'gemini' | Record<string, unknown>,
         latencyMs = 0
     ): Promise<void> {
         const key = normaliseCacheKey(query);
         if (!key || !response) return;
-        const existingStats = this.queryStats.get(key);
         const sizeBytes = estimateBytes(key) + estimateBytes(response);
+
+        const isLegacySignature = typeof modelOrMetadata === 'string';
+        const metadata = (!isLegacySignature && modelOrMetadata) ? modelOrMetadata : undefined;
+        const model = isLegacySignature
+            ? modelOrMetadata
+            : ((metadata?.model as 'groq' | 'gemini' | undefined) ?? 'groq');
+        const avgLatency = isLegacySignature
+            ? latencyMs
+            : Number(metadata?.avgLatency ?? 0);
 
         const entry: CacheEntry = {
             query: key,
             response,
             model,
             timestamp: Date.now(),
-            hitCount: existingStats?.hitCount ?? 0,
-            avgLatency: existingStats
-                ? (existingStats.avgLatency * existingStats.hitCount + latencyMs) / (existingStats.hitCount + 1)
-                : latencyMs,
+            hitCount: 0,
+            avgLatency,
             sizeBytes,
+            metadata,
         };
-
-        this.queryStats.set(key, {
-            hitCount: existingStats?.hitCount ?? 0,
-            model,
-            avgLatency: entry.avgLatency,
-        });
 
         try {
             await redisSet(
@@ -192,6 +186,7 @@ export class ResponseCache {
                 Math.floor(this.opts.ttlMs / 1000)
             );
             await this.addKeyToIndex(key);
+            this.totalEntries++;
         } catch { /* ignore set errors */ }
     }
 
@@ -201,37 +196,38 @@ export class ResponseCache {
      * Invalidate cache entries matching a pattern.
      * Pattern is checked against the normalised key (substring match).
      */
-    invalidate(pattern: string): number {
+    async invalidate(pattern: string): Promise<number> {
         const normalised = normaliseCacheKey(pattern);
-        let removed = 0;
+        const keys = await this.getIndexedKeys();
+        const keysToRemove = keys.filter((key) => key.includes(normalised));
 
-        for (const [key] of this.queryStats.entries()) {
-            if (key.includes(normalised)) {
-                this.queryStats.delete(key);
-                void redisDel(`${CACHE_KEY_PREFIX}${key}`);
-                removed++;
-            }
+        if (keysToRemove.length === 0) {
+            return 0;
         }
 
-        if (removed > 0) {
-            void this.persistIndex([...this.queryStats.keys()]);
-        }
+        await Promise.all(keysToRemove.map((key) => redisDel(`${CACHE_KEY_PREFIX}${key}`)));
+        const remaining = keys.filter((key) => !keysToRemove.includes(key));
+        await this.persistIndex(remaining);
+        this.totalEntries = Math.max(0, this.totalEntries - keysToRemove.length);
 
-        return removed;
+        return keysToRemove.length;
     }
 
     /** Clear the entire cache. */
     clear(): void {
-        const keysToDelete = [...this.queryStats.keys()];
-        this.queryStats.clear();
         this.totalHits = 0;
         this.totalMisses = 0;
+        this.totalEntries = 0;
+        this.totalLatencySaved = 0;
 
         // Fire-and-forget async clear so the current sync API remains unchanged.
-        void Promise.all([
-            ...keysToDelete.map((key) => redisDel(`${CACHE_KEY_PREFIX}${key}`)),
-            redisDel(CACHE_INDEX_KEY),
-        ]);
+        void (async () => {
+            const keys = await this.getIndexedKeys();
+            await Promise.all([
+                ...keys.map((key) => redisDel(`${CACHE_KEY_PREFIX}${key}`)),
+                redisDel(CACHE_INDEX_KEY),
+            ]);
+        })();
     }
 
     // ── Pre-warming ─────────────────────────────────────────────────
@@ -272,91 +268,27 @@ export class ResponseCache {
 
     getStats(): CacheStats {
         const total = this.totalHits + this.totalMisses;
-        const entries = [...this.queryStats.entries()].map(([query, info]) => ({
-            query,
-            hitCount: info.hitCount,
-            model: info.model,
-            avgLatency: info.avgLatency,
-        }));
-
-        // Top queries by hit count
-        const topQueries = entries
-            .sort((a, b) => b.hitCount - a.hitCount)
-            .slice(0, 10)
-            .map(e => ({ query: e.query, hitCount: e.hitCount, model: e.model }));
-
-        const totalLatencySaved = entries.reduce(
-            (sum, e) => sum + e.avgLatency * e.hitCount,
-            0
-        );
 
         return {
-            entries: this.queryStats.size,
+            entries: this.totalEntries,
             totalHits: this.totalHits,
             totalMisses: this.totalMisses,
             hitRate: total > 0 ? Math.round((this.totalHits / total) * 100) : 0,
             memorySizeBytes: 0,
-            maxMemoryBytes: LEGACY_MAX_MEMORY_PLACEHOLDER,
+            maxMemoryBytes: 0,
             avgLatencySaved: this.totalHits > 0
-                ? Math.round(totalLatencySaved / this.totalHits)
+                ? Math.round(this.totalLatencySaved / this.totalHits)
                 : 0,
-            topQueries,
+            topQueries: [],
         };
     }
 
     /** Get current entry count. */
     get size(): number {
-        return this.queryStats.size;
+        return this.totalEntries;
     }
 
     // ── Internal ────────────────────────────────────────────────────
-
-    private isExpired(entry: CacheEntry): boolean {
-        return Date.now() - entry.timestamp > this.opts.ttlMs;
-    }
-
-    private async readEntryFromRedis(key: string): Promise<CacheEntry | null> {
-        let redisValue: string | null = null;
-        try {
-            redisValue = await redisGet(`${CACHE_KEY_PREFIX}${key}`);
-        } catch {
-            redisValue = null;
-        }
-
-        if (!redisValue) return null;
-
-        try {
-            const entry = JSON.parse(redisValue) as CacheEntry;
-            if (this.isExpired(entry)) {
-                void redisDel(`${CACHE_KEY_PREFIX}${key}`);
-                void this.removeKeyFromIndex(key);
-                return null;
-            }
-            return entry;
-        } catch {
-            return null;
-        }
-    }
-
-    private registerHitAndPersist(key: string, entry: CacheEntry): CacheEntry {
-        entry.hitCount++;
-        this.totalHits++;
-
-        const existing = this.queryStats.get(key);
-        this.queryStats.set(key, {
-            hitCount: entry.hitCount,
-            model: entry.model,
-            avgLatency: existing?.avgLatency ?? entry.avgLatency,
-        });
-
-        void redisSet(
-            `${CACHE_KEY_PREFIX}${key}`,
-            JSON.stringify(entry),
-            Math.floor(this.opts.ttlMs / 1000)
-        );
-
-        return entry;
-    }
 
     private async getIndexedKeys(): Promise<string[]> {
         let raw: string | null = null;

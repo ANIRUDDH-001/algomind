@@ -62,7 +62,7 @@ describe('ResponseCache (Redis integrated)', () => {
         it('returns null on cache miss', async () => {
             const entry = await cache.get('nonexistent query');
             expect(entry).toBeNull();
-            expect(redisGet).toHaveBeenCalledTimes(2); // exact lookup + key-index lookup
+            expect(redisGet).toHaveBeenCalledTimes(1); // exact lookup only
         });
     });
 
@@ -101,18 +101,12 @@ describe('ResponseCache (Redis integrated)', () => {
             redisStore['ai:cache:what is redis'] = JSON.stringify(redisEntry);
             redisStore['ai:cache:keys'] = JSON.stringify(['what is redis']);
 
-            // Stats map starts empty in this instance
-            expect(cache.size).toBe(0);
-
             // Fetch
             const entry = await cache.get('what is redis');
 
             expect(entry).not.toBeNull();
             expect(entry!.response).toBe('Redis is an in-memory datastore.');
             expect(redisGet).toHaveBeenCalledTimes(1);
-
-            // Query stats should be tracked after hit
-            expect(cache.size).toBe(1);
         });
 
         it('gracefully handles Redis unvailability (throws)', async () => {
@@ -131,13 +125,12 @@ describe('ResponseCache (Redis integrated)', () => {
         });
     });
 
-    describe('Fuzzy Matching', () => {
-        it('matches close keys from Redis index', async () => {
+    describe('Exact Matching', () => {
+        it('does not return a fuzzy match when exact key is missing', async () => {
             await cache.set('binary search algorithm', 'Use divide and conquer.', 'groq', 140);
 
             const entry = await cache.get('binary searh algorithm');
-            expect(entry).not.toBeNull();
-            expect(entry!.response).toBe('Use divide and conquer.');
+            expect(entry).toBeNull();
         });
     });
 
@@ -167,10 +160,7 @@ describe('ResponseCache (Redis integrated)', () => {
             expect(typeof stats.avgLatencySaved).toBe('number');
 
             expect(Array.isArray(stats.topQueries)).toBe(true);
-            expect(stats.topQueries.length).toBe(1);
-            expect(stats.topQueries[0]).toHaveProperty('query', 'stat query');
-            expect(stats.topQueries[0]).toHaveProperty('hitCount', 1);
-            expect(stats.topQueries[0]).toHaveProperty('model', 'groq');
+            expect(stats.topQueries.length).toBe(0);
         });
     });
 

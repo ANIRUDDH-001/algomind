@@ -138,51 +138,60 @@ export async function POST(req: NextRequest) {
                 ? Math.max(jwtExp - Math.floor(Date.now() / 1000), 60)
                 : 90 * 60;
 
-            const getDbMessageCount = async (): Promise<number> => {
-                const { data: submissionWithTranscript } = await getServiceClient()
+            try {
+                // ATOMIC: Increment first. If key didn't exist, Redis creates it with value 1.
+                currentCount = await redis.incr(messageCountKey);
+
+                if (currentCount === 1) {
+                    // We just created a fresh key. Check if DB has prior messages to seed from.
+                    const { data: submission } = await getServiceClient()
+                        .from('candidate_submissions')
+                        .select('current_transcript')
+                        .eq('id', submissionId)
+                        .single();
+
+                    const dbCount = submission?.current_transcript
+                        ? (Array.isArray(submission.current_transcript)
+                            ? submission.current_transcript.length
+                            : 0)
+                        : 0;
+
+                    if (dbCount > 0) {
+                        // Jump counter from 1 to dbCount + 1 (this request)
+                        currentCount = await redis.incrby(messageCountKey, dbCount);
+                    }
+
+                    // Set TTL aligned with JWT expiry
+                    await redis.expire(messageCountKey, expirySeconds);
+                }
+            } catch (redisErr) {
+                console.warn('[Assess Chat] Redis error, using DB fallback:', redisErr);
+                const { data: submission } = await getServiceClient()
                     .from('candidate_submissions')
                     .select('current_transcript')
                     .eq('id', submissionId)
                     .single();
 
-                return submissionWithTranscript?.current_transcript
-                    ? (Array.isArray(submissionWithTranscript.current_transcript)
-                        ? submissionWithTranscript.current_transcript.length
-                        : 0)
-                    : 0;
-            };
-
-            try {
-                // Atomic increment. For missing keys Redis initializes to 1.
-                currentCount = await redis.incr(messageCountKey);
-
-                if (currentCount === 1) {
-                    // Key was created by this request; seed from DB baseline to avoid
-                    // undercounting after cache clears.
-                    const dbMessageCount = await getDbMessageCount();
-
-                    if (dbMessageCount > 0) {
-                        // Counter is currently 1 for this request; jump by DB count so
-                        // final value becomes dbMessageCount + 1.
-                        currentCount = await redis.incrby(messageCountKey, dbMessageCount);
-                    }
-
-                    await redis.expire(messageCountKey, expirySeconds);
-                }
-            } catch (redisErr) {
-                console.warn('[Assess Chat] Redis counter failed, falling back to DB count:', redisErr);
-                const dbMessageCount = await getDbMessageCount();
-                currentCount = dbMessageCount + 1;
+                currentCount = submission?.current_transcript
+                    ? (Array.isArray(submission.current_transcript)
+                        ? submission.current_transcript.length
+                        : 0) + 1
+                    : 1;
             }
 
             if (currentCount > sessionMessageLimit) {
-                return apiError(
-                    429,
-                    ErrorCodes.MESSAGE_LIMIT,
-                    'Message limit reached for this assessment session.',
+                // Return 429 - keep existing response shape for backward compat
+                return NextResponse.json(
                     {
-                        retryable: true,
-                        user_action: 'retry',
+                        error: 'Message limit reached for this assessment session.',
+                        code: 'message_limit_reached',
+                        retryable: false,
+                        limitReached: true,
+                        messagesUsed: currentCount - 1,
+                        messageLimit: sessionMessageLimit,
+                    },
+                    {
+                        status: 429,
                         headers: {
                             'X-Messages-Used': String(currentCount - 1),
                             'X-Messages-Limit': String(sessionMessageLimit),

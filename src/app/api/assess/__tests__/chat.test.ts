@@ -150,6 +150,7 @@ describe('Assess Chat API (/api/assess/chat)', () => {
         expect(res.status).toBe(401);
         expect(data.error).toContain('Invalid or expired session');
         expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
+        expect(data.retryable).toBe(false);
     });
 
     it('3. Empty message/Invalid format -> 400', async () => {
@@ -179,7 +180,7 @@ describe('Assess Chat API (/api/assess/chat)', () => {
         expect(res.status).toBe(429);
         expect(data.error).toContain('Message limit reached');
         expect(data.code).toBe('message_limit_reached');
-        expect(data.retryable).toBe(true);
+        expect(data.retryable).toBe(false);
         expect(res.headers.get('X-Messages-Used')).toBe('31');
         expect(res.headers.get('X-Messages-Limit')).toBe('30');
     });

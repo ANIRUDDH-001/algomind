@@ -31,32 +31,16 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const handleError = (event: ErrorEvent) => {
-            const error = event.error instanceof Error
-                ? event.error
-                : new Error(event.message || 'Unhandled window error');
-
-            reportError(error, {
-                severity: 'error',
-                extra: {
-                    source: 'window.error',
-                    file: event.filename || '',
-                    line: String(event.lineno || 0),
-                    column: String(event.colno || 0),
-                },
-            });
+            if (event.error) {
+                reportError(event.error, { severity: 'error' });
+            }
         };
 
         const handleRejection = (event: PromiseRejectionEvent) => {
             const error = event.reason instanceof Error
                 ? event.reason
                 : new Error(String(event.reason));
-
-            reportError(error, {
-                severity: 'warning',
-                extra: {
-                    source: 'window.unhandledrejection',
-                },
-            });
+            reportError(error, { severity: 'warning' });
         };
 
         window.addEventListener('error', handleError);
