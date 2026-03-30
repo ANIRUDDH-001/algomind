@@ -77,3 +77,4 @@ schema details/
 type-check-output.txt
 type_check*.txt
 .agents/
+.claude/
