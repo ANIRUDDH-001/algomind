@@ -6,6 +6,7 @@
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { timingSafeEqual } from 'https://deno.land/std@0.208.0/crypto/timing_safe_equal.ts';
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -27,13 +28,35 @@ interface AnalysisRequest {
     candidateId?: string | null;
 }
 
+function extractCandidateSecret(req: Request): string | null {
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        return authHeader.slice(7).trim();
+    }
+
+    return req.headers.get('x-internal-secret')?.trim() ?? null;
+}
+
+function secretsMatchTimingSafe(provided: string, expected: string): boolean {
+    const encoder = new TextEncoder();
+    const a = encoder.encode(provided);
+    const b = encoder.encode(expected);
+
+    if (a.byteLength !== b.byteLength) {
+        return false;
+    }
+
+    return timingSafeEqual(a, b);
+}
+
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 Deno.serve(async (req: Request) => {
     // Security: verify the request came from our Next.js app
-    const authHeader = req.headers.get('Authorization');
+    const providedSecret = extractCandidateSecret(req);
     // @ts-expect-error: Deno is not defined in Next.js tsconfig
-    const expectedSecret = Deno.env.get('INTERNAL_API_SECRET');
-    if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
+    const expectedSecret = Deno.env.get('INTERNAL_API_SECRET')?.trim() ?? '';
+
+    if (!providedSecret || !expectedSecret || !secretsMatchTimingSafe(providedSecret, expectedSecret)) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 

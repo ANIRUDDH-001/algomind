@@ -8,6 +8,7 @@
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { timingSafeEqual } from 'https://deno.land/std@0.208.0/crypto/timing_safe_equal.ts';
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -16,11 +17,43 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+function extractCandidateSecret(req: Request): string | null {
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        return authHeader.slice(7).trim();
+    }
+
+    return req.headers.get('x-internal-secret')?.trim() ?? null;
+}
+
+function secretsMatchTimingSafe(provided: string, expected: string): boolean {
+    const encoder = new TextEncoder();
+    const a = encoder.encode(provided);
+    const b = encoder.encode(expected);
+
+    if (a.byteLength !== b.byteLength) {
+        return false;
+    }
+
+    return timingSafeEqual(a, b);
+}
+
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 Deno.serve(async (req: Request) => {
     if (req.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), {
             status: 405,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    const providedSecret = extractCandidateSecret(req);
+    // @ts-expect-error: Deno is not defined in Next.js tsconfig
+    const expectedSecret = Deno.env.get('INTERNAL_API_SECRET')?.trim() ?? '';
+
+    if (!providedSecret || !expectedSecret || !secretsMatchTimingSafe(providedSecret, expectedSecret)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
             headers: { 'Content-Type': 'application/json' },
         });
     }
