@@ -312,7 +312,7 @@ describe('Chat API (/api/chat)', () => {
         const data = await res.json();
 
         expect(res.status).toBe(429);
-        expect(data.code).toBe('LIMIT_REACHED');
+        expect(data.code).toBe('weekly_limit_reached');
         expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
     });
 

@@ -56,7 +56,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(403);
-            expect(data).toEqual({ error: 'Forbidden' });
+            expect(data).toMatchObject({ error: 'Forbidden' });
         });
 
         it('3. Unauthenticated -> 401', async () => {
@@ -70,7 +70,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(401);
-            expect(data).toEqual({ error: 'Unauthorized' });
+            expect(data).toMatchObject({ error: 'Unauthorized' });
         });
 
         it('4. DB query fails -> 500', async () => {
@@ -84,7 +84,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(500);
-            expect(data).toEqual({ error: 'Internal server error' });
+            expect(data).toMatchObject({ error: 'Internal server error' });
         });
     });
 
@@ -121,7 +121,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(400);
-            expect(data).toEqual({ error: 'Invalid email format' });
+            expect(data).toMatchObject({ error: 'Invalid email format' });
         });
 
         it('3. Email already admin -> 409', async () => {
@@ -136,7 +136,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(409);
-            expect(data).toEqual({ error: 'Already an admin' });
+            expect(data).toMatchObject({ error: 'Already an admin' });
         });
 
         it('4. Non-admin trying to add -> 403', async () => {
@@ -151,7 +151,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(403);
-            expect(data).toEqual({ error: 'Forbidden' });
+            expect(data).toMatchObject({ error: 'Forbidden' });
         });
     });
 
@@ -198,7 +198,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(400);
-            expect(data).toEqual({ error: 'Cannot remove the last admin' });
+            expect(data).toMatchObject({ error: 'Cannot remove the last admin' });
         });
 
         it('3. Missing email in query -> 400', async () => {
@@ -212,7 +212,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(400);
-            expect(data).toEqual({ error: 'Email is required' });
+            expect(data).toMatchObject({ error: 'Email is required' });
         });
 
         it('4. Non-admin -> 403', async () => {
@@ -227,7 +227,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(403);
-            expect(data).toEqual({ error: 'Forbidden' });
+            expect(data).toMatchObject({ error: 'Forbidden' });
         });
 
         it('5. Master admin deletion rejected by RPC -> 403', async () => {
@@ -246,7 +246,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(403);
-            expect(data).toEqual({ error: 'Cannot delete master admin' });
+            expect(data).toMatchObject({ error: 'Cannot delete master admin' });
         });
 
         it('6. RPC transport failure -> 500', async () => {
@@ -265,7 +265,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             const data = await response.json();
 
             expect(response.status).toBe(500);
-            expect(data).toEqual({ error: 'Failed to delete admin' });
+            expect(data).toMatchObject({ error: 'Failed to delete admin' });
         });
     });
 });

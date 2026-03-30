@@ -13,6 +13,7 @@ import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 export const maxDuration = 60;
 
@@ -43,10 +44,7 @@ export async function POST(req: NextRequest) {
                 body = JSON.parse(text);
             }
         } catch (_parseError) {
-            return NextResponse.json(
-                { error: 'Invalid JSON body' },
-                { status: 400 }
-            );
+            return ApiErrors.badRequest('Invalid JSON body');
         }
         const {
             messages,
@@ -89,10 +87,7 @@ export async function POST(req: NextRequest) {
                 : 'english';
         if (!guestMode && !user) {
             console.warn('⛔ [Chat API] Unauthorized access attempt');
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return ApiErrors.unauthorized('Unauthorized');
         }
 
         if (user) {
@@ -102,7 +97,7 @@ export async function POST(req: NextRequest) {
             if (!guestMode) {
                 const rateLimit = await checkUserRateLimit(user.id);
                 if (!rateLimit.allowed) {
-                    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+                    return ApiErrors.rateLimited('Rate limit exceeded');
                 }
             }
         } else if (guestMode) {
@@ -112,12 +107,12 @@ export async function POST(req: NextRequest) {
                 ?? 'unknown';
             const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 100, windowSeconds: 86400 });
             if (!ipRateLimit.success) {
-                return NextResponse.json({ error: 'Guest rate limit exceeded. Please try again later.' }, { status: 429 });
+                return ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.');
             }
         }
 
         if (!messages || !Array.isArray(messages)) {
-            return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
+            return ApiErrors.badRequest('Invalid messages format');
         }
 
         // ── Phase-aware RAG ───────────────────────────────────────────────
@@ -204,28 +199,22 @@ export async function POST(req: NextRequest) {
         if (isNewInterviewSession && user?.id) {
             const limitResult = await checkWeeklySessionLimit(user.id, 'interview');
             if (!limitResult.allowed) {
-                return NextResponse.json(
-                    {
-                        error: 'Weekly interview session limit reached.',
-                        code: 'LIMIT_REACHED',
-                        sessionsUsed: limitResult.sessionsUsed,
-                        limit: limitResult.limit,
-                        sessionType: 'interview',
+                return apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
+                    retryable: true,
+                    user_action: 'upgrade',
+                    headers: {
+                        'X-Sessions-Used': String(limitResult.sessionsUsed),
+                        'X-Sessions-Limit': String(limitResult.limit),
                     },
-                    { status: 429 }
-                );
+                });
             }
 
             const incremented = await incrementWeeklyUsage(user.id, 'interview');
             if (!incremented) {
-                return NextResponse.json(
-                    {
-                        error: 'Weekly interview session limit reached.',
-                        code: 'LIMIT_REACHED',
-                        sessionType: 'interview',
-                    },
-                    { status: 429 }
-                );
+                return apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
+                    retryable: true,
+                    user_action: 'upgrade',
+                });
             }
         }
 
@@ -343,9 +332,6 @@ export async function POST(req: NextRequest) {
             type: 'model_error',
             errorMessage: error instanceof Error ? error.message : String(error)
         });
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal Server Error' },
-            { status: 500 }
-        );
+        return ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error');
     }
 }

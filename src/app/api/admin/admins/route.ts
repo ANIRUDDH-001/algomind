@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 async function getMasterAdminEmail(): Promise<string> {
     const { data } = await getServiceClient()
@@ -28,10 +29,7 @@ export async function GET() {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+        return ApiErrors.serverError('Internal server error');
     }
 }
 
@@ -44,7 +42,7 @@ export async function POST(request: Request) {
         const { email } = body as { email?: string };
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+            return ApiErrors.badRequest('Invalid email format');
         }
 
         const supabaseAdmin = getServiceClient();
@@ -56,7 +54,7 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (existing) {
-            return NextResponse.json({ error: "Already an admin" }, { status: 409 });
+            return apiError(409, ErrorCodes.INVALID_INPUT, 'Already an admin');
         }
 
         const { error } = await supabaseAdmin
@@ -68,10 +66,7 @@ export async function POST(request: Request) {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+        return ApiErrors.serverError('Internal server error');
     }
 }
 
@@ -84,15 +79,12 @@ export async function DELETE(request: Request) {
         const email = searchParams.get('email');
 
         if (!email) {
-            return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+            return apiError(400, ErrorCodes.MISSING_FIELD, 'Email is required');
         }
 
         const masterEmail = await getMasterAdminEmail();
         if (masterEmail && email === masterEmail) {
-            return NextResponse.json(
-                { error: "Cannot delete master admin" },
-                { status: 403 }
-            );
+            return ApiErrors.forbidden('Cannot delete master admin');
         }
 
         const supabaseAdmin = getServiceClient();
@@ -104,22 +96,28 @@ export async function DELETE(request: Request) {
 
         if (error) {
             console.error('Failed to delete admin:', error);
-            return NextResponse.json({ error: 'Failed to delete admin' }, { status: 500 });
+            return ApiErrors.serverError('Failed to delete admin');
         }
 
         if (!data?.success) {
             const message = typeof data?.error === 'string' ? data.error : 'Delete failed';
-            const status = message.toLowerCase().includes('master') ? 403 : 400;
-            return NextResponse.json({ error: message }, { status });
+            const lowered = message.toLowerCase();
+            if (lowered.includes('master')) {
+                return ApiErrors.forbidden(message);
+            }
+            if (lowered.includes('not found')) {
+                return ApiErrors.notFound(message);
+            }
+            if (lowered.includes('last admin')) {
+                return apiError(400, ErrorCodes.ALREADY_COMPLETED, message);
+            }
+            return ApiErrors.badRequest(message);
         }
 
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+        return ApiErrors.serverError('Internal server error');
     }
 }

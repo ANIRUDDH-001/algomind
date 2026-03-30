@@ -5,6 +5,7 @@ import { invalidateStudentContext } from '@/lib/kai-context';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
+import { ApiErrors } from '@/lib/api/error-response';
 
 validateEnv();
 
@@ -26,17 +27,14 @@ export async function POST(req: NextRequest) {
         }
 
         if (!sessionToken || !Array.isArray(questionStates) || questionStates.length === 0) {
-            return NextResponse.json(
-                { error: 'Invalid payload: missing sessionToken or questionStates' },
-                { status: 400 }
-            );
+            return ApiErrors.badRequest('Invalid payload: missing sessionToken or questionStates');
         }
 
         let secret: Uint8Array;
         try {
             secret = encodeAssessmentSecret();
         } catch {
-            return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
+            return ApiErrors.serverError('Server misconfiguration. Contact administrator.');
         }
 
         const supabaseAdmin = getServiceClient();
@@ -48,7 +46,7 @@ export async function POST(req: NextRequest) {
             payload = decoded;
         } catch (error) {
             console.error('⛔ [Assess Complete API] Invalid session token', error);
-            return NextResponse.json({ error: 'Invalid or expired session. Cannot complete assessment.' }, { status: 401 });
+            return ApiErrors.unauthorized('Invalid or expired session. Cannot complete assessment.');
         }
 
         const submissionId = payload.submissionId as string;
@@ -61,11 +59,11 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (subError || !submission) {
-            return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+            return ApiErrors.notFound('Submission not found');
         }
 
         if (submission.status === 'completed') {
-            return NextResponse.json({ error: 'Assessment already completed' }, { status: 400 });
+            return ApiErrors.badRequest('Assessment already completed');
         }
 
         // 3. Mark as submitted (analysis pending) — atomic guard prevents double-completion
@@ -129,6 +127,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: unknown) {
         console.error('[CANDIDATE_COMPLETE_ERROR]', error);
-        return NextResponse.json({ error: 'Internal server error processing assessment' }, { status: 500 });
+        return ApiErrors.serverError('Internal server error processing assessment');
     }
 }

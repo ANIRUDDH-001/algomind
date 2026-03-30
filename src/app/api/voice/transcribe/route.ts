@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 export const maxDuration = 30;
 
@@ -23,19 +24,19 @@ export async function POST(req: NextRequest) {
             endpoint: 'whisper_guest',
         });
         if (!rateCheck.success) {
-            return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+            return ApiErrors.rateLimited('Rate limited');
         }
     }
 
     // Check if Whisper is enabled globally
     const whisperEnabled = await getGlobalFeatureFlag('ENABLE_WHISPER_STT');
     if (!whisperEnabled) {
-        return NextResponse.json({ error: 'Whisper STT is disabled' }, { status: 503 });
+        return ApiErrors.serviceUnavailable('Whisper STT is disabled', 'text_only');
     }
 
     const groqApiKey = process.env.GROQ_API_KEY;
     if (!groqApiKey) {
-        return NextResponse.json({ error: 'Groq API not configured' }, { status: 503 });
+        return ApiErrors.serviceUnavailable('Groq API not configured', 'text_only');
     }
 
     try {
@@ -43,17 +44,17 @@ export async function POST(req: NextRequest) {
         const audioFile = formData.get('audio') as File;
 
         if (!audioFile) {
-            return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+            return ApiErrors.badRequest('No audio file provided');
         }
 
         // Min 1KB — anything smaller is noise/artifact, not speech
         if (audioFile.size < 1000) {
-            return NextResponse.json({ error: 'Audio too short' }, { status: 400 });
+            return ApiErrors.badRequest('Audio too short');
         }
 
         // Max 10MB audio
         if (audioFile.size > 10 * 1024 * 1024) {
-            return NextResponse.json({ error: 'Audio too large (max 10MB)' }, { status: 413 });
+            return apiError(413, ErrorCodes.INVALID_INPUT, 'Audio too large (max 10MB)');
         }
 
         // Try turbo model first, fall back to large-v3
@@ -134,14 +135,15 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({ error: 'All transcription models failed' }, { status: 503 });
+        return ApiErrors.serviceUnavailable('All transcription models failed', 'text_only');
 
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('[Transcribe API] Error:', errMsg);
-        return NextResponse.json(
-            { error: 'Transcription failed', detail: errMsg },
-            { status: 500 }
-        );
+        return apiError(500, ErrorCodes.PROVIDER_ERROR, 'Transcription failed', {
+            retryable: true,
+            details: errMsg,
+            degraded_mode: 'text_only',
+        });
     }
 }

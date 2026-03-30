@@ -4,6 +4,7 @@ import { synthesizeWithPolly } from '@/lib/aws/polly';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 import { logAWSUsage, estimatePollyCost } from '@/lib/aws/usage-logger';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,14 +22,14 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         const guestPolly = await getGlobalFeatureFlag('ENABLE_GUEST_POLLY_TTS');
-        if (!guestPolly) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!guestPolly) return ApiErrors.unauthorized('Unauthorized');
     }
 
     try {
         const { text, voice } = await request.json();
 
         if (!text || typeof text !== 'string') {
-            return NextResponse.json({ error: 'Missing text' }, { status: 400 });
+            return ApiErrors.badRequest('Missing text');
         }
 
         // Preprocess: strip markdown and clean for TTS
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
             : cleaned;
 
         if (!truncated.trim()) {
-            return NextResponse.json({ error: 'Empty text after preprocessing' }, { status: 400 });
+            return ApiErrors.badRequest('Empty text after preprocessing');
         }
 
         const audioBuffer = await synthesizeWithPolly(truncated, voice || 'Kajal');
@@ -68,13 +69,16 @@ export async function POST(request: NextRequest) {
         const message = err instanceof Error ? err.message : 'Unknown error';
 
         if (message === 'AWS_POLLY_DISABLED') {
-            return NextResponse.json({ error: 'Polly disabled', fallback: 'browser' }, { status: 503 });
+            return ApiErrors.serviceUnavailable('Polly disabled', 'browser');
         }
         if (message === 'AWS_POLLY_NOT_CONFIGURED') {
-            return NextResponse.json({ error: 'AWS not configured', fallback: 'browser' }, { status: 503 });
+            return ApiErrors.serviceUnavailable('AWS not configured', 'browser');
         }
         if (message === 'AWS_POLLY_FAILED') {
-            return NextResponse.json({ error: 'Polly synthesis failed', fallback: 'browser' }, { status: 502 });
+            return apiError(502, ErrorCodes.PROVIDER_ERROR, 'Polly synthesis failed', {
+                retryable: true,
+                degraded_mode: 'browser',
+            });
         }
 
         console.error('[Polly API] Unexpected error:', {
@@ -85,6 +89,9 @@ export async function POST(request: NextRequest) {
             hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
             hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
         });
-        return NextResponse.json({ error: 'Internal error', fallback: 'browser' }, { status: 500 });
+        return apiError(500, ErrorCodes.INTERNAL_ERROR, 'Internal error', {
+            retryable: true,
+            degraded_mode: 'browser',
+        });
     }
 }

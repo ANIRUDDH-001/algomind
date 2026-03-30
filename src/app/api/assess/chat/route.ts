@@ -8,6 +8,7 @@ import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 validateEnv();
 
@@ -29,20 +30,20 @@ export async function POST(req: NextRequest) {
             const text = await req.text();
             body = JSON.parse(text);
         } catch (_parseError) {
-            return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+            return ApiErrors.badRequest('Invalid JSON body');
         }
 
         const { sessionToken, messages } = body;
 
         if (!sessionToken) {
-            return NextResponse.json({ error: 'Missing session token' }, { status: 401 });
+            return ApiErrors.unauthorized('Missing session token');
         }
 
         let secret: Uint8Array;
         try {
             secret = encodeAssessmentSecret();
         } catch {
-            return NextResponse.json({ error: 'Server misconfiguration. Contact administrator.' }, { status: 500 });
+            return ApiErrors.serverError('Server misconfiguration. Contact administrator.');
         }
 
         // 🔒 Validate candidate JWT securely
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
             payload = decoded;
         } catch (error) {
             console.error('⛔ [Assess Chat API] Invalid session token', error);
-            return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+            return ApiErrors.unauthorized('Invalid or expired session');
         }
 
         // Fetch user's Hinglish preference (only relevant if global flag is ON)
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
             : '';
 
         if (!messages || !Array.isArray(messages)) {
-            return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
+            return ApiErrors.badRequest('Invalid messages format');
         }
 
         // ── Per-session message rate limit ────────────────────────────────────
@@ -164,14 +165,18 @@ export async function POST(req: NextRequest) {
             }
 
             if (currentCount > sessionMessageLimit) {
-                return NextResponse.json(
+                return apiError(
+                    429,
+                    ErrorCodes.MESSAGE_LIMIT,
+                    'Message limit reached for this assessment session.',
                     {
-                        error: 'Message limit reached for this assessment session.',
-                        limitReached: true,
-                        messagesUsed: currentCount - 1,
-                        messageLimit: sessionMessageLimit,
-                    },
-                    { status: 429 }
+                        retryable: true,
+                        user_action: 'retry',
+                        headers: {
+                            'X-Messages-Used': String(currentCount - 1),
+                            'X-Messages-Limit': String(sessionMessageLimit),
+                        },
+                    }
                 );
             }
         }
@@ -250,9 +255,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error: unknown) {
         console.error('❌ [Assess Chat API] Error:', error);
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Internal Server Error' },
-            { status: 500 }
-        );
+        return ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error');
     }
 }
