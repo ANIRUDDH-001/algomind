@@ -16,12 +16,23 @@ vi.mock('@/lib/upstash/client', () => ({
 
 describe('ResponseCache (Redis integrated)', () => {
     let cache: ResponseCache;
+    let redisStore: Record<string, string>;
 
     beforeEach(() => {
         vi.clearAllMocks();
         // Reset Date.now mock if it was used
         vi.useRealTimers();
-        cache = new ResponseCache({ maxEntries: 10, ttlMs: 60_000, maxMemoryBytes: 1024 * 1024 });
+        redisStore = {};
+
+        (redisSet as Mock).mockImplementation(async (key: string, value: string) => {
+            redisStore[key] = value;
+        });
+
+        (redisGet as Mock).mockImplementation(async (key: string) => {
+            return redisStore[key] ?? null;
+        });
+
+        cache = new ResponseCache({ ttlMs: 60_000 });
     });
 
     afterEach(() => {
@@ -40,21 +51,18 @@ describe('ResponseCache (Redis integrated)', () => {
         it('returns cached value on hit', async () => {
             await cache.set('What is an array?', 'An array is...', 'groq', 150);
 
-            // Should be in memory, so redisGet doesn't even need to be called
             const entry = await cache.get('What is an array?');
             expect(entry).not.toBeNull();
             expect(entry!.response).toBe('An array is...');
             expect(entry!.model).toBe('groq');
-            expect(redisSet).toHaveBeenCalledTimes(1);
+            expect(redisGet).toHaveBeenCalledTimes(2); // set(index read) + get(exact)
+            expect(redisSet).toHaveBeenCalledTimes(3); // entry + index + hit count writeback
         });
 
         it('returns null on cache miss', async () => {
-            // Mock Redis to return null for the miss
-            (redisGet as Mock).mockResolvedValue(null);
-
             const entry = await cache.get('nonexistent query');
             expect(entry).toBeNull();
-            expect(redisGet).toHaveBeenCalledTimes(1);
+            expect(redisGet).toHaveBeenCalledTimes(2); // exact lookup + key-index lookup
         });
     });
 
@@ -69,9 +77,6 @@ describe('ResponseCache (Redis integrated)', () => {
             // Advance time past TTL (5000ms)
             vi.advanceTimersByTime(6000);
 
-            // Redis also needs to return null or expired data to fully test eviction
-            (redisGet as Mock).mockResolvedValue(null);
-
             const entry = await cacheWithShortTTL.get('hello');
             expect(entry).toBeNull();
 
@@ -80,7 +85,7 @@ describe('ResponseCache (Redis integrated)', () => {
     });
 
     describe('Redis Fallback', () => {
-        it('hydrates in-memory cache from Redis if missing locally', async () => {
+        it('reads cached entries from Redis directly', async () => {
             const simulatedTimestamp = Date.now();
 
             // Setup Redis to return a valid cached entry
@@ -93,9 +98,10 @@ describe('ResponseCache (Redis integrated)', () => {
                 avgLatency: 120,
                 sizeBytes: 150
             };
-            (redisGet as Mock).mockResolvedValue(JSON.stringify(redisEntry));
+            redisStore['ai:cache:what is redis'] = JSON.stringify(redisEntry);
+            redisStore['ai:cache:keys'] = JSON.stringify(['what is redis']);
 
-            // Cache is empty in memory
+            // Stats map starts empty in this instance
             expect(cache.size).toBe(0);
 
             // Fetch
@@ -105,7 +111,7 @@ describe('ResponseCache (Redis integrated)', () => {
             expect(entry!.response).toBe('Redis is an in-memory datastore.');
             expect(redisGet).toHaveBeenCalledTimes(1);
 
-            // It should now be warmed in memory
+            // Query stats should be tracked after hit
             expect(cache.size).toBe(1);
         });
 
@@ -125,46 +131,13 @@ describe('ResponseCache (Redis integrated)', () => {
         });
     });
 
-    describe('LRU Eviction', () => {
-        it('evicts least used entry when maxEntries is reached', async () => {
-            const smallCache = new ResponseCache({ maxEntries: 3 });
+    describe('Fuzzy Matching', () => {
+        it('matches close keys from Redis index', async () => {
+            await cache.set('binary search algorithm', 'Use divide and conquer.', 'groq', 140);
 
-            await smallCache.set('query apple', 'r1', 'groq', 100);
-            await smallCache.set('query banana', 'r2', 'groq', 100);
-            await smallCache.set('query cherry', 'r3', 'groq', 100);
-
-            // Hit banana and cherry so they have higher hit counts
-            await smallCache.get('query banana');
-            await smallCache.get('query cherry');
-
-            // Add date. Since apple has the lowest hit count (0), it should be evicted.
-            await smallCache.set('query date', 'r4', 'gemini', 150);
-
-            // apple is evicted from memory. (Mock Redis to return null so we know it's gone)
-            (redisGet as Mock).mockResolvedValue(null);
-
-            expect(await smallCache.get('query apple')).toBeNull();
-            expect(await smallCache.get('query banana')).not.toBeNull();
-            expect(await smallCache.get('query date')).not.toBeNull();
-        });
-    });
-
-    describe('Memory Bounds', () => {
-        it('evicts entries when memory limit is reached', async () => {
-            // Tiny memory limit (100 bytes)
-            const memCache = new ResponseCache({ maxMemoryBytes: 100 });
-
-            await memCache.set('a', 'short', 'groq', 100); // approx 14 bytes
-
-            // Add a massive entry that blows the limit
-            const hugeResponse = 'x'.repeat(200);
-            await memCache.set('b', hugeResponse, 'groq', 100); // 400+ bytes
-
-            // Memory should never exceed bounds. EITHER it evicts everything, OR it refuses to cache 'b'
-            expect(memCache.size).toBeLessThanOrEqual(1);
-
-            const stats = memCache.getStats();
-            expect(stats.memorySizeBytes).toBeLessThanOrEqual(100);
+            const entry = await cache.get('binary searh algorithm');
+            expect(entry).not.toBeNull();
+            expect(entry!.response).toBe('Use divide and conquer.');
         });
     });
 
@@ -210,7 +183,7 @@ describe('ResponseCache (Redis integrated)', () => {
             });
 
             // Mock to miss in redis initially
-            (redisGet as Mock).mockResolvedValue(null);
+            (redisGet as Mock).mockImplementation(async (key: string) => redisStore[key] ?? null);
 
             const result = await cache.preWarm(queries, generator);
 

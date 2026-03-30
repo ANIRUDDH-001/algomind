@@ -1,18 +1,15 @@
 /**
- * ResponseCache — in-memory cache for AI responses to common queries.
+ * ResponseCache — Redis-backed cache for AI responses to common queries.
  *
  * Features:
- *   - Fuzzy matching via Levenshtein distance (reuses intent-classifier util)
- *   - TTL-based expiry (24h for technical content)
- *   - LRU eviction (keeps top 100 entries by hit count)
- *   - Size cap (~10MB estimated)
+ *   - Fuzzy matching via Levenshtein distance
+ *   - TTL-based expiry (24h default)
+ *   - Cross-request persistence via Redis
  *   - Pre-warming with common interview questions
  *
  * Gated by ENABLE_RESPONSE_CACHE feature flag.
  *
  * @module response-cache
- * @note Now uses Redis for persistence across cold starts.
- * Falls back to in-memory if Redis is unavailable.
  */
 
 import { levenshtein } from './intent-classifier';
@@ -57,10 +54,6 @@ export interface CacheStats {
 }
 
 export interface ResponseCacheOptions {
-    /** Max number of entries. Default: 100 */
-    maxEntries?: number;
-    /** Max total memory in bytes. Default: 10MB */
-    maxMemoryBytes?: number;
     /** TTL in milliseconds. Default: 24 * 60 * 60 * 1000 (24h) */
     ttlMs?: number;
     /** Levenshtein distance threshold for fuzzy matching. Default: 2 */
@@ -71,10 +64,11 @@ export interface ResponseCacheOptions {
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const DEFAULT_MAX_ENTRIES = 100;
-const DEFAULT_MAX_MEMORY = 10 * 1024 * 1024; // 10MB
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;  // 24h
 const DEFAULT_FUZZY_THRESHOLD = 2;
+const LEGACY_MAX_MEMORY_PLACEHOLDER = 10 * 1024 * 1024;
+const CACHE_KEY_PREFIX = 'ai:cache:';
+const CACHE_INDEX_KEY = 'ai:cache:keys';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -95,16 +89,13 @@ function estimateBytes(s: string): number {
 // ── ResponseCache ───────────────────────────────────────────────────
 
 export class ResponseCache {
-    private cache = new Map<string, CacheEntry>();
+    private queryStats = new Map<string, { hitCount: number; model: 'groq' | 'gemini'; avgLatency: number }>();
     private totalHits = 0;
     private totalMisses = 0;
     private readonly opts: Required<ResponseCacheOptions>;
-    private currentMemory = 0;
 
     constructor(options: ResponseCacheOptions = {}) {
         this.opts = {
-            maxEntries: options.maxEntries ?? DEFAULT_MAX_ENTRIES,
-            maxMemoryBytes: options.maxMemoryBytes ?? DEFAULT_MAX_MEMORY,
             ttlMs: options.ttlMs ?? DEFAULT_TTL_MS,
             fuzzyThreshold: options.fuzzyThreshold ?? DEFAULT_FUZZY_THRESHOLD,
             appVersion: options.appVersion ?? '1.0.0',
@@ -125,58 +116,35 @@ export class ResponseCache {
             return null;
         }
 
-        // 1. Exact match (in memory)
-        const exact = this.cache.get(key);
+        // 1. Exact match (Redis)
+        const exact = await this.readEntryFromRedis(key);
         if (exact) {
-            if (this.isExpired(exact)) {
-                this.cache.delete(key);
-                this.currentMemory -= exact.sizeBytes;
-                // Don't return miss yet, check Redis below
-            } else {
-                exact.hitCount++;
-                this.totalHits++;
-                return exact;
-            }
+            return this.registerHitAndPersist(key, exact);
         }
 
-        // 2. Fuzzy match (in memory)
+        // 2. Fuzzy match (Redis key index)
         if (key.length <= 100) { // perf guard
             let bestKey: string | null = null;
             let bestDist = Infinity;
+            const indexedKeys = await this.getIndexedKeys();
 
-            for (const [k, entry] of this.cache.entries()) {
-                if (Math.abs(k.length - key.length) > this.opts.fuzzyThreshold) continue;
-                if (this.isExpired(entry)) continue;
+            for (const indexedKey of indexedKeys) {
+                if (indexedKey === key) continue;
+                if (Math.abs(indexedKey.length - key.length) > this.opts.fuzzyThreshold) continue;
 
-                const dist = levenshtein(key, k);
+                const dist = levenshtein(key, indexedKey);
                 if (dist <= this.opts.fuzzyThreshold && dist < bestDist) {
                     bestDist = dist;
-                    bestKey = k;
+                    bestKey = indexedKey;
                 }
             }
 
             if (bestKey) {
-                const entry = this.cache.get(bestKey)!;
-                entry.hitCount++;
-                this.totalHits++;
-                return entry;
-            }
-        }
-
-        // 3. Fallback to Redis
-        let redisValue: string | null = null;
-        try {
-            redisValue = await redisGet(`ai:cache:${key}`);
-        } catch { /* suppress network errors */ }
-
-        if (redisValue) {
-            try {
-                const entry = JSON.parse(redisValue) as CacheEntry;
-                if (Date.now() - entry.timestamp < (this.opts.ttlMs ?? 86400000)) {
-                    this.cache.set(key, entry); // warm local cache
-                    return entry;
+                const fuzzyEntry = await this.readEntryFromRedis(bestKey);
+                if (fuzzyEntry) {
+                    return this.registerHitAndPersist(bestKey, fuzzyEntry);
                 }
-            } catch { /* invalid JSON, ignore */ }
+            }
         }
 
         this.totalMisses++;
@@ -186,8 +154,7 @@ export class ResponseCache {
     // ── Write ───────────────────────────────────────────────────────
 
     /**
-     * Cache a response for a query.
-     * Handles LRU eviction and memory limits.
+    * Cache a response for a query in Redis.
      */
     async set(
         query: string,
@@ -197,49 +164,34 @@ export class ResponseCache {
     ): Promise<void> {
         const key = normaliseCacheKey(query);
         if (!key || !response) return;
-
+        const existingStats = this.queryStats.get(key);
         const sizeBytes = estimateBytes(key) + estimateBytes(response);
-
-        // Don't cache if single entry exceeds memory limit
-        if (sizeBytes > this.opts.maxMemoryBytes) return;
-
-        // Evict if at entry limit
-        while (this.cache.size >= this.opts.maxEntries) {
-            this.evictLRU();
-        }
-
-        // Evict if at memory limit
-        while (this.currentMemory + sizeBytes > this.opts.maxMemoryBytes && this.cache.size > 0) {
-            this.evictLRU();
-        }
-
-        // Update or insert
-        const existing = this.cache.get(key);
-        if (existing) {
-            this.currentMemory -= existing.sizeBytes;
-        }
 
         const entry: CacheEntry = {
             query: key,
             response,
             model,
             timestamp: Date.now(),
-            hitCount: existing?.hitCount ?? 0,
-            avgLatency: existing
-                ? (existing.avgLatency * existing.hitCount + latencyMs) / (existing.hitCount + 1)
+            hitCount: existingStats?.hitCount ?? 0,
+            avgLatency: existingStats
+                ? (existingStats.avgLatency * existingStats.hitCount + latencyMs) / (existingStats.hitCount + 1)
                 : latencyMs,
             sizeBytes,
         };
 
-        this.cache.set(key, entry);
-        this.currentMemory += sizeBytes;
+        this.queryStats.set(key, {
+            hitCount: existingStats?.hitCount ?? 0,
+            model,
+            avgLatency: entry.avgLatency,
+        });
 
         try {
             await redisSet(
-                `ai:cache:${key}`,
+                `${CACHE_KEY_PREFIX}${key}`,
                 JSON.stringify(entry),
-                Math.floor((this.opts.ttlMs ?? 86400000) / 1000)
+                Math.floor(this.opts.ttlMs / 1000)
             );
+            await this.addKeyToIndex(key);
         } catch { /* ignore set errors */ }
     }
 
@@ -253,12 +205,16 @@ export class ResponseCache {
         const normalised = normaliseCacheKey(pattern);
         let removed = 0;
 
-        for (const [key, entry] of this.cache.entries()) {
+        for (const [key] of this.queryStats.entries()) {
             if (key.includes(normalised)) {
-                this.currentMemory -= entry.sizeBytes;
-                this.cache.delete(key);
+                this.queryStats.delete(key);
+                void redisDel(`${CACHE_KEY_PREFIX}${key}`);
                 removed++;
             }
+        }
+
+        if (removed > 0) {
+            void this.persistIndex([...this.queryStats.keys()]);
         }
 
         return removed;
@@ -266,10 +222,16 @@ export class ResponseCache {
 
     /** Clear the entire cache. */
     clear(): void {
-        this.cache.clear();
-        this.currentMemory = 0;
+        const keysToDelete = [...this.queryStats.keys()];
+        this.queryStats.clear();
         this.totalHits = 0;
         this.totalMisses = 0;
+
+        // Fire-and-forget async clear so the current sync API remains unchanged.
+        void Promise.all([
+            ...keysToDelete.map((key) => redisDel(`${CACHE_KEY_PREFIX}${key}`)),
+            redisDel(CACHE_INDEX_KEY),
+        ]);
     }
 
     // ── Pre-warming ─────────────────────────────────────────────────
@@ -310,7 +272,12 @@ export class ResponseCache {
 
     getStats(): CacheStats {
         const total = this.totalHits + this.totalMisses;
-        const entries = [...this.cache.values()];
+        const entries = [...this.queryStats.entries()].map(([query, info]) => ({
+            query,
+            hitCount: info.hitCount,
+            model: info.model,
+            avgLatency: info.avgLatency,
+        }));
 
         // Top queries by hit count
         const topQueries = entries
@@ -324,12 +291,12 @@ export class ResponseCache {
         );
 
         return {
-            entries: this.cache.size,
+            entries: this.queryStats.size,
             totalHits: this.totalHits,
             totalMisses: this.totalMisses,
             hitRate: total > 0 ? Math.round((this.totalHits / total) * 100) : 0,
-            memorySizeBytes: this.currentMemory,
-            maxMemoryBytes: this.opts.maxMemoryBytes,
+            memorySizeBytes: 0,
+            maxMemoryBytes: LEGACY_MAX_MEMORY_PLACEHOLDER,
             avgLatencySaved: this.totalHits > 0
                 ? Math.round(totalLatencySaved / this.totalHits)
                 : 0,
@@ -339,7 +306,7 @@ export class ResponseCache {
 
     /** Get current entry count. */
     get size(): number {
-        return this.cache.size;
+        return this.queryStats.size;
     }
 
     // ── Internal ────────────────────────────────────────────────────
@@ -348,30 +315,87 @@ export class ResponseCache {
         return Date.now() - entry.timestamp > this.opts.ttlMs;
     }
 
-    /**
-     * Evict the entry with the lowest hit count (LRU by usage).
-     * On ties, evict the oldest entry.
-     */
-    private evictLRU(): void {
-        let worstKey: string | null = null;
-        let worstHits = Infinity;
-        let worstTime = Infinity;
-
-        for (const [key, entry] of this.cache.entries()) {
-            if (
-                entry.hitCount < worstHits ||
-                (entry.hitCount === worstHits && entry.timestamp < worstTime)
-            ) {
-                worstKey = key;
-                worstHits = entry.hitCount;
-                worstTime = entry.timestamp;
-            }
+    private async readEntryFromRedis(key: string): Promise<CacheEntry | null> {
+        let redisValue: string | null = null;
+        try {
+            redisValue = await redisGet(`${CACHE_KEY_PREFIX}${key}`);
+        } catch {
+            redisValue = null;
         }
 
-        if (worstKey) {
-            const entry = this.cache.get(worstKey)!;
-            this.currentMemory -= entry.sizeBytes;
-            this.cache.delete(worstKey);
+        if (!redisValue) return null;
+
+        try {
+            const entry = JSON.parse(redisValue) as CacheEntry;
+            if (this.isExpired(entry)) {
+                void redisDel(`${CACHE_KEY_PREFIX}${key}`);
+                void this.removeKeyFromIndex(key);
+                return null;
+            }
+            return entry;
+        } catch {
+            return null;
+        }
+    }
+
+    private registerHitAndPersist(key: string, entry: CacheEntry): CacheEntry {
+        entry.hitCount++;
+        this.totalHits++;
+
+        const existing = this.queryStats.get(key);
+        this.queryStats.set(key, {
+            hitCount: entry.hitCount,
+            model: entry.model,
+            avgLatency: existing?.avgLatency ?? entry.avgLatency,
+        });
+
+        void redisSet(
+            `${CACHE_KEY_PREFIX}${key}`,
+            JSON.stringify(entry),
+            Math.floor(this.opts.ttlMs / 1000)
+        );
+
+        return entry;
+    }
+
+    private async getIndexedKeys(): Promise<string[]> {
+        let raw: string | null = null;
+        try {
+            raw = await redisGet(CACHE_INDEX_KEY);
+        } catch {
+            raw = null;
+        }
+
+        if (!raw) return [];
+
+        try {
+            const parsed = JSON.parse(raw) as unknown;
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter((item): item is string => typeof item === 'string');
+        } catch {
+            return [];
+        }
+    }
+
+    private async addKeyToIndex(key: string): Promise<void> {
+        const keys = await this.getIndexedKeys();
+        if (!keys.includes(key)) {
+            keys.push(key);
+            await this.persistIndex(keys);
+        }
+    }
+
+    private async removeKeyFromIndex(key: string): Promise<void> {
+        const keys = await this.getIndexedKeys();
+        const next = keys.filter((k) => k !== key);
+        await this.persistIndex(next);
+    }
+
+    private async persistIndex(keys: string[]): Promise<void> {
+        try {
+            await redisSet(CACHE_INDEX_KEY, JSON.stringify(keys), Math.floor(this.opts.ttlMs / 1000));
+        } catch {
+            // ignore index persistence failures
         }
     }
 }
