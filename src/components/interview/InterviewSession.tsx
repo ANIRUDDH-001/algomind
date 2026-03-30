@@ -653,17 +653,17 @@ export function InterviewSession({
                                 ? Math.floor((Date.now() - startTimeRef.current) / 1000)
                                 : durationSecs;
 
-                            const { success, error: saveError, sessionId, assessmentPending } = await saveInterviewSession(
+                            const saveResult = await saveInterviewSession(
                                 user.id, activeProblem.id, activeProblem.title, fullTranscript, duration, assessment,
                                 { difficultyMode: interviewConfig.difficultyMode }
                             );
-                            if (!success) {
-                                console.error('Failed to save session:', saveError);
+                            if (!saveResult.success) {
+                                console.error('Failed to save session:', saveResult.error);
                                 toast.error('Session analyzed but could not be saved to history.');
-                            } else if (sessionId) {
+                            } else if (saveResult.data.sessionId) {
                                 // A5: Auto-navigate to analysis page
-                                const pendingQuery = assessmentPending ? '&pending=true' : '';
-                                router.push(`/interview/analysis?sessionId=${sessionId}${pendingQuery}`);
+                                const pendingQuery = saveResult.data.assessmentPending ? '&pending=true' : '';
+                                router.push(`/interview/analysis?sessionId=${saveResult.data.sessionId}${pendingQuery}`);
                             }
                         } catch (saveErr) {
                             console.error('Save exception:', saveErr);

@@ -1,8 +1,9 @@
 'use server';
 
 import { getServiceClient } from '@/lib/supabase/service';
+import { err, ok, type Result } from '@/lib/api/result';
 
-export async function updateKaiMemory(userId: string, sessionSummary: string) {
+export async function updateKaiMemory(userId: string, sessionSummary: string): Promise<Result<null>> {
     try {
         const supabase = getServiceClient();
 
@@ -36,14 +37,14 @@ export async function updateKaiMemory(userId: string, sessionSummary: string) {
                 updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
 
-        return { success: true };
+        return ok(null);
     } catch (e) {
         console.error('[learn actions] Error updating Kai memory:', e);
-        return { success: false, error: 'Internal error' };
+        return err('Internal error', 'internal_error');
     }
 }
 
-export async function getKaiMemory(userId: string) {
+export async function getKaiMemory(userId: string): Promise<Result<{ memory: string }>> {
     try {
         const supabase = getServiceClient();
         const { data: profile } = await supabase
@@ -59,13 +60,13 @@ export async function getKaiMemory(userId: string) {
                 kai_memory: '',
                 updated_at: new Date().toISOString()
             });
-            return '';
+            return ok({ memory: '' });
         }
 
-        return profile.kai_memory || '';
+        return ok({ memory: profile.kai_memory || '' });
     } catch (e) {
         console.error('[learn actions] Error fetching Kai memory:', e);
-        return null;
+        return err('Internal error', 'internal_error');
     }
 }
 
@@ -74,7 +75,7 @@ export async function recordLearnSession(params: {
     problemId: string;
     conceptsCovered: string[];
     duration: number;
-}) {
+}): Promise<Result<null>> {
     try {
         const supabase = getServiceClient();
 
@@ -89,9 +90,9 @@ export async function recordLearnSession(params: {
             }
         });
 
-        return { success: true };
+        return ok(null);
     } catch (e) {
         console.error('[learn actions] Error recording learn session:', e);
-        return { success: false, error: 'Internal error' };
+        return err('Internal error', 'internal_error');
     }
 }

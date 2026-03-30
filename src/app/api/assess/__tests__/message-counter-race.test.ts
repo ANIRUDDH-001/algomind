@@ -4,7 +4,7 @@ describe('Message counter race condition', () => {
     it('returns unique counts under concurrent INCR calls', async () => {
         const counter = { value: 0 };
         const mockRedis = {
-            incr: vi.fn(async () => ++counter.value),
+            incr: vi.fn(async (_key: string) => ++counter.value),
             incrby: vi.fn(async (_key: string, amount: number) => {
                 counter.value += amount;
                 return counter.value;

@@ -95,7 +95,9 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect(result.sessionId).toBe('sess-abc');
+        if (result.success) {
+            expect(result.data.sessionId).toBe('sess-abc');
+        }
         expect(mockSupabase.from).toHaveBeenCalledWith('interview_sessions');
         expect(mockSupabase.from).toHaveBeenCalledWith('assessments');
     });
@@ -115,7 +117,9 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Unauthorized');
+        if (!result.success) {
+            expect(result.error).toBe('Unauthorized');
+        }
         expect(mockSupabase.from).not.toHaveBeenCalled();
     });
 
@@ -206,7 +210,9 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(false);
-        expect(result.error).toBe('DB Down');
+        if (!result.success) {
+            expect(result.error).toBe('DB Down');
+        }
     });
 
     it('6. DB insert for assessments fails -> session saved but assessment missing (partial success)', async () => {
@@ -244,7 +250,9 @@ describe('saveInterviewSession Action', () => {
 
         // Should still be success because session was saved
         expect(result.success).toBe(true);
-        expect(result.sessionId).toBe('sess-partial');
+        if (result.success) {
+            expect(result.data.sessionId).toBe('sess-partial');
+        }
     });
 
     it('7. saveInterviewSession called with readOnly=true -> returns early, no writes', async () => {
@@ -259,7 +267,9 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect((result as any).bypassed).toBe(true);
+        if (result.success) {
+            expect(result.data.bypassed).toBe(true);
+        }
         expect(createServerSupabase).not.toHaveBeenCalled();
     });
 
@@ -378,8 +388,10 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect(result.sessionId).toBe('session-abc');
-        expect((result as any).assessmentPending).toBe(true);
+        if (result.success) {
+            expect(result.data.sessionId).toBe('session-abc');
+            expect(result.data.assessmentPending).toBe(true);
+        }
     });
 
     it('memory update failure does not affect session save success', async () => {
@@ -472,6 +484,8 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect((result as any).assessmentPending).toBeUndefined();
+        if (result.success) {
+            expect(result.data.assessmentPending).toBeUndefined();
+        }
     });
 });

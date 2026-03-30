@@ -107,7 +107,9 @@ describe('saveInterviewSession scores & profile wiring', () => {
         expect(mockRpc).toHaveBeenCalledWith('ensure_learner_profile', { p_user_id: 'user-id' });
         expect(result).toMatchObject({
             success: true,
-            sessionId: 'session-id'
+            data: {
+                sessionId: 'session-id'
+            }
         });
     });
 

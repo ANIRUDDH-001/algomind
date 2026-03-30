@@ -213,9 +213,11 @@ describe('Complete assessment pipeline (integration)', () => {
         );
 
         expect(result.success).toBe(true);
-        expect(typeof result.sessionId).toBe('string');
-        expect(result.sessionId && result.sessionId.length).toBeGreaterThan(0);
-        expect((result as any).assessmentPending).toBeFalsy();
+        if (result.success) {
+            expect(typeof result.data.sessionId).toBe('string');
+            expect(result.data.sessionId && result.data.sessionId.length).toBeGreaterThan(0);
+            expect(result.data.assessmentPending).toBeFalsy();
+        }
     });
 
     it('validation pass runs and corrects inflated scores', async () => {

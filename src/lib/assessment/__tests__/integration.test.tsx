@@ -152,7 +152,9 @@ describe('Assessment Lifecycle Integration', () => {
         // 2 & 3. Call saveInterviewSession and assert it succeeds
         const saveResult = await saveInterviewSession('test-user', 'two-sum', 'Two Sum', transcript as any[]);
         expect(saveResult.success).toBe(true);
-        expect(saveResult.sessionId).toBe('test-session-id');
+        if (saveResult.success) {
+            expect(saveResult.data.sessionId).toBe('test-session-id');
+        }
 
         // Check that session was inserted
         const sessionRow = savedDbRows.find(row => row.problem_id === 'two-sum');

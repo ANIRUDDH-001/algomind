@@ -56,12 +56,14 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
             if (cached !== null) {
                 isCoOwner = cached === 'true';
             } else {
-                isCoOwner = await checkCoOwnerStatus(userId);
+                const coOwnerResult = await checkCoOwnerStatus(userId);
+                isCoOwner = coOwnerResult.success ? coOwnerResult.data.isCoOwner : false;
                 await redisSet(cacheKey, String(isCoOwner), 300); // 5-minute TTL
             }
         } catch {
             // Redis unavailable — fall through to direct check
-            isCoOwner = await checkCoOwnerStatus(userId);
+            const coOwnerResult = await checkCoOwnerStatus(userId);
+            isCoOwner = coOwnerResult.success ? coOwnerResult.data.isCoOwner : false;
         }
 
         if (profile?.account_type === 'owner' || isCoOwner) {

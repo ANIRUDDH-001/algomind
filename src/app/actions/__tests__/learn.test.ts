@@ -37,13 +37,19 @@ describe('Learn Actions', () => {
         it('should return empty string if user not found natively', async () => {
             mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
             const mem = await getKaiMemory('user-123');
-            expect(mem).toBe('');
+            expect(mem.success).toBe(true);
+            if (mem.success) {
+                expect(mem.data.memory).toBe('');
+            }
             expect(mockSupabase.insert).toHaveBeenCalled();
         });
 
         it('should return existing memory if found', async () => {
             const mem = await getKaiMemory('user-123');
-            expect(mem).toBe('Existing');
+            expect(mem.success).toBe(true);
+            if (mem.success) {
+                expect(mem.data.memory).toBe('Existing');
+            }
             expect(mockSupabase.from).toHaveBeenCalledWith('learner_profiles');
         });
     });

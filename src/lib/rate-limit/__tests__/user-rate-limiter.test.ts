@@ -67,7 +67,7 @@ describe('User Rate Limiter', () => {
             from: buildFromMock(),
         });
         
-        (checkCoOwnerStatus as any).mockResolvedValue(false);
+        (checkCoOwnerStatus as any).mockResolvedValue({ success: true, data: { isCoOwner: false } });
     });
 
     it('1. allows user below daily limit', async () => {
@@ -108,7 +108,7 @@ describe('User Rate Limiter', () => {
     });
 
     it('4. allows co-owner regardless of count', async () => {
-        (checkCoOwnerStatus as any).mockResolvedValue(true);
+        (checkCoOwnerStatus as any).mockResolvedValue({ success: true, data: { isCoOwner: true } });
         const result = await checkUserRateLimit('co-owner-123');
         expect(result.allowed).toBe(true);
         expect(result.isAdmin).toBe(true);

@@ -149,14 +149,22 @@ function InterviewContent() {
                 // ── Kai memory: fetch ONCE ────────────────────────────────────────────────────
                 let kaiMemory = '';
                 if (userId && !isGuest) {
-                    try { kaiMemory = await getKaiMemory(userId); } catch { /* non-fatal */ }
+                    try {
+                        const memoryResult = await getKaiMemory(userId);
+                        if (memoryResult.success) {
+                            kaiMemory = memoryResult.data.memory;
+                        }
+                    } catch {
+                        // Non-fatal
+                    }
                 }
 
                 // ── Co-owner check (server action — bypasses RLS) ─────────────────────────
                 let isCoOwner = false;
                 if (userId && !isGuest && profile?.account_type === 'candidate') {
                     // Only check for candidates — owners/admins already have unlimited access
-                    isCoOwner = await checkCoOwnerStatus(userId);
+                    const coOwnerResult = await checkCoOwnerStatus(userId);
+                    isCoOwner = coOwnerResult.success ? coOwnerResult.data.isCoOwner : false;
                 }
 
                 // ── Sprint: fetch problem 2 if needed ────────────────────────────────────────

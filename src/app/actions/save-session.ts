@@ -8,6 +8,13 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { type ConversationTurn } from '@/lib/assessment/prompts';
 import { addToQueue, updateSkillRepetition } from '@/lib/spaced-repetition/queue';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
+import { err, ok, type Result } from '@/lib/api/result';
+
+type SaveInterviewSessionData = {
+    sessionId?: string;
+    assessmentPending?: boolean;
+    bypassed?: boolean;
+};
 
 export async function saveInterviewSession(
     userId: string,
@@ -23,9 +30,9 @@ export async function saveInterviewSession(
         difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint';
         isAdmin?: boolean;
     }
-) {
+): Promise<Result<SaveInterviewSessionData>> {
     if (options?.readOnly) {
-        return { success: true, bypassed: true };
+        return ok({ bypassed: true });
     }
 
     const supabase = await createClient();
@@ -34,7 +41,7 @@ export async function saveInterviewSession(
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     if (authError || !authUser || authUser.id !== userId) {
         console.error('❌ [ACTION] Auth validation failed:', { authError, userId });
-        return { success: false, error: 'Unauthorized', status: 401 };
+        return err('Unauthorized', 'unauthorized');
     }
 
     try {
@@ -133,7 +140,7 @@ export async function saveInterviewSession(
         if (error) {
             console.error('❌ [ACTION] Failed to save session:', error);
             void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
-            return { success: false, error: error.message, status: 500 };
+            return err(error.message, 'db_error');
         }
 
         let assessmentPending = false;
@@ -361,16 +368,16 @@ export async function saveInterviewSession(
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
 
         if (assessmentPending) {
-            return { success: true, sessionId: sessionData.id, assessmentPending: true };
+            return ok({ sessionId: sessionData.id, assessmentPending: true });
         }
 
-        return { success: true, sessionId: sessionData.id };
+        return ok({ sessionId: sessionData.id });
     } catch (e) {
         const error = e as unknown;
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('❌ [ACTION] Unexpected error in saveInterviewSession:', error);
         void logSystemEvent({ type: 'db_error', errorMessage, metadata: { operation: 'save_session' } });
-        return { success: false, error: errorMessage, status: 500 };
+        return err(errorMessage, 'unexpected_error');
     }
 }
 

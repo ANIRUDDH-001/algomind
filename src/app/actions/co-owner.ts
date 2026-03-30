@@ -1,13 +1,14 @@
 'use server';
 
 import { createServiceRoleSupabase } from '@/lib/supabase/server';
+import { err, ok, type Result } from '@/lib/api/result';
 
 /**
  * Check if a user has co-owner status.
  * Uses service-role client to bypass RLS (avoids 403 on co_owners table).
  */
-export async function checkCoOwnerStatus(userId: string): Promise<boolean> {
-    if (!userId) return false;
+export async function checkCoOwnerStatus(userId: string): Promise<Result<{ isCoOwner: boolean }>> {
+    if (!userId) return ok({ isCoOwner: false });
 
     try {
         const supabase = await createServiceRoleSupabase();
@@ -18,10 +19,10 @@ export async function checkCoOwnerStatus(userId: string): Promise<boolean> {
             .limit(1)
             .maybeSingle();
 
-        return !!data;
+        return ok({ isCoOwner: !!data });
     } catch {
         // Non-fatal — if service role key missing, default to false
         console.warn('[co-owner] Failed to check co-owner status for user:', userId);
-        return false;
+        return err('Failed to check co-owner status', 'co_owner_check_failed');
     }
 }

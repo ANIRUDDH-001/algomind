@@ -3,14 +3,15 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getCachedDashboardAverages, setCachedDashboardAverages, DashboardAverages } from '@/lib/cache/dashboardCache';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
+import { err, ok, type Result } from '@/lib/api/result';
 
-export async function getDashboardAveragesAction(userId: string): Promise<DashboardAverages | null> {
-    if (!userId) return null;
+export async function getDashboardAveragesAction(userId: string): Promise<Result<DashboardAverages | null>> {
+    if (!userId) return err('Missing userId', 'missing_user_id');
 
     try {
         const averages = await getCachedDashboardAverages(userId);
         if (averages) {
-            return averages;
+            return ok(averages);
         }
 
         const supabase = await createServerSupabase();
@@ -19,7 +20,7 @@ export async function getDashboardAveragesAction(userId: string): Promise<Dashbo
             p_limit: 20
         });
 
-        if (error || !data || data.length === 0) return null;
+        if (error || !data || data.length === 0) return ok(null);
 
         const calculatedAverages: Record<string, number> = {};
         const counts: Record<string, number> = {};
@@ -43,9 +44,9 @@ export async function getDashboardAveragesAction(userId: string): Promise<Dashbo
 
         await setCachedDashboardAverages(userId, calculatedAverages);
 
-        return calculatedAverages;
-    } catch (err) {
-        console.error('Failed to load all-time session averages', err);
-        return null;
+        return ok(calculatedAverages);
+    } catch (error) {
+        console.error('Failed to load all-time session averages', error);
+        return err('Failed to load averages', 'dashboard_load_failed');
     }
 }
