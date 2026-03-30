@@ -18,6 +18,7 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             select: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
+            rpc: vi.fn(),
             single: vi.fn().mockResolvedValue({ data: null, error: null }),
             maybeSingle: vi.fn().mockReturnThis(),
             insert: vi.fn().mockReturnThis(),
@@ -155,10 +156,12 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
     });
 
     describe('DELETE /api/admin/admins', () => {
-        const createRequest = (body: any) => new Request('http://localhost:3000/api/admin/admins', {
-            method: 'DELETE',
-            body: JSON.stringify(body),
-        });
+        const createRequest = (email?: string) => {
+            const url = email
+                ? `http://localhost:3000/api/admin/admins?email=${encodeURIComponent(email)}`
+                : 'http://localhost:3000/api/admin/admins';
+            return new Request(url, { method: 'DELETE' });
+        };
 
         it('1. Remove non-self admin -> 200', async () => {
             vi.mocked(requireAdminForApi).mockResolvedValue({
@@ -166,19 +169,17 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
                 errorResponse: null
             });
 
-            mockSupabase.select
-                .mockReturnValueOnce(mockSupabase) // system_config select(...)
-                .mockResolvedValueOnce({ count: 2, error: null }); // admin count query
-            mockSupabase.eq
-                .mockReturnValueOnce(mockSupabase) // system_config eq('key', ...)
-                .mockResolvedValueOnce({ error: null }); // delete eq('email', ...)
+            mockSupabase.rpc.mockResolvedValue({ data: { success: true }, error: null });
 
-            const req = createRequest({ email: 'otheradmin@test.com' });
+            const req = createRequest('otheradmin@test.com');
             const response = await DELETE(req);
             const data = await response.json();
 
             expect(response.status).toBe(200);
             expect(data).toEqual({ success: true });
+            expect(mockSupabase.rpc).toHaveBeenCalledWith('safe_delete_admin', {
+                p_email: 'otheradmin@test.com',
+            });
         });
 
         it('2. Last admin tries to remove self -> 400 "Cannot remove the last admin"', async () => {
@@ -187,13 +188,12 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
                 errorResponse: null
             });
 
-            mockSupabase.select
-                .mockReturnValueOnce(mockSupabase) // system_config select(...)
-                .mockResolvedValueOnce({ count: 1, error: null }); // Only 1 admin left
-            mockSupabase.eq
-                .mockReturnValueOnce(mockSupabase); // system_config eq('key', ...)
+            mockSupabase.rpc.mockResolvedValue({
+                data: { success: false, error: 'Cannot remove the last admin' },
+                error: null,
+            });
 
-            const req = createRequest({ email: 'admin@test.com' });
+            const req = createRequest('admin@test.com');
             const response = await DELETE(req);
             const data = await response.json();
 
@@ -201,18 +201,18 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
             expect(data).toEqual({ error: 'Cannot remove the last admin' });
         });
 
-        it('3. Missing email in body -> 400', async () => {
+        it('3. Missing email in query -> 400', async () => {
             vi.mocked(requireAdminForApi).mockResolvedValue({
                 user: { email: 'admin@test.com' } as any,
                 errorResponse: null
             });
 
-            const req = createRequest({}); // Missing email
+            const req = createRequest();
             const response = await DELETE(req);
             const data = await response.json();
 
             expect(response.status).toBe(400);
-            expect(data).toEqual({ error: 'Email required' });
+            expect(data).toEqual({ error: 'Email is required' });
         });
 
         it('4. Non-admin -> 403', async () => {
@@ -222,12 +222,50 @@ describe('Admin Admins Route (/api/admin/admins)', () => {
                 errorResponse: forbiddenResponse
             });
 
-            const req = createRequest({ email: 'otheradmin@test.com' });
+            const req = createRequest('otheradmin@test.com');
             const response = await DELETE(req);
             const data = await response.json();
 
             expect(response.status).toBe(403);
             expect(data).toEqual({ error: 'Forbidden' });
+        });
+
+        it('5. Master admin deletion rejected by RPC -> 403', async () => {
+            vi.mocked(requireAdminForApi).mockResolvedValue({
+                user: { email: 'admin@test.com' } as any,
+                errorResponse: null,
+            });
+
+            mockSupabase.rpc.mockResolvedValue({
+                data: { success: false, error: 'Cannot delete master admin' },
+                error: null,
+            });
+
+            const req = createRequest('master@test.com');
+            const response = await DELETE(req);
+            const data = await response.json();
+
+            expect(response.status).toBe(403);
+            expect(data).toEqual({ error: 'Cannot delete master admin' });
+        });
+
+        it('6. RPC transport failure -> 500', async () => {
+            vi.mocked(requireAdminForApi).mockResolvedValue({
+                user: { email: 'admin@test.com' } as any,
+                errorResponse: null,
+            });
+
+            mockSupabase.rpc.mockResolvedValue({
+                data: null,
+                error: new Error('RPC failed'),
+            });
+
+            const req = createRequest('otheradmin@test.com');
+            const response = await DELETE(req);
+            const data = await response.json();
+
+            expect(response.status).toBe(500);
+            expect(data).toEqual({ error: 'Failed to delete admin' });
         });
     });
 });

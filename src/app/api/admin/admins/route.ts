@@ -80,11 +80,11 @@ export async function DELETE(request: Request) {
         const { errorResponse } = await requireAdminForApi();
         if (errorResponse) return errorResponse;
 
-        const body = await request.json();
-        const { email } = body as { email?: string };
+        const { searchParams } = new URL(request.url);
+        const email = searchParams.get('email');
 
         if (!email) {
-            return NextResponse.json({ error: "Email required" }, { status: 400 });
+            return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
         const masterEmail = await getMasterAdminEmail();
@@ -97,22 +97,22 @@ export async function DELETE(request: Request) {
 
         const supabaseAdmin = getServiceClient();
 
-        const { count, error: countError } = await supabaseAdmin
-            .from('admin_users') // ← FIXED
-            .select('*', { count: 'exact', head: true });
+        // Atomic delete via RPC to prevent TOCTOU race conditions.
+        const { data, error } = await supabaseAdmin.rpc('safe_delete_admin', {
+            p_email: email,
+        });
 
-        if (countError) throw countError;
-
-        if ((count || 0) <= 1) {
-            return NextResponse.json({ error: "Cannot remove the last admin" }, { status: 400 });
+        if (error) {
+            console.error('Failed to delete admin:', error);
+            return NextResponse.json({ error: 'Failed to delete admin' }, { status: 500 });
         }
 
-        const { error } = await supabaseAdmin
-            .from('admin_users') // ← FIXED
-            .delete()
-            .eq('email', email);
+        if (!data?.success) {
+            const message = typeof data?.error === 'string' ? data.error : 'Delete failed';
+            const status = message.toLowerCase().includes('master') ? 403 : 400;
+            return NextResponse.json({ error: message }, { status });
+        }
 
-        if (error) throw error;
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);

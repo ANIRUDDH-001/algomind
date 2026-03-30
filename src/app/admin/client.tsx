@@ -98,10 +98,9 @@ export default function AdminsClient() {
 
     const handleRemoveAdmin = async (email: string) => {
         try {
-            const res = await fetch('/api/admin/admins', {
+            const params = new URLSearchParams({ email });
+            const res = await fetch(`/api/admin/admins?${params.toString()}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
             });
 
             const data = await res.json();
