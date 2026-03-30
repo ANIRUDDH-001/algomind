@@ -1,6 +1,8 @@
 import { getServiceClient } from '@/lib/supabase/service';
+import { getCorrelationId } from '@/lib/tracing/correlation';
 
 export type SystemEventType =
+    | 'llm_request'
     | 'model_429'
     | 'model_deprecated'
     | 'model_timeout'
@@ -33,6 +35,8 @@ export interface SystemEventPayload {
     provider?: string;
     modelId?: string;
     userId?: string;
+    sessionId?: string;
+    correlationId?: string;
     errorCode?: string;
     errorMessage?: string;
     metadata?: Record<string, unknown>;
@@ -55,6 +59,15 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         return;
     }
 
+    const correlationId = event.correlationId ?? await getCorrelationId();
+    const metadata = {
+        ...(event.metadata ?? {}),
+        correlation_id: correlationId,
+        session_id: event.sessionId,
+        user_id: event.userId,
+        timestamp: new Date().toISOString(),
+    };
+
     const payload = {
         type: event.type,
         provider: event.provider,
@@ -62,7 +75,7 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         user_id: event.userId,
         error_code: event.errorCode,
         error_message: event.errorMessage,
-        metadata: event.metadata,
+        metadata,
     };
 
     // True fire-and-forget: catch any errors and silently discard them

@@ -33,6 +33,8 @@ export interface GenerateResponseOptions {
     category?: string;
     /** Disables LLM intent classification pass when routing is smart */
     enableLLMPass?: boolean;
+    /** Correlation ID propagated from request middleware for tracing */
+    correlationId?: string;
 }
 
 export interface AIResponse {

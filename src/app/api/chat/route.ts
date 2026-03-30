@@ -14,10 +14,14 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
+import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+    const correlationId = getCorrelationIdFromRequest(req);
+    const withCorrelationIdResponse = <T extends Response>(response: T): T => withCorrelationId(response, correlationId);
+
     try {
 
         interface ChatRequestBody {
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
                 body = JSON.parse(text);
             }
         } catch (_parseError) {
-            return ApiErrors.badRequest('Invalid JSON body');
+            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid JSON body'));
         }
         const {
             messages,
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
                 : 'english';
         if (!guestMode && !user) {
             console.warn('⛔ [Chat API] Unauthorized access attempt');
-            return ApiErrors.unauthorized('Unauthorized');
+            return withCorrelationIdResponse(ApiErrors.unauthorized('Unauthorized'));
         }
 
         if (user) {
@@ -97,7 +101,7 @@ export async function POST(req: NextRequest) {
             if (!guestMode) {
                 const rateLimit = await checkUserRateLimit(user.id);
                 if (!rateLimit.allowed) {
-                    return ApiErrors.rateLimited('Rate limit exceeded');
+                    return withCorrelationIdResponse(ApiErrors.rateLimited('Rate limit exceeded'));
                 }
             }
         } else if (guestMode) {
@@ -107,12 +111,12 @@ export async function POST(req: NextRequest) {
                 ?? 'unknown';
             const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 100, windowSeconds: 86400 });
             if (!ipRateLimit.success) {
-                return ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.');
+                return withCorrelationIdResponse(ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.'));
             }
         }
 
         if (!messages || !Array.isArray(messages)) {
-            return ApiErrors.badRequest('Invalid messages format');
+            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
         }
 
         if (clientSessionId) {
@@ -123,11 +127,11 @@ export async function POST(req: NextRequest) {
                 .single();
 
             if (!sessionError && session?.status === 'completed') {
-                return apiError(
+                return withCorrelationIdResponse(apiError(
                     409,
                     ErrorCodes.SESSION_NOT_ACTIVE,
                     'This interview session has been completed.'
-                );
+                ));
             }
         }
 
@@ -215,22 +219,22 @@ export async function POST(req: NextRequest) {
         if (isNewInterviewSession && user?.id) {
             const limitResult = await checkWeeklySessionLimit(user.id, 'interview');
             if (!limitResult.allowed) {
-                return apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
+                return withCorrelationIdResponse(apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
                     retryable: true,
                     user_action: 'upgrade',
                     headers: {
                         'X-Sessions-Used': String(limitResult.sessionsUsed),
                         'X-Sessions-Limit': String(limitResult.limit),
                     },
-                });
+                }));
             }
 
             const incremented = await incrementWeeklyUsage(user.id, 'interview');
             if (!incremented) {
-                return apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
+                return withCorrelationIdResponse(apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
                     retryable: true,
                     user_action: 'upgrade',
-                });
+                }));
             }
         }
 
@@ -272,6 +276,7 @@ export async function POST(req: NextRequest) {
             systemPrompt: enhancedSystemPrompt,
             estimatedTokens: 500,
             enableLLMPass: false, // BUG-AI-004 regex only — saves one Groq RPM per request
+            correlationId,
         });
 
         if (!result.success) {
@@ -331,6 +336,7 @@ export async function POST(req: NextRequest) {
                     'Cache-Control': 'no-cache',
                     'Connection': 'keep-alive',
                     'X-Accel-Buffering': 'no',
+                    ...Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
                 },
             });
         }
@@ -340,14 +346,17 @@ export async function POST(req: NextRequest) {
             response: cleanResponse,
             modelUsed: result.modelUsed,
             provider: result.provider,
+        }, {
+            headers: withCorrelationIdHeaders(undefined, correlationId),
         });
 
     } catch (error: unknown) {
         console.error('❌ [Chat API] Error:', error);
         void logSystemEvent({
             type: 'model_error',
-            errorMessage: error instanceof Error ? error.message : String(error)
+            errorMessage: error instanceof Error ? error.message : String(error),
+            correlationId,
         });
-        return ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error');
+        return withCorrelationIdResponse(ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error'));
     }
 }

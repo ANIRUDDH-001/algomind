@@ -17,6 +17,7 @@ import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 import type { ConceptTag } from '@/types/knowledge-graph';
 import type { KaiTutorAssessment } from '@/lib/knowledge-graph/types';
 
@@ -50,11 +51,15 @@ async function verifySessionOwnership(sessionId: string, userId: string): Promis
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationIdFromRequest(req);
+  const jsonWithCorrelationId = (body: unknown, init?: ResponseInit) =>
+    NextResponse.json(body, { ...init, headers: withCorrelationIdHeaders(init?.headers, correlationId) });
+
   try {
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return jsonWithCorrelationId({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -66,24 +71,24 @@ export async function POST(req: NextRequest) {
       endpoint: 'learn_concept',
     });
     if (ipRateLimit.allowed === false) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      return jsonWithCorrelationId({ error: 'Too many requests' }, { status: 429 });
     }
 
     let body: LearnConceptRequestBody;
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return jsonWithCorrelationId({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
     const { conceptSlug, messages, sessionId, action = 'turn' } = body;
 
     if (!conceptSlug) {
-      return NextResponse.json({ error: 'conceptSlug is required' }, { status: 400 });
+      return jsonWithCorrelationId({ error: 'conceptSlug is required' }, { status: 400 });
     }
 
     if (!Array.isArray(messages)) {
-      return NextResponse.json({ error: 'messages must be an array' }, { status: 400 });
+      return jsonWithCorrelationId({ error: 'messages must be an array' }, { status: 400 });
     }
 
     const { data: conceptTag, error: tagError } = await getServiceClient()
@@ -95,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     if (tagError || !conceptTag) {
       console.error('[learn/concept 400] tagError:', JSON.stringify(tagError), '| conceptSlug received:', conceptSlug);
-      return NextResponse.json({ error: 'Invalid or unknown concept slug' }, { status: 400 });
+      return jsonWithCorrelationId({ error: 'Invalid or unknown concept slug' }, { status: 400 });
     }
 
     let activeSessionId = sessionId;
@@ -104,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (isFirstTurn) {
       const limitResult = await checkWeeklySessionLimit(user.id, 'learn');
       if (!limitResult.allowed) {
-        return NextResponse.json(
+        return jsonWithCorrelationId(
           {
             error: 'Weekly learn session limit reached.',
             code: 'LIMIT_REACHED',
@@ -133,10 +138,11 @@ export async function POST(req: NextRequest) {
         await logSystemEvent({
           type: 'db_error',
           userId: user.id,
+          correlationId,
           errorMessage: sessionError?.message ?? 'create learn session failed',
           metadata: { context: 'learn_concept.create_session', conceptSlug },
         });
-        return NextResponse.json({ error: 'Failed to start learning session' }, { status: 500 });
+        return jsonWithCorrelationId({ error: 'Failed to start learning session' }, { status: 500 });
       }
 
       activeSessionId = newSession.id;
@@ -148,6 +154,7 @@ export async function POST(req: NextRequest) {
         await logSystemEvent({
           type: 'db_error',
           userId: user.id,
+          correlationId,
           errorMessage,
           metadata: { context: 'learn_concept.increment_usage', sessionId: activeSessionId },
         });
@@ -164,7 +171,7 @@ export async function POST(req: NextRequest) {
           .eq('id', activeSessionId)
           .eq('user_id', user.id);
 
-        return NextResponse.json(
+        return jsonWithCorrelationId(
           {
             error: 'Weekly learn session limit reached.',
             code: 'LIMIT_REACHED',
@@ -175,23 +182,23 @@ export async function POST(req: NextRequest) {
       }
     } else {
       if (!activeSessionId) {
-        return NextResponse.json({ error: 'sessionId is required for turn/end actions' }, { status: 400 });
+        return jsonWithCorrelationId({ error: 'sessionId is required for turn/end actions' }, { status: 400 });
       }
       const ownedByUser = await verifySessionOwnership(activeSessionId, user.id);
       if (!ownedByUser) {
-        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        return jsonWithCorrelationId({ error: 'Session not found' }, { status: 404 });
       }
     }
 
     if (action === 'end' && activeSessionId) {
-      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug);
+      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug, correlationId);
     }
 
     if (messages.length > LEARN_SESSION_MAX_TURNS * 2) {
       if (!activeSessionId) {
-        return NextResponse.json({ error: 'sessionId is required to auto-complete this session' }, { status: 400 });
+        return jsonWithCorrelationId({ error: 'sessionId is required to auto-complete this session' }, { status: 400 });
       }
-      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug);
+      return handleSessionEnd(activeSessionId, user.id, messages, conceptSlug, correlationId);
     }
 
     let studentContext;
@@ -232,6 +239,7 @@ export async function POST(req: NextRequest) {
       void logSystemEvent({
         type: 'prompt_size_warning',
         userId: user.id,
+        correlationId,
         metadata: { tokens: promptTokensEstimate, concept: conceptSlug },
       });
     }
@@ -249,6 +257,7 @@ export async function POST(req: NextRequest) {
         systemPrompt,
         estimatedTokens: 600,
         temperature: 0.7,
+        correlationId,
       }
     );
 
@@ -256,10 +265,11 @@ export async function POST(req: NextRequest) {
       await logSystemEvent({
         type: 'model_error',
         userId: user.id,
+        correlationId,
         errorMessage: aiResult.error ?? 'AI response failed',
         metadata: { context: 'learn_concept.ai_call', conceptSlug, sessionId: activeSessionId },
       });
-      return NextResponse.json({ error: 'AI response failed' }, { status: 503 });
+      return jsonWithCorrelationId({ error: 'AI response failed' }, { status: 503 });
     }
 
     // Sanitize response to remove reasoning tags and system prompt leaks
@@ -287,7 +297,7 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id);
     }
 
-    return NextResponse.json({
+    return jsonWithCorrelationId({
       response,
       sessionId: activeSessionId,
       conceptSlug,
@@ -299,10 +309,11 @@ export async function POST(req: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await logSystemEvent({
       type: 'db_error',
+      correlationId,
       errorMessage,
       metadata: { context: 'learn_concept.unhandled' },
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return jsonWithCorrelationId({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -310,10 +321,11 @@ async function handleSessionEnd(
   sessionId: string,
   userId: string,
   messages: { role: string; content: string }[],
-  conceptSlug: string
+  conceptSlug: string,
+  correlationId: string
 ): Promise<NextResponse> {
   try {
-    const assessment = await generateSessionAssessment(messages, conceptSlug);
+    const assessment = await generateSessionAssessment(messages, conceptSlug, correlationId);
 
     const startTime = await getSessionStartTime(sessionId, userId);
     const durationSeconds = startTime
@@ -348,16 +360,22 @@ async function handleSessionEnd(
       sessionId,
       assessment,
       conceptProgress: progress,
+    }, {
+      headers: withCorrelationIdHeaders(undefined, correlationId),
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await logSystemEvent({
       type: 'db_error',
       userId,
+      correlationId,
       errorMessage,
       metadata: { context: 'learn_concept.handle_session_end', sessionId },
     });
-    return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete session' }, {
+      status: 500,
+      headers: withCorrelationIdHeaders(undefined, correlationId),
+    });
   }
 }
 
@@ -389,7 +407,8 @@ async function getConceptProgressSnapshot(
 
 async function generateSessionAssessment(
   messages: { role: string; content: string }[],
-  conceptSlug: string
+  conceptSlug: string,
+  correlationId: string
 ): Promise<KaiTutorAssessment> {
   const assessmentPrompt = `You are analyzing a Kai-Tutor learning session transcript.
 Concept taught: ${conceptSlug}
@@ -418,6 +437,7 @@ confidence_delta: -0.1 to +0.15 (positive if understood, negative if struggled, 
         systemPrompt: 'You are an assessment AI. Respond with valid JSON only.',
         estimatedTokens: 500,
         temperature: 0.2,
+        correlationId,
       }
     );
 

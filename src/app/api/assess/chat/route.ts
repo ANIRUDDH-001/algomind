@@ -9,12 +9,16 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
+import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
 
 validateEnv();
 
 const MESSAGE_LIMIT = 30; // Max AI turns per assessment session
 
 export async function POST(req: NextRequest) {
+    const correlationId = getCorrelationIdFromRequest(req);
+    const withCorrelationIdResponse = <T extends Response>(response: T): T => withCorrelationId(response, correlationId);
+
     try {
         interface ChatRequestBody {
             sessionToken: string;
@@ -30,20 +34,20 @@ export async function POST(req: NextRequest) {
             const text = await req.text();
             body = JSON.parse(text);
         } catch (_parseError) {
-            return ApiErrors.badRequest('Invalid JSON body');
+            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid JSON body'));
         }
 
         const { sessionToken, messages } = body;
 
         if (!sessionToken) {
-            return ApiErrors.unauthorized('Missing session token');
+            return withCorrelationIdResponse(ApiErrors.unauthorized('Missing session token'));
         }
 
         let secret: Uint8Array;
         try {
             secret = encodeAssessmentSecret();
         } catch {
-            return ApiErrors.serverError('Server misconfiguration. Contact administrator.');
+            return withCorrelationIdResponse(ApiErrors.serverError('Server misconfiguration. Contact administrator.'));
         }
 
         // 🔒 Validate candidate JWT securely
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
             payload = decoded;
         } catch (error) {
             console.error('⛔ [Assess Chat API] Invalid session token', error);
-            return ApiErrors.unauthorized('Invalid or expired session');
+            return withCorrelationIdResponse(ApiErrors.unauthorized('Invalid or expired session'));
         }
 
         const submissionId = payload.submissionId as string;
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (subError || !submission) {
-            return ApiErrors.notFound('Submission not found');
+            return withCorrelationIdResponse(ApiErrors.notFound('Submission not found'));
         }
 
         if (submission.status !== 'in_progress') {
@@ -104,7 +108,7 @@ export async function POST(req: NextRequest) {
             : '';
 
         if (!messages || !Array.isArray(messages)) {
-            return ApiErrors.badRequest('Invalid messages format');
+            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
         }
 
         // ── Per-session message rate limit ────────────────────────────────────
@@ -221,7 +225,8 @@ export async function POST(req: NextRequest) {
             category: 'speed',
             maxTokens: 4096,
             systemPrompt: enhancedSystemPrompt,
-            estimatedTokens: 500
+            estimatedTokens: 500,
+            correlationId,
         });
 
         if (!result.success) {
@@ -238,6 +243,7 @@ export async function POST(req: NextRequest) {
             modelUsed: result.modelUsed,
             provider: result.provider
         });
+        response.headers.set('x-correlation-id', correlationId);
 
         // Expose usage counters to the frontend (headers are visible via fetch)
         if (currentCount > 0) {
@@ -269,6 +275,7 @@ export async function POST(req: NextRequest) {
                     console.error('[Assess Chat] Transcript save failed after 3 retries — logging event');
                     void logSystemEvent({
                         type: 'transcript_save_failed',
+                        correlationId,
                         metadata: { submissionId, attempts: 3, errorCode: error.code }
                     });
                 }
@@ -280,7 +287,7 @@ export async function POST(req: NextRequest) {
         return response;
 
     } catch (error: unknown) {
-        console.error('❌ [Assess Chat API] Error:', error);
-        return ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error');
+        console.error(`❌ [Assess Chat API][${correlationId}] Error:`, error);
+        return withCorrelationIdResponse(ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error'));
     }
 }

@@ -2,28 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
 export async function POST(req: NextRequest) {
+    const correlationId = getCorrelationIdFromRequest(req);
+    const jsonWithCorrelationId = (body: unknown, init?: ResponseInit) =>
+        NextResponse.json(body, { ...init, headers: withCorrelationIdHeaders(init?.headers, correlationId) });
+
     try {
         const serverSupabase = await createServerSupabase();
         const { data: { user } } = await serverSupabase.auth.getUser();
         if (!user) {
-            return NextResponse.json({ chunks: [] }, { status: 401 });
+            return jsonWithCorrelationId({ chunks: [] }, { status: 401 });
         }
 
         const { query } = await req.json();
 
         if (!query || typeof query !== 'string') {
-            return NextResponse.json({ chunks: [] }, { status: 400 });
+            return jsonWithCorrelationId({ chunks: [] }, { status: 400 });
         }
 
         const supabase = getServiceClient();
         const aiClient = getAIClient();
 
-        const { embeddings } = await aiClient.embed(query);
+        const { embeddings } = await aiClient.embed(query, { correlationId });
 
         if (!embeddings || embeddings.length === 0) {
-            return NextResponse.json({ chunks: [] });
+            return jsonWithCorrelationId({ chunks: [] });
         }
 
         const { data, error } = await supabase.rpc('match_knowledge_chunks', {
@@ -34,13 +39,13 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             console.error('[RAG API] DB Match Error:', error);
-            return NextResponse.json({ chunks: [] }, { status: 500 });
+            return jsonWithCorrelationId({ chunks: [] }, { status: 500 });
         }
 
-        return NextResponse.json({ chunks: data ?? [] });
+        return jsonWithCorrelationId({ chunks: data ?? [] });
     } catch (error) {
         console.error('[RAG API] Processing Error:', error);
         // Fail open - return empty array
-        return NextResponse.json({ chunks: [] }, { status: 500 });
+        return jsonWithCorrelationId({ chunks: [] }, { status: 500 });
     }
 }

@@ -33,6 +33,7 @@ export interface CompletionOptions {
     signal?: AbortSignal;
     /** OpenAI-compatible response_format for structured output (e.g. { type: 'json_object' }) */
     responseFormat?: { type: string; [key: string]: unknown };
+    correlationId?: string;
 }
 
 export interface CompletionResult {
@@ -72,11 +73,22 @@ export class UnifiedAIClient {
         options: CompletionOptions = {}
     ): Promise<CompletionResult> {
         const attemptedModels: string[] = [];
+        const correlationId = options.correlationId ?? crypto.randomUUID();
 
         // Determine use case from options
         const useCase: 'chat' | 'analysis' =
             (options.category === 'intelligence' || options.category === 'analysis')
                 ? 'analysis' : 'chat';
+
+        void logSystemEvent({
+            type: 'llm_request',
+            correlationId,
+            metadata: {
+                useCase,
+                messageCount: messages.length,
+                preferredProvider: options.preferredProvider,
+            },
+        });
 
         // ── PRIMARY: Bedrock (when ENABLE_AWS_BEDROCK is ON) ────────────
         // When the flag is ON, Bedrock is the primary provider.
@@ -146,7 +158,7 @@ export class UnifiedAIClient {
                 if (!rateLimit.allowed) continue;
 
                 const maxTokens = routed.maxTokensOverride ?? options.maxTokens;
-                const result = await this.callModel(modelConfig, messages, { ...options, maxTokens });
+                const result = await this.callModel(modelConfig, messages, { ...options, maxTokens, correlationId });
                 attemptedModels.push(modelConfig.id);
 
                 if (result.success) {
@@ -181,7 +193,7 @@ export class UnifiedAIClient {
                     if (!rateLimit.allowed) continue;
 
                     const maxTokens = routed.maxTokensOverride ?? options.maxTokens;
-                    const result = await this.callModel(modelConfig, messages, { ...options, maxTokens });
+                    const result = await this.callModel(modelConfig, messages, { ...options, maxTokens, correlationId });
                     attemptedModels.push(modelConfig.id);
 
                     if (result.success) {
@@ -207,14 +219,14 @@ export class UnifiedAIClient {
 
             const models = await getActiveModels();
             const primaryResult = await this.tryProvider(
-                primaryProvider, messages, options, attemptedModels, models
+                primaryProvider, messages, { ...options, correlationId }, attemptedModels, models
             );
             if (primaryResult.success) return primaryResult;
 
             if (primaryProvider === 'gemini') {
                 console.warn('[UnifiedAIClient] Gemini failed, falling back to Groq');
                 const fallbackResult = await this.tryProvider(
-                    'groq', messages, options, attemptedModels, models
+                    'groq', messages, { ...options, correlationId }, attemptedModels, models
                 );
                 if (fallbackResult.success) return fallbackResult;
             }
@@ -298,7 +310,7 @@ export class UnifiedAIClient {
             return { success: false, error: "Unsupported provider" };
         } catch (error) {
             if (error instanceof Error && error.name === 'TimeoutError') {
-                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id });
+                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id, correlationId: options.correlationId });
                 return {
                     success: false,
                     error: `Request timeout after ${model.provider === 'groq' ? '15' : model.provider === 'gemini' ? '25' : '30'}s`
@@ -310,13 +322,13 @@ export class UnifiedAIClient {
             const errorCode = errorCodeMatch ? errorCodeMatch[1] : undefined;
 
             if (errorCode === '429') {
-                void logSystemEvent({ type: 'model_429', provider: model.provider, modelId: model.id, errorCode: '429' });
+                void logSystemEvent({ type: 'model_429', provider: model.provider, modelId: model.id, errorCode: '429', correlationId: options.correlationId });
             } else if (errorCode === '404') {
-                void logSystemEvent({ type: 'model_deprecated', provider: model.provider, modelId: model.id, errorCode: '404' });
+                void logSystemEvent({ type: 'model_deprecated', provider: model.provider, modelId: model.id, errorCode: '404', correlationId: options.correlationId });
             } else if (errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('fetch failed')) {
-                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id });
+                void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id, correlationId: options.correlationId });
             } else {
-                void logSystemEvent({ type: 'model_error', provider: model.provider, modelId: model.id, errorMessage });
+                void logSystemEvent({ type: 'model_error', provider: model.provider, modelId: model.id, errorMessage, correlationId: options.correlationId });
             }
 
             return { success: false, error: errorMessage };
@@ -559,6 +571,7 @@ export class UnifiedAIClient {
                 estimatedTokens: options.estimatedTokens,
                 category: options.category,
                 signal: options.signal,
+                correlationId: options.correlationId,
             });
 
             return {
@@ -599,6 +612,7 @@ export class UnifiedAIClient {
             estimatedTokens: options.estimatedTokens,
             category: options.category,
             signal: options.signal,
+            correlationId: options.correlationId,
         });
 
         // Fallback: if routed provider failed, try the alternate (only if it was gemini)
@@ -615,6 +629,7 @@ export class UnifiedAIClient {
                 estimatedTokens: options.estimatedTokens,
                 category: options.category,
                 signal: options.signal,
+                correlationId: options.correlationId,
             });
         }
 
@@ -842,7 +857,10 @@ export class UnifiedAIClient {
     // User asked for "Direct API calls". I should implement Gemini Embeddings via REST.
     // Local Embeddings can remain as compatible via Xenova.
 
-    async embed(texts: string | string[]): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
+    async embed(
+        texts: string | string[],
+        options: { correlationId?: string } = {}
+    ): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
         const textArray = Array.isArray(texts) ? texts : [texts];
 
         // When AWS Bedrock is configured, try Titan embeddings FIRST (primary when flag ON)
@@ -863,7 +881,7 @@ export class UnifiedAIClient {
                 }
             } catch (e) {
                 console.warn('⚠️ Bedrock Titan embedding failed, falling back to Gemini:', e instanceof Error ? e.message : e);
-                void logSystemEvent({ type: 'embedding_failed', provider: 'bedrock' });
+                void logSystemEvent({ type: 'embedding_failed', provider: 'bedrock', correlationId: options.correlationId });
             }
         }
 
@@ -879,7 +897,7 @@ export class UnifiedAIClient {
                 };
             } catch (e) {
                 console.warn('⚠️ Gemini embedding failed:', e instanceof Error ? e.message : e);
-                void logSystemEvent({ type: 'embedding_failed', provider: 'gemini' });
+                void logSystemEvent({ type: 'embedding_failed', provider: 'gemini', correlationId: options.correlationId });
             }
         }
 
@@ -902,7 +920,7 @@ export class UnifiedAIClient {
 
         // No local embedder. If both fail, RAG context is unavailable — graceful degradation.
         console.error('❌ All embedding providers failed. Interview will proceed without RAG context.');
-        void logSystemEvent({ type: 'embedding_failed', errorMessage: 'All providers failed' });
+        void logSystemEvent({ type: 'embedding_failed', errorMessage: 'All providers failed', correlationId: options.correlationId });
         throw new Error('All embedding providers failed. RAG context unavailable.');
     }
 
@@ -949,7 +967,8 @@ export async function chat(
 }
 
 export async function embed(
-    texts: string | string[]
+    texts: string | string[],
+    options: { correlationId?: string } = {}
 ) {
-    return getAIClient().embed(texts);
+    return getAIClient().embed(texts, options);
 }

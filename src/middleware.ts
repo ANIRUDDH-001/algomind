@@ -2,8 +2,15 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export default async function middleware(request: NextRequest) {
+    const correlationId = request.headers.get('x-correlation-id') ?? crypto.randomUUID();
+    const withCorrelationId = (response: NextResponse) => {
+        response.headers.set('x-correlation-id', correlationId);
+        return response;
+    };
+
     // Set header to hide navbar on admin routes and pass pathname to layout
     const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-correlation-id', correlationId);
     const pathname = request.nextUrl.pathname;
     requestHeaders.set('x-pathname', pathname);
     if (pathname.startsWith('/admin') || pathname.startsWith('/owner')) {
@@ -13,6 +20,7 @@ export default async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request: { headers: requestHeaders },
     });
+    supabaseResponse.headers.set('x-correlation-id', correlationId);
 
     // CRITICAL: Must use NEXT_PUBLIC_SUPABASE_URL (same as client).
     // Cookie names are derived from the URL — mixing URLs breaks session sync.
@@ -35,6 +43,7 @@ export default async function middleware(request: NextRequest) {
                     supabaseResponse = NextResponse.next({
                         request: { headers: requestHeaders },
                     });
+                    supabaseResponse.headers.set('x-correlation-id', correlationId);
                     try {
                         cookiesToSet.forEach(({ name, value, options }) =>
                             supabaseResponse.cookies.set(name, value, options)
@@ -71,10 +80,10 @@ export default async function middleware(request: NextRequest) {
         if (isEmployer) {
             const url = request.nextUrl.clone();
             url.pathname = '/dashboard';
-            return NextResponse.redirect(url);
+            return withCorrelationId(NextResponse.redirect(url));
         }
         if (isEmployerAPI) {
-            return NextResponse.json({ error: 'Not available' }, { status: 404 });
+            return withCorrelationId(NextResponse.json({ error: 'Not available' }, { status: 404 }));
         }
     }
 
@@ -85,7 +94,7 @@ export default async function middleware(request: NextRequest) {
     if (isTestPage && process.env.NODE_ENV !== 'development') {
         const url = request.nextUrl.clone();
         url.pathname = '/';
-        return NextResponse.redirect(url);
+        return withCorrelationId(NextResponse.redirect(url));
     }
 
     // Guest mode check for interview (Query param or Cookie)
@@ -105,14 +114,14 @@ export default async function middleware(request: NextRequest) {
             // Optionally append a redirect so they come back to the assessment link after login
             url.searchParams.set('redirect', pathname);
             url.searchParams.set('reason', 'auth_required');
-            return NextResponse.redirect(url);
+            return withCorrelationId(NextResponse.redirect(url));
         }
 
         if (isInterview && !isGuestMode) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             url.searchParams.set('reason', 'auth_required_interview');
-            return NextResponse.redirect(url);
+            return withCorrelationId(NextResponse.redirect(url));
         }
     }
 
@@ -147,7 +156,7 @@ export default async function middleware(request: NextRequest) {
         if (!hasCompletedDiagnostic) {
             const url = request.nextUrl.clone();
             url.pathname = '/learn/diagnostic';
-            return NextResponse.redirect(url);
+            return withCorrelationId(NextResponse.redirect(url));
         }
     }
 
@@ -155,7 +164,7 @@ export default async function middleware(request: NextRequest) {
     // This reduces redundant DB calls. The owner page performs its own auth check
     // before rendering. Non-owners who navigate to /owner/ will hit the page guard.
 
-    return supabaseResponse;
+    return withCorrelationId(supabaseResponse);
 }
 
 export const config = {

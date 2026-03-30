@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getAIClient } from '@/lib/ai/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 import crypto from 'crypto';
 
 interface ReplayGenerateRequest {
@@ -15,22 +16,26 @@ interface Annotation {
 }
 
 export async function POST(req: NextRequest) {
+    const correlationId = getCorrelationIdFromRequest(req);
+    const jsonWithCorrelationId = (body: unknown, init?: ResponseInit) =>
+        NextResponse.json(body, { ...init, headers: withCorrelationIdHeaders(init?.headers, correlationId) });
+
     try {
         const supabase = await createServerSupabase();
         if (!supabase) {
-            return NextResponse.json({ error: 'Supabase client not initialized' }, { status: 500 });
+            return jsonWithCorrelationId({ error: 'Supabase client not initialized' }, { status: 500 });
         }
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return jsonWithCorrelationId({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await req.json() as ReplayGenerateRequest;
         const { sessionId } = body;
 
         if (!sessionId) {
-            return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+            return jsonWithCorrelationId({ error: 'Missing sessionId' }, { status: 400 });
         }
 
         // 1. Check if replay already exists
@@ -41,7 +46,7 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
         if (existingReplay) {
-            return NextResponse.json({
+            return jsonWithCorrelationId({
                 publicToken: existingReplay.public_token,
                 replayUrl: `/replay/${existingReplay.public_token}`
             });
@@ -56,11 +61,11 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
         if (sessionError || !session) {
-            return NextResponse.json({ error: 'Session not found or forbidden' }, { status: 403 });
+            return jsonWithCorrelationId({ error: 'Session not found or forbidden' }, { status: 403 });
         }
 
         if (!session.transcript || session.transcript.length === 0) {
-            return NextResponse.json({ error: 'No transcript available for this session' }, { status: 400 });
+            return jsonWithCorrelationId({ error: 'No transcript available for this session' }, { status: 400 });
         }
 
         // 3. Generate annotations using AI
@@ -96,7 +101,8 @@ Be specific to THIS transcript. Max 8 annotations.`;
         let annotations: Annotation[] = [];
         try {
             const aiResponse = await aiClient.generateResponse([{ role: 'user', content: prompt }], {
-                temperature: 0.3
+                temperature: 0.3,
+                correlationId,
             });
 
             let jsonString = aiResponse.response || '';
@@ -126,6 +132,7 @@ Be specific to THIS transcript. Max 8 annotations.`;
             console.error('[API/Replay] AI Annotation failed:', aiErr);
             void logSystemEvent({
                 type: 'model_error',
+                correlationId,
                 metadata: { context: 'replay_generation_parse', sessionId, error: String(aiErr) }
             });
             // Don't fail the request, just use empty annotations
@@ -149,7 +156,7 @@ Be specific to THIS transcript. Max 8 annotations.`;
             throw new Error(`DB Insert Error: ${insertError.message}`);
         }
 
-        return NextResponse.json({
+        return jsonWithCorrelationId({
             publicToken,
             annotations,
             replayUrl: `/replay/${publicToken}`
@@ -159,8 +166,9 @@ Be specific to THIS transcript. Max 8 annotations.`;
         console.error('[API/Replay] Fatal error:', error);
         void logSystemEvent({
             type: 'model_error',
+            correlationId,
             metadata: { context: 'api_replay_generate_catch', error: String(error) }
         });
-        return NextResponse.json({ error: 'Internal server error while generating replay' }, { status: 500 });
+        return jsonWithCorrelationId({ error: 'Internal server error while generating replay' }, { status: 500 });
     }
 }

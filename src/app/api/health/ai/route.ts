@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAIClient } from "@/lib/ai/client";
+import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const correlationId = getCorrelationIdFromRequest(req);
+    const jsonWithCorrelationId = (body: unknown, init?: ResponseInit) =>
+        NextResponse.json(body, { ...init, headers: withCorrelationIdHeaders(init?.headers, correlationId) });
+
     try {
         const client = getAIClient();
         const health = await client.checkAllModels();
@@ -12,14 +17,14 @@ export async function GET() {
         // If one provider is down (e.g. Gemini), count will be 7 -> Healthy.
         // If both down, count 0 -> Degraded.
 
-        return NextResponse.json({
+        return jsonWithCorrelationId({
             status: healthyCount >= 7 ? 'healthy' : 'degraded',
             healthyCount,
             models: health
         });
 
     } catch (error) {
-        return NextResponse.json(
+        return jsonWithCorrelationId(
             { status: 'error', message: error instanceof Error ? error.message : "Unknown error" },
             { status: 500 }
         );
