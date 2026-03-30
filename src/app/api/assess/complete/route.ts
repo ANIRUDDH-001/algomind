@@ -14,7 +14,12 @@ export const maxDuration = 20;
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch (_parseError) {
+            return ApiErrors.badRequest('Invalid JSON body');
+        }
         let { sessionToken, transcript, duration, questionStates, totalDuration, integrityFlags } = body;
 
         // Normalize if old format was sent
