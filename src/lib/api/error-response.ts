@@ -37,6 +37,8 @@ export const ErrorCodes = {
   // Domain
   NOT_FOUND: 'not_found',
   ALREADY_COMPLETED: 'already_completed',
+  SESSION_NOT_ACTIVE: 'session_not_active',
+  ANALYSIS_STARTED: 'analysis_started',
   CAMPAIGN_EXPIRED: 'campaign_expired',
   FEATURE_DISABLED: 'feature_disabled',
 } as const;

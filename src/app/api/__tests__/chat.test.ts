@@ -42,21 +42,39 @@ const GEMINI_MODEL = {
 describe('Chat API (/api/chat)', () => {
     let mockSupabase: any;
     let mockAIClient: any;
+    let mockSessionStatus: string | null;
 
     beforeEach(() => {
         vi.resetAllMocks();
+
+        mockSessionStatus = null;
 
         mockSupabase = {
             auth: {
                 getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
             },
-            from: vi.fn().mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false } })
-                    })
-                })
-            })
+            from: vi.fn().mockImplementation((table: string) => {
+                if (table === 'interview_sessions') {
+                    return {
+                        select: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockReturnValue({
+                                single: vi.fn().mockResolvedValue({
+                                    data: mockSessionStatus ? { status: mockSessionStatus } : null,
+                                    error: null,
+                                }),
+                            }),
+                        }),
+                    };
+                }
+
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false } }),
+                        }),
+                    }),
+                };
+            }),
         };
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase);
 
@@ -340,5 +358,22 @@ describe('Chat API (/api/chat)', () => {
         expect(res.status).toBe(200);
         expect(checkWeeklySessionLimit).not.toHaveBeenCalled();
         expect(incrementWeeklyUsage).not.toHaveBeenCalled();
+    });
+
+    it('18. Completed sessionId blocks practice chat -> 409', async () => {
+        mockSessionStatus = 'completed';
+
+        const req = createRequest({
+            sessionId: 'session-123',
+            messages: [{ role: 'user', content: 'hello' }],
+        });
+
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(409);
+        expect(data.code).toBe('session_not_active');
+        expect(data.error).toContain('completed');
+        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
     });
 });

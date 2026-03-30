@@ -18,6 +18,8 @@ describe('Assess Chat API (/api/assess/chat)', () => {
     let mockRedis: any;
     let mockSupabaseAdmin: any;
     let validToken: string;
+    let submissionStatus: string;
+    let submissionAnalysisStatus: string | null;
 
     beforeEach(async () => {
         vi.resetAllMocks();
@@ -52,13 +54,60 @@ describe('Assess Chat API (/api/assess/chat)', () => {
         };
         vi.mocked(getRedis).mockReturnValue(mockRedis);
 
+        submissionStatus = 'in_progress';
+        submissionAnalysisStatus = null;
+
         mockSupabaseAdmin = {
-            from: vi.fn().mockReturnThis(),
-            select: vi.fn().mockReturnThis(),
-            update: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnValue({
-                then: (cb: any) => Promise.resolve({ error: null }).then(cb),
-                single: vi.fn().mockResolvedValue({ data: { current_transcript: [] }, error: null }),
+            from: vi.fn().mockImplementation((table: string) => {
+                if (table === 'candidate_submissions') {
+                    return {
+                        select: vi.fn().mockImplementation((columns: string) => ({
+                            eq: vi.fn().mockReturnValue({
+                                single: vi.fn().mockResolvedValue(
+                                    columns === 'status, analysis_status'
+                                        ? {
+                                            data: { status: submissionStatus, analysis_status: submissionAnalysisStatus },
+                                            error: null,
+                                        }
+                                        : columns === 'campaign_id'
+                                            ? { data: { campaign_id: null }, error: null }
+                                            : { data: { current_transcript: [] }, error: null }
+                                ),
+                            }),
+                        })),
+                        update: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockResolvedValue({ error: null }),
+                        }),
+                    };
+                }
+
+                if (table === 'assessment_campaigns') {
+                    return {
+                        select: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockReturnValue({
+                                single: vi.fn().mockResolvedValue({ data: null, error: null }),
+                            }),
+                        }),
+                    };
+                }
+
+                if (table === 'user_preferences') {
+                    return {
+                        select: vi.fn().mockReturnValue({
+                            eq: vi.fn().mockReturnValue({
+                                maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false }, error: null }),
+                            }),
+                        }),
+                    };
+                }
+
+                return {
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockReturnValue({
+                            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+                        }),
+                    }),
+                };
             }),
         };
         vi.mocked(getServiceClient).mockReturnValue(mockSupabaseAdmin);
@@ -133,5 +182,39 @@ describe('Assess Chat API (/api/assess/chat)', () => {
         expect(data.retryable).toBe(true);
         expect(res.headers.get('X-Messages-Used')).toBe('31');
         expect(res.headers.get('X-Messages-Limit')).toBe('30');
+    });
+
+    it('Additional: completed submission blocks chat -> 409', async () => {
+        submissionStatus = 'completed';
+
+        const req = createRequest({
+            sessionToken: validToken,
+            messages: [{ role: 'user', content: 'hello' }],
+        });
+
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(409);
+        expect(data.code).toBe('session_not_active');
+        expect(data.error).toContain('No further messages allowed');
+        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
+    });
+
+    it('Additional: analysis already started blocks chat -> 409', async () => {
+        submissionAnalysisStatus = 'completed';
+
+        const req = createRequest({
+            sessionToken: validToken,
+            messages: [{ role: 'user', content: 'hello' }],
+        });
+
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(409);
+        expect(data.code).toBe('analysis_started');
+        expect(data.error).toContain('analysis has already begun');
+        expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
     });
 });

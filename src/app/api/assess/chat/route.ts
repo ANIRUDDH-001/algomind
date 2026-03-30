@@ -56,6 +56,33 @@ export async function POST(req: NextRequest) {
             return ApiErrors.unauthorized('Invalid or expired session');
         }
 
+        const submissionId = payload.submissionId as string;
+        const { data: submission, error: subError } = await getServiceClient()
+            .from('candidate_submissions')
+            .select('status, analysis_status')
+            .eq('id', submissionId)
+            .single();
+
+        if (subError || !submission) {
+            return ApiErrors.notFound('Submission not found');
+        }
+
+        if (submission.status !== 'in_progress') {
+            return apiError(
+                409,
+                ErrorCodes.SESSION_NOT_ACTIVE,
+                `Assessment is ${submission.status}. No further messages allowed.`
+            );
+        }
+
+        if (submission.analysis_status && submission.analysis_status !== 'pending') {
+            return apiError(
+                409,
+                ErrorCodes.ANALYSIS_STARTED,
+                'Assessment analysis has already begun.'
+            );
+        }
+
         // Fetch user's Hinglish preference (only relevant if global flag is ON)
         let userHinglishEnabled = false;
         if (payload?.sub) {
@@ -81,7 +108,6 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Per-session message rate limit ────────────────────────────────────
-        const submissionId = payload.submissionId as string;
         let sessionMessageLimit = MESSAGE_LIMIT;
         const { data: subForLimit } = await getServiceClient()
             .from('candidate_submissions')

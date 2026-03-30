@@ -5,7 +5,7 @@ import { invalidateStudentContext } from '@/lib/kai-context';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
-import { ApiErrors } from '@/lib/api/error-response';
+import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 validateEnv();
 
@@ -63,7 +63,15 @@ export async function POST(req: NextRequest) {
         }
 
         if (submission.status === 'completed') {
-            return ApiErrors.badRequest('Assessment already completed');
+            return NextResponse.json({
+                success: true,
+                alreadyCompleted: true,
+                message: 'Already completed',
+            });
+        }
+
+        if (submission.status === 'expired') {
+            return apiError(410, ErrorCodes.CAMPAIGN_EXPIRED, 'This assessment has expired.');
         }
 
         // 3. Mark as submitted (analysis pending) — atomic guard prevents double-completion

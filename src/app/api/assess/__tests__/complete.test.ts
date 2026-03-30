@@ -166,7 +166,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
         expect(data.success).toBe(true);
     });
 
-    it('4. Session already completed -> 400', async () => {
+    it('4. Session already completed -> idempotent 200', async () => {
         const mockSupa = buildSupabaseMock({
             candidate_submissions: {
                 selectResult: { data: { status: 'completed', campaign_id: 'campaign-123' }, error: null },
@@ -184,11 +184,35 @@ describe('Assess Complete API (/api/assess/complete)', () => {
         const res = await POST(req);
         const data = await res.json();
 
-        expect(res.status).toBe(400);
-        expect(data.error).toContain('Assessment already completed');
+        expect(res.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.alreadyCompleted).toBe(true);
+        expect(data.message).toContain('Already completed');
     });
 
-    it('5. Invalid transcript (empty) -> 400', async () => {
+    it('5. Expired assessment -> 410', async () => {
+        const mockSupa = buildSupabaseMock({
+            candidate_submissions: {
+                selectResult: { data: { status: 'expired', campaign_id: 'campaign-123' }, error: null },
+            },
+        });
+        vi.mocked(createServerSupabase).mockResolvedValue(mockSupa as any);
+        vi.mocked(getServiceClient).mockReturnValue(mockSupa as any);
+
+        const req = createRequest({
+            sessionToken: validToken,
+            transcript: [{ speaker: 'user', text: 'hello' }],
+            duration: 120,
+        });
+
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(410);
+        expect(data.code).toBe('campaign_expired');
+    });
+
+    it('6. Invalid transcript (empty) -> 400', async () => {
         const req = createRequest({
             sessionToken: validToken,
             questionStates: [],
@@ -201,7 +225,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
         expect(data.error).toContain('missing sessionToken or questionStates');
     });
 
-    it('6. Invalid session format -> 401', async () => {
+    it('7. Invalid session format -> 401', async () => {
         const req = createRequest({
             sessionToken: 'bad.jwt.format',
             questionStates: [{ transcript: [{ speaker: 'user', text: 'hello' }], elapsed_secs: 120 }],

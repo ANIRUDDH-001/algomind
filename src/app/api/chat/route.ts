@@ -115,6 +115,22 @@ export async function POST(req: NextRequest) {
             return ApiErrors.badRequest('Invalid messages format');
         }
 
+        if (clientSessionId) {
+            const { data: session, error: sessionError } = await supabase
+                .from('interview_sessions')
+                .select('status')
+                .eq('id', clientSessionId)
+                .single();
+
+            if (!sessionError && session?.status === 'completed') {
+                return apiError(
+                    409,
+                    ErrorCodes.SESSION_NOT_ACTIVE,
+                    'This interview session has been completed.'
+                );
+            }
+        }
+
         // ── Phase-aware RAG ───────────────────────────────────────────────
         const STATE_TO_PHASE: Record<string, InterviewPhase> = {
             'idle': 'intro',

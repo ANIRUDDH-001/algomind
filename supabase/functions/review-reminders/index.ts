@@ -8,6 +8,7 @@
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// @ts-expect-error: Deno URL imports are not resolved by Next.js tsconfig
 import { timingSafeEqual } from 'https://deno.land/std@0.208.0/crypto/timing_safe_equal.ts';
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
