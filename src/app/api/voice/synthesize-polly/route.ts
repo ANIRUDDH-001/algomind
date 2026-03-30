@@ -69,15 +69,15 @@ export async function POST(request: NextRequest) {
         const message = err instanceof Error ? err.message : 'Unknown error';
 
         if (message === 'AWS_POLLY_DISABLED') {
-            return ApiErrors.serviceUnavailable('Polly disabled', 'browser');
+            return apiError(503, ErrorCodes.FEATURE_DISABLED, 'AWS Polly TTS disabled', { degraded_mode: 'browser_tts' });
         }
         if (message === 'AWS_POLLY_NOT_CONFIGURED') {
-            return ApiErrors.serviceUnavailable('AWS not configured', 'browser');
+            return apiError(503, ErrorCodes.SERVICE_UNAVAILABLE, 'Polly not configured', { degraded_mode: 'browser_tts' });
         }
         if (message === 'AWS_POLLY_FAILED') {
             return apiError(502, ErrorCodes.PROVIDER_ERROR, 'Polly synthesis failed', {
                 retryable: true,
-                degraded_mode: 'browser',
+                degraded_mode: 'browser_tts',
             });
         }
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         });
         return apiError(500, ErrorCodes.INTERNAL_ERROR, 'Internal error', {
             retryable: true,
-            degraded_mode: 'browser',
+            degraded_mode: 'browser_tts',
         });
     }
 }

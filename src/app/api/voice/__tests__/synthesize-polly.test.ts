@@ -42,7 +42,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.degraded_mode).toBe('browser');
+        expect(json.degraded_mode).toBe('browser_tts');
         expect(json.error).toContain('disabled');
     });
 
@@ -53,7 +53,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(503);
-        expect(json.degraded_mode).toBe('browser');
+        expect(json.degraded_mode).toBe('browser_tts');
         expect(json.error).toContain('not configured');
     });
 
@@ -64,7 +64,7 @@ describe('POST /api/voice/synthesize-polly', () => {
         const json = await res.json();
 
         expect(res.status).toBe(502);
-        expect(json.degraded_mode).toBe('browser');
+        expect(json.degraded_mode).toBe('browser_tts');
     });
 
     it('response includes X-TTS-Provider: aws-polly header on success path', async () => {

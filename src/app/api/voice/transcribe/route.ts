@@ -31,12 +31,12 @@ export async function POST(req: NextRequest) {
     // Check if Whisper is enabled globally
     const whisperEnabled = await getGlobalFeatureFlag('ENABLE_WHISPER_STT');
     if (!whisperEnabled) {
-        return ApiErrors.serviceUnavailable('Whisper STT is disabled', 'text_only');
+        return apiError(503, ErrorCodes.FEATURE_DISABLED, 'Whisper STT not enabled', { degraded_mode: 'browser_stt' });
     }
 
     const groqApiKey = process.env.GROQ_API_KEY;
     if (!groqApiKey) {
-        return ApiErrors.serviceUnavailable('Groq API not configured', 'text_only');
+        return ApiErrors.serverError('Server misconfiguration', 'GROQ_API_KEY missing');
     }
 
     try {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
         // Max 10MB audio
         if (audioFile.size > 10 * 1024 * 1024) {
-            return apiError(413, ErrorCodes.INVALID_INPUT, 'Audio too large (max 10MB)');
+            return ApiErrors.badRequest('Audio too large (max 10MB)');
         }
 
         // Try turbo model first, fall back to large-v3
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return ApiErrors.serviceUnavailable('All transcription models failed', 'text_only');
+        return apiError(502, ErrorCodes.PROVIDER_ERROR, 'All STT models failed', { retryable: true, degraded_mode: 'browser_stt' });
 
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
