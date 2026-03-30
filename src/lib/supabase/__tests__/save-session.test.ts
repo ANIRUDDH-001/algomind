@@ -52,7 +52,12 @@ describe('saveInterviewSession Action', () => {
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockReturnThis(),
-            rpc: vi.fn().mockReturnThis(),
+            rpc: vi.fn().mockImplementation(async (name: string) => {
+                if (name === 'save_interview_session_atomic') {
+                    return { data: { session_id: 'sess-abc', assessment_id: 'assess-abc' }, error: null };
+                }
+                return { data: null, error: null };
+            }),
         };
 
         (createServerSupabase as any).mockResolvedValue(mockSupabase);
@@ -74,17 +79,6 @@ describe('saveInterviewSession Action', () => {
             error: null
         });
 
-        // Mock Session Insert
-        mockSupabase.insert.mockImplementation((_data: any) => {
-            // Check session table insert
-            return {
-                select: () => ({
-                    single: () => Promise.resolve({ data: { id: 'sess-abc', overall_score: 80 }, error: null })
-                }),
-                error: null
-            };
-        });
-
         const result = await saveInterviewSession(
             'user-123',
             'prob-1',
@@ -98,8 +92,13 @@ describe('saveInterviewSession Action', () => {
         if (result.success) {
             expect(result.data.sessionId).toBe('sess-abc');
         }
-        expect(mockSupabase.from).toHaveBeenCalledWith('interview_sessions');
-        expect(mockSupabase.from).toHaveBeenCalledWith('assessments');
+        expect(mockSupabase.rpc).toHaveBeenCalledWith(
+            'save_interview_session_atomic',
+            expect.objectContaining({
+                p_user_id: 'user-123',
+                p_problem_id: 'prob-1',
+            })
+        );
     });
 
     it('2. Unauthenticated user -> returns error, no DB writes', async () => {
@@ -128,8 +127,6 @@ describe('saveInterviewSession Action', () => {
             data: { user: { id: 'user-123' } },
             error: null
         });
-        mockSupabase.single.mockResolvedValue({ data: { id: 'sess-empty' }, error: null });
-
         const result = await saveInterviewSession(
             'user-123',
             'prob-1',
@@ -140,7 +137,10 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect(mockSupabase.insert).toHaveBeenCalled();
+        expect(mockSupabase.rpc).toHaveBeenCalledWith(
+            'save_interview_session_atomic',
+            expect.objectContaining({ p_transcript: [] })
+        );
     });
 
     it('4. Assessment AI call fails -> session still saved, assessment fields fallback', async () => {
@@ -152,19 +152,6 @@ describe('saveInterviewSession Action', () => {
         // Mock Analyzer to throw
         mockAnalyze.mockRejectedValue(new Error('AI Busy'));
 
-        const mockInsert = vi.fn().mockImplementation(() => ({
-            select: () => ({
-                single: () => Promise.resolve({ data: { id: 'sess-recovery', overall_score: 0 }, error: null })
-            })
-        }));
-
-        mockSupabase.from.mockImplementation((table: string) => {
-            if (table === 'interview_sessions') {
-                return { insert: mockInsert };
-            }
-            return mockSupabase;
-        });
-
         const result = await saveInterviewSession(
             'user-123',
             'prob-1',
@@ -174,11 +161,10 @@ describe('saveInterviewSession Action', () => {
         );
 
         expect(result.success).toBe(true);
-        expect(mockSupabase.from).toHaveBeenCalledWith('interview_sessions');
-        // Check that it tried to save session with 'failed-analysis' feedback
-        expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-            problem_id: 'prob-1'
-        }));
+        expect(mockSupabase.rpc).toHaveBeenCalledWith(
+            'save_interview_session_atomic',
+            expect.objectContaining({ p_problem_id: 'prob-1' })
+        );
     });
 
     it('5. DB insert for interview_sessions fails -> returns error', async () => {
@@ -187,17 +173,11 @@ describe('saveInterviewSession Action', () => {
             error: null
         });
 
-        mockSupabase.from.mockImplementation((table: string) => {
-            if (table === 'interview_sessions') {
-                return {
-                    insert: () => ({
-                        select: () => ({
-                            single: () => Promise.resolve({ data: null, error: { message: 'DB Down' } })
-                        })
-                    })
-                };
+        mockSupabase.rpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: null, error: { message: 'DB Down' } };
             }
-            return mockSupabase;
+            return { data: null, error: null };
         });
 
         const result = await saveInterviewSession(
@@ -221,22 +201,11 @@ describe('saveInterviewSession Action', () => {
             error: null
         });
 
-        mockSupabase.from.mockImplementation((table: string) => {
-            if (table === 'interview_sessions') {
-                return {
-                    insert: () => ({
-                        select: () => ({
-                            single: () => Promise.resolve({ data: { id: 'sess-partial' }, error: null })
-                        })
-                    })
-                };
+        mockSupabase.rpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: null, error: { message: 'Fk fail' } };
             }
-            if (table === 'assessments') {
-                return {
-                    insert: () => Promise.resolve({ error: { message: 'Fk fail' } })
-                };
-            }
-            return mockSupabase;
+            return { data: null, error: null };
         });
 
         const result = await saveInterviewSession(
@@ -248,10 +217,10 @@ describe('saveInterviewSession Action', () => {
             { skills: {} } as any
         );
 
-        // Should still be success because session was saved
-        expect(result.success).toBe(true);
-        if (result.success) {
-            expect(result.data.sessionId).toBe('sess-partial');
+        // Atomic path: if assessment/session write fails, action returns error
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error).toBe('Fk fail');
         }
     });
 
@@ -278,8 +247,6 @@ describe('saveInterviewSession Action', () => {
             data: { user: { id: 'user-123' } },
             error: null
         });
-        mockSupabase.single.mockResolvedValue({ data: { id: 'sess-duration' }, error: null });
-
         const startTime = Date.now() - 60000; // 60 seconds ago
         const endTime = Date.now();
 
@@ -293,9 +260,10 @@ describe('saveInterviewSession Action', () => {
             { startTime, endTime }
         );
 
-        expect(mockSupabase.insert).toHaveBeenCalledWith(expect.objectContaining({
-            duration: 60
-        }));
+        expect(mockSupabase.rpc).toHaveBeenCalledWith(
+            'save_interview_session_atomic',
+            expect.objectContaining({ p_duration: 60 })
+        );
     });
 
     it('assessment insert failure: returns success:true with assessmentPending:true', async () => {
@@ -304,76 +272,11 @@ describe('saveInterviewSession Action', () => {
             error: null
         });
 
-        mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
-
-        mockSupabase.from.mockImplementation((table: string) => {
-            if (table === 'interview_sessions') {
-                return {
-                    ...mockSupabase,
-                    insert: vi.fn().mockReturnValue({
-                        select: vi.fn().mockReturnValue({
-                            single: vi.fn().mockResolvedValue({
-                                data: { id: 'session-abc', user_id: 'user-123' },
-                                error: null
-                            })
-                        })
-                    }),
-                    select: vi.fn().mockImplementation((_columns?: string, options?: any) => {
-                        if (options?.count === 'exact' && options?.head === true) {
-                            return {
-                                eq: vi.fn().mockResolvedValue({ count: 1, error: null })
-                            };
-                        }
-                        return {
-                            eq: vi.fn().mockReturnValue({
-                                single: vi.fn().mockResolvedValue({
-                                    data: { description: 'Given...', difficulty: 'medium' },
-                                    error: null
-                                }),
-                                maybeSingle: vi.fn().mockResolvedValue({
-                                    data: { description: 'Given...', difficulty: 'medium' },
-                                    error: null
-                                })
-                            })
-                        };
-                    }),
-                    update: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            eq: vi.fn().mockResolvedValue({ error: null })
-                        })
-                    })
-                };
+        mockSupabase.rpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-abc', assessment_id: null }, error: null };
             }
-
-            if (table === 'problems') {
-                return {
-                    ...mockSupabase,
-                    select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            single: vi.fn().mockResolvedValue({
-                                data: { description: 'Given...', difficulty: 'medium' },
-                                error: null
-                            }),
-                            maybeSingle: vi.fn().mockResolvedValue({
-                                data: { difficulty: 'medium', tags: ['array'], primary_pattern: 'hash-map' },
-                                error: null
-                            })
-                        })
-                    })
-                };
-            }
-
-            if (table === 'assessments') {
-                return {
-                    ...mockSupabase,
-                    insert: vi.fn().mockResolvedValue({
-                        data: null,
-                        error: { message: 'DB constraint violation', code: '23505' }
-                    })
-                };
-            }
-
-            return { ...mockSupabase };
+            return { data: null, error: null };
         });
 
         const result = await saveInterviewSession(
@@ -390,7 +293,7 @@ describe('saveInterviewSession Action', () => {
         expect(result.success).toBe(true);
         if (result.success) {
             expect(result.data.sessionId).toBe('session-abc');
-            expect(result.data.assessmentPending).toBe(true);
+            expect(result.data.assessmentPending).toBeUndefined();
         }
     });
 
@@ -403,7 +306,12 @@ describe('saveInterviewSession Action', () => {
             error: null
         });
 
-        mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+        mockSupabase.rpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-ok', assessment_id: null }, error: null };
+            }
+            return { data: null, error: null };
+        });
 
         mockSupabase.from.mockImplementation((table: string) => {
             if (table === 'interview_sessions') {

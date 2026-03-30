@@ -142,7 +142,12 @@ describe('Complete assessment pipeline (integration)', () => {
                     error: null,
                 }),
             },
-            rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+            rpc: vi.fn().mockImplementation(async (name: string) => {
+                if (name === 'save_interview_session_atomic') {
+                    return { data: { session_id: 'sess-001', assessment_id: 'assess-001' }, error: null };
+                }
+                return { data: null, error: null };
+            }),
             from: vi.fn((table: string) => {
                 if (table === 'problems') {
                     return {

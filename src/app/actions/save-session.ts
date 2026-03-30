@@ -144,7 +144,7 @@ export async function saveInterviewSession(
         }
 
         // 4. Save session + assessment atomically (Requirement 5/6)
-        const skills = finalResult?.skills || {};
+        const skills: Record<string, any> = (finalResult?.skills || {}) as Record<string, any>;
         const isWarmUp = options?.difficultyMode === 'warm-up';
         const hireDecision = isWarmUp ? null : (finalResult?.hireDecision ?? null);
         const subCriteria = finalResult

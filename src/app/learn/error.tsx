@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { reportError } from '@/lib/telemetry/report-error';
 
 export default function LearnError({
   error,
@@ -14,7 +15,10 @@ export default function LearnError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('[Learn Error]', error);
+    reportError(error, {
+      severity: 'error',
+      extra: { route: 'learn' },
+    });
   }, [error]);
 
   return (
