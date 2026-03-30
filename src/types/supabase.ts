@@ -2169,6 +2169,46 @@ export type Database = {
         Returns: undefined
       }
       record_user_question: { Args: { p_user_id: string }; Returns: undefined }
+      save_interview_session_atomic: {
+        Args: {
+          p_adjusted_score?: number | null
+          p_assessment_adjusted_score?: number | null
+          p_assessment_algorithmic_thinking?: number | null
+          p_assessment_code_quality?: Json | null
+          p_assessment_communication_clarity?: number | null
+          p_assessment_complexity_analysis?: number | null
+          p_assessment_confidence?: number | null
+          p_assessment_debugging_approach?: number | null
+          p_assessment_difficulty_mode?: string | null
+          p_assessment_edge_case_awareness?: number | null
+          p_assessment_hire_decision?: string | null
+          p_assessment_model_used?: string | null
+          p_assessment_next_steps?: string[] | null
+          p_assessment_optimization_mindset?: number | null
+          p_assessment_overall_feedback?: string | null
+          p_assessment_pattern_recognition?: number | null
+          p_assessment_problem_decomposition?: number | null
+          p_assessment_skill_evidence?: Json | null
+          p_assessment_sub_criteria?: Json | null
+          p_assessment_validation_pass_done?: boolean | null
+          p_create_assessment?: boolean | null
+          p_difficulty_mode?: string | null
+          p_duration?: number | null
+          p_feedback?: Json | null
+          p_is_candidate_session?: boolean | null
+          p_overall_score?: number | null
+          p_problem_id: string
+          p_problem_title: string
+          p_raw_score?: number | null
+          p_status?: string | null
+          p_transcript: Json
+          p_user_id: string
+        }
+        Returns: {
+          assessment_id: string | null
+          session_id: string
+        }[]
+      }
       save_question_progress: {
         Args: {
           p_current_problem: string

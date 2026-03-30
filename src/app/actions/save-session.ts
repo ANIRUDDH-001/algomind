@@ -143,81 +143,67 @@ export async function saveInterviewSession(
             return err(error.message, 'db_error');
         }
 
-        let assessmentPending = false;
+        // 4. Save session + assessment atomically (Requirement 5/6)
+        const skills = finalResult?.skills || {};
+        const isWarmUp = options?.difficultyMode === 'warm-up';
+        const hireDecision = isWarmUp ? null : (finalResult?.hireDecision ?? null);
+        const subCriteria = finalResult
+            ? Object.fromEntries(
+                Object.entries(skills).map(([k, v]) => [k, (v as any).subCriteria || {}])
+            )
+            : null;
 
-        // 4. Save assessment details (Requirement 6)
+        const { data: atomicSaveData, error: atomicSaveError } = await supabase
+            .rpc('save_interview_session_atomic', {
+                p_user_id: userId,
+                p_problem_id: problemId,
+                p_problem_title: problemTitle,
+                p_transcript: transcript,
+                p_duration: finalDuration,
+                p_feedback: finalResult ?? null,
+                p_overall_score: overallScore,
+                p_raw_score: finalResult?.rawScore ?? null,
+                p_adjusted_score: finalResult?.adjustedScore ?? null,
+                p_status: 'completed',
+                p_difficulty_mode: options?.difficultyMode ?? 'practice',
+                p_is_candidate_session: false,
+                p_create_assessment: Boolean(finalResult),
+                p_assessment_adjusted_score: finalResult?.adjustedScore ?? null,
+                p_assessment_overall_feedback: finalResult?.overallFeedback ?? null,
+                p_assessment_next_steps: finalResult?.nextSteps ?? null,
+                p_assessment_skill_evidence: finalResult?.skills ?? null,
+                p_assessment_hire_decision: hireDecision,
+                p_assessment_problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
+                p_assessment_pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
+                p_assessment_algorithmic_thinking: (skills['algorithmic-thinking'] as any)?.score ?? null,
+                p_assessment_complexity_analysis: (skills['complexity-analysis'] as any)?.score ?? null,
+                p_assessment_communication_clarity: (skills['communication-clarity'] as any)?.score ?? null,
+                p_assessment_edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
+                p_assessment_optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
+                p_assessment_debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
+                p_assessment_model_used: finalResult?.modelUsed ?? 'unknown',
+                p_assessment_confidence: 0.8,
+                p_assessment_validation_pass_done: finalResult?.validationPassDone ?? false,
+                p_assessment_code_quality: finalResult?.codeQuality ?? null,
+                p_assessment_sub_criteria: subCriteria,
+                p_assessment_difficulty_mode: options?.difficultyMode ?? 'practice',
+            });
+
+        const atomicSaveRow = Array.isArray(atomicSaveData)
+            ? atomicSaveData[0]
+            : atomicSaveData;
+
+        if (atomicSaveError || !atomicSaveRow?.session_id) {
+            const message = atomicSaveError?.message ?? 'Atomic session save failed';
+            console.error('❌ [ACTION] Failed to save session atomically:', atomicSaveError ?? atomicSaveData);
+            void logSystemEvent({ type: 'db_error', errorMessage: message, metadata: { operation: 'save_session_atomic' } });
+            return err(message, 'db_error');
+        }
+
+        const sessionId = atomicSaveRow.session_id;
+
+        // 5. Post-commit non-critical updates
         if (finalResult) {
-            // Map skill keys (hyphenated) to DB columns (underscored)
-            const skills = finalResult.skills || {};
-            // Determine hire_decision — null for warm-up mode
-            const isWarmUp = options?.difficultyMode === 'warm-up';
-            const hireDecision = isWarmUp ? null : (finalResult.hireDecision ?? null);
-
-            const { error: assessmentError } = await supabase
-                .from('assessments')
-                .insert({
-                    session_id: sessionData.id,
-                    user_id: userId,
-                    overall_score: overallScore,
-                    adjusted_score: finalResult.adjustedScore ?? null,
-                    overall_feedback: finalResult.overallFeedback,
-                    next_steps: finalResult.nextSteps,
-                    skill_evidence: finalResult.skills,
-                    hire_decision: hireDecision,
-                    // ✅ FIX: Individual skill score columns
-                    problem_decomposition: (skills['problem-decomposition'] as any)?.score ?? null,
-                    pattern_recognition: (skills['pattern-recognition'] as any)?.score ?? null,
-                    algorithmic_thinking: (skills['algorithmic-thinking'] as any)?.score ?? null,
-                    complexity_analysis: (skills['complexity-analysis'] as any)?.score ?? null,
-                    communication_clarity: (skills['communication-clarity'] as any)?.score ?? null,
-                    edge_case_awareness: (skills['edge-case-awareness'] as any)?.score ?? null,
-                    optimization_mindset: (skills['optimization-mindset'] as any)?.score ?? null,
-                    debugging_approach: (skills['debugging-approach'] as any)?.score ?? null,
-                    model_used: finalResult.modelUsed ?? 'unknown',
-                    confidence: 0.8,
-                    validation_pass_done: finalResult.validationPassDone ?? false,
-                    code_quality: finalResult.codeQuality ?? null,
-                    sub_criteria: Object.fromEntries(
-                        Object.entries(skills).map(([k, v]) => [k, (v as any).subCriteria || {}])
-                    )
-                });
-
-            if (assessmentError) {
-                console.error('⚠️ [ACTION] Failed to save assessment object (partial success):', assessmentError);
-                assessmentPending = true;
-
-                const feedbackWithPending = {
-                    ...(typeof finalResult === 'object' && finalResult
-                        ? (finalResult as unknown as Record<string, unknown>)
-                        : {}),
-                    assessmentPending: true,
-                    assessmentWriteFailed: true,
-                    assessmentRetryRequired: true,
-                    assessmentWriteError: assessmentError.message,
-                };
-
-                try {
-                    const interviewSessionsQuery = supabase.from('interview_sessions') as any;
-
-                    if (typeof interviewSessionsQuery?.update === 'function') {
-                        const { error: pendingStatusError } = await interviewSessionsQuery
-                            .update({
-                                status: 'pending',
-                                feedback: feedbackWithPending,
-                            })
-                            .eq('id', sessionData.id)
-                            .eq('user_id', userId);
-
-                        if (pendingStatusError) {
-                            console.error('⚠️ [ACTION] Failed to set interview session pending state:', pendingStatusError);
-                        }
-                    } else {
-                        console.error('⚠️ [ACTION] interview_sessions pending-state update unavailable on query builder');
-                    }
-                } catch (pendingUpdateErr) {
-                    console.error('⚠️ [ACTION] Failed to apply pending-state fallback update:', pendingUpdateErr);
-                }
-            }
 
             // Hire readiness trend tracking
             if (hireDecision) {
@@ -229,7 +215,7 @@ export async function saveInterviewSession(
                         .maybeSingle();
 
                     const newEntry = {
-                        sessionId: sessionData.id,
+                        sessionId,
                         hireDecision,
                         score: finalResult.adjustedScore ?? overallScore,
                         completedAt: new Date().toISOString(),
@@ -257,7 +243,7 @@ export async function saveInterviewSession(
             const gapsToInsert = finalResult.knowledgeGaps.map(gap => ({
                 user_query: gap,
                 gap_reason: 'Identified during AI assessment',
-                session_id: sessionData.id,
+                session_id: sessionId,
                 user_id: userId,
                 status: 'new',
                 priority: 'medium',
@@ -300,7 +286,7 @@ export async function saveInterviewSession(
             };
             await updateSkillRepetition({
                 userId,
-                sessionId: sessionData.id,
+                sessionId,
                 dimensionScores,
             });
         } catch (err) { console.error('[save-session] updateSkillRepetition failed:', err); }
@@ -316,7 +302,7 @@ export async function saveInterviewSession(
             if (problemData) {
                 await getKnowledgeGraphService().onInterviewSessionCompleted({
                     userId,
-                    sessionId: sessionData.id,
+                    sessionId,
                     problemTags: problemData.tags ?? [],
                     primaryPattern: problemData.primary_pattern ?? null,
                     overallScore,
@@ -349,7 +335,7 @@ export async function saveInterviewSession(
                 }
 
                 const sessionDataForBaseline: SessionData = {
-                    sessionId: sessionData.id,
+                    sessionId,
                     problemTitle,
                     problemDifficulty: probDiff?.difficulty || 'medium',
                     overallScore: finalResult.rawScore ?? 0,
@@ -367,11 +353,7 @@ export async function saveInterviewSession(
             await invalidateDashboardCache(userId);
         } catch (err) { console.error('[save-session] Cache invalidation failed:', err); }
 
-        if (assessmentPending) {
-            return ok({ sessionId: sessionData.id, assessmentPending: true });
-        }
-
-        return ok({ sessionId: sessionData.id });
+        return ok({ sessionId });
     } catch (e) {
         const error = e as unknown;
         const errorMessage = error instanceof Error ? error.message : String(error);

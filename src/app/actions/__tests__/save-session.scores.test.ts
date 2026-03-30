@@ -79,6 +79,15 @@ describe('saveInterviewSession scores & profile wiring', () => {
         
         const supabase = await createServerSupabase();
         mockRpc = supabase.rpc;
+        mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
+            if (name === 'ensure_learner_profile') {
+                return { data: null, error: null };
+            }
+            return { data: null, error: null };
+        });
     });
 
     it('correctly maps adjusted_score to the assessments table insert payload', () => {
@@ -94,6 +103,9 @@ describe('saveInterviewSession scores & profile wiring', () => {
     it('calls ensure_learner_profile after session is saved', async () => {
         // Arrange: track RPC calls used by the action
         mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
             if (name === 'ensure_learner_profile') {
                 return { data: null, error: null };
             }
@@ -116,6 +128,9 @@ describe('saveInterviewSession scores & profile wiring', () => {
     it('does not throw if ensure_learner_profile fails', async () => {
         // Arrange: mock rpc to return an error for profile ensure
         mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
             if (name === 'ensure_learner_profile') {
                 return { data: null, error: { message: 'DB Error' } };
             }
@@ -133,6 +148,9 @@ describe('saveInterviewSession scores & profile wiring', () => {
     it('calls getKnowledgeGraphService().onInterviewSessionCompleted after saving', async () => {
         // Mock RPC
         mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
             if (name === 'ensure_learner_profile') {
                 return { data: null, error: null };
             }
