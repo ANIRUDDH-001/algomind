@@ -228,10 +228,11 @@ describe('Chat API (/api/chat)', () => {
         const req = createRequest({ messages: [{ role: 'user', content: 'search term' }] });
         await POST(req);
 
-        expect(logSystemEvent).toHaveBeenCalledWith({
+        expect(logSystemEvent).toHaveBeenCalledWith(expect.objectContaining({
             type: 'model_error',
-            errorMessage: 'Mock Error'
-        });
+            errorMessage: 'Mock Error',
+            correlationId: expect.any(String),
+        }));
     });
 
     it('11. Hinglish mapping: global ON, user OFF -> english', async () => {

@@ -5,10 +5,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 
-const TEST_SUPABASE_URL = process.env.SUPABASE_TEST_URL;
-const TEST_SUPABASE_KEY = process.env.SUPABASE_TEST_SERVICE_KEY;
-const TEST_REDIS_URL = process.env.REDIS_TEST_URL;
-const TEST_REDIS_TOKEN = process.env.REDIS_TEST_TOKEN;
+function readEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+const TEST_SUPABASE_URL = readEnv('SUPABASE_TEST_URL');
+const TEST_SUPABASE_KEY = readEnv('SUPABASE_TEST_SERVICE_KEY');
+const TEST_REDIS_URL = readEnv('REDIS_TEST_URL');
+const TEST_REDIS_TOKEN = readEnv('REDIS_TEST_TOKEN');
 
 export const hasIntegrationEnv = Boolean(
   TEST_SUPABASE_URL
