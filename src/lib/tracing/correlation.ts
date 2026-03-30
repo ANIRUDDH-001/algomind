@@ -1,5 +1,3 @@
-import { headers } from 'next/headers';
-
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
 
 export function createCorrelationId(): string {
@@ -12,13 +10,9 @@ export function getCorrelationIdFromRequest(request: Pick<Request, 'headers'> | 
 }
 
 export async function getCorrelationId(): Promise<string> {
-    try {
-        const headerStore = await headers();
-        return headerStore.get(CORRELATION_ID_HEADER) ?? createCorrelationId();
-    } catch {
-        // Falls back for non-request contexts (cron/background jobs).
-        return createCorrelationId();
-    }
+    // This helper must remain isomorphic because it is imported in both
+    // server-only and client-reachable module graphs.
+    return createCorrelationId();
 }
 
 export function withCorrelationIdHeaders(headersInit: HeadersInit | undefined, correlationId: string): Headers {
