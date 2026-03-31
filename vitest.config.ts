@@ -12,7 +12,13 @@ export default defineConfig({
         environment: 'node',
 
         // Include pattern
-        include: ['src/**/__tests__/**/*.test.ts', 'src/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx', 'src/**/*.test.tsx'],
+        include: [
+            'src/**/__tests__/**/*.test.ts',
+            'src/**/*.test.ts',
+            'src/**/__tests__/**/*.test.tsx',
+            'src/**/*.test.tsx',
+            'tests/golden/**/*.test.ts',
+        ],
 
         // Exclude Playwright integration tests (they use Playwright's test.describe API)
         exclude: [

@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
+    "test:golden": "vitest run tests/golden/",
     "test:integration": "vitest run src/__tests__/integration",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
