@@ -34,9 +34,15 @@ export interface SystemEventPayload {
     type: SystemEventType;
     provider?: string;
     modelId?: string;
+    // Legacy camelCase fields used by existing callers
     userId?: string;
     sessionId?: string;
     correlationId?: string;
+    // New snake_case fields for direct API/event payload compatibility
+    correlation_id?: string;
+    session_id?: string;
+    user_id?: string;
+    latency_ms?: number;
     errorCode?: string;
     errorMessage?: string;
     metadata?: Record<string, unknown>;
@@ -59,12 +65,16 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         return;
     }
 
-    const correlationId = event.correlationId ?? await getCorrelationId();
+    const correlationId = event.correlation_id ?? event.correlationId ?? await getCorrelationId();
+    const sessionId = event.session_id ?? event.sessionId;
+    const userId = event.user_id ?? event.userId;
+    const existingMetadata = event.metadata ?? {};
     const metadata = {
-        ...(event.metadata ?? {}),
+        ...existingMetadata,
         correlation_id: correlationId,
-        session_id: event.sessionId,
-        user_id: event.userId,
+        session_id: sessionId,
+        user_id: userId,
+        latency_ms: event.latency_ms,
         timestamp: new Date().toISOString(),
     };
 
@@ -72,7 +82,7 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         type: event.type,
         provider: event.provider,
         model_id: event.modelId, // Mapping to db column
-        user_id: event.userId,
+        user_id: userId,
         error_code: event.errorCode,
         error_message: event.errorMessage,
         metadata,
