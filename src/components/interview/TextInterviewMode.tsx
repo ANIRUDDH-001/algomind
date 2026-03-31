@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Send } from 'lucide-react';
 import { ConversationView } from './ConversationView';
 import { Message } from '@/hooks/useInterview';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ export function TextInterviewMode({
     onSendMessage,
     className
 }: TextInterviewModeProps) {
-    const [input, setInput] = useState('');
+    const [input, setInput, clearDraft] = useDraftPersistence('interview-text');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -35,7 +36,7 @@ export function TextInterviewMode({
     const handleSend = () => {
         if (!input.trim() || isProcessing) return;
         onSendMessage(input.trim());
-        setInput('');
+        clearDraft();
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
         }

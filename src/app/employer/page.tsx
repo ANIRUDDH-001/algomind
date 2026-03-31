@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Zap, Brain, Share2, Briefcase, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useGuardedRouter } from '@/hooks/useGuardedRouter';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { getSupabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,7 +17,7 @@ export default function EmployerPage() {
     const [checkingType, setCheckingType] = useState(true);
 
     // Upgrade state
-    const [companyName, setCompanyName] = useState('');
+    const [companyName, setCompanyName, clearCompanyDraft] = useDraftPersistence('employer-company');
     const [inviteCode, setInviteCode] = useState('');
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [upgradeError, setUpgradeError] = useState('');
@@ -76,6 +77,7 @@ export default function EmployerPage() {
             });
 
             if (res.ok) {
+                clearCompanyDraft();
                 toast.success('Account upgraded successfully! Welcome to Employer.');
                 router.refresh(); // Sync server-side session to reflect new account_type
                 router.push('/employer/dashboard');
