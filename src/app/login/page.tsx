@@ -16,6 +16,7 @@ function LoginContent() {
     const [oauthProvider, setOauthProvider] = useState<'google' | 'github' | null>(null);
     const [error, setError] = useState<string | null>(null);
     const hasRedirected = useRef(false);
+    const reason = searchParams.get('reason');
 
     // Redirect if already logged in
     useEffect(() => {
@@ -101,6 +102,12 @@ function LoginContent() {
                             >
                                 Sign In with Email
                             </button>
+                        </div>
+                    )}
+
+                    {reason === 'guest_disabled' && (
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-sm text-center">
+                            Guest mode is currently disabled. Please sign in to continue.
                         </div>
                     )}
 

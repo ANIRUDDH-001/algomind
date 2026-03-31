@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, BarChart, Brain, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 // --- Reusable Custom Components for Sections ---
 
@@ -83,6 +84,7 @@ function AnimatedCounter({ value, label }: { value: string, label: string }) {
 
 export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
+  const guestModeEnabled = useGlobalFeatureFlag('ENABLE_GUEST_MODE', true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const loading = authLoading || isRedirecting;
   const router = useRouter();
@@ -231,7 +233,11 @@ export default function HomePage() {
                     setIsRedirecting(false);
                   }
                 } else {
-                  router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
+                  if (guestModeEnabled) {
+                    router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
+                  } else {
+                    router.push('/login?reason=guest_disabled');
+                  }
                 }
               }}
               disabled={loading}
@@ -242,7 +248,7 @@ export default function HomePage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {user ? 'Go to Dashboard' : 'Try for Free'}
+                  {user ? 'Go to Dashboard' : guestModeEnabled ? 'Try for Free' : 'Sign In to Start'}
                   <ArrowRight className="w-5 h-5 ml-1" />
                 </>
               )}
@@ -573,7 +579,11 @@ export default function HomePage() {
                           setIsRedirecting(false);
                         }
                       } else {
-                        router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
+                        if (guestModeEnabled) {
+                          router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
+                        } else {
+                          router.push('/login?reason=guest_disabled');
+                        }
                       }
                     }}
                     disabled={loading}
@@ -582,7 +592,7 @@ export default function HomePage() {
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (user ? 'Go to Dashboard' : 'Get Started Free')}
+                    ) : (user ? 'Go to Dashboard' : guestModeEnabled ? 'Get Started Free' : 'Sign In to Start')}
                   </Button>
                 </div>
 

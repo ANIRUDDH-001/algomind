@@ -104,17 +104,17 @@ export default async function middleware(request: NextRequest) {
         return withCorrelationId(NextResponse.redirect(url));
     }
 
-    // Guest mode check for interview (Query param or Cookie)
-    const isGuestMode =
-        searchParams.get('demo') === 'true' ||
-        request.cookies.get('algomind_demo_mode')?.value === 'true';
-
     // Redirect to login if accessing protected route without user
     // E2E bypass is ONLY active in local development.
     // Never in staging, preview, or production environments.
     const isE2ETest = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
+        // Guest mode check for interview (Query param or Cookie)
+        const isGuestMode =
+            searchParams.get('demo') === 'true' ||
+            request.cookies.get('algomind_demo_mode')?.value === 'true';
+
         if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute || isLearn) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
@@ -124,11 +124,24 @@ export default async function middleware(request: NextRequest) {
             return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
         }
 
-        if (isInterview && !isGuestMode) {
-            const url = request.nextUrl.clone();
-            url.pathname = '/login';
-            url.searchParams.set('reason', 'auth_required_interview');
-            return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
+        if (isInterview) {
+            const { getGlobalFeatureFlag } = await import('@/lib/feature-flags-server');
+            const guestModeEnabled = await getGlobalFeatureFlag('ENABLE_GUEST_MODE');
+
+            if (!guestModeEnabled) {
+                const url = request.nextUrl.clone();
+                url.pathname = '/login';
+                url.searchParams.set('redirect', pathname);
+                url.searchParams.set('reason', 'guest_disabled');
+                return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
+            }
+
+            if (!isGuestMode) {
+                const url = request.nextUrl.clone();
+                url.pathname = '/login';
+                url.searchParams.set('reason', 'auth_required_interview');
+                return withCorrelationId(clearDiagnosticCookie(NextResponse.redirect(url)));
+            }
         }
     }
 

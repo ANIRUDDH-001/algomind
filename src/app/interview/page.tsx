@@ -15,6 +15,7 @@ import { getKaiMemory } from '@/app/actions/learn';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 import { getSupabase } from '@/lib/supabase/client';
 import { prefetchVADAssets } from '@/lib/voice/vad-manager';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 
 function InterviewContent() {
     const searchParams = useSearchParams();
@@ -27,8 +28,9 @@ function InterviewContent() {
         : 'practice';
     const { history } = useProgress();
     const { user } = useAuth();
+    const guestModeEnabled = useGlobalFeatureFlag('ENABLE_GUEST_MODE', true);
 
-    const isGuest = !user;
+    const isGuest = !user && guestModeEnabled;
     const userId = user?.id || null;
 
     // console.log('[InterviewPage RENDER] State:', { ... });
@@ -271,6 +273,17 @@ function InterviewContent() {
                             Run the SQL script in Supabase to add problems to your database.
                         </p>
                     )}
+                </div>
+            </div>
+        );
+    }
+
+    if (!user && !guestModeEnabled) {
+        return (
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex items-center justify-center text-white">
+                <div className="text-center max-w-md px-6">
+                    <p className="text-amber-400 text-lg mb-4">Guest mode is currently disabled.</p>
+                    <p className="text-slate-500 text-sm">Please sign in to continue your interview practice.</p>
                 </div>
             </div>
         );

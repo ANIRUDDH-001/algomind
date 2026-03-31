@@ -125,6 +125,14 @@ export const FEATURE_FLAGS = {
         description: 'Difficulty-based interview modes: Warm-Up, Practice, Crunch, Sprint.',
         requiresBrowserSupport: false,
     },
+
+    // Guest interview mode toggle
+    ENABLE_GUEST_MODE: {
+        storageKey: 'feature_ENABLE_GUEST_MODE',
+        defaultValue: true,
+        description: 'Allow unauthenticated users to run guest/demo interviews.',
+        requiresBrowserSupport: false,
+    },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
