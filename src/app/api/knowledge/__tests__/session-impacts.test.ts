@@ -52,7 +52,6 @@ describe('GET /api/knowledge/session-impacts', () => {
             eq: vi.fn().mockReturnThis(),
             then: undefined,
             // final chained call resolves from eq
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } as any;
         }
         return {

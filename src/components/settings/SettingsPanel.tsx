@@ -207,6 +207,7 @@ export function SettingsPanel() {
                     {user ? (
                         <div className="flex items-center gap-4 px-5 py-4">
                             {user.user_metadata?.avatar_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={user.user_metadata.avatar_url}
                                     alt={user.email || 'User'}

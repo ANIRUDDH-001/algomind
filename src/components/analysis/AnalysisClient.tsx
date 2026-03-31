@@ -362,36 +362,7 @@ export function AnalysisClient({
     previousAttempts,
     flags,
 }: AnalysisClientProps) {
-    // Show pending state if assessment is not ready
-    if (assessmentStatus === 'pending' || !assessment) {
-        return (
-            <div
-                className="min-h-screen flex flex-col items-center justify-center gap-6"
-                style={{ background: 'var(--surface-0)' }}
-            >
-                <div className="text-center space-y-3 max-w-md px-4">
-                    <div className="text-4xl">⏳</div>
-                    <h2 className="text-xl font-bold text-white">
-                        Analysis in Progress
-                    </h2>
-                    <p className="text-zinc-400 text-sm">
-                        Your interview has been saved. AI scoring takes up to 30 seconds.
-                        This page will refresh automatically.
-                    </p>
-                </div>
-                <PendingRefreshButton sessionId={session.id} />
-            </div>
-        );
-    }
-
-    const skills = assessment?.skills;
-    const weakSubCriteria = extractWeakSubCriteria(assessment?.subCriteria);
-    const hasTranscript = session.transcript && session.transcript.length > 0;
-    const aiMoments = assessment?.keyMoments || [];
-    const improvementExamples = assessment?.improvementExamples || [];
     const [showImprovements, setShowImprovements] = useState(false);
-    const isWarmUp = session.difficultyMode === 'warm-up';
-    const isIncompleteSession = session.status === 'incomplete' || session.isLimitedEvidence;
     const [queueStatus, setQueueStatus] = useState<'idle' | 'adding' | 'added' | 'error'>('idle');
     const [localReviewData, setLocalReviewData] = useState(reviewData);
     const [conceptImpacts, setConceptImpacts] = useState<ConceptImpact[]>([]);
@@ -446,6 +417,36 @@ export function AnalysisClient({
             setQueueStatus('error');
         }
     }, [session, assessment]);
+
+    // Show pending state if assessment is not ready
+    if (assessmentStatus === 'pending' || !assessment) {
+        return (
+            <div
+                className="min-h-screen flex flex-col items-center justify-center gap-6"
+                style={{ background: 'var(--surface-0)' }}
+            >
+                <div className="text-center space-y-3 max-w-md px-4">
+                    <div className="text-4xl">⏳</div>
+                    <h2 className="text-xl font-bold text-white">
+                        Analysis in Progress
+                    </h2>
+                    <p className="text-zinc-400 text-sm">
+                        Your interview has been saved. AI scoring takes up to 30 seconds.
+                        This page will refresh automatically.
+                    </p>
+                </div>
+                <PendingRefreshButton sessionId={session.id} />
+            </div>
+        );
+    }
+
+    const skills = assessment?.skills;
+    const weakSubCriteria = extractWeakSubCriteria(assessment?.subCriteria);
+    const hasTranscript = session.transcript && session.transcript.length > 0;
+    const aiMoments = assessment?.keyMoments || [];
+    const improvementExamples = assessment?.improvementExamples || [];
+    const isWarmUp = session.difficultyMode === 'warm-up';
+    const isIncompleteSession = session.status === 'incomplete' || session.isLimitedEvidence;
 
     // Extract first actionable sentence from feedback
     const oneThingFeedback = (() => {

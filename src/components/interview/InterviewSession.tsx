@@ -579,7 +579,6 @@ export function InterviewSession({
                 },
             });
         }, 1500);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sprintProblem2, interviewConfig, limits, startInterview, activeProblem]);
 
     const handleFinish = async () => {
@@ -719,42 +718,6 @@ export function InterviewSession({
         }
     }, [showBadge]);
 
-    if (result) {
-        if (isGuest) {
-            return (
-                <GuestResultsOverlay
-                    assessment={result}
-                    durationSecs={guestDurationSecs}
-                    roundCount={roundCount}
-                    problemTitle={activeProblem.title}
-                    onTryAnother={() => {
-                        resetAssessment();
-                        setShowGuestSelector(true);
-                        setActiveProblem(problem); // reset to original prop
-                    }}
-                    onSignUp={() => { window.location.href = '/login'; }}
-                    onClose={resetAssessment}
-                />
-            );
-        }
-        // A5: Logged-in users get redirected to /interview/analysis after save (line ~519).
-        // This fallback shows briefly while the redirect is pending, or if save failed.
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-                <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-                <p className="text-sm text-zinc-400">Loading your analysis...</p>
-                <button
-                    onClick={resetAssessment}
-                    className="text-xs text-zinc-500 hover:text-zinc-300 underline mt-2"
-                >
-                    Return to interview
-                </button>
-            </div>
-        );
-    }
-
-    // --- Sub-components (Visual Rendering) --- //
-
     const normalizedExamples = useCallback((examplesRaw: unknown): TestCase[] => {
         let parsed: unknown = examplesRaw;
         if (typeof examplesRaw === 'string') {
@@ -798,6 +761,42 @@ export function InterviewSession({
         }
         return activeProblem.description;
     }, [activeProblem]);
+
+    if (result) {
+        if (isGuest) {
+            return (
+                <GuestResultsOverlay
+                    assessment={result}
+                    durationSecs={guestDurationSecs}
+                    roundCount={roundCount}
+                    problemTitle={activeProblem.title}
+                    onTryAnother={() => {
+                        resetAssessment();
+                        setShowGuestSelector(true);
+                        setActiveProblem(problem); // reset to original prop
+                    }}
+                    onSignUp={() => { window.location.href = '/login'; }}
+                    onClose={resetAssessment}
+                />
+            );
+        }
+        // A5: Logged-in users get redirected to /interview/analysis after save (line ~519).
+        // This fallback shows briefly while the redirect is pending, or if save failed.
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                <p className="text-sm text-zinc-400">Loading your analysis...</p>
+                <button
+                    onClick={resetAssessment}
+                    className="text-xs text-zinc-500 hover:text-zinc-300 underline mt-2"
+                >
+                    Return to interview
+                </button>
+            </div>
+        );
+    }
+
+    // --- Sub-components (Visual Rendering) --- //
 
     const renderProblemCardContent = (showExamples = true, showHeader = true) => {
         const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;

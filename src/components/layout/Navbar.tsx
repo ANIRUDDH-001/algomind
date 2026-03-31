@@ -3,6 +3,7 @@
 
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -118,9 +119,11 @@ export function Navbar() {
                                 onClick={() => router.push('/')}
                                 className="flex items-center gap-3 font-bold text-xl text-white hover:text-indigo-400 transition-colors group shrink-0"
                             >
-                                <img
+                                <Image
                                     src="/icon-192x192.png"
                                     alt="AlgoMind Logo"
+                                    width={32}
+                                    height={32}
                                     className="w-8 h-8 group-hover:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] rounded-lg"
                                 />
                                 <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-500">AlgoMind</span>
