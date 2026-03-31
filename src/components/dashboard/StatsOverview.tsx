@@ -14,12 +14,6 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ progress }: StatsOverviewProps) {
-    if (!progress) return null;
-
-    const totalMinutes = Math.floor((progress.sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0)) / 60);
-    const PROBLEMS_SOLVED = progress.totalSessions;
-    const AVG_SCORE = progress.averageScore;
-
     const [streakData, setStreakData] = useState<{ current: number; longest: number } | null>(null);
     const [hireTrend, setHireTrend] = useState<any[]>([]);
 
@@ -60,6 +54,12 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
         fetchHireTrend();
         return () => { mounted = false; };
     }, [progress?.userId]);
+
+    if (!progress) return null;
+
+    const totalMinutes = Math.floor((progress.sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0)) / 60);
+    const PROBLEMS_SOLVED = progress.totalSessions;
+    const AVG_SCORE = progress.averageScore;
 
     // Calculate improvement (comparing last 2 sessions if available)
     const currentAvg = progress.sessions[0]?.overallScore || 0;
