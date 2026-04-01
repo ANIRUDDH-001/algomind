@@ -133,8 +133,8 @@ export function Navbar() {
                             <div className="hidden md:flex items-center gap-6">
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
-                                    { href: '/practice', label: 'Practice', authOnly: false },
                                     ...(user ? [
+                                        { href: '/practice', label: 'Practice', authOnly: true },
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
                                         ...(accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
