@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isDemoMode, enableDemoMode, disableDemoMode } from '@/lib/demo/manager';
 import { resetOnboarding, shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, User, LogOut, Database, Shield, Play, FlaskConical } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Database, Shield, Play } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -16,7 +15,6 @@ import { VoiceSettings } from './VoiceSettings';
 
 export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
-    const [demoMode, setDemoMode] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [_isClearing, setIsClearing] = useState(false);
     const [emailNotifications, setEmailNotifications] = useState(true);
@@ -30,16 +28,6 @@ export function SettingsPanel() {
     useEffect(() => {
         setMounted(true);
         setIntroEnabled(shouldShowOnboarding());
-        setDemoMode(isDemoMode());
-
-        const handleDemoChange = (e: CustomEvent<{ enabled: boolean }>) => {
-            setDemoMode(e.detail.enabled);
-        };
-
-        window.addEventListener('demo-mode-changed', handleDemoChange as EventListener);
-        return () => {
-            window.removeEventListener('demo-mode-changed', handleDemoChange as EventListener);
-        };
     }, []);
 
     useEffect(() => {
@@ -89,19 +77,7 @@ export function SettingsPanel() {
         setIntroEnabled(!introEnabled);
     };
 
-    const handleExitDemo = () => {
-        disableDemoMode();
-        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
-        toast.success('Demo mode disabled');
-        router.refresh();
-    };
-
     const handleStartDemoTour = () => {
-        // Event listener in TourContext checks this
-        if (!demoMode) {
-            enableDemoMode();
-            window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: true } }));
-        }
         window.dispatchEvent(new CustomEvent('start-tour'));
     };
 
@@ -115,8 +91,6 @@ export function SettingsPanel() {
         try {
             // Clear localStorage
             localStorage.clear();
-            // Force disable demo mode in state/UI too
-            disableDemoMode();
 
             // If authenticated and Supabase is configured, clear database
             if (user && isConfigured) {
@@ -147,8 +121,6 @@ export function SettingsPanel() {
     };
 
     const handleSignOut = async () => {
-        disableDemoMode(); // Ensure demo mode is off on logout
-        window.dispatchEvent(new CustomEvent('demo-mode-changed', { detail: { enabled: false } }));
         await signOut();
         toast.success('Signed out successfully');
         router.push('/');
@@ -307,45 +279,26 @@ export function SettingsPanel() {
                 </h2>
                 <div className="rounded-2xl overflow-hidden"
                     style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                    {/* Combined Demo & Tour Control */}
+                    {/* Tour Control */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--surface-edge)]" data-tour="intro-button">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-blue-500/20">
-                                {demoMode ? (
-                                    <FlaskConical className="w-5 h-5 text-purple-400" />
-                                ) : (
-                                    <Play className="w-5 h-5 text-blue-400" />
-                                )}
+                                <Play className="w-5 h-5 text-blue-400" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-semibold text-zinc-200">
-                                    {demoMode ? 'Demo Mode Active' : 'Interactive Demo'}
-                                </h3>
+                                <h3 className="text-sm font-semibold text-zinc-200">Interactive Tour</h3>
                                 <p className="text-xs text-zinc-500 mt-0.5">
-                                    {demoMode
-                                        ? 'Sample data loaded. Exit to clear.'
-                                        : 'Experience AlgoMind with sample data and tour'}
+                                    Experience AlgoMind with a guided walkthrough
                                 </p>
                             </div>
                         </div>
-
-                        {demoMode ? (
-                            <Button
-                                onClick={handleExitDemo}
-                                variant="destructive"
-                                className="h-8 text-xs font-bold bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-900/50"
-                            >
-                                Exit Demo Mode
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={handleStartDemoTour}
-                                variant="default"
-                                className="h-8 text-xs font-bold btn-primary"
-                            >
-                                Start Demo Tour
-                            </Button>
-                        )}
+                        <Button
+                            onClick={handleStartDemoTour}
+                            variant="default"
+                            className="h-8 text-xs font-bold btn-primary"
+                        >
+                            Start Tour
+                        </Button>
                     </div>
 
                     {/* Version info */}

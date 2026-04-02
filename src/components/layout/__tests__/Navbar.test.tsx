@@ -49,10 +49,6 @@ vi.mock('@/hooks/useAdmin', () => ({
     useAdmin: vi.fn(),
 }));
 
-vi.mock('@/lib/demo/manager', () => ({
-    isDemoMode: vi.fn(),
-}));
-
 vi.mock('framer-motion', () => ({
     motion: {
         div: ({ layoutId, children, whileTap, ...props }: any) => (
@@ -66,10 +62,6 @@ vi.mock('next/link', () => ({
     default: ({ children, href, className, ...props }: any) => (
         <a href={href} className={className} {...props}>{children}</a>
     ),
-}));
-
-vi.mock('@/components/demo/DemoBanner', () => ({
-    DemoBanner: () => <div data-testid="demo-banner">Demo Mode</div>,
 }));
 
 vi.mock('@/lib/utils', () => ({
@@ -115,8 +107,6 @@ vi.mock('lucide-react', () => ({
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePathname } from 'next/navigation';
 import { useAdmin } from '@/hooks/useAdmin';
-import { isDemoMode } from '@/lib/demo/manager';
-
 // ─── Import component ───
 import { Navbar } from '../Navbar';
 
@@ -128,7 +118,6 @@ describe('Navbar Component', () => {
 
         (usePathname as any).mockReturnValue('/');
         (useAdmin as any).mockReturnValue({ isAdmin: false });
-        (isDemoMode as any).mockReturnValue(false);
         (useAuth as any).mockReturnValue({
             user: { id: '1', email: 'test@example.com', user_metadata: { full_name: 'Test User' } },
             signOut: mockSignOut,

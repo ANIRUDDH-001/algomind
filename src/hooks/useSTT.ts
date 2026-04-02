@@ -28,6 +28,8 @@ export interface UseSTTOptions {
     onTranscript: (text: string, isFinal: boolean) => void;
     onSilenceTimeout?: () => void;
     onError?: (err: string) => void;
+    /** Called when Whisper returns empty text (low confidence or noise). */
+    onEmpty?: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -283,6 +285,8 @@ export function useSTT(opts: UseSTTOptions) {
             }
             const { text } = await res.json() as { text: string };
             if (!text?.trim()) {
+                // A4: Notify caller so the UI can show "Didn't catch that" feedback.
+                optsRef.current.onEmpty?.();
                 return;
             }
             // Overlap dedup: skip if the new text is already a suffix of the current transcript

@@ -135,10 +135,6 @@ vi.mock('@/lib/recommendations/engine', () => ({
 vi.mock('sonner', () => ({
     toast: { success: vi.fn(), error: vi.fn(), loading: vi.fn() },
 }));
-vi.mock('@/lib/demo/manager', () => ({
-    isDemoMode: () => false,
-    getDemoProgress: () => null,
-}));
 vi.mock('@/app/actions/dashboard', () => ({
     getDashboardAveragesAction: vi.fn().mockResolvedValue(null),
 }));

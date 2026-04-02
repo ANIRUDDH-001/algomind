@@ -14,10 +14,6 @@ vi.mock('@/lib/supabase/progress-store', () => ({
 vi.mock('@/lib/supabase/client', () => ({
     isSupabaseConfigured: vi.fn(() => false),
 }));
-vi.mock('@/lib/demo/manager', () => ({
-    isDemoMode: vi.fn(() => false),
-    getDemoProgress: vi.fn(() => null),
-}));
 vi.mock('@tanstack/react-query', () => ({
     useQuery: vi.fn(() => ({ data: null, isLoading: false, error: null })),
     useMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),

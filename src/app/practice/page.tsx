@@ -12,9 +12,22 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
-import { enableDemoMode } from '@/lib/demo/manager';
 
 const PROBLEMS_PER_PAGE = 10;
+
+// Pre-computed particle data to avoid calling Math.random() during render.
+const GUEST_PARTICLES = Array.from({ length: 20 }, () => ({
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    duration: 3 + Math.random() * 2,
+    delay: Math.random() * 2,
+}));
+const EMPTY_PARTICLES = Array.from({ length: 20 }, () => ({
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    duration: 3 + Math.random() * 2,
+    delay: Math.random() * 2,
+}));
 
 export default function PracticePage() {
     const { user } = useAuth();
@@ -41,6 +54,7 @@ export default function PracticePage() {
 
     // Difficulty mode state
     const [difficultyMode, setDifficultyMode] = useState<DifficultyMode>('practice');
+
 
     // Sprint P2 picker state
     const [sprintP1, setSprintP1] = useState<Problem | null>(null);
@@ -137,11 +151,10 @@ export default function PracticePage() {
         }
 
         if (!user) {
-            enableDemoMode();
-            router.push(`/interview?problemId=${problemId}&demo=true`);
-        } else {
-            router.push(`/interview?problemId=${problemId}&mode=${difficultyMode}`);
+            router.push('/login');
+            return;
         }
+        router.push(`/interview?problemId=${problemId}&mode=${difficultyMode}`);
     };
 
     const handleSprintP2Select = (p2: Problem) => {
@@ -155,24 +168,15 @@ export default function PracticePage() {
     };
 
     const handleRandomProblem = async () => {
-        // Different random logic for guests vs logged in
-        let problemToUse;
-
         if (!user) {
-            // Guests get one of the guest problems hardcoded (or via API if available)
-            const { GUEST_PROBLEMS } = await import('@/lib/guest/guest-problems');
-            const randomIndex = Math.floor(Math.random() * GUEST_PROBLEMS.length);
-            problemToUse = GUEST_PROBLEMS[randomIndex];
-
-            enableDemoMode();
-            router.push(`/interview?problemId=${problemToUse.id}&demo=true`);
-        } else {
-            problemToUse = await getRandomProblem(
-                filters.difficulty !== 'all' ? filters.difficulty : undefined
-            );
-            if (problemToUse) {
-                handleStartInterview(problemToUse.id);
-            }
+            router.push('/login');
+            return;
+        }
+        const problemToUse = await getRandomProblem(
+            filters.difficulty !== 'all' ? filters.difficulty : undefined
+        );
+        if (problemToUse) {
+            handleStartInterview(problemToUse.id);
         }
     };
 
@@ -222,13 +226,13 @@ export default function PracticePage() {
                 {!user ? (
                     <div className="text-center py-20 relative overflow-hidden rounded-2xl flex flex-col items-center justify-center mt-12" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                         <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
-                            {[...Array(20)].map((_, i) => (
+                            {GUEST_PARTICLES.map((p, i) => (
                                 <motion.div
                                     key={i}
                                     className="absolute w-1 h-1 bg-indigo-500/20 rounded-full flex shrink-0"
-                                    style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+                                    style={{ left: `${p.left}%`, top: `${p.top}%` }}
                                     animate={{ y: [0, -30, 0], opacity: [0, 1, 0], scale: [0, 1.5, 0] }}
-                                    transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }}
+                                    transition={{ duration: p.duration, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
                                 />
                             ))}
                             <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(99,102,241,0.15) 0%, transparent 50%)' }} />
@@ -268,13 +272,13 @@ export default function PracticePage() {
                             <div className="text-center py-20 relative overflow-hidden rounded-2xl flex flex-col items-center justify-center" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                                 {/* Animated Background */}
                                 <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
-                                    {[...Array(20)].map((_, i) => (
+                                    {EMPTY_PARTICLES.map((p, i) => (
                                         <motion.div
                                             key={i}
                                             className="absolute w-1 h-1 bg-indigo-500/20 rounded-full flex shrink-0"
                                             style={{
-                                                left: `${Math.random() * 100}%`,
-                                                top: `${Math.random() * 100}%`,
+                                                left: `${p.left}%`,
+                                                top: `${p.top}%`,
                                             }}
                                             animate={{
                                                 y: [0, -30, 0],
@@ -282,10 +286,10 @@ export default function PracticePage() {
                                                 scale: [0, 1.5, 0],
                                             }}
                                             transition={{
-                                                duration: 3 + Math.random() * 2,
+                                                duration: p.duration,
                                                 repeat: Infinity,
                                                 ease: "easeInOut",
-                                                delay: Math.random() * 2,
+                                                delay: p.delay,
                                             }}
                                         />
                                     ))}

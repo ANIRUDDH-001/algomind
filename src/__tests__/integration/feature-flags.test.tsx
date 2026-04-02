@@ -1,4 +1,3 @@
-import { disableDemoMode } from '@/lib/demo/manager';
 import { test, expect } from '@playwright/test';
 import {
     setupInterviewPage,

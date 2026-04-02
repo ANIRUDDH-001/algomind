@@ -18,6 +18,7 @@ import type { Problem } from '@/types/problem';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { toast } from 'sonner';
 
 /** Unique ID for stable message identification. */
 function generateMessageId(): string {
@@ -116,6 +117,16 @@ export function useInterview(options: UseInterviewOptions) {
     const smartPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const smartPauseActiveRef = useRef(false);
     const currentAiTextRef = useRef('');
+    // A1: Tracks whether onSpeechStart interrupted TTS for this segment.
+    // When true, onSpeechEnd must NOT discard the audio — the echo guard
+    // only applies when AI audio is still playing AND we didn't stop it for the user.
+    const speechInterruptedTTSRef = useRef(false);
+    // A2: Visual "mic activating" state during the debounce window.
+    const [micActivating, setMicActivating] = useState(false);
+    // A4: Brief "didn't catch that" feedback shown when STT returns empty.
+    const [emptyTranscriptFeedback, setEmptyTranscriptFeedback] = useState(false);
+    // A7: Live VAD speech probability (0–1) for the visualizer bar.
+    const [vadSpeechProbability, setVadSpeechProbability] = useState(0);
     // Send countdown interval ref
     const sendCountdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -167,6 +178,11 @@ export function useInterview(options: UseInterviewOptions) {
         // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
         onSilenceTimeout: () => { },
         onError: (err) => setVoiceError(new Error(err)),
+        // A4: Show brief "Didn't catch that" feedback on empty transcription.
+        onEmpty: () => {
+            setEmptyTranscriptFeedback(true);
+            setTimeout(() => setEmptyTranscriptFeedback(false), 2500);
+        },
     });
 
     // Phase 3c: VAD enabled based on sttProvider, not guest mode or difficultyMode
@@ -176,6 +192,9 @@ export function useInterview(options: UseInterviewOptions) {
             // Smart pause: if AI is speaking and VAD detects human voice → interrupt
             if (isSpeakingRef.current) {
                 tts.stop();
+                // A1: Mark that we stopped TTS for this speech segment so onSpeechEnd
+                // knows not to discard the audio (isSpeakingRef may still be stale-true).
+                speechInterruptedTTSRef.current = true;
                 smartPauseActiveRef.current = true;
                 // 1.5s grace timer: if user goes silent, activate mic normally
                 if (smartPauseTimerRef.current) clearTimeout(smartPauseTimerRef.current);
@@ -189,10 +208,14 @@ export function useInterview(options: UseInterviewOptions) {
             }
         },
         onSpeechEnd: (audio) => {
-            // A1 fix: Echo guard — reject VAD events while AI is speaking
-            if (isSpeakingRef.current) {
+            // A1 fix: Echo guard — reject VAD audio only if AI is STILL speaking AND
+            // we did NOT interrupt TTS for this speech segment. The stale-ref race
+            // (isSpeakingRef still true a render cycle after tts.stop()) is resolved
+            // by speechInterruptedTTSRef which is set synchronously in onSpeechStart.
+            if (isSpeakingRef.current && !speechInterruptedTTSRef.current) {
                 return;
             }
+            speechInterruptedTTSRef.current = false; // Reset for next segment
             // If smart pause was active, cancel grace timer — user actually spoke
             if (smartPauseActiveRef.current) {
                 smartPauseActiveRef.current = false;
@@ -205,9 +228,18 @@ export function useInterview(options: UseInterviewOptions) {
             }
             stt.transcribeAudio(audio);
         },
+        onFrameProcessed: (prob: number) => {
+            // A7: Feed live probability to the visualizer bar.
+            setVadSpeechProbability(prob);
+        },
         onFallback: () => {
             console.warn('[useInterview] VAD failed, cascading to browser STT');
             setVadFailed(true);
+            // A3: Notify user that voice detection degraded — they need to click mic.
+            toast.warning('Voice detection unavailable', {
+                description: 'Click the mic button to speak instead.',
+                duration: 5000,
+            });
         },
     });
 
@@ -804,8 +836,11 @@ export function useInterview(options: UseInterviewOptions) {
             !isProcessing;
 
         if (shouldListen && !isListeningRef.current) {
-            // Small delay to avoid tight loops during state transitions
+            // A2: Reduced from 350ms → 50ms for near-instant mic activation.
+            // setMicActivating(true) gives the UI a visual cue during this window.
+            setMicActivating(true);
             const timer = setTimeout(() => {
+                setMicActivating(false);
                 // Re-check conditions inside the timeout
                 if (!isSpeakingRef.current && !isProcessingRef.current && !isListeningRef.current) {
                     console.log(`[Mic Sync] Starting mic. sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
@@ -815,8 +850,8 @@ export function useInterview(options: UseInterviewOptions) {
                     startListening();
                     if (sttProvider === 'whisper') vad.startListening();
                 }
-            }, 350);
-            return () => clearTimeout(timer);
+            }, 50);
+            return () => { clearTimeout(timer); setMicActivating(false); };
         } else if (!shouldListen) {
             // Always stop both STT and VAD when we shouldn't be listening.
             // isListeningRef lags by one render cycle (async ref update), so check both unconditionally.
@@ -969,6 +1004,9 @@ export function useInterview(options: UseInterviewOptions) {
         ttsError,
         vadFailed,
         isPushToTalk: vadFailed || sttProvider === 'browser',
+        micActivating,
+        emptyTranscriptFeedback,
+        vadSpeechProbability,
         enterCodingMode,
         exitCodingMode,
         shareCode,

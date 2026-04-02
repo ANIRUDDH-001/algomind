@@ -4,6 +4,7 @@
  * @phase Phase 2J
  */
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { ConceptPicker } from '@/components/learn/ConceptPicker';
@@ -20,13 +21,33 @@ export default async function LearnPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [summaries, context] = await Promise.all([
-    getKnowledgeGraphService().getConceptSummaries(user.id),
-    buildStudentContext(user.id),
-  ]);
+  const context = await buildStudentContext(user.id);
 
   if (!context.hasCompletedDiagnostic) {
     redirect('/learn/diagnostic');
+  }
+
+  let summaries;
+  try {
+    summaries = await getKnowledgeGraphService().getConceptSummaries(user.id);
+  } catch (err) {
+    console.error('[LearnPage] KG service failed:', err);
+    return (
+      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <h2 className="text-xl font-semibold text-white mb-2">Couldn&apos;t load concepts</h2>
+          <p className="text-zinc-400 text-sm mb-6">
+            Something went wrong fetching your learning data. Please try again.
+          </p>
+          <Link
+            href="/learn"
+            className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition-colors"
+          >
+            Retry
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

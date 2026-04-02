@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load .env.local so TEST_USER_EMAIL (and Supabase service role key) are available
+// in global-setup and test files without needing to pass them via shell env.
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 export default defineConfig({
     testDir: './e2e',

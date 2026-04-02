@@ -12,8 +12,6 @@ const mockNotFound = vi.fn();
 const mockUsePathname = vi.fn();
 const mockUseAuth = vi.fn();
 const mockUseAdmin = vi.fn();
-const mockIsDemoMode = vi.fn();
-
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockUsePathname(),
@@ -27,10 +25,6 @@ vi.mock('@/components/auth/AuthProvider', () => ({
 
 vi.mock('@/hooks/useAdmin', () => ({
   useAdmin: () => mockUseAdmin(),
-}));
-
-vi.mock('@/lib/demo/manager', () => ({
-  isDemoMode: () => mockIsDemoMode(),
 }));
 
 vi.mock('framer-motion', () => ({
@@ -111,7 +105,6 @@ describe('Navigation routing', () => {
 
     mockUsePathname.mockReturnValue('/');
     mockUseAdmin.mockReturnValue({ isAdmin: false });
-    mockIsDemoMode.mockReturnValue(false);
     mockUseAuth.mockReturnValue({
       user: { id: 'user-1', email: 'user@test.com', user_metadata: { full_name: 'User' } },
       signOut: vi.fn(),

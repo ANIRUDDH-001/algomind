@@ -16,7 +16,6 @@ import {
 import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
 import Link from 'next/link';
 
-import { isDemoMode } from '@/lib/demo/manager';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -27,7 +26,6 @@ export function Navbar() {
     const { user, signOut, loading, isConfigured } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const [isDemo, setIsDemo] = useState(false);
     const { isAdmin } = useAdmin();
     const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
     const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin' | 'owner'>('candidate');
@@ -64,8 +62,6 @@ export function Navbar() {
         : '/dashboard';
 
     useEffect(() => {
-        setIsDemo(isDemoMode());
-
         const checkModels = async () => {
             if (!isAdmin) return;
             // Pause polling when tab is hidden
@@ -102,7 +98,7 @@ export function Navbar() {
 
     return (
         <>
-            <header className="fixed top-0 left-0 right-0 z-[100] flex flex-col" style={{ '--navbar-h': isDemo ? '104px' : '64px' } as React.CSSProperties}>
+            <header className="fixed top-0 left-0 right-0 z-[100] flex flex-col" style={{ '--navbar-h': '64px' } as React.CSSProperties}>
 
                 <nav
                     className="backdrop-blur-xl h-16 shadow-2xl"
@@ -368,11 +364,8 @@ export function Navbar() {
                 </nav>
             )}
 
-            {/* Spacer to push content down - dynamic height based on demo mode */}
-            <div className={cn(
-                "w-full transition-all duration-300",
-                isDemo ? "h-[104px]" : "h-16"
-            )} />
+            {/* Spacer to push content below fixed navbar */}
+            <div className="w-full h-16" />
         </>
     );
 }

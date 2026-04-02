@@ -29,8 +29,7 @@ export interface TourStep {
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 // 13 steps. Steps 0 and 12 are modals (full-screen with Kai 3D cube).
-// Steps 1–11 are spotlights. Demo mode is enabled before step 7 and
-// disabled on tour finish/skip so dashboard shows populated data.
+// Steps 1–11 are spotlights.
 //
 // AUDIO BUDGET: kaiSays across all 13 steps totals ~60s at normal speech rate.
 // Reading + clicking budget: ~90s total user time.
@@ -136,8 +135,6 @@ export const TOUR_STEPS: TourStep[] = [
     },
 
     // ── STEP 7 ─── Dashboard — Cognitive Radar ────────────────────────────────
-    // Demo mode is ENABLED before this step renders. useProgress() returns
-    // getDemoProgress() when isDemoMode() is true, so the chart is populated.
     {
         id: 7,
         type: 'spotlight',
@@ -227,7 +224,6 @@ export const TOUR_STEPS: TourStep[] = [
     },
 
     // ── STEP 13 ─── Final Modal: Analysis Preview + CTA ───────────────────────
-    // Demo mode is DISABLED here. The CTA sends user to /practice.
     {
         id: 13,
         type: 'modal',

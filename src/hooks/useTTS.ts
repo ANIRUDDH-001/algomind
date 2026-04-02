@@ -35,15 +35,12 @@ export function useTTS(opts: UseTTSOptions = {}) {
                 .then(r => r.ok ? r.json() : {})
                 .then((f: any) => {
                     const globalPollyOn = f['ENABLE_AWS_POLLY_TTS']?.value === true;
-                    const guestPollyOn = f['ENABLE_GUEST_POLLY_TTS']?.value === true;
                     const userPref = optsRef.current.userTtsProvider ?? 'auto';
 
                     if (userPref === 'browser') {
                         setPollyEnabled(false);
-                    } else if (userPref === 'polly') {
-                        setPollyEnabled(globalPollyOn || guestPollyOn);
                     } else {
-                        setPollyEnabled(globalPollyOn || guestPollyOn);
+                        setPollyEnabled(globalPollyOn);
                     }
                 })
                 .catch(() => setPollyEnabled(false));

@@ -4,7 +4,6 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getProgressStore } from '@/lib/supabase/progress-store';
 import { SessionHistory, UserProgress } from '@/types/assessment';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
-import { isDemoMode, getDemoProgress } from '@/lib/demo/manager';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -20,40 +19,22 @@ export function useProgress() {
     } = useQuery({
         queryKey: ['user-progress', user?.id],
         queryFn: async () => {
-            // 1. Authenticated user — always fetch real data (never demo)
+            // Authenticated user — fetch real data
             if (user?.id && isSupabaseConfigured()) {
                 const supabaseStore = getProgressStore();
                 return await supabaseStore.getUserProgress(user.id);
             }
 
-            // 2. Demo Mode (guest/tour only — no authenticated user)
-            if (isDemoMode()) {
-                const demoData = getDemoProgress();
-                if (!demoData) return null;
-
-                return {
-                    userId: 'demo-user',
-                    totalSessions: demoData.totalSessions,
-                    averageScore: demoData.averageScore,
-                    averageScores: demoData.averageScores,
-                    trends: demoData.trends,
-                    sessions: demoData.sessions,
-                    lastUpdated: new Date(demoData.lastUpdated)
-                } as UserProgress;
-            }
-
-            // 3. No user, no demo — nothing to show
+            // No user — nothing to show
             return null;
         },
-        enabled: !!user?.id || isDemoMode(),
+        enabled: !!user?.id,
         staleTime: 1000 * 60 * 5, // 5 minutes cache
     });
 
     // Mutation for adding a session
     const addSessionMutation = useMutation({
         mutationFn: async (session: SessionHistory) => {
-            if (isDemoMode()) return; // Demo mode doesn't save to DB
-
             if (!isSupabaseConfigured() || !user?.id) {
                 throw new Error('Please log in to save your progress');
             }

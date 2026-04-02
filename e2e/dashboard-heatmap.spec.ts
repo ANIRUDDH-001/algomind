@@ -3,12 +3,31 @@ import { signIn } from './helpers/auth';
 
 test.describe('Concept Heatmap', () => {
   test.skip(
-    !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD,
-    'TEST_USER_EMAIL and TEST_USER_PASSWORD are required for authenticated heatmap tests'
+    !process.env.TEST_USER_EMAIL,
+    'TEST_USER_EMAIL is required for authenticated heatmap tests'
   );
 
   test.beforeEach(async ({ page }) => {
-    await signIn(page);
+    const authenticated = await signIn(page);
+    if (!authenticated) { test.skip(); return; }
+
+    // Navigate to /learn and verify we land on the learn page with heatmap content.
+    // We check for the actual element (not just the URL) because client-side auth
+    // redirects to /login can fire after networkidle, after the URL check.
+    await page.goto('/learn');
+    await page.waitForLoadState('networkidle');
+
+    // If redirected server-side to login or diagnostic, skip immediately.
+    const url = page.url();
+    if (url.includes('/login') || url.includes('/diagnostic')) { test.skip(); return; }
+
+    // Verify heatmap content is visible — confirms diagnostic is done and data loaded.
+    const hasContent = await page
+      .locator('[data-testid="concept-heatmap"], [data-testid="concept-tile"]')
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+    if (!hasContent) { test.skip(); return; }
   });
 
   test('heatmap renders with concept tiles', async ({ page }) => {

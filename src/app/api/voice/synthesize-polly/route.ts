@@ -3,7 +3,6 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { synthesizeWithPolly } from '@/lib/aws/polly';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 import { logAWSUsage, estimatePollyCost } from '@/lib/aws/usage-logger';
-import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 
 export const dynamic = 'force-dynamic';
@@ -17,12 +16,11 @@ const MAX_TEXT_LENGTH = 2900;
  * Client falls back to Groq/browser when Polly is disabled or unavailable.
  */
 export async function POST(request: NextRequest) {
-    // Auth check — allow guests when ENABLE_GUEST_POLLY_TTS is on
+    // Auth check — require authenticated user
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        const guestPolly = await getGlobalFeatureFlag('ENABLE_GUEST_POLLY_TTS');
-        if (!guestPolly) return ApiErrors.unauthorized('Unauthorized');
+        return ApiErrors.unauthorized('Unauthorized');
     }
 
     try {

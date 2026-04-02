@@ -55,16 +55,7 @@ vi.mock('@/lib/feature-flags', () => ({
     setFeatureFlag: (key: string, value: boolean) => mockSetFeatureFlag(key, value),
 }));
 
-// ─── Mock demo/onboarding managers ───
-const mockIsDemoMode = vi.fn(() => false);
-const mockEnableDemoMode = vi.fn();
-const mockDisableDemoMode = vi.fn();
-vi.mock('@/lib/demo/manager', () => ({
-    isDemoMode: () => mockIsDemoMode(),
-    enableDemoMode: () => mockEnableDemoMode(),
-    disableDemoMode: () => mockDisableDemoMode(),
-}));
-
+// ─── Mock onboarding manager ───
 const mockShouldShowOnboarding = vi.fn(() => false);
 const mockMarkOnboardingComplete = vi.fn();
 const mockResetOnboarding = vi.fn();
@@ -158,7 +149,6 @@ async function renderAndWait(ui: React.ReactElement) {
 describe('SettingsPanel', () => {
     beforeEach(() => {
         mockGetFeatureFlag.mockReturnValue(false);
-        mockIsDemoMode.mockReturnValue(false);
         mockShouldShowOnboarding.mockReturnValue(false);
         mockFetch.mockResolvedValue({
             ok: true,
@@ -250,26 +240,6 @@ describe('SettingsPanel', () => {
         // The danger zone container has red border as inline style
         const dangerContainer = container.querySelector('[style*="rgba(239, 68, 68"]');
         expect(dangerContainer).not.toBeNull();
-    });
-
-    it('6. Demo mode toggle reflects current isDemoMode() value — shows "Demo Mode Active" when true', async () => {
-        mockIsDemoMode.mockReturnValue(true);
-        await renderAndWait(<SettingsPanel />);
-
-        await waitFor(() => {
-            expect(screen.getByText('Demo Mode Active')).toBeDefined();
-            expect(screen.getByRole('button', { name: /Exit Demo Mode/i })).toBeDefined();
-        });
-    });
-
-    it('6b. Shows "Interactive Demo" and "Start Demo Tour" when isDemoMode() is false', async () => {
-        mockIsDemoMode.mockReturnValue(false);
-        await renderAndWait(<SettingsPanel />);
-
-        await waitFor(() => {
-            expect(screen.getByText('Interactive Demo')).toBeDefined();
-            expect(screen.getByRole('button', { name: /Start Demo Tour/i })).toBeDefined();
-        });
     });
 
     it('7. Notifications section renders two persisted switches', async () => {

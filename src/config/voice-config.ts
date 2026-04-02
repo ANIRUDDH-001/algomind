@@ -67,7 +67,7 @@ const DEFAULTS: VoiceConfigValues = {
     eventStreamMaxSize: 200,
 
     vadSilenceWindowMs: 1800,
-    sttRestartDelayBrowserTts: 1500,
+    sttRestartDelayBrowserTts: 300,
     sttRestartDelayAudioElement: 200,
 
     vadPositiveSpeechThreshold: 0.7,

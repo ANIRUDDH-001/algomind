@@ -5,7 +5,6 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { markSessionValid, markRefreshed, clearCache } from '@/lib/auth/session-cache';
-import { disableDemoMode } from '@/lib/demo/manager';
 
 interface AuthContextType {
     user: User | null;
@@ -90,8 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             markRefreshed(newSession.user.id, exp);
                         } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                             markSessionValid(newSession.user.id, exp);
-                            // Clear stale demo mode when a real user signs in
-                            disableDemoMode();
                         }
                     }
 

@@ -52,28 +52,18 @@ import { buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GUEST INTRO — SINGLE SOURCE OF TRUTH
-// These are injected by useInterview.ts as a hardcoded system message.
-// Kai never generates or controls this text.
+// GUEST INTRO CONSTANTS (kept for legacy hook compatibility — guest mode removed)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Exact text spoken by TTS and displayed in chat before Kai's first message.
- * useInterview.ts calls speakAndWait(GUEST_INTRO_TEXT) then addMessage().
- * Kai's first API call happens only AFTER this completes.
- */
+/** @deprecated Guest mode removed. Kept only for build compatibility with useInterview hooks. */
 export const GUEST_INTRO_TEXT =
     'Welcome to AlgoMind — your AI-powered technical interview practice platform. ' +
-    "I'm Kai, your interviewer today. " +
-    'AlgoMind is built by Aniruddh Vijayvargia and Prachi Agarwalla.';
+    "I'm Kai, your interviewer today.";
 
-/**
- * UI overlay banner — shown simultaneously with the spoken intro.
- * Import GUEST_INTRO_BANNER in your InterviewSession component.
- */
+/** @deprecated Guest mode removed. Kept only for build compatibility. */
 export const GUEST_INTRO_BANNER = {
     line1: 'Welcome to AlgoMind — your AI-powered technical interview practice platform.',
-    line2: 'Built by Aniruddh Vijayvargia and Prachi Agarwalla.',
+    line2: '',
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -438,10 +428,6 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
     const difficultyMode = config.difficultyMode ?? 'practice';
     const modeConfig = MODE_CONFIGS[difficultyMode] ?? MODE_CONFIGS['practice'];
 
-    const guestNote = isGuest
-        ? `\n<guest_session>\nThis is a guest (unauthenticated) session. Mode is locked to PRACTICE.\nThe branded AlgoMind introduction has already been delivered to the candidate by the system.\nDo NOT repeat it. Start your first response by introducing the problem directly.\n</guest_session>`
-        : '';
-
     const hinglishBlock = spokenLanguage === 'hinglish'
         ? `\nSPOKEN LANGUAGE: The candidate is speaking in Hinglish (Hindi-English code-switching). ` +
         `Mirror their language style naturally:\n` +
@@ -480,8 +466,6 @@ OUTPUT FORMAT: Plain conversational speech only. Never include XML tags, markdow
 
 You are Kai, an AI technical interviewer created by AlgoMind, conducting a technical DSA interview at Google/Meta/Amazon standard.
 Your goal is to assess problem-solving ability, algorithmic thinking, communication clarity, and technical depth.
-
-${guestNote}
 
 ${hinglishBlock}${studentContextBlock}${employerModeBlock}
 

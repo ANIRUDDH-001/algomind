@@ -46,10 +46,6 @@ vi.mock('@/lib/onboarding/manager', () => ({
     markOnboardingComplete: vi.fn(),
 }));
 
-vi.mock('@/lib/demo/manager', () => ({
-    enableDemoMode: vi.fn(),
-}));
-
 // ─── Mock next/navigation ───
 const mockReplace = vi.fn();
 const mockPush = vi.fn();

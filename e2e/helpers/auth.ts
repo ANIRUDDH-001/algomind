@@ -1,30 +1,35 @@
 import { Page } from '@playwright/test';
 
-const TEST_USER = {
-  email: process.env.TEST_USER_EMAIL ?? 'test@algomind.dev',
-  password: process.env.TEST_USER_PASSWORD ?? 'testpassword123',
-};
+/**
+ * signIn — navigates to the dashboard using the pre-established session from
+ * global-setup (injected via storageState from .playwright/auth.json).
+ *
+ * Returns true when authenticated, false when no session is available.
+ * Callers in beforeEach should call test.skip() on false:
+ *
+ *   test.beforeEach(async ({ page }) => {
+ *     const ok = await signIn(page);
+ *     test.skip(!ok, 'Auth not available');
+ *   });
+ */
+export async function signIn(page: Page): Promise<boolean> {
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
 
-export async function signIn(page: Page) {
-  await page.context().addCookies([
-    {
-      name: 'playwright-e2e',
-      value: 'true',
-      url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
-    },
-  ]);
+  // If the server redirected us to /login, the session is not valid.
+  if (page.url().includes('/login')) return false;
 
-  await page.goto('/login');
-  
-  // Wait for login form to load
-  await page.waitForSelector('[data-testid="email-input"]', { timeout: 10000 });
-  
-  await page.fill('[data-testid="email-input"]', TEST_USER.email);
-  await page.fill('[data-testid="password-input"]', TEST_USER.password);
-  await page.click('[data-testid="sign-in-button"]');
-  
-  // Wait for navigation to dashboard or auth success
-  await page.waitForURL('/dashboard', { timeout: 15000 });
+  // Wait for a nav element that is only rendered after Supabase client-side
+  // confirms the session is valid. This is a stronger signal than localStorage:
+  // an expired token will be present in localStorage but the nav will never
+  // appear because the SDK clears the session and redirects.
+  const navVisible = await page
+    .locator('[data-testid="nav-learn"], [data-testid="nav-home"], [data-testid="avatar-button"]')
+    .first()
+    .isVisible({ timeout: 8000 })
+    .catch(() => false);
+
+  return navVisible;
 }
 
 export async function signOut(page: Page) {

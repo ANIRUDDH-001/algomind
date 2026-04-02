@@ -35,11 +35,6 @@ vi.mock('@/lib/supabase/client', () => ({
 vi.mock('@/components/auth/AuthProvider', () => ({
     useAuth: () => ({ user: { id: 'test-user', email: 'test@example.com' } }),
 }));
-vi.mock('@/lib/demo/manager', () => ({
-    isDemoMode: vi.fn().mockReturnValue(false),
-    getDemoProgress: vi.fn().mockReturnValue(null),
-}));
-
 // Mock AI to avoid real API calls
 const mockAIResult = {
     sessionId: 'test-123',

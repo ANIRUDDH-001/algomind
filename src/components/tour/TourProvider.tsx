@@ -16,14 +16,6 @@ import {
     speakHint,
     stopSpeech,
 } from '@/lib/tour/index';
-import { enableDemoMode, disableDemoMode, isDemoMode } from '@/lib/demo/manager';
-
-// ─── Demo mode switching ───────────────────────────────────────────────────────
-// Steps 0–6 run without demo data (interview + practice work without DB).
-// Step 7 onward shows the dashboard — we enable demo mode so useProgress()
-// returns getDemoProgress() instead of an empty state.
-const DEMO_ENABLE_AT_STEP = 7;
-
 // ─── Context type ─────────────────────────────────────────────────────────────
 
 interface TourContextType {
@@ -116,30 +108,13 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
             if (!step) {
                 // Past the end — finish tour
                 localStorage.setItem('algomind_tour_completed', 'true');
-                disableDemoMode();
                 stopSpeech();
-                window.dispatchEvent(
-                    new CustomEvent('demo-mode-changed', { detail: { enabled: false } })
-                );
                 setIsOpen(false);
                 setStepIndex(0);
                 navigatingRef.current = false;
                 // Navigate to dashboard with post-tour flag
                 router.push('/dashboard?tour=done');
                 return;
-            }
-
-            // Enable/disable demo mode at the threshold step
-            if (index >= DEMO_ENABLE_AT_STEP && !isDemoMode()) {
-                enableDemoMode();
-                window.dispatchEvent(
-                    new CustomEvent('demo-mode-changed', { detail: { enabled: true } })
-                );
-            } else if (index < DEMO_ENABLE_AT_STEP && isDemoMode()) {
-                disableDemoMode();
-                window.dispatchEvent(
-                    new CustomEvent('demo-mode-changed', { detail: { enabled: false } })
-                );
             }
 
             setStepIndex(index);
@@ -168,11 +143,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
     const skipTour = useCallback(() => {
         localStorage.setItem('algomind_tour_skipped', 'true');
-        disableDemoMode();
         stopSpeech();
-        window.dispatchEvent(
-            new CustomEvent('demo-mode-changed', { detail: { enabled: false } })
-        );
         setIsOpen(false);
         setStepIndex(0);
         setTargetRect(null);

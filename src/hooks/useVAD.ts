@@ -28,6 +28,8 @@ export interface UseVADOptions {
     onError?: (err: Error) => void;
     /** Called when VAD degrades to push-to-talk — parent should cascade to browser STT */
     onFallback?: () => void;
+    /** Called each frame with the raw Silero speech probability (0–1) for visualizers. */
+    onFrameProcessed?: (prob: number) => void;
 }
 
 export function useVAD(opts: UseVADOptions) {
@@ -78,6 +80,7 @@ export function useVAD(opts: UseVADOptions) {
     const registerCallback = useCallback((manager: {
         onSpeechStart?: (cb: () => void) => (() => void);
         onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void);
+        onFrameProcessed?: (cb: (prob: number) => void) => (() => void);
     }) => {
         // Unsubscribe previous if any
         if (unsubRef.current) {
@@ -90,6 +93,12 @@ export function useVAD(opts: UseVADOptions) {
             optsRef.current.onSpeechStart?.();
         });
         if (unsubStart) unsubs.push(unsubStart);
+
+        // A7: Forward frame probabilities for the live visualizer.
+        const unsubFrame = manager.onFrameProcessed?.((prob: number) => {
+            optsRef.current.onFrameProcessed?.(prob);
+        });
+        if (unsubFrame) unsubs.push(unsubFrame);
 
         const unsubEnd = manager.onSpeechEnd?.((audio: Float32Array) => {
             optsRef.current.onSpeechEnd?.(audio);
