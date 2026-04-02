@@ -1301,14 +1301,13 @@ export function InterviewSession({
                                             </Button>
                                         )}
 
-                                        {/* ✅ FIX: End Interview button visible in interview tab on mobile */}
                                         {isMobile && hasStarted && !readOnly && (
                                             <div className="w-full mt-2 shrink-0">
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => { endInterview(); handleFinish(); }}
                                                     disabled={roundCount < 1 || isProcessing || isAnalyzing}
-                                                    title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
+                                                    title={roundCount < 1 ? 'Complete at least 1 exchange (one Kai turn + your response) before ending' : 'End interview and see analysis'}
                                                     className="w-full h-10 text-[11px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
                                                 >
                                                     <Flag className="w-4 h-4 mr-1.5" /> End & Analyze
@@ -1341,7 +1340,7 @@ export function InterviewSession({
                             size="sm"
                             onClick={() => { endInterview(); handleFinish(); }}
                             disabled={roundCount < 1 || isProcessing || isAnalyzing}
-                            title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
+                            title={roundCount < 1 ? 'Complete at least 1 exchange (one Kai turn + your response) before ending' : 'End interview and see analysis'}
                             className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500 border-red-500/30 transition-all duration-300 shadow-lg shadow-red-900/10 rounded-xl"
                         >
                             <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze

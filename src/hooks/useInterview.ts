@@ -390,6 +390,8 @@ export function useInterview(options: UseInterviewOptions) {
 
         // A1 fix: Reset ttsError at start of each submission
         setTtsError(false);
+        // Reset VAD failure state to allow retry on this turn
+        setVadFailed(false);
 
         // A1 fix: Cancel any active smart pause timer
         if (smartPauseTimerRef.current) {
@@ -633,6 +635,7 @@ export function useInterview(options: UseInterviewOptions) {
         conversationHistoryRef.current = [];
         setMessages([]);
         resetTranscript();
+        setVadFailed(false);
         currentProblemRef.current = {
             problemTitle,
             problemContent,
@@ -876,6 +879,7 @@ export function useInterview(options: UseInterviewOptions) {
         setInterviewStartTime(null);
         setIsLimitReached(false);
         setLimitReason(null);
+        setVadFailed(false);
         // Clear smart pause timer
         if (smartPauseTimerRef.current) { clearTimeout(smartPauseTimerRef.current); smartPauseTimerRef.current = null; }
         smartPauseActiveRef.current = false;

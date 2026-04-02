@@ -94,11 +94,10 @@ export function InterviewTopBar({
             {/* Timer / Info chip */}
             {timerNode}
             
-            {/* End button */}
             {hasStarted && !readOnly && (
                 <Button variant="ghost" size="sm" onClick={onEnd}
                         disabled={roundCount < 1}
-                        title={roundCount < 1 ? 'Complete at least 1 round before ending' : 'End interview and see analysis'}
+                        title={roundCount < 1 ? 'Complete at least 1 exchange (one Kai turn + your response) before ending' : 'End interview and see analysis'}
                         className="text-red-400 hover:text-white hover:bg-red-500/20 text-[11px] font-bold uppercase tracking-widest h-8 px-2.5 rounded-lg">
                     <Flag className="w-3.5 h-3.5 mr-1.5" /> End & Analyze
                 </Button>
