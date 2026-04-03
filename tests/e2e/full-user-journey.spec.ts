@@ -8,8 +8,6 @@ import { test, expect } from '@playwright/test';
 import { setE2EAuthCookie } from './auth-helper';
 import { mockChatAPI } from '../../src/test-utils/playwright-helpers';
 
-const runFullJourneyE2E = process.env.E2E_FULL_STACK === 'true';
-
 // ─── Helpers ────────────────────────────────────────────────────────────
 
 const TEST_PROBLEM_ID = 'two-sum';
@@ -17,8 +15,6 @@ const TEST_PROBLEM_ID = 'two-sum';
 // ─── 1. Voice Interview → Analysis ──────────────────────────────────────
 
 test.describe('Full User Journey', () => {
-    test.skip(!runFullJourneyE2E, 'Set E2E_FULL_STACK=true to run full-journey E2E tests that depend on seeded auth/data.');
-
     test('User can complete a voice interview and see analysis', async ({ page, context }) => {
         await setE2EAuthCookie(context);
         await mockChatAPI(page, "Let's discuss your approach to Two Sum. What data structure would you use?");

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { __resetVoiceFlagsCacheForTests, getVoiceRuntimeFlags } from '@/lib/api/adapters/voice-adapter';
+import { __resetVoiceFlagsCacheForTests, getVoiceRuntimeFlags, transcribeVoiceAudio } from '@/lib/api/adapters/voice-adapter';
 
 describe('voice adapter runtime flags', () => {
   beforeEach(() => {
@@ -62,5 +62,24 @@ describe('voice adapter runtime flags', () => {
     expect(first.source).toBe('api');
     expect(second.source).toBe('api');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('transcribes voice form data through voice adapter endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ text: 'hello world' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const form = new FormData();
+    form.append('audio', new Blob(['x'], { type: 'audio/wav' }), 'audio.wav');
+
+    const data = await transcribeVoiceAudio(form);
+
+    expect(data).toEqual({ text: 'hello world' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/voice/transcribe',
+      expect.objectContaining({ method: 'POST', body: form })
+    );
   });
 });

@@ -12,6 +12,7 @@
  * Phase 1 fixes: MediaRecorder fallback, three-tier cascade, permission state.
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { transcribeVoiceAudio } from '@/lib/api/adapters/voice-adapter';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SpeechRecognitionEvent = any;
@@ -134,12 +135,7 @@ export function useSTT(opts: UseSTTOptions) {
                 const form = new FormData();
                 form.append('audio', blob, 'audio.webm');
                 try {
-                    const res = await fetch('/api/voice/transcribe', {
-                        method: 'POST',
-                        body: form
-                    });
-                    if (!res.ok) return;
-                    const { text } = await res.json();
+                    const { text } = await transcribeVoiceAudio(form);
                     if (text?.trim()) {
                         setTranscript(p => p ? `${p} ${text}` : text);
                         optsRef.current.onTranscript(text, true);
@@ -277,13 +273,7 @@ export function useSTT(opts: UseSTTOptions) {
             const form = new FormData();
             form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'audio.wav');
             setIsTranscribing(true);
-            const res = await fetch('/api/voice/transcribe', { method: 'POST', body: form });
-            if (!res.ok) {
-                const errBody = await res.json().catch(() => ({ error: res.statusText }));
-                console.error(`[STT] Transcription API returned ${res.status}:`, errBody);
-                return;
-            }
-            const { text } = await res.json() as { text: string };
+            const { text } = await transcribeVoiceAudio(form);
             if (!text?.trim()) {
                 // A4: Notify caller so the UI can show "Didn't catch that" feedback.
                 optsRef.current.onEmpty?.();

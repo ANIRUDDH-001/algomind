@@ -15,6 +15,7 @@ import { MicPulse } from '@/components/voice/MicPulse';
 import { isMobileDevice } from '@/lib/utils/device-detection';
 import { toast } from 'sonner';
 import { InterviewSession } from '@/components/interview/InterviewSession';
+import { AssessmentAdapter } from '@/lib/api/adapters/assessment-adapter';
 
 export interface ProblemWithTiming {
     id: string;
@@ -68,14 +69,10 @@ export function CampaignInterviewSession({
 
     const saveProgress = useCallback(async (states: QuestionState[], currentIdx: number | null) => {
         try {
-            await fetch('/api/assess/save-progress', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionToken,
-                    questionStates: states,
-                    currentProblemId: currentIdx !== null ? questions[currentIdx].id : null
-                })
+            await AssessmentAdapter.saveProgress({
+                sessionToken,
+                questionStates: states,
+                currentProblemId: currentIdx !== null ? questions[currentIdx].id : null,
             });
         } catch (e) {
             console.error("Failed to save progress", e);

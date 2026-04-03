@@ -10,6 +10,7 @@ import { CampaignInterviewSession, type QuestionState, type ProblemWithTiming } 
 import { InterviewErrorBoundary } from '@/components/error/InterviewErrorBoundary';
 import { VoiceSettings } from '@/components/settings/VoiceSettings';
 import { formatEntryCode } from '@/lib/campaign/entry-code';
+import { AssessmentAdapter } from '@/lib/api/adapters/assessment-adapter';
 
 interface CampaignData {
     id: string;
@@ -98,20 +99,14 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
         setIsVerifying(true);
         try {
-            const res = await fetch('/api/assess/verify-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    publicToken: campaign.public_token,
-                    entryCode: entryCode,
-                    candidateName: name.trim(),
-                    candidateEmail: email.trim()
-                })
+            const data = await AssessmentAdapter.verifyCode({
+                publicToken: campaign.public_token,
+                entryCode,
+                candidateName: name.trim(),
+                candidateEmail: email.trim(),
             });
 
-            const data = await res.json();
-
-            if (!res.ok || !data.valid) {
+            if (!data.valid) {
                 throw new Error(data.reason || 'Invalid entry code. Check for typos.');
             }
 
@@ -138,23 +133,12 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         setStartError('');
         setIsStarting(true);
         try {
-            const res = await fetch('/api/assess/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    campaignToken: campaign.public_token,
-                    candidateName: name.trim(),
-                    candidateEmail: email.trim() || undefined,
-                    entryCode: entryCode.trim().toUpperCase()
-                })
+            const data = await AssessmentAdapter.start({
+                campaignToken: campaign.public_token,
+                candidateName: name.trim(),
+                candidateEmail: email.trim() || undefined,
+                entryCode: entryCode.trim().toUpperCase(),
             });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to start interview');
-            }
-
-            const data = await res.json();
             setSessionToken(data.sessionToken);
             setCampaignQuestions(data.questions || []);
             setQuestionStates(data.questionStates || []);
@@ -165,6 +149,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
             setPhase('interview');
         } catch (err: any) {
             setStartError(err.message || 'Failed to start interview');
+        } finally {
             setIsStarting(false);
         }
     };
@@ -175,28 +160,17 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         setPhase('submitting');
 
         try {
-            const res = await fetch('/api/assess/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionToken,
-                    questionStates: finalQuestionStates,
-                    totalDuration: totalDurationSecs
-                })
+            const data = await AssessmentAdapter.complete({
+                sessionToken,
+                questionStates: finalQuestionStates,
+                totalDuration: totalDurationSecs,
             });
-
-            if (res.ok) {
-                const data = await res.json();
-                const params = new URLSearchParams();
-                if (campaign.show_score_to_candidate && data.overallScore) {
-                    params.set('score', data.overallScore.toFixed(1));
-                    params.set('showScore', 'true');
-                }
-                window.location.href = `/assess/complete?${params.toString()}`;
-            } else {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Failed to submit assessment.');
+            const params = new URLSearchParams();
+            if (campaign.show_score_to_candidate && data.overallScore) {
+                params.set('score', data.overallScore.toFixed(1));
+                params.set('showScore', 'true');
             }
+            window.location.href = `/assess/complete?${params.toString()}`;
         } catch (err: any) {
             console.error('Failed to save assessment completion', err);
             // On failure, alert user and return them to the interview screen so they can try again.

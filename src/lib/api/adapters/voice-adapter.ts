@@ -9,6 +9,10 @@ export interface VoiceRuntimeFlags {
   source: 'api' | 'fallback';
 }
 
+export interface VoiceTranscriptionResponse {
+  text: string;
+}
+
 const FLAG_CACHE_TTL_MS = 30_000;
 
 let _flagsCache: { expiresAt: number; value: VoiceRuntimeFlags } | null = null;
@@ -54,4 +58,11 @@ export async function getVoiceRuntimeFlags(fallbacks?: { pollyEnabled?: boolean;
       source: 'fallback',
     };
   }
+}
+
+export function transcribeVoiceAudio(formData: FormData): Promise<VoiceTranscriptionResponse> {
+  return requestJson<VoiceTranscriptionResponse>('/api/voice/transcribe', {
+    method: 'POST',
+    body: formData,
+  });
 }

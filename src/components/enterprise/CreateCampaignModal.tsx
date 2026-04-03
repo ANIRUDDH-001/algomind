@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CampaignQuestion } from '@/types/campaign';
+import { AssessmentAdapter } from '@/lib/api/adapters/assessment-adapter';
 
 interface ProblemData {
     id: string;
@@ -130,14 +131,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                 showScoreToCandidate
             };
 
-            const res = await fetch('/api/employer/campaigns', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create campaign');
+            const data = await AssessmentAdapter.createCampaign(payload);
             setCreatedCampaign(data.campaign);
             onSuccess(data.campaign);
         } catch (err) {
