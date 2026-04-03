@@ -7,12 +7,10 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, User as UserIcon, Trash2, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { getSupabase } from '@/lib/supabase/client';
+import { ApiClientError } from '@/lib/api/client';
+import { AdminAdapter, type AdminUserDto } from '@/lib/api/adapters/admin-adapter';
 
-interface AdminUser {
-    id: string;
-    email: string;
-    added_at: string;
-}
+type AdminUser = AdminUserDto;
 
 export default function AdminsClient() {
     const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -34,11 +32,7 @@ export default function AdminsClient() {
         try {
             setLoading(true);
             setError(null);
-            const res = await fetch('/api/admin/admins');
-            if (!res.ok) {
-                throw new Error('Failed to load admins');
-            }
-            const data = await res.json();
+            const data = await AdminAdapter.getAdmins();
             setAdmins(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
@@ -54,7 +48,7 @@ export default function AdminsClient() {
             if (user?.email) {
                 setCurrentUserEmail(user.email);
             }
-            fetch('/api/user/owner-status').then(res => res.json()).then(data => setIsOwner(!!data.isOwner)).catch(() => { });
+            AdminAdapter.getOwnerStatus().then(data => setIsOwner(!!data.isOwner)).catch(() => { });
         };
         fetchUser();
         fetchAdmins();
@@ -72,17 +66,7 @@ export default function AdminsClient() {
 
         try {
             setIsAdding(true);
-            const res = await fetch('/api/admin/admins', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: newEmail }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to add admin');
-            }
+            await AdminAdapter.addAdmin(newEmail);
 
             setAddSuccess(true);
             setNewEmail('');
@@ -98,21 +82,16 @@ export default function AdminsClient() {
 
     const handleRemoveAdmin = async (email: string) => {
         try {
-            const params = new URLSearchParams({ email });
-            const res = await fetch(`/api/admin/admins?${params.toString()}`, {
-                method: 'DELETE',
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to remove admin');
-            }
+            await AdminAdapter.removeAdmin(email);
 
             setConfirmingDelete(null);
             fetchAdmins();
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to remove admin');
+            if (err instanceof ApiClientError) {
+                alert(err.message);
+            } else {
+                alert('Failed to remove admin');
+            }
             setConfirmingDelete(null);
         }
     };

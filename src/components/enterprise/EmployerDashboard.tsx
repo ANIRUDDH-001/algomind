@@ -13,6 +13,8 @@ import { CandidateTranscriptViewer } from './CandidateTranscriptViewer';
 import { CreateCampaignModal } from './CreateCampaignModal';
 import { CohortStatsPanel } from './CohortStatsPanel';
 import { CampaignData as CampaignType, CampaignQuestion } from '@/types/campaign';
+import { ApiClientError } from '@/lib/api/client';
+import { EmployerDashboardAdapter } from '@/lib/api/adapters/employer-dashboard-adapter';
 
 interface ProblemData {
     id: string;
@@ -106,13 +108,12 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const [viewTranscriptCandidateName, setViewTranscriptCandidateName] = useState<string>('');
     const [viewTranscriptProblemTitle, setViewTranscriptProblemTitle] = useState<string>('');
 
-    const fetchWithAuthCheck = async (url: string, options?: RequestInit) => {
-        const res = await fetch(url, options);
-        if (res.status === 401) {
+    const handleAdapterError = (error: unknown) => {
+        if (error instanceof ApiClientError && error.status === 401) {
             router.push('/login?reason=session_expired');
-            return null;
+            return;
         }
-        return res;
+        throw error;
     };
 
     // Fetch Submissions when tab changes or campaign changes
@@ -125,18 +126,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const loadSubmissions = async (campaignId: string) => {
         setIsLoadingSubmissions(true);
         try {
-            const url = new URL(`/api/employer/submissions/${campaignId}`, window.location.origin);
-            if (statusFilter !== 'all') {
-                url.searchParams.set('status', statusFilter);
-            }
-            const res = await fetchWithAuthCheck(url.toString());
-            if (res && res.ok) {
-                const data = await res.json();
-                setSubmissions(data.submissions || []);
-                setSubmissionsSummary(data.summary || null);
-            }
+            const data = await EmployerDashboardAdapter.getSubmissions<SubmissionData>(campaignId, statusFilter);
+            setSubmissions(data.submissions || []);
+            setSubmissionsSummary(data.summary || null);
         } catch (err) {
-            console.error('Failed to load submissions', err);
+            try {
+                handleAdapterError(err);
+            } catch (error) {
+                console.error('Failed to load submissions', error);
+            }
         } finally {
             setIsLoadingSubmissions(false);
         }
@@ -153,17 +151,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     const loadReport = async (campaignId: string, submissionId: string) => {
         setIsLoadingReport(true);
         try {
-            const res = await fetchWithAuthCheck(`/api/employer/submissions/${campaignId}/report/${submissionId}`);
-            if (res && res.ok) {
-                const data = await res.json();
-                setReportData(data);
-            } else {
-                toast.error('Failed to load report');
-                setViewDetailsSubmissionId(null);
-            }
+            const data = await EmployerDashboardAdapter.getSubmissionReport(campaignId, submissionId);
+            setReportData(data);
         } catch (err) {
-            console.error('Failed to load report', err);
-            toast.error('Error loading report');
+            try {
+                handleAdapterError(err);
+            } catch (error) {
+                console.error('Failed to load report', error);
+                toast.error('Error loading report');
+            }
             setViewDetailsSubmissionId(null);
         } finally {
             setIsLoadingReport(false);
@@ -174,19 +170,16 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         if (!confirm('Are you sure you want to deactivate this campaign? Candidates will no longer be able to use its generic link.')) return;
 
         try {
-            const res = await fetchWithAuthCheck(`/api/employer/campaigns/${id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'deactivate' })
-            });
-
-            if (res && res.ok) {
-                setCampaigns(campaigns.map(c => c.id === id ? { ...c, is_active: false } : c));
-                toast.success('Campaign deactivated');
-            }
+            await EmployerDashboardAdapter.campaignDeactivate(id);
+            setCampaigns(campaigns.map(c => c.id === id ? { ...c, is_active: false } : c));
+            toast.success('Campaign deactivated');
         } catch (err) {
-            console.error('Failed to deactivate', err);
-            toast.error('Failed to deactivate campaign');
+            try {
+                handleAdapterError(err);
+            } catch (error) {
+                console.error('Failed to deactivate', error);
+                toast.error('Failed to deactivate campaign');
+            }
         }
     };
 
@@ -194,20 +187,17 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
         if (!confirm('PERMANENT DELETE: This will remove the campaign and ALL associated candidate submissions. This cannot be undone. Proceed?')) return;
 
         try {
-            const res = await fetchWithAuthCheck(`/api/employer/campaigns/${id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete' })
-            });
-
-            if (res && res.ok) {
-                setCampaigns(campaigns.filter(c => c.id !== id));
-                toast.success('Campaign deleted permanently');
-                if (selectedCampaignId === id) setSelectedCampaignId(null);
-            }
+            await EmployerDashboardAdapter.campaignDelete(id);
+            setCampaigns(campaigns.filter(c => c.id !== id));
+            toast.success('Campaign deleted permanently');
+            if (selectedCampaignId === id) setSelectedCampaignId(null);
         } catch (err) {
-            console.error('Failed to delete', err);
-            toast.error('Failed to delete campaign');
+            try {
+                handleAdapterError(err);
+            } catch (error) {
+                console.error('Failed to delete', error);
+                toast.error('Failed to delete campaign');
+            }
         }
     };
 
@@ -476,27 +466,26 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                         className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
                                         onClick={async () => {
                                             try {
-                                                const res = await fetchWithAuthCheck(`/api/employer/submissions/${selectedCampaignId}/export`);
-                                                if (res && res.ok) {
-                                                    const blob = await res.blob();
-                                                    const url = URL.createObjectURL(blob);
-                                                    const a = document.createElement('a');
-                                                    a.href = url;
-                                                    // Try to get filename from content-disposition if possible
-                                                    const disp = res.headers.get('Content-Disposition');
-                                                    let filename = 'campaign-export.csv';
-                                                    if (disp) {
-                                                        const match = disp.match(/filename="?([^"]+)"?/);
-                                                        if (match && match[1]) filename = match[1];
-                                                    }
-                                                    a.download = filename;
-                                                    a.click();
-                                                    URL.revokeObjectURL(url);
-                                                } else {
-                                                    toast.error('Failed to export CSV');
+                                                const { blob, response } = await EmployerDashboardAdapter.exportSubmissions(selectedCampaignId);
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                // Try to get filename from content-disposition if possible
+                                                const disp = response.headers.get('Content-Disposition');
+                                                let filename = 'campaign-export.csv';
+                                                if (disp) {
+                                                    const match = disp.match(/filename="?([^"]+)"?/);
+                                                    if (match && match[1]) filename = match[1];
                                                 }
+                                                a.download = filename;
+                                                a.click();
+                                                URL.revokeObjectURL(url);
                                             } catch (e) {
-                                                toast.error('Error downloading CSV');
+                                                try {
+                                                    handleAdapterError(e);
+                                                } catch {
+                                                    toast.error('Error downloading CSV');
+                                                }
                                             }
                                         }}
                                     >

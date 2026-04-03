@@ -5,32 +5,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Trash2, Briefcase, Plus, Copy, Check, Mail, Search, UserMinus, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
+import { EmployerAdminAdapter, type EmployerInviteDto, type EmployerProfileDto, type OwnerUserSearchResultDto } from '@/lib/api/adapters/employer-admin-adapter';
 
-interface EmployerInvite {
-    id: string;
-    invite_code: string;
-    email: string | null;
-    company_name: string;
-    expires_at: string | null;
-    is_active: boolean;
-    used_by: string | null;
-    used_at: string | null;
-    created_at: string;
-}
+type EmployerInvite = EmployerInviteDto;
 
-interface EmployerProfile {
-    id: string;
-    email: string;
-    full_name: string | null;
-    company_name: string | null;
-    created_at: string;
-}
+type EmployerProfile = EmployerProfileDto;
 
-interface OwnerUserSearchResult {
-    id: string;
-    email: string;
-    full_name?: string | null;
-}
+type OwnerUserSearchResult = OwnerUserSearchResultDto;
 
 export default function EmployersClient() {
     const [invites, setInvites] = useState<EmployerInvite[]>([]);
@@ -75,9 +56,7 @@ export default function EmployersClient() {
 
         debounceTimerRef.current = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/owner/users?q=${encodeURIComponent(value)}`);
-                if (!res.ok) return;
-                const data = await res.json();
+                const data = await EmployerAdminAdapter.searchOwnerUsers(value);
                 const users: OwnerUserSearchResult[] = data.users || [];
                 setEmailSuggestions(users.slice(0, 3));
                 setShowSuggestions(users.length > 0);
@@ -90,16 +69,10 @@ export default function EmployersClient() {
             setLoading(true);
             setError(null);
 
-            const [invitesRes, employersRes] = await Promise.all([
-                fetch('/api/admin/employer-invites'),
-                fetch('/api/admin/employers')
+            const [invitesData, employersData] = await Promise.all([
+                EmployerAdminAdapter.getInvites(),
+                EmployerAdminAdapter.getEmployers(),
             ]);
-
-            if (!invitesRes.ok) throw new Error('Failed to load invites');
-            if (!employersRes.ok) throw new Error('Failed to load employers');
-
-            const invitesData = await invitesRes.json();
-            const employersData = await employersRes.json();
 
             setInvites(invitesData.invites || []);
             setEmployers(employersData.employers || []);
@@ -111,7 +84,7 @@ export default function EmployersClient() {
     };
 
     useEffect(() => {
-        fetch('/api/user/owner-status').then(res => res.json()).then(data => setIsOwner(!!data.isOwner)).catch(() => { });
+        EmployerAdminAdapter.getOwnerStatus().then(data => setIsOwner(!!data.isOwner)).catch(() => { });
         fetchData();
     }, []);
 
@@ -123,20 +96,11 @@ export default function EmployersClient() {
             setIsCreating(true);
             const expiresAt = expiresDays ? new Date(Date.now() + parseInt(expiresDays) * 24 * 60 * 60 * 1000).toISOString() : null;
 
-            const res = await fetch('/api/admin/employer-invites', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    companyName: companyName.trim(),
-                    email: email.trim() || null,
-                    expiresAt
-                }),
+            await EmployerAdminAdapter.createInvite({
+                companyName: companyName.trim(),
+                email: email.trim() || null,
+                expiresAt,
             });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to create invite');
-            }
 
             setCompanyName('');
             setEmail('');
@@ -156,12 +120,7 @@ export default function EmployersClient() {
         try {
             setIsPromoting(true);
 
-            const searchRes = await fetch(`/api/owner/users?q=${encodeURIComponent(promoteEmail.trim())}`);
-            if (!searchRes.ok) {
-                throw new Error('Failed to find user');
-            }
-
-            const searchData = await searchRes.json();
+            const searchData = await EmployerAdminAdapter.searchOwnerUsers(promoteEmail.trim());
             const targetUser: OwnerUserSearchResult | undefined = (searchData.users || []).find(
                 (u: OwnerUserSearchResult) => u.email?.toLowerCase() === promoteEmail.trim().toLowerCase()
             );
@@ -170,19 +129,10 @@ export default function EmployersClient() {
                 throw new Error('User not found');
             }
 
-            const res = await fetch('/api/owner/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: targetUser.id,
-                    accountType: 'employer',
-                })
+            await EmployerAdminAdapter.updateOwnerUser({
+                userId: targetUser.id,
+                accountType: 'employer',
             });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({ error: 'Promote failed' }));
-                throw new Error(data.error || 'Failed to promote user');
-            }
 
             setPromoteEmail('');
             setPromoteCompany('');
@@ -198,19 +148,10 @@ export default function EmployersClient() {
         if (!confirm(`Are you sure you want to demote ${email} to Candidate?`)) return;
 
         try {
-            const res = await fetch('/api/owner/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    accountType: 'candidate',
-                })
+            await EmployerAdminAdapter.updateOwnerUser({
+                userId,
+                accountType: 'candidate',
             });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({ error: 'Demote failed' }));
-                throw new Error(data.error || 'Failed to demote user');
-            }
 
             fetchData();
         } catch (err) {
@@ -222,14 +163,7 @@ export default function EmployersClient() {
         if (!confirm('Are you sure you want to deactivate this invite?')) return;
 
         try {
-            const res = await fetch(`/api/admin/employer-invites?id=${id}`, {
-                method: 'DELETE',
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to deactivate invite');
-            }
+            await EmployerAdminAdapter.deactivateInvite(id);
 
             fetchData();
         } catch (err) {
