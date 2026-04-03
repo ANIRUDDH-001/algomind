@@ -2,11 +2,12 @@ import 'dotenv/config';
 import { syncModelRegistry } from './batch/sync-models';
 import { runCleanup } from './batch/cleanup';
 import { computeAllLearnerProfiles } from './batch/compute-learner-profiles';
-import { logSystemEvent } from '../src/lib/monitoring/events';
+import { logSystemLifecycle } from '../src/lib/monitoring/events';
 import { updateKaiMemory } from '../src/lib/ai/memory-generator';
 import { computeInsightsForUser } from '../src/lib/recommendations/insight-engine';
 import { updateNarrativeIfDue } from '../src/lib/assessment/narrative-generator';
 import { getServiceClient } from '../src/lib/supabase/service';
+import { createCorrelationId } from '../src/lib/tracing/correlation';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -133,50 +134,57 @@ async function main() {
     batchTimeout.unref();
 
     const startTime = Date.now();
+    const batchId = createCorrelationId();
+    const batchStartedAt = new Date().toISOString();
     const results: Record<string, 'ok' | 'skipped' | 'error'> = {};
 
-    console.log('[Nightly Batch] Starting at', new Date().toISOString());
+    console.log('[Nightly Batch] Starting at', batchStartedAt);
+    console.log('[Nightly Batch] Batch ID:', batchId);
 
     try {
-        // Log that we STARTED (GitHub Actions → Supabase)
-        await logSystemEvent({
-            type: 'cron_running',
-            metadata: {
-                source: 'github_actions',
-                startedAt: new Date().toISOString(),
-                nodeVersion: process.version,
-            }
+        // Log that we STARTED
+        await logSystemLifecycle({
+            type: 'batch.step_started',
+            jobName: 'nightly-batch',
+            status: 'started',
+            startedAt: batchStartedAt,
         });
 
         const step = async (name: string, fn: () => Promise<void>) => {
             const stepStart = Date.now();
+            const stepStartedAt = new Date(stepStart).toISOString();
             try {
                 console.log(`[${name}] Starting...`);
-                await logSystemEvent({
-                    type: 'cron_running',
-                    metadata: { step: name, phase: 'start' }
-                });
                 await fn();
                 results[name] = 'ok';
-                console.log(`[${name}] ✅ Done`);
-                await logSystemEvent({
-                    type: 'batch_job_complete',
-                    metadata: {
-                        step: name,
-                        status: 'success',
-                        duration_ms: Date.now() - stepStart,
-                    }
+                const duration = Date.now() - stepStart;
+                console.log(`[${name}] ✅ Done in ${duration}ms`);
+                
+                // Log step completion
+                await logSystemLifecycle({
+                    type: 'batch.step_completed',
+                    jobName: `nightly-batch:${name}`,
+                    status: 'success',
+                    startedAt: stepStartedAt,
+                    endedAt: new Date().toISOString(),
+                    durationMs: duration,
                 });
             } catch (err) {
                 results[name] = 'error';
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                const duration = Date.now() - stepStart;
                 console.error(`[${name}] ❌ Failed:`, err);
-                await logSystemEvent({
-                    type: 'cron_failed',
-                    errorMessage: err instanceof Error ? err.message : String(err),
+                
+                // Log step failure
+                await logSystemLifecycle({
+                    type: 'batch.step_failed',
+                    jobName: `nightly-batch:${name}`,
+                    status: 'failure',
+                    startedAt: stepStartedAt,
+                    endedAt: new Date().toISOString(),
+                    durationMs: duration,
                     metadata: {
-                        step: name,
-                        status: 'failure',
-                        duration_ms: Date.now() - stepStart,
+                        failureReason: errorMessage,
                     }
                 });
                 // Don't rethrow — continue to next step
@@ -191,34 +199,54 @@ async function main() {
         await step('narratives', updateNarratives);
 
         const duration = Date.now() - startTime;
+        const batchEndedAt = new Date().toISOString();
+        const successCount = Object.values(results).filter(r => r === 'ok').length;
+        const failureCount = Object.values(results).filter(r => r === 'error').length;
+        
         console.log('[Nightly Batch] Complete in', duration, 'ms');
         console.log('[Nightly Batch] Results:', results);
 
-        // Log completion to system_events
+        // Determine overall status
+        const overallStatus = failureCount === 0 ? 'success' : failureCount === successCount ? 'failure' : 'partial_success';
+
+        // Log overall completion to system_events with structured telemetry
         try {
-            await logSystemEvent({
-                type: 'cron_completed',
+            await logSystemLifecycle({
+                type: 'batch.completed',
+                jobName: 'nightly-batch',
+                status: overallStatus,
+                startedAt: batchStartedAt,
+                endedAt: batchEndedAt,
+                durationMs: duration,
                 metadata: {
-                    duration_ms: duration,
-                    completedSteps: Object.keys(results).filter(k => results[k] === 'ok'),
-                    failedSteps: Object.keys(results).filter(k => results[k] === 'error'),
-                    results
+                    recordsProcessed: Object.keys(results).length,
+                    recordsSucceeded: successCount,
+                    recordsFailed: failureCount,
                 }
             });
         } catch (logErr) {
             // If this fails, at least log to stdout (visible in GitHub Actions logs)
-            console.error('[CRITICAL] Failed to log cron_completed to Supabase:', logErr);
+            console.error('[CRITICAL] Failed to log batch completion to Supabase:', logErr);
             console.error('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING');
             console.error('Service role:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING');
         }
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err);
+        const duration = Date.now() - startTime;
+        const batchEndedAt = new Date().toISOString();
+        
         console.error('[BATCH FAILED]', errorMessage);
         try {
-            await logSystemEvent({
-                type: 'cron_failed',
-                errorMessage,
-                metadata: { failedAt: new Date().toISOString(), error: errorMessage, duration_ms: Date.now() - startTime }
+            await logSystemLifecycle({
+                type: 'batch.failed',
+                jobName: 'nightly-batch',
+                status: 'failure',
+                startedAt: batchStartedAt,
+                endedAt: batchEndedAt,
+                durationMs: duration,
+                metadata: {
+                    failureReason: errorMessage,
+                }
             });
         } catch (logErr) {
             console.error('[ALSO FAILED TO LOG FAILURE]', logErr);
