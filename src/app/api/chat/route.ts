@@ -14,6 +14,7 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
+import { createHash } from 'crypto';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
@@ -280,6 +281,11 @@ export async function POST(req: NextRequest) {
             correlationId,
             userId: user?.id,
             sessionId: effectiveSessionId ?? undefined,
+            promptVersion: PROMPT_VERSION_TAGS.interviewChat,
+            languageCode: spokenLanguage,
+            ragContextHash: ragContext
+                ? createHash('sha256').update(ragContext).digest('hex').slice(0, 16)
+                : undefined,
         });
 
         if (!result.success) {

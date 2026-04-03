@@ -22,7 +22,7 @@ export interface CacheEntry {
     /** Cached response text */
     response: string;
     /** Which model generated the response */
-    model: 'groq' | 'gemini';
+    model: 'groq' | 'gemini' | 'bedrock';
     /** When the entry was created (epoch ms) */
     timestamp: number;
     /** Number of cache hits */
@@ -33,6 +33,13 @@ export interface CacheEntry {
     sizeBytes: number;
     /** Optional additional metadata */
     metadata?: Record<string, unknown>;
+}
+
+export interface CacheIdentity {
+    modelId?: string;
+    promptVersion?: string;
+    ragContextHash?: string;
+    languageCode?: string;
 }
 
 export interface CacheStats {
@@ -81,6 +88,25 @@ export function normaliseCacheKey(query: string): string {
         .replace(/\s+/g, ' ');   // collapse whitespace
 }
 
+function buildIdentitySuffix(identity?: CacheIdentity): string {
+    if (!identity) return '';
+
+    const modelId = identity.modelId?.trim() || 'any';
+    const promptVersion = identity.promptVersion?.trim() || 'none';
+    const ragContextHash = identity.ragContextHash?.trim() || 'none';
+    const languageCode = identity.languageCode?.trim().toLowerCase() || 'none';
+
+    return `m=${modelId}|p=${promptVersion}|r=${ragContextHash}|l=${languageCode}`;
+}
+
+function buildScopedKey(query: string, identity?: CacheIdentity): string {
+    const normalised = normaliseCacheKey(query);
+    if (!normalised) return '';
+
+    const suffix = buildIdentitySuffix(identity);
+    return suffix ? `${normalised}::${suffix}` : normalised;
+}
+
 /** Estimate byte size of a string (rough: 2 bytes per char for JS strings). */
 function estimateBytes(s: string): number {
     return s.length * 2;
@@ -106,8 +132,8 @@ export class ResponseCache {
     // ── Read ────────────────────────────────────────────────────────
 
     /** Look up a cached response for the given query. */
-    async get(query: string): Promise<CacheEntry | null> {
-        const key = normaliseCacheKey(query);
+    async get(query: string, identity?: CacheIdentity): Promise<CacheEntry | null> {
+        const key = buildScopedKey(query, identity);
         if (!key) {
             this.totalMisses++;
             return null;
@@ -137,6 +163,24 @@ export class ResponseCache {
                 void this.removeKeyFromIndex(key);
                 this.totalEntries = Math.max(0, this.totalEntries - 1);
             }
+
+            // Compatibility lookup for entries written before scoped identity keys.
+            if (identity) {
+                const legacyKey = normaliseCacheKey(query);
+                if (legacyKey && legacyKey !== key) {
+                    const legacyValue = await redisGet(`${CACHE_KEY_PREFIX}${legacyKey}`);
+                    if (legacyValue) {
+                        const entry = JSON.parse(
+                            typeof legacyValue === 'string' ? legacyValue : JSON.stringify(legacyValue)
+                        ) as CacheEntry;
+
+                        if (Date.now() - entry.timestamp < this.opts.ttlMs) {
+                            this.totalHits++;
+                            return entry;
+                        }
+                    }
+                }
+            }
         } catch {
             // suppress
         }
@@ -152,18 +196,20 @@ export class ResponseCache {
     async set(
         query: string,
         response: string,
-        modelOrMetadata?: 'groq' | 'gemini' | Record<string, unknown>,
+        modelOrMetadata?: 'groq' | 'gemini' | 'bedrock' | Record<string, unknown>,
         latencyMs = 0
     ): Promise<void> {
-        const key = normaliseCacheKey(query);
+        const isLegacySignature = typeof modelOrMetadata === 'string';
+        const metadata = (!isLegacySignature && modelOrMetadata) ? modelOrMetadata : undefined;
+        const identity = (metadata?.identity as CacheIdentity | undefined);
+
+        const key = buildScopedKey(query, identity);
         if (!key || !response) return;
         const sizeBytes = estimateBytes(key) + estimateBytes(response);
 
-        const isLegacySignature = typeof modelOrMetadata === 'string';
-        const metadata = (!isLegacySignature && modelOrMetadata) ? modelOrMetadata : undefined;
         const model = isLegacySignature
             ? modelOrMetadata
-            : ((metadata?.model as 'groq' | 'gemini' | undefined) ?? 'groq');
+            : ((metadata?.model as 'groq' | 'gemini' | 'bedrock' | undefined) ?? 'groq');
         const avgLatency = isLegacySignature
             ? latencyMs
             : Number(metadata?.avgLatency ?? 0);

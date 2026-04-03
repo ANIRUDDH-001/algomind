@@ -103,7 +103,11 @@ export async function POST(req: NextRequest) {
         const hinglishGlobalEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
         const hinglishActive = hinglishGlobalEnabled && userHinglishEnabled;
         const lastUserMsg = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
-        const hinglishBlock = (hinglishActive && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
+        const spokenLanguage: 'english' | 'hinglish' =
+            (hinglishActive && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
+                ? 'hinglish'
+                : 'english';
+        const hinglishBlock = (spokenLanguage === 'hinglish')
             ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
             '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
             : '';
@@ -220,6 +224,8 @@ export async function POST(req: NextRequest) {
             correlationId,
             userId: typeof payload.sub === 'string' ? payload.sub : undefined,
             sessionId: submissionId,
+            promptVersion: PROMPT_VERSION_TAGS.assessmentChat,
+            languageCode: spokenLanguage,
         });
 
         if (!result.success) {

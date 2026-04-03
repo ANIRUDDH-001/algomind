@@ -9,6 +9,7 @@ import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
 import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
+import type { CacheIdentity } from './response-cache';
 import { getActiveModels } from './model-registry';
 import {
     buildRoutingStagePlan,
@@ -579,7 +580,13 @@ export class UnifiedAIClient {
             const cache = getResponseCache();
             const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
             const cacheQuery = lastUserMsg?.content ?? '';
-            const cached = await cache.get(cacheQuery);
+            const cacheIdentity: CacheIdentity = {
+                modelId: preferredModel !== 'auto' ? preferredModel : undefined,
+                promptVersion: options.promptVersion,
+                ragContextHash: options.ragContextHash,
+                languageCode: options.languageCode,
+            };
+            const cached = await cache.get(cacheQuery, cacheIdentity);
 
             if (cached) {
                 const totalTimeMs = performance.now() - totalStart;
@@ -723,8 +730,9 @@ export class UnifiedAIClient {
     storeInCache(
         query: string,
         response: string,
-        model: 'groq' | 'gemini',
-        latencyMs: number
+        model: 'groq' | 'gemini' | 'bedrock',
+        latencyMs: number,
+        identity?: CacheIdentity
     ): void {
         const isProduction = process.env.NODE_ENV === 'production';
         const forceEnable = process.env.CACHE_BACKEND === 'memory';
@@ -735,6 +743,15 @@ export class UnifiedAIClient {
         if (!cacheEnabled) return;
 
         const cache = getResponseCache();
+        if (identity) {
+            void cache.set(query, response, {
+                model,
+                avgLatency: latencyMs,
+                identity,
+            });
+            return;
+        }
+
         void cache.set(query, response, model, latencyMs);
     }
 

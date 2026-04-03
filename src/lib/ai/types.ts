@@ -39,6 +39,12 @@ export interface GenerateResponseOptions {
     userId?: string;
     /** Session identifier for per-session token budget checks */
     sessionId?: string;
+    /** Prompt version tag from centralized prompt registry */
+    promptVersion?: string;
+    /** Canonical language code used for prompt generation */
+    languageCode?: string;
+    /** Hash of effective RAG context injected into prompt */
+    ragContextHash?: string;
 }
 
 export interface AIResponse {
