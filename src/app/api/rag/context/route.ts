@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { buildRagResponse, mapRpcChunk } from '@/lib/rag/contract';
 import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
 export async function POST(req: NextRequest) {
@@ -13,13 +14,13 @@ export async function POST(req: NextRequest) {
         const serverSupabase = await createServerSupabase();
         const { data: { user } } = await serverSupabase.auth.getUser();
         if (!user) {
-            return jsonWithCorrelationId({ chunks: [] }, { status: 401 });
+            return jsonWithCorrelationId({ error: 'Unauthorized', ...buildRagResponse('', []) }, { status: 401 });
         }
 
         const { query } = await req.json();
 
         if (!query || typeof query !== 'string') {
-            return jsonWithCorrelationId({ chunks: [] }, { status: 400 });
+            return jsonWithCorrelationId({ error: 'Query is required', ...buildRagResponse('', []) }, { status: 400 });
         }
 
         const supabase = getServiceClient();
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
         const { embeddings } = await aiClient.embed(query, { correlationId });
 
         if (!embeddings || embeddings.length === 0) {
-            return jsonWithCorrelationId({ chunks: [] });
+            return jsonWithCorrelationId(buildRagResponse(query, []));
         }
 
         const { data, error } = await supabase.rpc('match_knowledge_chunks', {
@@ -39,13 +40,17 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             console.error('[RAG API] DB Match Error:', error);
-            return jsonWithCorrelationId({ chunks: [] }, { status: 500 });
+            return jsonWithCorrelationId({ error: 'Failed to retrieve context', ...buildRagResponse(query, []) }, { status: 500 });
         }
 
-        return jsonWithCorrelationId({ chunks: data ?? [] });
+        const chunks = Array.isArray(data)
+            ? data.map((row) => mapRpcChunk(row as Record<string, unknown>))
+            : [];
+
+        return jsonWithCorrelationId(buildRagResponse(query, chunks));
     } catch (error) {
         console.error('[RAG API] Processing Error:', error);
         // Fail open - return empty array
-        return jsonWithCorrelationId({ chunks: [] }, { status: 500 });
+        return jsonWithCorrelationId({ error: 'Failed to retrieve context', ...buildRagResponse('', []) }, { status: 500 });
     }
 }

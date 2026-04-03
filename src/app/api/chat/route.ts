@@ -13,7 +13,7 @@ import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
-import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
+import { buildPromptVersionHeader, generateSystemPromptLegacy, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
 import { createHash } from 'crypto';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
@@ -54,8 +54,6 @@ export async function POST(req: NextRequest) {
         }
         const {
             messages,
-            systemPrompt,
-            systemPromptTurnLayer,
             problemContext,
             guestMode,
             companyPersona,
@@ -186,27 +184,36 @@ export async function POST(req: NextRequest) {
             ? `ai:chat:system-prompt:${callerScope}:${effectiveSessionId}`
             : null;
 
-        // Enhance system prompt with RAG context and Company Persona
-        let baseSystemPrompt = systemPrompt || '';
+        // Build and persist prompt server-side to avoid client-driven prompt overrides.
+        let baseSystemPrompt = '';
 
-        if (promptCacheKey && !baseSystemPrompt) {
+        if (promptCacheKey) {
             const cached = await redisGet(promptCacheKey);
             if (cached) {
                 baseSystemPrompt = cached;
             }
         }
 
-        if (promptCacheKey && systemPrompt) {
-            await redisSet(promptCacheKey, systemPrompt, 7200);
+        if (!baseSystemPrompt && problemContext?.title && problemContext?.content) {
+            baseSystemPrompt = generateSystemPromptLegacy(
+                {
+                    id: 'server-generated',
+                    title: problemContext.title,
+                    content: problemContext.content,
+                    description: problemContext.content,
+                    difficulty: 'medium',
+                },
+                ragContext,
+                'practice'
+            );
         }
 
-        if (promptCacheKey && systemPromptTurnLayer) {
-            const cached = await redisGet(promptCacheKey);
-            if (cached) {
-                baseSystemPrompt = `${cached}\n\n${systemPromptTurnLayer}`;
-            } else if (baseSystemPrompt) {
-                baseSystemPrompt = `${baseSystemPrompt}\n\n${systemPromptTurnLayer}`;
-            }
+        if (!baseSystemPrompt) {
+            baseSystemPrompt = generateSystemPromptLegacy(undefined, ragContext, 'practice');
+        }
+
+        if (promptCacheKey) {
+            await redisSet(promptCacheKey, baseSystemPrompt, 7200);
         }
 
         let enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${baseSystemPrompt}`;

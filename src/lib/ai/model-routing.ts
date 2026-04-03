@@ -88,7 +88,7 @@ export function buildRoutingStagePlan(
     useCase: 'chat' | 'analysis',
     crossTierFallbackEnabled: boolean
 ): RoutingStagePlan[] {
-    const secondaryUseCase = useCase === 'chat' ? 'analysis' : 'chat';
+    const secondaryUseCase = useCase === 'chat' ? ('analysis' as const) : ('chat' as const);
     return [
         { stage: 'primary', useCase },
         ...(crossTierFallbackEnabled ? [{ stage: 'secondary' as const, useCase: secondaryUseCase }] : []),

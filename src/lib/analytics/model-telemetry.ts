@@ -21,7 +21,7 @@ export interface RoutingDecision {
     /** Classification confidence */
     confidence: number;
     /** Which model was routed to */
-    routedTo: 'groq' | 'gemini';
+    routedTo: 'groq' | 'gemini' | 'bedrock';
     /** Which model actually responded (may differ if fallback occurred) */
     actualModel: string;
     /** Whether smart routing was used (vs explicit override) */

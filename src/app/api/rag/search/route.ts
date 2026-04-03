@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { retrieveContext } from "@/lib/rag/retriever";
+import { getRetriever } from "@/lib/rag/retriever";
+import { buildRagResponse, mapSearchChunk } from "@/lib/rag/contract";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createServerSupabase();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return NextResponse.json({ error: "Unauthorized", ...buildRagResponse('', []) }, { status: 401 });
     }
 
     try {
@@ -16,25 +17,24 @@ export async function POST(req: NextRequest) {
 
         if (!query) {
             return NextResponse.json(
-                { error: "Query is required" },
+                { error: "Query is required", ...buildRagResponse('', []) },
                 { status: 400 }
             );
         }
 
-        const context = await retrieveContext(query, {
+        const retriever = getRetriever();
+        const retrieval = await retriever.retrieve(query, {
             topK: 3,
             includeTopic: topic,
             includeDifficulty: difficulty,
         });
 
-        return NextResponse.json({
-            status: "ok",
-            context,
-        });
+        const chunks = retrieval.results.map(mapSearchChunk);
+        return NextResponse.json(buildRagResponse(query, chunks));
     } catch (error) {
         console.error("RAG Search Error:", error);
         return NextResponse.json(
-            { error: "Failed to retrieve context" },
+            { error: "Failed to retrieve context", ...buildRagResponse('', []) },
             { status: 500 }
         );
     }

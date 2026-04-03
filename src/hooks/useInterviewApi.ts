@@ -193,28 +193,19 @@ export function useInterviewApi({
     }, [conversationHistoryRef]);
 
 
-    const callChatApi = useCallback(async (prompt: string, systemPrompt: string, _problemContext: ProblemContext) => {
+    const callChatApi = useCallback(async (prompt: string, _systemPrompt: string, _problemContext: ProblemContext) => {
         try {
             const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
             const isMainChatEndpoint = !optionsRef.current.apiEndpoint || optionsRef.current.apiEndpoint === '/api/chat';
             // Explicitly cast to any to resolve TS strictness on fetch problems with custom problems
             const currentProblemParams: any = currentProblemRef.current || {};
             const exchangeCount = Math.floor(conversationHistoryRef.current.length / 2);
-            const shouldSendFullPrompt = !isMainChatEndpoint || exchangeCount <= 0;
-            const turnLayer = (() => {
-                const sessionStateMatch = systemPrompt.match(/<session_state>[\s\S]*?<\/session_state>/);
-                const spokenLanguageLine = systemPrompt.match(/SPOKEN LANGUAGE:[^\n]+/);
-                const parts = [sessionStateMatch?.[0], spokenLanguageLine?.[0]].filter(Boolean);
-                return parts.length > 0 ? parts.join('\n') : undefined;
-            })();
-            
+
             const bodyStr = JSON.stringify({
                 messages: [
                     ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
                     { role: 'user', content: prompt }
                 ],
-                systemPrompt: shouldSendFullPrompt ? systemPrompt : undefined,
-                systemPromptTurnLayer: !shouldSendFullPrompt ? turnLayer : undefined,
                 problemContext: {
                     title: currentProblemParams.problemTitle ?? '',
                     content: currentProblemParams.problemContent ?? '',

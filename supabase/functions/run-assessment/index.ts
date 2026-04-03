@@ -8,6 +8,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // @ts-expect-error: Deno URL imports are not resolved by Next.js tsconfig
 import { timingSafeEqual } from 'https://deno.land/std@0.208.0/crypto/timing_safe_equal.ts';
+// @ts-expect-error: Deno modules cannot have .ts extensions in Next.js; this runs in Deno runtime
+import { parseGeminiResultText, type GeminiResult } from './analysis-parser.ts';
 
 // @ts-expect-error: Deno is not defined in Next.js tsconfig
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -130,16 +132,14 @@ Deno.serve(async (req: Request) => {
                 transcript: normalizedTranscript,
             });
 
-            if (result) {
-                const weight = Math.max(qs.elapsed_secs ?? 1, 1);
-                totalScoreSum += (result.overallScore ?? 0) * weight;
-                totalWeightSum += weight;
-                allFeedbacks.push(`**Problem: ${problem.title}**\n${result.overallFeedback ?? ''}`);
-                allNextSteps.push(...(result.nextSteps ?? []));
-                // Aggregate per-skill scores (weighted)
-                for (const [skill, data] of Object.entries(result.skills ?? {})) {
-                    skillTotals[skill] = (skillTotals[skill] ?? 0) + ((data as { score: number }).score ?? 0) * weight;
-                }
+            const weight = Math.max(qs.elapsed_secs ?? 1, 1);
+            totalScoreSum += result.overallScore * weight;
+            totalWeightSum += weight;
+            allFeedbacks.push(`**Problem: ${problem.title}**\n${result.overallFeedback}`);
+            allNextSteps.push(...result.nextSteps);
+            // Aggregate per-skill scores (weighted)
+            for (const [skill, data] of Object.entries(result.skills)) {
+                skillTotals[skill] = (skillTotals[skill] ?? 0) + data.score * weight;
             }
         }
 
@@ -207,16 +207,28 @@ Deno.serve(async (req: Request) => {
 
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        const isParseFailure = msg.startsWith('parse_failed:') || msg.includes('schema_invalid:');
+        const analysisStatus = isParseFailure ? 'parse_failed' : 'failed';
         console.error('[run-assessment] Edge function error:', msg);
 
-        // Mark as failed so employer can see and retry
+        // Mark deterministic terminal state so retries and dashboards can distinguish parse failures.
         await supabase
             .from('candidate_submissions')
             .update({
-                analysis_status: 'failed',
+                analysis_status: analysisStatus,
                 analysis_error: msg.slice(0, 500),
             })
             .eq('id', submissionId);
+
+        await supabase
+            .from('system_events')
+            .insert({
+                type: isParseFailure ? 'assessment_parse_failed' : 'assessment_analysis_failed',
+                metadata: {
+                    submission_id: submissionId,
+                    error: msg.slice(0, 500),
+                },
+            });
 
         return new Response(JSON.stringify({ error: msg }), {
             status: 500,
@@ -226,13 +238,6 @@ Deno.serve(async (req: Request) => {
 });
 
 // ── Minimal Gemini Analysis (no CognitiveAnalyzer class dependency) ──────────
-
-interface GeminiResult {
-    overallScore: number;
-    overallFeedback: string;
-    nextSteps: string[];
-    skills: Record<string, { score: number; evidence: string }>;
-}
 
 const GEMINI_MAX_RETRIES = 3;
 
@@ -247,7 +252,7 @@ function isRetryableGeminiStatus(status: number): boolean {
 async function runGeminiAnalysis({ problem, transcript }: {
     problem: { title: string; description: string; difficulty: string };
     transcript: Array<{ role: string; content: string }>;
-}): Promise<GeminiResult | null> {
+}): Promise<GeminiResult> {
     const transcriptText = transcript
         .map(t => `${t.role === 'assistant' ? 'Interviewer' : 'Candidate'}: ${t.content}`)
         .join('\n');
@@ -311,18 +316,18 @@ Respond ONLY with valid JSON matching this schema exactly:
                     continue;
                 }
 
-                return null;
+                throw new Error(`analysis_failed: gemini_http_${resp.status}`);
             }
 
             const data = await resp.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-            const cleaned = text.replace(/```json\n?|```/g, '').trim();
-            return JSON.parse(cleaned) as GeminiResult;
+            return parseGeminiResultText(text);
         } catch (err) {
             const shouldRetry = attempt < GEMINI_MAX_RETRIES;
-            console.error(`[run-assessment] Gemini parse/network error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`, err);
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`[run-assessment] Gemini parse/network error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`, message);
             if (!shouldRetry) {
-                return null;
+                throw new Error(message.startsWith('parse_failed:') || message.startsWith('schema_invalid:') ? message : `analysis_failed: ${message}`);
             }
 
             const backoffMs = Math.min(8000, (2 ** (attempt - 1)) * 1000) + Math.floor(Math.random() * 300);
@@ -330,5 +335,5 @@ Respond ONLY with valid JSON matching this schema exactly:
         }
     }
 
-    return null;
+    throw new Error('analysis_failed: unknown');
 }

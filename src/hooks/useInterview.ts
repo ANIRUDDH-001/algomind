@@ -334,7 +334,7 @@ export function useInterview(options: UseInterviewOptions) {
         return runFetch(retries, backoff);
     }, []);
 
-    const callChatApi = useCallback(async (prompt: string, systemPrompt: string, _problemContext: ProblemContext) => {
+    const callChatApi = useCallback(async (prompt: string, _systemPrompt: string, _problemContext: ProblemContext) => {
         try {
             const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
             const data = await fetchWithRetry(endpoint, {
@@ -345,7 +345,6 @@ export function useInterview(options: UseInterviewOptions) {
                         ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
                         { role: 'user', content: prompt }
                     ],
-                    systemPrompt,
                     problemContext: {
                         title: currentProblemRef.current?.problemTitle ?? '',
                         content: currentProblemRef.current?.problemContent ?? '',
