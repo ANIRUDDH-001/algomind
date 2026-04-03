@@ -135,7 +135,7 @@ describe('Event Taxonomy Contract Tests (P6-4)', () => {
         it('should return null for unknown event type', () => {
             const invalidPayload = {
                 type: 'unknown_event_type_xyz',
-            } as SystemEventPayload;
+            } as unknown as SystemEventPayload;
 
             const normalized = normalizeEventPayload(invalidPayload);
             expect(normalized).toBeNull();
