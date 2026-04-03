@@ -1,7 +1,33 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
+import { NextResponse } from 'next/server';
 
 export type AccountType = 'candidate' | 'employer' | 'admin' | 'owner';
+export type ApiAuthUser = { id: string; email: string | undefined };
+export type ApiAuthCheckResult =
+    | { user: ApiAuthUser; errorResponse: null }
+    | { user: null; errorResponse: NextResponse };
+
+export function unauthorizedApiResult(): ApiAuthCheckResult {
+    return {
+        user: null,
+        errorResponse: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+}
+
+export function forbiddenApiResult(): ApiAuthCheckResult {
+    return {
+        user: null,
+        errorResponse: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+    };
+}
+
+export function authorizedApiResult(user: ApiAuthUser): ApiAuthCheckResult {
+    return {
+        user,
+        errorResponse: null,
+    };
+}
 
 export async function getAccountType(userId: string): Promise<AccountType> {
     const supabase = await createServerSupabase();

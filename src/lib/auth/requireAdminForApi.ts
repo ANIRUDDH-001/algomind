@@ -1,33 +1,20 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { authorizedApiResult, forbiddenApiResult, type ApiAuthCheckResult, unauthorizedApiResult } from '@/lib/auth/account-type';
 
-type AdminCheckResult =
-    | { user: { id: string; email: string | undefined }; errorResponse: null }
-    | { user: null; errorResponse: NextResponse };
-
-export async function requireAdminForApi(): Promise<AdminCheckResult> {
+export async function requireAdminForApi(): Promise<ApiAuthCheckResult> {
     const supabase = await createServerSupabase();
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-        return {
-            user: null,
-            errorResponse: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
-        };
+        return unauthorizedApiResult();
     }
 
     const { data: isAdmin, error: adminErr } = await supabase.rpc('check_is_admin');
 
     if (adminErr || !isAdmin) {
         console.error('Admin Check Failed:', { adminErr, isAdmin, userId: user.id });
-        return {
-            user: null,
-            errorResponse: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
-        };
+        return forbiddenApiResult();
     }
 
-    return {
-        user: { id: user.id, email: user.email },
-        errorResponse: null,
-    };
+    return authorizedApiResult({ id: user.id, email: user.email });
 }
