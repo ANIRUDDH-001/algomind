@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         supabase
             .from('system_events')
             .insert({
-                event_type: 'client_error',
+                type: 'client_error',
                 metadata: {
                     error_message: String(error_message).slice(0, 2000),
                     error_stack: String(error_stack || '').slice(0, 5000),

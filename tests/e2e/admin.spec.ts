@@ -57,14 +57,24 @@ async function mockAsAdmin(page: Page) {
         return route.continue();
     });
 
-    // Mock the admin users API (employers list)
-    await page.route('**/api/admin/users*', (route) =>
-        route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify([]),
-        }),
-    );
+    // Mock owner users API for employers search/promote/demote contract
+    await page.route('**/api/owner/users*', (route) => {
+        if (route.request().method() === 'GET') {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ users: [] }),
+            });
+        }
+        if (route.request().method() === 'PATCH') {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true }),
+            });
+        }
+        return route.continue();
+    });
 }
 
 /** Mock the admin check to return false (non-admin user) */
@@ -252,13 +262,23 @@ test.describe('Add/Remove Admin', () => {
                 body: JSON.stringify({ isAdmin: true }),
             }),
         );
-        await page.route('**/api/admin/users*', (route) =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify([]),
-            }),
-        );
+        await page.route('**/api/owner/users*', (route) => {
+            if (route.request().method() === 'GET') {
+                return route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ users: [] }),
+                });
+            }
+            if (route.request().method() === 'PATCH') {
+                return route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ success: true }),
+                });
+            }
+            return route.continue();
+        });
 
         await page.goto('/admin/admins');
         await page.waitForLoadState('networkidle');

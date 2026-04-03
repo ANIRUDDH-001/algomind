@@ -14,7 +14,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(req: NextRequest) {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    const rateLimitResult = await checkIpRateLimit(ip, { maxRequests: 60, windowSeconds: 60, endpoint: 'flags' });
+    const rateLimitResult = await checkIpRateLimit(ip, {
+        maxRequests: 60,
+        windowSeconds: 60,
+        endpoint: 'flags',
+        failureMode: 'fail-open',
+    });
     if (!rateLimitResult.allowed) {
         return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }

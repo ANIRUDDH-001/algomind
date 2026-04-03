@@ -26,6 +26,12 @@ interface EmployerProfile {
     created_at: string;
 }
 
+interface OwnerUserSearchResult {
+    id: string;
+    email: string;
+    full_name?: string | null;
+}
+
 export default function EmployersClient() {
     const [invites, setInvites] = useState<EmployerInvite[]>([]);
     const [employers, setEmployers] = useState<EmployerProfile[]>([]);
@@ -51,7 +57,7 @@ export default function EmployersClient() {
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Email autocomplete state
-    const [emailSuggestions, setEmailSuggestions] = useState<Array<{ email: string; full_name: string | null }>>([]);
+    const [emailSuggestions, setEmailSuggestions] = useState<OwnerUserSearchResult[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,11 +75,12 @@ export default function EmployersClient() {
 
         debounceTimerRef.current = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/admin/users?search=${encodeURIComponent(value)}`);
+                const res = await fetch(`/api/owner/users?q=${encodeURIComponent(value)}`);
                 if (!res.ok) return;
                 const data = await res.json();
-                setEmailSuggestions(data.slice(0, 3));
-                setShowSuggestions(data.length > 0);
+                const users: OwnerUserSearchResult[] = data.users || [];
+                setEmailSuggestions(users.slice(0, 3));
+                setShowSuggestions(users.length > 0);
             } catch { /* ignore */ }
         }, 250);
     };
@@ -148,13 +155,27 @@ export default function EmployersClient() {
 
         try {
             setIsPromoting(true);
-            const res = await fetch('/api/admin/users', {
+
+            const searchRes = await fetch(`/api/owner/users?q=${encodeURIComponent(promoteEmail.trim())}`);
+            if (!searchRes.ok) {
+                throw new Error('Failed to find user');
+            }
+
+            const searchData = await searchRes.json();
+            const targetUser: OwnerUserSearchResult | undefined = (searchData.users || []).find(
+                (u: OwnerUserSearchResult) => u.email?.toLowerCase() === promoteEmail.trim().toLowerCase()
+            );
+
+            if (!targetUser?.id) {
+                throw new Error('User not found');
+            }
+
+            const res = await fetch('/api/owner/users', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: promoteEmail.trim(),
+                    userId: targetUser.id,
                     accountType: 'employer',
-                    companyName: promoteCompany.trim() || undefined
                 })
             });
 
@@ -173,17 +194,16 @@ export default function EmployersClient() {
         }
     };
 
-    const handleDemote = async (email: string) => {
+    const handleDemote = async (userId: string, email: string) => {
         if (!confirm(`Are you sure you want to demote ${email} to Candidate?`)) return;
 
         try {
-            const res = await fetch('/api/admin/users', {
+            const res = await fetch('/api/owner/users', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email,
+                    userId,
                     accountType: 'candidate',
-                    companyName: null
                 })
             });
 
@@ -455,7 +475,7 @@ export default function EmployersClient() {
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            onClick={() => handleDemote(emp.email)}
+                                            onClick={() => handleDemote(emp.id, emp.email)}
                                             className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
                                         >
                                             <UserMinus className="w-4 h-4 mr-2" />

@@ -115,7 +115,7 @@ export default async function middleware(request: NextRequest) {
             searchParams.get('demo') === 'true' ||
             request.cookies.get('algomind_demo_mode')?.value === 'true';
 
-        if (isDashboard || isSettings || isAdmin || isEmployer || isAssess || isOwnerRoute || isLearn) {
+        if (isDashboard || isSettings || isAdmin || isEmployer || isOwnerRoute || isLearn) {
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             // Optionally append a redirect so they come back to the assessment link after login

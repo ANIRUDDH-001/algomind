@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
                 maxRequests: 5,
                 windowSeconds: 600,
                 endpoint: 'assess_start',
+                failureMode: 'fail-closed',
             });
             if (!rateCheck.success) {
                 return NextResponse.json(

@@ -33,6 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
                 maxRequests: 20,
                 windowSeconds: 300,
                 endpoint: 'employer_export',
+                failureMode: 'fail-open',
             });
 
             if (!exportLimit.success) {

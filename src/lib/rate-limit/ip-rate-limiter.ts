@@ -2,8 +2,24 @@ import { getServiceClient } from '@/lib/supabase/service';
 
 export async function checkIpRateLimit(
     ip: string,
-    options: { maxRequests: number; windowSeconds: number; endpoint?: string }
+    options: {
+        maxRequests: number;
+        windowSeconds: number;
+        endpoint?: string;
+        failureMode?: 'fail-open' | 'fail-closed';
+    }
 ): Promise<{ success: boolean; allowed?: boolean; remaining?: number }> {
+    const defaultModeMap: Record<string, 'fail-open' | 'fail-closed'> = {
+        assess_start: 'fail-closed',
+        verify_code: 'fail-open',
+        flags: 'fail-open',
+        employer_export: 'fail-open',
+    };
+
+    const failureMode = options.failureMode
+        ?? (options.endpoint ? defaultModeMap[options.endpoint] : undefined)
+        ?? 'fail-open';
+
     try {
         const supabase = getServiceClient();
 
@@ -28,6 +44,9 @@ export async function checkIpRateLimit(
         };
     } catch (error) {
         console.error('[Rate Limit] DB error:', error);
-        return { success: true }; // Fail open
+        if (failureMode === 'fail-closed') {
+            return { success: false, allowed: false, remaining: 0 };
+        }
+        return { success: true, allowed: true, remaining: options.maxRequests };
     }
 }

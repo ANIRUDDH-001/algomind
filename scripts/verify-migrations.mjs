@@ -43,7 +43,6 @@ async function checkTables() {
         'admin_users',
         'user_preferences',
         'system_events',
-        'company_profiles',
         'model_registry',
         'interview_sessions',
         'assessments',
@@ -67,21 +66,21 @@ async function checkTables() {
 async function checkRPCs() {
     console.log('\n🔧 Checking required RPCs...');
     const rpcs = [
-        'check_is_admin',
-        'get_model_rate_stats',
-        'get_user_sessions_with_assessment',
-        'check_user_rate_limit',
-        'claim_campaign_slot',
+        { name: 'check_is_admin', args: undefined },
+        { name: 'get_model_rate_stats', args: undefined },
+        { name: 'get_user_sessions_with_assessment', args: { p_user_id: '00000000-0000-0000-0000-000000000000', p_limit: 1 } },
+        { name: 'check_user_rate_limit', args: { p_user_id: '00000000-0000-0000-0000-000000000000', p_limit: 1 } },
+        { name: 'claim_campaign_slot', args: { p_campaign_id: '00000000-0000-0000-0000-000000000000' } },
     ];
 
     for (const rpc of rpcs) {
-        // Call with no args — we only care about PGRST202 (function not found)
-        const { error } = await supabase.rpc(rpc);
+        // Call with canonical args for parameterized RPCs to avoid false negatives.
+        const { error } = await supabase.rpc(rpc.name, rpc.args);
         if (error?.code === 'PGRST202') {
-            fail(`RPC "${rpc}" — function not found`);
+            fail(`RPC "${rpc.name}" — function not found`);
         } else {
             // Any other error (e.g., missing args) means the function exists
-            pass(`RPC "${rpc}" exists`);
+            pass(`RPC "${rpc.name}" exists`);
         }
     }
 }

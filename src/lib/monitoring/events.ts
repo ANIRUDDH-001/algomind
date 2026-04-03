@@ -28,7 +28,8 @@ export type SystemEventType =
     | 'kg_cache_hit'
     | 'kg_cache_miss'
     | 'prompt_size_warning'
-    | 'route_error';
+    | 'route_error'
+    | 'client_error';
 
 export interface SystemEventPayload {
     type: SystemEventType;
