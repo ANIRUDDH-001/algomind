@@ -8,6 +8,7 @@ const startListeningMock = vi.fn();
 const stopListeningMock = vi.fn();
 const resetTranscriptMock = vi.fn();
 const stopSpeakingMock = vi.fn();
+const speakAndWaitMock = vi.fn().mockResolvedValue(true);
 
 vi.mock('@/hooks/useSTT', () => ({
   useSTT: () => ({
@@ -29,7 +30,7 @@ vi.mock('@/hooks/useTTS', () => ({
   useTTS: () => ({
     isSpeaking: false,
     speak: vi.fn(),
-    speakAndWait: vi.fn().mockResolvedValue(true),
+    speakAndWait: speakAndWaitMock,
     stop: stopSpeakingMock,
     provider: 'browser',
   }),
@@ -74,6 +75,13 @@ describe('useInterview state ownership contract', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ response: 'AI response' }),
+      })
+    );
   });
 
   it('voice.startListening only changes intent state and does not mutate message state', () => {
@@ -104,5 +112,29 @@ describe('useInterview state ownership contract', () => {
     expect(result.current.isLimitReached).toBe(false);
     expect(stopListeningMock).toHaveBeenCalled();
     expect(resetTranscriptMock).toHaveBeenCalled();
+  });
+
+  it('coalesces concurrent submit attempts into a single in-flight request', async () => {
+    let resolveSpeak!: (value: boolean) => void;
+    speakAndWaitMock.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => { resolveSpeak = resolve; })
+    );
+
+    const { result } = renderHook(() => useInterview({ config: baseConfig }));
+
+    const context = {
+      problemTitle: 'Two Sum',
+      problemContent: 'Find pair sum',
+    };
+
+    const firstSubmit = result.current.submitUserResponse('first answer', context);
+    const secondSubmit = result.current.submitUserResponse('second answer', context);
+
+    await Promise.resolve();
+    expect((globalThis.fetch as any)).toHaveBeenCalledTimes(1);
+
+    resolveSpeak(true);
+    await firstSubmit;
+    await secondSubmit;
   });
 });

@@ -279,6 +279,8 @@ export function useInterview(options: UseInterviewOptions) {
 
     // Ref to break forward-reference cycle: submitUserResponse is defined later
     const submitUserResponseRef = useRef<((text: string, ctx: ProblemContext) => Promise<void>) | null>(null);
+    // Prevent concurrent submit paths (manual send + auto-send + time-up) from racing.
+    const submitInFlightRef = useRef(false);
 
     // Time limit enforcement: tied strictly to global UI hook
     useEffect(() => {
@@ -288,9 +290,9 @@ export function useInterview(options: UseInterviewOptions) {
         // If there's unsent voice transcript, auto-send it before ending.
         // submitUserResponse will detect timeUpRef and skip TTS after AI replies.
         const pendingText = transcriptRef.current.trim();
-        if (pendingText && currentProblemRef.current && !isProcessingRef.current && submitUserResponseRef.current) {
+        if (pendingText && currentProblemRef.current && !isProcessingRef.current && !submitInFlightRef.current && submitUserResponseRef.current) {
             // Auto-send the pending transcript — the post-turn check will end the session
-            submitUserResponseRef.current(pendingText, currentProblemRef.current);
+            void submitUserResponseRef.current(pendingText, currentProblemRef.current);
             return; // submitUserResponse will handle limit after AI responds
         }
 
@@ -375,6 +377,10 @@ export function useInterview(options: UseInterviewOptions) {
     const submitUserResponse = useCallback(async (userText: string, problemContext: ProblemContext) => {
         if (stateMachine.current.getState() === 'completed') return;
         if (!userText.trim()) return;
+        if (submitInFlightRef.current) {
+            console.log('[useInterview] Submission ignored: submit already in flight');
+            return;
+        }
         const safeUserText = userText.slice(0, MAX_USER_INPUT);
 
         // A1 fix: Deduplication — skip if identical message within 3 seconds
@@ -386,6 +392,9 @@ export function useInterview(options: UseInterviewOptions) {
             return;
         }
         lastUserMsgRef.current = { text: safeUserText.trim(), time: now };
+        submitInFlightRef.current = true;
+
+        try {
 
         // A1 fix: Reset ttsError at start of each submission
         setTtsError(false);
@@ -542,6 +551,9 @@ export function useInterview(options: UseInterviewOptions) {
             // Even on error, activate mic so user can try again
             setMicStoppedManually(false);
             setMicIntent('auto-on');
+        }
+        } finally {
+            submitInFlightRef.current = false;
         }
     }, [stopListening, addMessage, resetTranscript, callChatApi, speakAndWait, roundCount, interviewStartTime]);
 
