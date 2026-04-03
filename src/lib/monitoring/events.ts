@@ -392,3 +392,134 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
 
     await logSystemEventStrict(normalized);
 }
+
+/**
+ * Typed error event payload wrapping critical failures.
+ * Enforces stack trace capture and error categorization.
+ */
+export interface SystemErrorPayload {
+    type: Extract<SystemEventType, `${string}error` | `${string}failed`>;
+    component: string; // e.g., 'ai.client', 'db.query', 'auth.middleware'
+    operation: string; // e.g., 'fetch_model', 'insert_user', 'verify_token'
+    error: Error | { message: string; code?: string };
+    context?: {
+        userId?: string;
+        sessionId?: string;
+        requestPath?: string;
+        httpMethod?: string;
+        httpStatus?: number;
+        metadata?: Record<string, unknown>;
+    };
+    correlationId?: string;
+    environment?: 'development' | 'staging' | 'production';
+}
+
+/**
+ * Log an error event with full context.
+ * Captures stack trace and error code; enforces strict schema validation.
+ */
+export async function logSystemError(errorPayload: SystemErrorPayload): Promise<void> {
+    if (typeof window !== 'undefined') return;
+
+    const correlationId = errorPayload.correlationId ?? crypto.randomUUID();
+    const environment = errorPayload.environment ?? (process.env.NODE_ENV as any) ?? 'development';
+
+    const errorMsg = errorPayload.error instanceof Error ? errorPayload.error.message : errorPayload.error.message;
+    const errorCode = errorPayload.error instanceof Error ? undefined : (errorPayload.error.code || 'UNKNOWN');
+
+    const event: StrictSystemEventPayload = {
+        type: errorPayload.type,
+        event_version: 'v1',
+        severity: EventSeverity.ERROR,
+        occurred_at: new Date().toISOString(),
+        correlation_id: correlationId,
+        source: 'http',
+        user_id: errorPayload.context?.userId,
+        request_path: errorPayload.context?.requestPath,
+        http_method: errorPayload.context?.httpMethod,
+        http_status: errorPayload.context?.httpStatus,
+        error_code: errorCode,
+        error_message: errorMsg,
+        metadata: {
+            component: errorPayload.component,
+            operation: errorPayload.operation,
+            environment,
+            extra: {
+                stack: errorPayload.error instanceof Error ? errorPayload.error.stack : undefined,
+                ...errorPayload.context?.metadata,
+            },
+        },
+    };
+
+    await logSystemEventStrict(event);
+}
+
+/**
+ * Typed lifecycle event payload for job/batch/cron lifecycle tracking.
+ * Enforces structured status and duration tracking for async operations.
+ */
+export interface LifecyclePayload {
+    type: Extract<SystemEventType, `${'cron' | 'batch' | 'edge'}.${'triggered' | 'running' | 'completed' | 'failed' | 'step_started' | 'step_completed' | 'step_failed' | 'review_reminders_queued' | 'review_reminders_failed'}`>;
+    jobName: string; // e.g., 'nightly-batch', 'review-reminders'
+    status: 'started' | 'success' | 'failure' | 'partial_success' | 'skipped';
+    startedAt: string; // ISO timestamp
+    endedAt?: string; // ISO timestamp (if completed)
+    durationMs?: number;
+    correlationId?: string;
+    metadata?: {
+        stepName?: string;
+        recordsProcessed?: number;
+        recordsSucceeded?: number;
+        recordsFailed?: number;
+        retryCount?: number;
+        failureReason?: string;
+        downstreamDependency?: string;
+        extra?: Record<string, unknown>;
+    };
+}
+
+/**
+ * Log a lifecycle event (job start/completion/failure).
+ * Tracks async operation boundaries and duration; enforces schema validation.
+ */
+export async function logSystemLifecycle(lifecyclePayload: LifecyclePayload): Promise<void> {
+    if (typeof window !== 'undefined') return;
+
+    const correlationId = lifecyclePayload.correlationId ?? crypto.randomUUID();
+    const duration = lifecyclePayload.durationMs ?? (lifecyclePayload.endedAt ? new Date(lifecyclePayload.endedAt).getTime() - new Date(lifecyclePayload.startedAt).getTime() : undefined);
+
+    const severity =
+        lifecyclePayload.status === 'failure' || lifecyclePayload.status === 'partial_success'
+            ? EventSeverity.WARN
+            : EventSeverity.INFO;
+
+    const event: StrictSystemEventPayload = {
+        type: lifecyclePayload.type,
+        event_version: 'v1',
+        severity,
+        occurred_at: lifecyclePayload.endedAt ?? lifecyclePayload.startedAt,
+        correlation_id: correlationId,
+        source: lifecyclePayload.type.split('.')[0] as 'cron' | 'batch' | 'edge',
+        metadata: {
+            component: lifecyclePayload.jobName,
+            operation: lifecyclePayload.status === 'started' ? 'job_started' : lifecyclePayload.status === 'success' ? 'job_completed' : 'job_failed',
+            environment: (process.env.NODE_ENV as any) ?? 'development',
+            duration_ms: duration,
+            records_processed: lifecyclePayload.metadata?.recordsProcessed,
+            records_succeeded: lifecyclePayload.metadata?.recordsSucceeded,
+            records_failed: lifecyclePayload.metadata?.recordsFailed,
+            retry_count: lifecyclePayload.metadata?.retryCount,
+            extra: {
+                job_name: lifecyclePayload.jobName,
+                status: lifecyclePayload.status,
+                started_at: lifecyclePayload.startedAt,
+                step_name: lifecyclePayload.metadata?.stepName,
+                failure_reason: lifecyclePayload.metadata?.failureReason,
+                downstream_dependency: lifecyclePayload.metadata?.downstreamDependency,
+                ...lifecyclePayload.metadata?.extra,
+            },
+        },
+    };
+
+    await logSystemEventStrict(event);
+}
