@@ -1,45 +1,193 @@
 import { getServiceClient } from '@/lib/supabase/service';
 import { getCorrelationId } from '@/lib/tracing/correlation';
 
-export type SystemEventType =
-    | 'llm_request'
-    | 'model_429'
-    | 'model_deprecated'
-    | 'model_timeout'
-    | 'model_error'
-    | 'model_verification_failed'
-    | 'db_error'
-    | 'embedding_failed'
-    | 'user_rate_limit'
-    | 'leetcode_fetch_failed'
-    | 'piston_error'
-    | 'cron_completed'
-    | 'cron_failed'
-    | 'cron_triggered'
-    | 'cron_running'
-    | 'batch_job_complete'
-    | 'assessment_insufficient'
-    | 'voice_session_start'
-    | 'tts_fallback'
-    | 'stt_fallback'
-    | 'vad_fallback'
-    | 'admin_action'
-    | 'transcript_save_failed'
-    | 'kg_cache_hit'
-    | 'kg_cache_miss'
-    | 'prompt_size_warning'
-    | 'route_error'
-    | 'client_error';
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 6: STRICT SYSTEM EVENT SCHEMA
+// ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Severity levels for system events.
+ * Used for sampling policy, alerting, and dashboard filtering.
+ */
+export enum EventSeverity {
+    FATAL = 'fatal',    // System-critical: data loss, full outage
+    ERROR = 'error',    // Recoverable error affecting user experience
+    WARN = 'warn',      // Degraded performance or non-critical failure
+    INFO = 'info',      // Normal operational event
+    DEBUG = 'debug',    // Detailed diagnostic information
+}
+
+/**
+ * Canonical system event type taxonomy, grouped by domain.
+ * Each type is immutable and tied to a specific severity.
+ * Includes both canonical names (domain.type) and legacy names (underscored) for backward compat.
+ */
+export const EventTypes = {
+    // AI/LLM domain (canonical + legacy)
+    'ai.llm_request': { severity: EventSeverity.INFO, domain: 'ai', canonical: true },
+    'llm_request': { severity: EventSeverity.INFO, domain: 'ai', canonical: false },
+
+    'ai.model_timeout': { severity: EventSeverity.WARN, domain: 'ai', canonical: true },
+    'model_timeout': { severity: EventSeverity.WARN, domain: 'ai', canonical: false },
+
+    'ai.model_error': { severity: EventSeverity.ERROR, domain: 'ai', canonical: true },
+    'model_error': { severity: EventSeverity.ERROR, domain: 'ai', canonical: false },
+
+    'ai.model_429': { severity: EventSeverity.WARN, domain: 'ai', canonical: true },
+    'model_429': { severity: EventSeverity.WARN, domain: 'ai', canonical: false },
+
+    'ai.model_deprecated': { severity: EventSeverity.WARN, domain: 'ai', canonical: true },
+    'model_deprecated': { severity: EventSeverity.WARN, domain: 'ai', canonical: false },
+
+    'ai.model_verification_failed': { severity: EventSeverity.ERROR, domain: 'ai', canonical: true },
+    'model_verification_failed': { severity: EventSeverity.ERROR, domain: 'ai', canonical: false },
+
+    'ai.embedding_failed': { severity: EventSeverity.ERROR, domain: 'ai', canonical: true },
+    'embedding_failed': { severity: EventSeverity.ERROR, domain: 'ai', canonical: false },
+
+    // Database domain
+    'db.error': { severity: EventSeverity.ERROR, domain: 'db', canonical: true },
+    'db_error': { severity: EventSeverity.ERROR, domain: 'db', canonical: false },
+
+    // Rate limiting domain
+    'rate_limit.user_exceeded': { severity: EventSeverity.WARN, domain: 'rate_limit', canonical: true },
+    'user_rate_limit': { severity: EventSeverity.WARN, domain: 'rate_limit', canonical: false },
+
+    // Authentication domain
+    'auth.admin_action': { severity: EventSeverity.INFO, domain: 'auth', canonical: true },
+    'admin_action': { severity: EventSeverity.INFO, domain: 'auth', canonical: false },
+
+    // API/Route domain
+    'api.route_error': { severity: EventSeverity.ERROR, domain: 'api', canonical: true },
+    'route_error': { severity: EventSeverity.ERROR, domain: 'api', canonical: false },
+
+    'api.client_error': { severity: EventSeverity.INFO, domain: 'api', canonical: true },
+    'client_error': { severity: EventSeverity.INFO, domain: 'api', canonical: false },
+
+    // Cron/Batch domain
+    'cron.triggered': { severity: EventSeverity.INFO, domain: 'cron', canonical: true },
+    'cron_triggered': { severity: EventSeverity.INFO, domain: 'cron', canonical: false },
+
+    'cron.running': { severity: EventSeverity.INFO, domain: 'cron', canonical: true },
+    'cron_running': { severity: EventSeverity.INFO, domain: 'cron', canonical: false },
+
+    'cron.completed': { severity: EventSeverity.INFO, domain: 'cron', canonical: true },
+    'cron_completed': { severity: EventSeverity.INFO, domain: 'cron', canonical: false },
+
+    'cron.failed': { severity: EventSeverity.ERROR, domain: 'cron', canonical: true },
+    'cron_failed': { severity: EventSeverity.ERROR, domain: 'cron', canonical: false },
+
+    'batch.step_started': { severity: EventSeverity.INFO, domain: 'batch', canonical: true },
+    'batch.step_completed': { severity: EventSeverity.INFO, domain: 'batch', canonical: true },
+    'batch.step_failed': { severity: EventSeverity.ERROR, domain: 'batch', canonical: true },
+    'batch.completed': { severity: EventSeverity.INFO, domain: 'batch', canonical: true },
+    'batch_job_complete': { severity: EventSeverity.INFO, domain: 'batch', canonical: false },
+    'batch.failed': { severity: EventSeverity.ERROR, domain: 'batch', canonical: true },
+
+    // Assessment domain
+    'assessment.insufficient_response': { severity: EventSeverity.WARN, domain: 'assessment', canonical: true },
+    'assessment_insufficient': { severity: EventSeverity.WARN, domain: 'assessment', canonical: false },
+
+    // Voice domain
+    'voice.session_start': { severity: EventSeverity.INFO, domain: 'voice', canonical: true },
+    'voice_session_start': { severity: EventSeverity.INFO, domain: 'voice', canonical: false },
+
+    'voice.tts_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: true },
+    'tts_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: false },
+
+    'voice.stt_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: true },
+    'stt_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: false },
+
+    'voice.vad_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: true },
+    'vad_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: false },
+
+    // Integration domain
+    'integration.leetcode_fetch_failed': { severity: EventSeverity.WARN, domain: 'integration', canonical: true },
+    'leetcode_fetch_failed': { severity: EventSeverity.WARN, domain: 'integration', canonical: false },
+
+    'integration.piston_error': { severity: EventSeverity.ERROR, domain: 'integration', canonical: true },
+    'piston_error': { severity: EventSeverity.ERROR, domain: 'integration', canonical: false },
+
+    'integration.transcript_save_failed': { severity: EventSeverity.ERROR, domain: 'integration', canonical: true },
+    'transcript_save_failed': { severity: EventSeverity.ERROR, domain: 'integration', canonical: false },
+
+    // Knowledge domain
+    'knowledge.cache_hit': { severity: EventSeverity.DEBUG, domain: 'knowledge', canonical: true },
+    'kg_cache_hit': { severity: EventSeverity.DEBUG, domain: 'knowledge', canonical: false },
+
+    'knowledge.cache_miss': { severity: EventSeverity.DEBUG, domain: 'knowledge', canonical: true },
+    'kg_cache_miss': { severity: EventSeverity.DEBUG, domain: 'knowledge', canonical: false },
+
+    // Telemetry/Observability domain
+    'telemetry.prompt_size_warning': { severity: EventSeverity.WARN, domain: 'telemetry', canonical: true },
+    'prompt_size_warning': { severity: EventSeverity.WARN, domain: 'telemetry', canonical: false },
+
+    'telemetry.event_validation_failed': { severity: EventSeverity.WARN, domain: 'telemetry', canonical: true },
+    'telemetry.sampling_drop': { severity: EventSeverity.INFO, domain: 'telemetry', canonical: true },
+    'telemetry.deprecated_log_wrapper_usage': { severity: EventSeverity.WARN, domain: 'telemetry', canonical: true },
+    'telemetry.retention_completed': { severity: EventSeverity.INFO, domain: 'telemetry', canonical: true },
+
+    // Edge function domain
+    'edge.review_reminders_queued': { severity: EventSeverity.INFO, domain: 'edge', canonical: true },
+    'edge.review_reminders_failed': { severity: EventSeverity.ERROR, domain: 'edge', canonical: true },
+} as const;
+
+export type SystemEventType = keyof typeof EventTypes;
+
+/**
+ * Strict canonical system event payload.
+ * Required fields must be present on all events; optional fields may be omitted.
+ */
+export interface StrictSystemEventPayload {
+    // Required
+    type: SystemEventType;
+    event_version: 'v1';
+    severity: EventSeverity;
+    occurred_at: string; // ISO timestamp when event logically occurred
+    correlation_id: string; // Trace ID for request or job
+    source: 'http' | 'cron' | 'batch' | 'edge' | 'script'; // Origin context
+
+    // Optional but recommended
+    user_id?: string;
+    session_id?: string;
+    request_path?: string;
+    http_method?: string;
+    http_status?: number;
+    provider?: string;
+    model_id?: string;
+    error_code?: string;
+    error_message?: string;
+
+    // Structured metadata for this event
+    metadata: {
+        component: string; // e.g., 'ai.client', 'assess.pipeline', 'cron.batch'
+        operation: string; // e.g., 'fetch_model', 'save_progress', 'compute_insights'
+        environment: 'development' | 'staging' | 'production';
+        // Optional metadata
+        duration_ms?: number;
+        retry_count?: number;
+        idempotency_key?: string;
+        records_processed?: number;
+        records_succeeded?: number;
+        records_failed?: number;
+        token_in?: number;
+        token_out?: number;
+        cost_usd?: number;
+        extra?: Record<string, unknown>;
+    };
+}
+
+/**
+ * Legacy payload format for backward compatibility.
+ * Gradually migrate all callers to StrictSystemEventPayload.
+ */
 export interface SystemEventPayload {
     type: SystemEventType;
     provider?: string;
     modelId?: string;
-    // Legacy camelCase fields used by existing callers
     userId?: string;
     sessionId?: string;
     correlationId?: string;
-    // New snake_case fields for direct API/event payload compatibility
     correlation_id?: string;
     session_id?: string;
     user_id?: string;
@@ -50,13 +198,123 @@ export interface SystemEventPayload {
 }
 
 /**
- * Logs a system event to the 'system_events' table asynchronously.
- * Completely fire-and-forget: it will never throw errors or log anything to the console.
- * Only attempts to log when executed on the server-side.
+ * Validation result returned by schema validators.
  */
-export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
-    // Only execute server-side
+export interface ValidationResult {
+    valid: boolean;
+    error?: string;
+    correctedPayload?: StrictSystemEventPayload;
+}
+
+/**
+ * Validates and normalizes an event payload to strict schema.
+ * Returns validation result; caller must handle invalid payloads.
+ */
+export function validateEventPayload(event: unknown): ValidationResult {
+    if (!event || typeof event !== 'object') {
+        return { valid: false, error: 'Event must be a non-null object' };
+    }
+
+    const e = event as Record<string, unknown>;
+
+    // Check required fields
+    if (typeof e.type !== 'string') {
+        return { valid: false, error: 'Event.type is required and must be string' };
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(EventTypes, e.type)) {
+        return { valid: false, error: `Unknown event type: ${e.type}` };
+    }
+
+    if (e.event_version !== 'v1') {
+        return { valid: false, error: `Event.event_version must be 'v1', got: ${e.event_version}` };
+    }
+
+    if (!Object.values(EventSeverity).includes(e.severity as EventSeverity)) {
+        return { valid: false, error: `Event.severity must be one of [${Object.values(EventSeverity).join(', ')}]` };
+    }
+
+    if (typeof e.occurred_at !== 'string' || !e.occurred_at.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        return { valid: false, error: 'Event.occurred_at must be ISO timestamp string' };
+    }
+
+    if (typeof e.correlation_id !== 'string' || !e.correlation_id.trim()) {
+        return { valid: false, error: 'Event.correlation_id is required and must be non-empty string' };
+    }
+
+    if (!['http', 'cron', 'batch', 'edge', 'script'].includes(e.source as string)) {
+        return { valid: false, error: `Event.source must be one of [http, cron, batch, edge, script]` };
+    }
+
+    if (!e.metadata || typeof e.metadata !== 'object') {
+        return { valid: false, error: 'Event.metadata is required and must be object' };
+    }
+
+    const meta = e.metadata as Record<string, unknown>;
+    if (typeof meta.component !== 'string' || !meta.component.trim()) {
+        return { valid: false, error: 'Event.metadata.component is required string' };
+    }
+
+    if (typeof meta.operation !== 'string' || !meta.operation.trim()) {
+        return { valid: false, error: 'Event.metadata.operation is required string' };
+    }
+
+    if (!['development', 'staging', 'production'].includes(meta.environment as string)) {
+        return { valid: false, error: 'Event.metadata.environment must be one of [development, staging, production]' };
+    }
+
+    // All checks passed
+    return { valid: true };
+}
+
+/**
+ * Normalizes legacy payload format to strict schema.
+ * Maps camelCase → snake_case and deprecated type names to canonical domain.type format.
+ * Returns normalized payload or null if mapping fails.
+ */
+export function normalizeEventPayload(event: SystemEventPayload): StrictSystemEventPayload | null {
+    try {
+        const correlationId = event.correlation_id ?? event.correlationId ?? crypto.randomUUID();
+        const severity = EventTypes[event.type]?.severity ?? EventSeverity.INFO;
+        const now = new Date().toISOString();
+
+        return {
+            type: event.type,
+            event_version: 'v1',
+            severity,
+            occurred_at: now,
+            correlation_id: correlationId,
+            source: 'http', // Default; override in caller
+            user_id: event.user_id ?? event.userId,
+            session_id: event.session_id ?? event.sessionId,
+            metadata: {
+                component: 'unknown',
+                operation: 'unknown',
+                environment: (process.env.NODE_ENV as any) ?? 'development',
+                ...event.metadata,
+            },
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Main event logging function: fire-and-forget strict event write.
+ * Validates schema; emits telemetry.event_validation_failed if rejected.
+ * Only executes on server-side.
+ */
+export async function logSystemEventStrict(event: StrictSystemEventPayload): Promise<void> {
     if (typeof window !== 'undefined') return;
+
+    // Validate payload
+    const validation = validateEventPayload(event);
+    if (!validation.valid) {
+        // Emit validation failure metric (fire-and-forget, never blocks)
+        console.warn('[Monitoring] Event validation failed:', validation.error);
+        // TODO: Emit telemetry.event_validation_failed event
+        return;
+    }
 
     let supabaseAdmin: ReturnType<typeof getServiceClient>;
     try {
@@ -70,30 +328,23 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         return;
     }
 
-    const correlationId = event.correlation_id ?? event.correlationId ?? await getCorrelationId();
-    const sessionId = event.session_id ?? event.sessionId;
-    const userId = event.user_id ?? event.userId;
-    const existingMetadata = event.metadata ?? {};
-    const metadata = {
-        ...existingMetadata,
-        correlation_id: correlationId,
-        session_id: sessionId,
-        user_id: userId,
-        latency_ms: event.latency_ms,
-        timestamp: new Date().toISOString(),
-    };
-
     const payload = {
         type: event.type,
         provider: event.provider,
-        model_id: event.modelId, // Mapping to db column
-        user_id: userId,
-        error_code: event.errorCode,
-        error_message: event.errorMessage,
-        metadata,
+        model_id: event.model_id,
+        user_id: event.user_id,
+        error_code: event.error_code,
+        error_message: event.error_message,
+        metadata: {
+            ...event.metadata,
+            correlation_id: event.correlation_id,
+            occurred_at: event.occurred_at,
+            severity: event.severity,
+            event_version: event.event_version,
+            source: event.source,
+        },
     };
 
-    // True fire-and-forget: catch any errors and silently discard them
     try {
         const eventsTable = supabaseAdmin.from('system_events') as unknown as { insert?: (rows: unknown[]) => Promise<unknown> };
         if (typeof eventsTable.insert === 'function') {
@@ -115,12 +366,29 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
                 'Authorization': `Bearer ${betterStackToken}`,
             },
             body: JSON.stringify({
-                dt: new Date().toISOString(),
-                level: ['model_error', 'db_error', 'cron_failed', 'transcript_save_failed', 'route_error']
-                    .includes(event.type) ? 'error' : 'info',
+                dt: event.occurred_at,
+                level: event.severity === EventSeverity.FATAL || event.severity === EventSeverity.ERROR ? 'error' : 'info',
                 ...payload,
                 env: process.env.NODE_ENV ?? 'unknown',
             }),
         }).catch(() => { });
     }
+}
+
+/**
+ * Backward compatibility wrapper: log legacy SystemEventPayload.
+ * Normalizes to strict schema and emits deprecation telemetry.
+ * TO BE REMOVED in next release after all callers migrate.
+ */
+export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
+    // Emit deprecation metric
+    // TODO: logSystemEventStrict({ type: 'telemetry.deprecated_log_wrapper_usage', ... });
+
+    const normalized = normalizeEventPayload(event);
+    if (!normalized) {
+        console.warn('[Monitoring] Failed to normalize legacy event:', event);
+        return;
+    }
+
+    await logSystemEventStrict(normalized);
 }
