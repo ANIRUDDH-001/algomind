@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../trigger/route';
 import { redisGet, redisSet } from '@/lib/upstash/client';
-import { logSystemEvent } from '@/lib/monitoring/events';
+import { logSystemLifecycle } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/upstash/client', () => ({
     redisGet: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock('@/lib/upstash/client', () => ({
 }));
 
 vi.mock('@/lib/monitoring/events', () => ({
-    logSystemEvent: vi.fn().mockResolvedValue(undefined),
+    logSystemLifecycle: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('/api/cron/trigger idempotency', () => {
@@ -74,6 +74,6 @@ describe('/api/cron/trigger idempotency', () => {
             expect.any(String),
             86400
         );
-        expect(logSystemEvent).toHaveBeenCalled();
+        expect(logSystemLifecycle).toHaveBeenCalled();
     });
 });

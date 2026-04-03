@@ -141,7 +141,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
             });
             setSessionToken(data.sessionToken);
             setCampaignQuestions(data.questions || []);
-            setQuestionStates(data.questionStates || []);
+            setQuestionStates(Array.isArray(data.questionStates) ? (data.questionStates as QuestionState[]) : []);
             setStartedAt(data.startedAt);
             setSubmissionId(data.submissionId);
             setShowScore(data.showScoreToCandidate);
