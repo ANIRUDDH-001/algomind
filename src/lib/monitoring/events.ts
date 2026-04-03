@@ -270,10 +270,15 @@ export function validateEventPayload(event: unknown): ValidationResult {
 /**
  * Normalizes legacy payload format to strict schema.
  * Maps camelCase → snake_case and deprecated type names to canonical domain.type format.
- * Returns normalized payload or null if mapping fails.
+ * Returns normalized payload or null if mapping fails (unknown type).
  */
 export function normalizeEventPayload(event: SystemEventPayload): StrictSystemEventPayload | null {
     try {
+        // Reject unknown event types
+        if (!Object.prototype.hasOwnProperty.call(EventTypes, event.type)) {
+            return null;
+        }
+
         const correlationId = event.correlation_id ?? event.correlationId ?? crypto.randomUUID();
         const severity = EventTypes[event.type]?.severity ?? EventSeverity.INFO;
         const now = new Date().toISOString();
