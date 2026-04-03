@@ -85,7 +85,11 @@ export default function PracticePage() {
     }, [currentPage, filters.difficulty, filters.curatedList, filters.searchQuery, filters.topic, user]);
 
     useEffect(() => {
-        loadProblems();
+        const timer = window.setTimeout(() => {
+            void loadProblems();
+        }, 0);
+
+        return () => window.clearTimeout(timer);
     }, [loadProblems]);
 
     const loadAttemptedProblems = useCallback(async () => {
@@ -106,7 +110,11 @@ export default function PracticePage() {
     }, [user]);
 
     useEffect(() => {
-        loadAttemptedProblems();
+        const timer = window.setTimeout(() => {
+            void loadAttemptedProblems();
+        }, 0);
+
+        return () => window.clearTimeout(timer);
     }, [loadAttemptedProblems]);
 
     // Filter by attempted status (client-side since it's local data)
