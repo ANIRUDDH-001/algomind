@@ -158,21 +158,37 @@ export function AnalyticsTab() {
     }, [] as any[]).sort((a: any, b: any) => new Date(a.name).getTime() - new Date(b.name).getTime());
 
     const typeColors: Record<string, string> = {
+        'ai.model_429': COLORS.chart[0],
         'model_429': COLORS.chart[0],
+        'ai.model_deprecated': COLORS.chart[1],
         'model_deprecated': COLORS.chart[1],
+        'ai.model_error': COLORS.chart[2],
         'model_error': COLORS.chart[2],
+        'ai.model_timeout': COLORS.chart[3],
         'model_timeout': COLORS.chart[3],
+        'ai.model_verification_failed': COLORS.chart[4],
         'model_verification_failed': COLORS.chart[4],
+        'db.error': COLORS.semantic.danger,
         'db_error': COLORS.semantic.danger,
+        'rate_limit.user_exceeded': '#3b82f6',
         'user_rate_limit': '#3b82f6',
+        'integration.leetcode_fetch_failed': '#a855f7',
         'leetcode_fetch_failed': '#a855f7',
+        'integration.piston_error': '#f97316',
         'piston_error': '#f97316',
+        'ai.embedding_failed': '#ec4899',
         'embedding_failed': '#ec4899',
+        'cron.completed': COLORS.semantic.success,
         'cron_completed': COLORS.semantic.success,
+        'cron.failed': COLORS.semantic.danger,
         'cron_failed': COLORS.semantic.danger,
+        'cron.triggered': '#6366f1',
         'cron_triggered': '#6366f1',
+        'cron.running': '#3b82f6',
         'cron_running': '#3b82f6',
+        'batch.completed': '#14b8a6',
         'batch_job_complete': '#14b8a6',
+        'auth.admin_action': '#64748b',
         'admin_action': '#64748b',
     };
 
@@ -185,10 +201,10 @@ export function AnalyticsTab() {
         .sort((a, b) => b.rateLimitHits24h - a.rateLimitHits24h);
 
     // Panel 3: DB Errors
-    const dbErrors = (Array.isArray(events) ? events : []).filter(e => e.type === 'db_error').slice(0, 20);
+    const dbErrors = (Array.isArray(events) ? events : []).filter(e => e.type === 'db_error' || e.type === 'db.error').slice(0, 20);
 
     // Panel 4: User Rate Limits
-    const userRateLimits = (Array.isArray(events) ? events : []).filter(e => e.type === 'user_rate_limit');
+    const userRateLimits = (Array.isArray(events) ? events : []).filter(e => e.type === 'user_rate_limit' || e.type === 'rate_limit.user_exceeded');
 
     // Derived chart for user rate limits (by hour)
     const userRateLimitsByHour = userRateLimits.reduce((acc, curr) => {
@@ -204,30 +220,40 @@ export function AnalyticsTab() {
 
     // Panel 5: Cron Health — include triggered and running events
     const cronEvents = events.filter(e =>
-        e.type === 'cron_completed' || e.type === 'cron_failed' || e.type === 'cron_triggered' || e.type === 'cron_running'
+        e.type === 'cron.completed' || e.type === 'cron_completed' ||
+        e.type === 'cron.failed' || e.type === 'cron_failed' ||
+        e.type === 'cron.triggered' || e.type === 'cron_triggered' ||
+        e.type === 'cron.running' || e.type === 'cron_running'
     ).slice(0, 20);
 
     // Resolve triggered events to their actual status (RUNNING / OK / FAILED)
     const resolvedCronRows = cronEvents
-        .filter(e => e.type === 'cron_triggered')
+        .filter(e => e.type === 'cron.triggered' || e.type === 'cron_triggered')
         .map(triggered => {
             const triggeredTime = new Date(triggered.created_at).getTime();
             // Find the next follow-up event that came AFTER this trigger
             const followUp = cronEvents.find(e =>
-                (e.type === 'cron_running' || e.type === 'cron_completed' || e.type === 'cron_failed') &&
+                (
+                    e.type === 'cron.running' || e.type === 'cron_running' ||
+                    e.type === 'cron.completed' || e.type === 'cron_completed' ||
+                    e.type === 'cron.failed' || e.type === 'cron_failed'
+                ) &&
                 new Date(e.created_at).getTime() > triggeredTime
             );
             // If there's a running event but also a completed/failed, prefer the terminal state
-            const terminalFollowUp = followUp?.type === 'cron_running'
+            const terminalFollowUp = followUp?.type === 'cron.running' || followUp?.type === 'cron_running'
                 ? cronEvents.find(e =>
-                    (e.type === 'cron_completed' || e.type === 'cron_failed') &&
+                    (
+                        e.type === 'cron.completed' || e.type === 'cron_completed' ||
+                        e.type === 'cron.failed' || e.type === 'cron_failed'
+                    ) &&
                     new Date(e.created_at).getTime() > triggeredTime
                 ) || followUp
                 : followUp;
             return {
                 triggered,
                 followUp: terminalFollowUp,
-                resolvedStatus: terminalFollowUp?.type ?? 'cron_triggered',
+                resolvedStatus: terminalFollowUp?.type ?? 'cron.triggered',
                 resolvedMetadata: terminalFollowUp?.metadata ?? triggered.metadata,
             };
         })

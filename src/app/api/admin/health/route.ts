@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request?: Request) {
+    const safeRequest = request ?? new Request('http://localhost/api/admin/health');
+    const correlationId = getCorrelationIdFromRequest(safeRequest);
+    const withCorrelationIdResponse = <T extends Response>(response: T): T => withCorrelationId(response, correlationId);
+
     try {
         const { errorResponse } = await requireAdminForApi();
-        if (errorResponse) return errorResponse;
+        if (errorResponse) return withCorrelationIdResponse(errorResponse);
         const supabase = await createServerSupabase();
 
         // 1. Fetch Models Data
@@ -62,15 +67,24 @@ export async function GET() {
         if (recentEvents) {
             for (const e of recentEvents) {
                 const t = e.type;
-                if (t === 'user_rate_limit') {
+                if (t === 'rate_limit.user_exceeded' || t === 'user_rate_limit') {
                     eventsSummary.userRateLimits24h++;
-                } else if (t === 'db_error') {
+                } else if (t === 'db.error' || t === 'db_error') {
                     eventsSummary.dbErrors24h++;
                     eventsSummary.errors24h++;
-                } else if (t === 'model_429' || t === 'model_deprecated' || t === 'model_error' || t === 'model_verification_failed') {
+                } else if (
+                    t === 'ai.model_429' || t === 'model_429' ||
+                    t === 'ai.model_deprecated' || t === 'model_deprecated' ||
+                    t === 'ai.model_error' || t === 'model_error' ||
+                    t === 'ai.model_verification_failed' || t === 'model_verification_failed'
+                ) {
                     eventsSummary.modelErrors24h++;
                     eventsSummary.errors24h++;
-                } else if (t === 'cron_failed' || t === 'piston_error' || t === 'embedding_failed') {
+                } else if (
+                    t === 'cron.failed' || t === 'cron_failed' ||
+                    t === 'integration.piston_error' || t === 'piston_error' ||
+                    t === 'ai.embedding_failed' || t === 'embedding_failed'
+                ) {
                     eventsSummary.errors24h++;
                 }
             }
@@ -80,14 +94,16 @@ export async function GET() {
         const { data: latestCron } = await supabase
             .from('system_events')
             .select('type, created_at, metadata')
-            .in('type', ['cron_completed', 'cron_failed'])
+            .in('type', ['cron.completed', 'cron.failed', 'cron_completed', 'cron_failed'])
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
 
         const cronSummary = {
             lastRunAt: latestCron ? latestCron.created_at : null,
-            lastRunStatus: latestCron ? (latestCron.type === 'cron_completed' ? 'success' as const : 'failed' as const) : 'never' as const,
+            lastRunStatus: latestCron
+                ? (latestCron.type === 'cron.completed' || latestCron.type === 'cron_completed' ? 'success' as const : 'failed' as const)
+                : 'never' as const,
             lastRunDurationMs: latestCron ? (latestCron.metadata?.durationMs || null) : null
         };
 
@@ -122,7 +138,7 @@ export async function GET() {
         // condition: all models verified/healthy (no deps within 24, no degraded) AND cron ran success <26h AND <10 errors
         const isHealthy = alerts.length === 0;
 
-        return NextResponse.json({
+        return withCorrelationIdResponse(NextResponse.json({
             models: modelsSummary,
             events: eventsSummary,
             cron: cronSummary,
@@ -130,10 +146,10 @@ export async function GET() {
                 isHealthy,
                 alerts
             }
-        });
+        }));
 
     } catch (error) {
         console.error('[Admin Health API] Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return withCorrelationIdResponse(NextResponse.json({ error: 'Internal Server Error' }, { status: 500 }));
     }
 }

@@ -8,6 +8,7 @@ import { computeInsightsForUser } from '../src/lib/recommendations/insight-engin
 import { updateNarrativeIfDue } from '../src/lib/assessment/narrative-generator';
 import { getServiceClient } from '../src/lib/supabase/service';
 import { createCorrelationId } from '../src/lib/tracing/correlation';
+import { runObservabilityRetention } from './enforce-observability-retention';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -122,6 +123,10 @@ async function updateNarratives() {
     console.log(`[narratives] Done — ${generatedCount} generated, ${failed} failed / ${userIds.length} total`);
 }
 
+async function enforceObservabilityRetention() {
+    await runObservabilityRetention();
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 async function main() {
     // ── Watchdog: kill the process if the entire batch exceeds 60 minutes ──
@@ -197,6 +202,7 @@ async function main() {
         await step('insights-snapshot', updateInsightSnapshots);
         await step('kai-memory', updateAllKaiMemories);
         await step('narratives', updateNarratives);
+        await step('observability-retention', enforceObservabilityRetention);
 
         const duration = Date.now() - startTime;
         const batchEndedAt = new Date().toISOString();

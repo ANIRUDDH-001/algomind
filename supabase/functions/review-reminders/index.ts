@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
             const { error: eventError } = await supabase
                 .from('system_events')
                 .insert({
-                    type: 'review_reminder_queued',
+                    type: 'edge.review_reminders_queued',
                     user_id: userId,
                     metadata: {
                         dueCount,
@@ -131,6 +131,14 @@ Deno.serve(async (req: Request) => {
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        await supabase
+            .from('system_events')
+            .insert({
+                type: 'edge.review_reminders_failed',
+                metadata: {
+                    error: message,
+                },
+            });
         return new Response(JSON.stringify({ error: message }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },

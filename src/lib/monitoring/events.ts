@@ -206,6 +206,64 @@ export interface ValidationResult {
     correctedPayload?: StrictSystemEventPayload;
 }
 
+const NEVER_SAMPLE_TYPES = new Set<SystemEventType>([
+    'auth.admin_action',
+    'admin_action',
+    'cron.failed',
+    'cron_failed',
+    'db.error',
+    'db_error',
+    'batch.failed',
+    'edge.review_reminders_failed',
+]);
+
+const DEFAULT_SAMPLE_RATES: Record<EventSeverity, number> = {
+    [EventSeverity.FATAL]: 1,
+    [EventSeverity.ERROR]: 1,
+    [EventSeverity.WARN]: 0.5,
+    [EventSeverity.INFO]: 0.1,
+    [EventSeverity.DEBUG]: 0.01,
+};
+
+function stableSampleScore(input: string): number {
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i++) {
+        hash ^= input.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    }
+    return (hash >>> 0) / 4294967295;
+}
+
+function getSampleRateForSeverity(severity: EventSeverity): number {
+    if (process.env.NODE_ENV !== 'production') {
+        return 1;
+    }
+
+    const envOverride = process.env.OBS_SAMPLE_RATE;
+    if (envOverride) {
+        const parsed = Number(envOverride);
+        if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+            return parsed;
+        }
+    }
+
+    return DEFAULT_SAMPLE_RATES[severity] ?? 1;
+}
+
+function shouldSampleEvent(event: StrictSystemEventPayload): boolean {
+    if (NEVER_SAMPLE_TYPES.has(event.type)) {
+        return true;
+    }
+
+    const sampleRate = getSampleRateForSeverity(event.severity);
+    if (sampleRate >= 1) {
+        return true;
+    }
+
+    const sampleKey = `${event.correlation_id}:${event.type}:${event.source}`;
+    return stableSampleScore(sampleKey) <= sampleRate;
+}
+
 /**
  * Validates and normalizes an event payload to strict schema.
  * Returns validation result; caller must handle invalid payloads.
@@ -318,6 +376,10 @@ export async function logSystemEventStrict(event: StrictSystemEventPayload): Pro
         // Emit validation failure metric (fire-and-forget, never blocks)
         console.warn('[Monitoring] Event validation failed:', validation.error);
         // TODO: Emit telemetry.event_validation_failed event
+        return;
+    }
+
+    if (!shouldSampleEvent(event)) {
         return;
     }
 

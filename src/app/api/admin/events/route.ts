@@ -3,6 +3,7 @@ import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { ApiErrors } from '@/lib/api/error-response';
+import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +11,16 @@ const CACHE_TTL_SECONDS = 30;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 200;
 
-export async function GET(request: Request) {
+export async function GET(request?: Request) {
+    const safeRequest = request ?? new Request('http://localhost/api/admin/events');
+    const correlationId = getCorrelationIdFromRequest(safeRequest);
+    const withCorrelationIdResponse = <T extends Response>(response: T): T => withCorrelationId(response, correlationId);
+
     try {
         const { errorResponse } = await requireAdminForApi();
-        if (errorResponse) return errorResponse;
+        if (errorResponse) return withCorrelationIdResponse(errorResponse);
 
-        const { searchParams } = new URL(request.url);
+        const { searchParams } = new URL(safeRequest.url);
         const type = searchParams.get('type');
         const days = parseInt(searchParams.get('days') || '7', 10);
         const limitStr = searchParams.get('limit') || String(DEFAULT_LIMIT);
@@ -38,12 +43,12 @@ export async function GET(request: Request) {
 
             if (cachedEvents) {
                 const parsed = JSON.parse(cachedEvents);
-                return NextResponse.json({
+                return withCorrelationIdResponse(NextResponse.json({
                     events: parsed.events,
                     analytics: parsed.analytics,
                     systemStats: cachedStats ? JSON.parse(cachedStats) : null,
                     totalCount: parsed.totalCount,
-                });
+                }));
             }
         }
 
@@ -135,15 +140,15 @@ export async function GET(request: Request) {
             redisSet(statsCacheKey, JSON.stringify(systemStats), CACHE_TTL_SECONDS).catch(() => { });
         }
 
-        return NextResponse.json({
+        return withCorrelationIdResponse(NextResponse.json({
             events: includeMetadata ? events : strippedEvents,
             analytics,
             systemStats,
             totalCount: count
-        });
+        }));
 
     } catch (error) {
         console.error('[Admin Events API] Error:', error);
-        return ApiErrors.serverError('Internal Server Error');
+        return withCorrelationIdResponse(ApiErrors.serverError('Internal Server Error'));
     }
 }

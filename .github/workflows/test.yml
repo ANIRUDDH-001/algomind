@@ -25,6 +25,16 @@ jobs:
           REDIS_TEST_TOKEN: ${{ secrets.REDIS_TEST_TOKEN }}
         run: npx vitest run src/__tests__/integration
 
+      - name: Run Phase 6 observability contracts
+        run: |
+          npx vitest run src/lib/monitoring/__tests__/event-taxonomy.contract.test.ts
+          npx vitest run src/__tests__/contracts/correlation-propagation.contract.test.ts
+          npx vitest run src/app/api/admin/__tests__/health-aggregation.contract.test.ts
+          npx vitest run src/app/owner/tabs/__tests__/analytics-schema.contract.test.tsx
+
+      - name: Run observability simulation check
+        run: npx tsx scripts/simulate-observability-check.ts
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
