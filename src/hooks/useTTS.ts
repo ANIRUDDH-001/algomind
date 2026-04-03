@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSEngine, type TTSProvider } from '@/lib/voice/tts-engine';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
+import { getVoiceRuntimeFlags } from '@/lib/api/adapters/voice-adapter';
 
 export interface UseTTSOptions {
     onSpeakStart?: () => void;
@@ -31,17 +32,14 @@ export function useTTS(opts: UseTTSOptions = {}) {
     // 1. Detect Polly flag on mount + listen for runtime changes (TTS-4 fix)
     useEffect(() => {
         const fetchPollyFlag = () => {
-            fetch('/api/flags', { signal: AbortSignal.timeout(3000) })
-                .then(r => r.ok ? r.json() : {})
-                .then((f: any) => {
-                    const globalPollyOn = f['ENABLE_AWS_POLLY_TTS']?.value === true;
+            getVoiceRuntimeFlags({ pollyEnabled: false, whisperEnabled: true })
+                .then(runtime => {
                     const userPref = optsRef.current.userTtsProvider ?? 'auto';
-
                     if (userPref === 'browser') {
                         setPollyEnabled(false);
-                    } else {
-                        setPollyEnabled(globalPollyOn);
+                        return;
                     }
+                    setPollyEnabled(runtime.pollyEnabled);
                 })
                 .catch(() => setPollyEnabled(false));
         };

@@ -6,6 +6,7 @@ import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import type { MicIntent } from './useInterview';
 import { InterruptionManager, InterruptionDecision } from '@/lib/voice/interruption-manager';
 import type { TTSProvider } from '@/lib/voice/tts-engine';
+import { getVoiceRuntimeFlags } from '@/lib/api/adapters/voice-adapter';
 
 export interface UseInterviewVoiceOptions {
     sttProvider?: 'whisper' | 'browser';
@@ -91,7 +92,32 @@ export function useInterviewVoice({
 
     const isMicEnabled = micIntent === 'user-on' || micIntent === 'auto-on';
 
-    const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT', true);
+    const whisperEnabledFromHook = useGlobalFeatureFlag('ENABLE_WHISPER_STT', true);
+    const [whisperEnabled, setWhisperEnabled] = useState(whisperEnabledFromHook);
+
+    useEffect(() => {
+        // Compatibility mode: local hook value remains baseline while adapter path rolls out.
+        setWhisperEnabled(whisperEnabledFromHook);
+    }, [whisperEnabledFromHook]);
+
+    useEffect(() => {
+        let cancelled = false;
+        getVoiceRuntimeFlags({
+            pollyEnabled: false,
+            whisperEnabled: whisperEnabledFromHook,
+        })
+            .then(flags => {
+                if (!cancelled) {
+                    setWhisperEnabled(flags.whisperEnabled);
+                }
+            })
+            .catch(() => {
+                // Keep compatibility fallback on adapter/read failure.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [whisperEnabledFromHook]);
 
     const provider: 'whisper' | 'browser' = (
         whisperEnabled &&
