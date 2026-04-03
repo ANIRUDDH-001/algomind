@@ -54,8 +54,7 @@ test.describe('Learn Mode', () => {
 
     // Verify /learn is reachable (session valid server-side).
     // Also skip if redirected to diagnostic (diagnostic not yet completed).
-    await page.goto('/learn');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/learn', { waitUntil: 'load' });
     const url = page.url();
     if (url.includes('/login') || url.includes('/diagnostic')) { test.skip(); return; }
   });

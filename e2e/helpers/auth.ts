@@ -13,8 +13,7 @@ import { Page } from '@playwright/test';
  *   });
  */
 export async function signIn(page: Page): Promise<boolean> {
-  await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.goto('/dashboard', { waitUntil: 'load' });
 
   // If the server redirected us to /login, the session is not valid.
   if (page.url().includes('/login')) return false;
