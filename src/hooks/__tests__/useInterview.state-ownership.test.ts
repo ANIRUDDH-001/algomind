@@ -115,9 +115,10 @@ describe('useInterview state ownership contract', () => {
   });
 
   it('coalesces concurrent submit attempts into a single in-flight request', async () => {
-    let resolveSpeak!: (value: boolean) => void;
     speakAndWaitMock.mockImplementationOnce(
-      () => new Promise<boolean>((resolve) => { resolveSpeak = resolve; })
+      () => new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(true), 50);
+      })
     );
 
     const { result } = renderHook(() => useInterview({ config: baseConfig }));
@@ -133,8 +134,6 @@ describe('useInterview state ownership contract', () => {
     await Promise.resolve();
     expect((globalThis.fetch as any)).toHaveBeenCalledTimes(1);
 
-    resolveSpeak(true);
-    await firstSubmit;
-    await secondSubmit;
+    await Promise.all([firstSubmit, secondSubmit]);
   });
 });
