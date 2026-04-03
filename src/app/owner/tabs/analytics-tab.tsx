@@ -27,7 +27,7 @@ interface SystemEvent {
 
 interface AnalyticsRow {
     event_date: string;
-    event_type: string;
+    type: string;
     count: number;
 }
 
@@ -153,7 +153,7 @@ export function AnalyticsTab() {
             dayData = { name: dateString };
             acc.push(dayData);
         }
-        dayData[curr.event_type] = curr.count;
+        dayData[curr.type] = curr.count;
         return acc;
     }, [] as any[]).sort((a: any, b: any) => new Date(a.name).getTime() - new Date(b.name).getTime());
 
@@ -177,7 +177,7 @@ export function AnalyticsTab() {
     };
 
     // Collect all unique event types from the chart data to build Bars
-    const chartKeys = Array.from(new Set((Array.isArray(analytics) ? analytics : []).map(a => a.event_type)));
+    const chartKeys = Array.from(new Set((Array.isArray(analytics) ? analytics : []).map(a => a.type)));
 
     // Panel 2: Model Rate Limits (last 24h)
     const rateLimitedModels = (Array.isArray(models) ? models : [])

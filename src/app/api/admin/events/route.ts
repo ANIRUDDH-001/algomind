@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redisGet, redisSet } from '@/lib/upstash/client';
+import { ApiErrors } from '@/lib/api/error-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
         }
 
         // 3. Build time-series analytics from raw events for the chart
-        interface AnalyticsRow { event_date: string; event_type: string; count: number; }
+        interface AnalyticsRow { event_date: string; type: string; count: number; }
         const aggMap = new Map<string, AnalyticsRow>();
 
         if (Array.isArray(events) && events.length > 0) {
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
                 if (existing) {
                     existing.count++;
                 } else {
-                    aggMap.set(key, { event_date: eventDate, event_type: evt.type as string, count: 1 });
+                    aggMap.set(key, { event_date: eventDate, type: evt.type as string, count: 1 });
                 }
             }
         }
@@ -143,6 +144,6 @@ export async function GET(request: Request) {
 
     } catch (error) {
         console.error('[Admin Events API] Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return ApiErrors.serverError('Internal Server Error');
     }
 }

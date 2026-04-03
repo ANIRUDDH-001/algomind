@@ -66,7 +66,7 @@ export function OverviewTab({ stats, recentEvents }: OwnerDashboardProps) {
                                     {format(new Date(event.created_at), 'MMM d, HH:mm:ss')}
                                 </span>
                                 <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 shrink-0">
-                                    {event.event_type}
+                                    {event.type}
                                 </span>
                                 <span className="text-sm text-zinc-300 truncate">
                                     {event.account_email || event.account_id || 'System'}

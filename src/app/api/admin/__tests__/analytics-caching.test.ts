@@ -86,7 +86,7 @@ describe('Admin Analytics Caching (/api/admin/events)', () => {
     it('2. Second request within TTL returns cached result (DB not queried)', async () => {
         const cached = JSON.stringify({
             events: fakeEvents.map(({ metadata, ...rest }) => rest),
-            analytics: [{ event_date: '2026-02-20', event_type: 'login', count: 2 }],
+            analytics: [{ event_date: '2026-02-20', type: 'login', count: 2 }],
             totalCount: 3,
         });
         vi.mocked(redisGet).mockImplementation(async (key: string) => {
