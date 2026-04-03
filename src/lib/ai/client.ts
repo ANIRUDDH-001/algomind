@@ -10,7 +10,13 @@ import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
 import { getActiveModels } from './model-registry';
-import { getModelsForUseCase, isCrossTierFallbackEnabled, resolveToModelConfig } from './model-routing';
+import {
+    buildRoutingStagePlan,
+    getEmergencyFallbackModels,
+    getModelsForUseCase,
+    isCrossTierFallbackEnabled,
+    resolveToModelConfig,
+} from './model-routing';
 import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
 import { checkTokenBudget, recordTokenUsage } from './cost-guard';
@@ -104,6 +110,47 @@ export class UnifiedAIClient {
             (options.category === 'intelligence' || options.category === 'analysis')
                 ? 'analysis' : 'chat';
 
+        // Compatibility path: explicit provider overrides keep legacy semantics.
+        // Deterministic stage routing is used when provider is not explicitly forced.
+        if (options.preferredProvider) {
+            let forcedProvider = options.preferredProvider;
+            if (forcedProvider === 'local') {
+                forcedProvider = 'groq';
+            }
+
+            const models = await getActiveModels();
+            const primaryResult = await this.tryProvider(
+                forcedProvider,
+                messages,
+                { ...options, correlationId },
+                attemptedModels,
+                models
+            );
+            if (primaryResult.success) {
+                return primaryResult;
+            }
+
+            if (forcedProvider === 'gemini') {
+                console.warn('[UnifiedAIClient] Gemini failed, falling back to Groq');
+                const fallbackResult = await this.tryProvider(
+                    'groq',
+                    messages,
+                    { ...options, correlationId },
+                    attemptedModels,
+                    models
+                );
+                if (fallbackResult.success) {
+                    return fallbackResult;
+                }
+            }
+
+            return {
+                success: false,
+                error: 'All allowed models failed.',
+                attemptedModels,
+            };
+        }
+
         void logSystemEvent({
             type: 'llm_request',
             correlationId,
@@ -170,18 +217,39 @@ export class UnifiedAIClient {
         }
 
         // ── FALLBACK: DB-routed free providers (Groq/Gemini) ────────────
-        // Get ordered models from DB (model_routing table, cached 60s)
-        const routedModels = await getModelsForUseCase(useCase);
+        const crossTierFallbackEnabled = await isCrossTierFallbackEnabled();
+        const routingStages = buildRoutingStagePlan(useCase, crossTierFallbackEnabled);
+        const allActiveModels = await getActiveModels();
 
-        if (routedModels.length > 0) {
-            // DB-driven routing: iterate by priority, check rate limits
-            const allActiveModels = await getActiveModels();
-            for (const routed of routedModels) {
+        for (const routingStage of routingStages) {
+            const stageModels = routingStage.stage === 'emergency'
+                ? getEmergencyFallbackModels(routingStage.useCase)
+                : await getModelsForUseCase(routingStage.useCase);
+
+            if (stageModels.length === 0) {
+                continue;
+            }
+
+            if (routingStage.stage === 'secondary') {
+                console.warn(
+                    `[UnifiedAIClient] Primary ${useCase} routing exhausted, entering deterministic secondary stage (${routingStage.useCase}).`
+                );
+            }
+
+            if (routingStage.stage === 'emergency') {
+                console.warn(
+                    `[UnifiedAIClient] Entering emergency fallback stage for ${routingStage.useCase}.`
+                );
+            }
+
+            for (const routed of stageModels) {
+                if (attemptedModels.includes(routed.modelId)) continue;
+
                 const modelConfig = resolveToModelConfig(routed);
-
-                // Check rate limiter
                 const rateLimit = await this.rateLimiter.canUseModel(
-                    modelConfig.id, allActiveModels, options.estimatedTokens
+                    modelConfig.id,
+                    allActiveModels,
+                    options.estimatedTokens
                 );
                 if (!rateLimit.allowed) continue;
 
@@ -202,67 +270,10 @@ export class UnifiedAIClient {
                         response: result.response,
                         attemptedModels,
                     };
-                } else {
-                    this.rateLimiter.recordError(modelConfig.id, result.error);
-                    console.warn(`[UnifiedAIClient] Model ${modelConfig.id} failed: ${result.error}`);
                 }
-            }
 
-            // Cross-tier fallback: try the other use-case's models
-            if (await isCrossTierFallbackEnabled()) {
-                const fallbackUseCase = useCase === 'chat' ? 'analysis' : 'chat';
-                const fallbackModels = await getModelsForUseCase(fallbackUseCase);
-                console.warn(`[UnifiedAIClient] All ${useCase} models failed, trying ${fallbackUseCase} models...`);
-
-                for (const routed of fallbackModels) {
-                    if (attemptedModels.includes(routed.modelId)) continue; // Skip already tried
-                    const modelConfig = resolveToModelConfig(routed);
-
-                    const rateLimit = await this.rateLimiter.canUseModel(
-                        modelConfig.id, allActiveModels, options.estimatedTokens
-                    );
-                    if (!rateLimit.allowed) continue;
-
-                    const maxTokens = routed.maxTokensOverride ?? options.maxTokens;
-                    const result = await this.callModel(modelConfig, messages, { ...options, maxTokens, correlationId });
-                    attemptedModels.push(modelConfig.id);
-
-                    if (result.success) {
-                        const tokensUsed = Math.ceil((result.response?.length || 0) / 4);
-                        this.rateLimiter.recordRequest(modelConfig.id, tokensUsed);
-                        if (options.userId && options.sessionId && tokensUsed > 0) {
-                            void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
-                        }
-                        return {
-                            success: true,
-                            modelUsed: modelConfig.id,
-                            provider: modelConfig.provider,
-                            response: result.response,
-                            attemptedModels,
-                        };
-                    } else {
-                        this.rateLimiter.recordError(modelConfig.id, result.error);
-                    }
-                }
-            }
-        } else {
-            // Legacy fallback: no DB routing available, use provider-based routing
-            const { preferredProvider = 'groq' } = options;
-            let primaryProvider = preferredProvider;
-            if (primaryProvider === 'local') primaryProvider = 'groq';
-
-            const models = await getActiveModels();
-            const primaryResult = await this.tryProvider(
-                primaryProvider, messages, { ...options, correlationId }, attemptedModels, models
-            );
-            if (primaryResult.success) return primaryResult;
-
-            if (primaryProvider === 'gemini') {
-                console.warn('[UnifiedAIClient] Gemini failed, falling back to Groq');
-                const fallbackResult = await this.tryProvider(
-                    'groq', messages, { ...options, correlationId }, attemptedModels, models
-                );
-                if (fallbackResult.success) return fallbackResult;
+                this.rateLimiter.recordError(modelConfig.id, result.error);
+                console.warn(`[UnifiedAIClient] Model ${modelConfig.id} failed: ${result.error}`);
             }
         }
 

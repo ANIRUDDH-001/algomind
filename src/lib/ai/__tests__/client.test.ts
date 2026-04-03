@@ -35,9 +35,28 @@ vi.mock('@/lib/monitoring/events', () => ({
 
 // Mock model-routing to skip DB-driven routing in tests (fallback to legacy)
 vi.mock('../model-routing', () => ({
+    buildRoutingStagePlan: vi.fn().mockReturnValue([{ stage: 'emergency', useCase: 'chat' }]),
+    getEmergencyFallbackModels: vi.fn().mockReturnValue([
+        {
+            modelId: 'llama-3.1-8b-instant',
+            provider: 'groq',
+            priority: 10,
+            maxTokensOverride: null,
+        },
+    ]),
     getModelsForUseCase: vi.fn().mockResolvedValue([]),
     isCrossTierFallbackEnabled: vi.fn().mockResolvedValue(false),
-    resolveToModelConfig: vi.fn(),
+    resolveToModelConfig: vi.fn((routed) => ({
+        id: routed.modelId,
+        provider: routed.provider,
+        tier: routed.priority,
+        rpm: 30,
+        tpm: 5000,
+        rpd: 1000,
+        contextWindow: 128000,
+        supportsEmbeddings: false,
+        description: `${routed.provider} model`,
+    })),
 }));
 
 // ── Shared mock objects ───────────────────────────────────────────────────────

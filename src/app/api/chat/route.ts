@@ -13,6 +13,7 @@ import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
+import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
@@ -207,7 +208,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        let enhancedSystemPrompt = baseSystemPrompt;
+        let enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${baseSystemPrompt}`;
     const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
 
         const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;

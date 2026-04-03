@@ -45,6 +45,20 @@ export {
     generateInterviewOpeningTrigger,
 };
 
+export const PROMPT_REGISTRY_VERSION = 'phase3.v1';
+
+export const PROMPT_VERSION_TAGS = {
+    interviewChat: 'interview-chat.v1',
+    assessmentChat: 'assessment-chat.v1',
+    interviewerSystem: 'interviewer-system.v1',
+} as const;
+
+export type PromptVersionTag = (typeof PROMPT_VERSION_TAGS)[keyof typeof PROMPT_VERSION_TAGS];
+
+export function buildPromptVersionHeader(tag: PromptVersionTag): string {
+    return `<prompt_version registry="${PROMPT_REGISTRY_VERSION}" tag="${tag}" />`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────

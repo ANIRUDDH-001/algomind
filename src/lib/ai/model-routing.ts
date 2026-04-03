@@ -18,6 +18,13 @@ export interface RoutedModel {
     maxTokensOverride: number | null;
 }
 
+export type RoutingStage = 'primary' | 'secondary' | 'emergency';
+
+export interface RoutingStagePlan {
+    stage: RoutingStage;
+    useCase: 'chat' | 'analysis';
+}
+
 /**
  * Get ordered models for a use case from DB (cached in Redis, 60s TTL).
  * Returns RoutedModel[] sorted by priority ASC (lowest = highest priority).
@@ -48,7 +55,8 @@ export async function getModelsForUseCase(useCase: 'chat' | 'analysis'): Promise
             .select('model_id, provider, priority, max_tokens_override')
             .eq('use_case', useCase)
             .eq('is_active', true)
-            .order('priority', { ascending: true });
+            .order('priority', { ascending: true })
+            .order('model_id', { ascending: true });
 
         if (error) throw error;
 
@@ -70,6 +78,22 @@ export async function getModelsForUseCase(useCase: 'chat' | 'analysis'): Promise
 
     // 3. Emergency fallback: derive from static CHAT_MODELS
     return getEmergencyFallback(useCase);
+}
+
+/**
+ * Deterministic routing matrix by endpoint class (useCase):
+ * primary -> secondary (cross-tier) -> emergency.
+ */
+export function buildRoutingStagePlan(
+    useCase: 'chat' | 'analysis',
+    crossTierFallbackEnabled: boolean
+): RoutingStagePlan[] {
+    const secondaryUseCase = useCase === 'chat' ? 'analysis' : 'chat';
+    return [
+        { stage: 'primary', useCase },
+        ...(crossTierFallbackEnabled ? [{ stage: 'secondary' as const, useCase: secondaryUseCase }] : []),
+        { stage: 'emergency', useCase },
+    ];
 }
 
 /**
@@ -147,6 +171,10 @@ function getEmergencyFallback(useCase: 'chat' | 'analysis'): RoutedModel[] {
             maxTokensOverride: null,
         }));
     return [...groqModels, ...geminiModels];
+}
+
+export function getEmergencyFallbackModels(useCase: 'chat' | 'analysis'): RoutedModel[] {
+    return getEmergencyFallback(useCase);
 }
 
 /**

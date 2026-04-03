@@ -8,6 +8,7 @@ import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { detectSpokenLanguage } from '@/lib/voice/language-detector';
+import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
 
@@ -204,7 +205,7 @@ export async function POST(req: NextRequest) {
 
         const client = getAIClient();
 
-        let enhancedSystemPrompt = '';
+        let enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.assessmentChat)}\n`;
 
         // Add minimal instructions prioritizing standard assessment style
         enhancedSystemPrompt += '\n\n## CANDIDATE INTERVIEW GUIDELINES\nYou are conducting a technical interview. Keep your answers concise, ask probing questions about space/time complexity, and do not write the code for the candidate.';
