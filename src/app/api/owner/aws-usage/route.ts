@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +9,8 @@ export const dynamic = 'force-dynamic';
  * Query params: ?days=30 (default 30)
  */
 export async function GET(request: NextRequest) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     const days = parseInt(request.nextUrl.searchParams.get('days') || '30', 10);
 

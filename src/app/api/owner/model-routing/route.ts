@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
-import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export const dynamic = 'force-dynamic';
 
 /** GET — return all routing entries grouped by use_case */
 export async function GET() {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     try {
         const svc = getServiceClient();
@@ -41,12 +36,8 @@ export async function GET() {
 
 /** POST — add a new routing entry */
 export async function POST(req: NextRequest) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     try {
         const body = await req.json();
@@ -92,12 +83,8 @@ export async function POST(req: NextRequest) {
 
 /** PATCH — update priorities (batch) or toggle active */
 export async function PATCH(req: NextRequest) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     try {
         const body = await req.json();
@@ -157,12 +144,8 @@ export async function PATCH(req: NextRequest) {
 
 /** DELETE — remove a routing entry */
 export async function DELETE(req: NextRequest) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     try {
         const { id } = await req.json();

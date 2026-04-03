@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
-import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function POST(req: NextRequest) {
-    const authResult = await requireAdminForApi();
+    const authResult = await requireOwnerForApi();
     if (authResult.errorResponse) return authResult.errorResponse;
 
     let submissionId: string;
@@ -19,6 +20,16 @@ export async function POST(req: NextRequest) {
     }
 
     const supabaseAdmin = getServiceClient();
+
+    void logSystemEvent({
+        type: 'admin_action',
+        userId: authResult.user.id,
+        metadata: {
+            route: 'owner/retry-assessment',
+            action: 'retry_assessment',
+            submissionId,
+        },
+    });
 
     // Fetch question states for re-analysis
     const { data: submission } = await supabaseAdmin

@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
-import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';
 import { setGlobalFeatureFlag } from '@/lib/feature-flags-server';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export async function PATCH(req: NextRequest) {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const isOwner = await isOwnerOrCoOwner(user.id);
-    if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const { user, errorResponse } = await requireOwnerForApi();
+    if (errorResponse) return errorResponse;
 
     try {
         const { key, isEnabled } = await req.json();
