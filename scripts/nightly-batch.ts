@@ -149,14 +149,36 @@ async function main() {
         });
 
         const step = async (name: string, fn: () => Promise<void>) => {
+            const stepStart = Date.now();
             try {
                 console.log(`[${name}] Starting...`);
+                await logSystemEvent({
+                    type: 'cron_running',
+                    metadata: { step: name, phase: 'start' }
+                });
                 await fn();
                 results[name] = 'ok';
                 console.log(`[${name}] ✅ Done`);
+                await logSystemEvent({
+                    type: 'batch_job_complete',
+                    metadata: {
+                        step: name,
+                        status: 'success',
+                        duration_ms: Date.now() - stepStart,
+                    }
+                });
             } catch (err) {
                 results[name] = 'error';
                 console.error(`[${name}] ❌ Failed:`, err);
+                await logSystemEvent({
+                    type: 'cron_failed',
+                    errorMessage: err instanceof Error ? err.message : String(err),
+                    metadata: {
+                        step: name,
+                        status: 'failure',
+                        duration_ms: Date.now() - stepStart,
+                    }
+                });
                 // Don't rethrow — continue to next step
             }
         };

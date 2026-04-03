@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
-import { getRedis } from '@/lib/upstash/client';
+import { getCircuitState, getRedis } from '@/lib/upstash/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,9 @@ export const dynamic = 'force-dynamic';
 interface HealthResult {
     status: 'healthy' | 'degraded' | 'unhealthy';
     db: 'ok' | 'down';
-    redis: 'ok' | 'unconfigured' | 'down';
+    redis: 'ok' | 'unconfigured' | 'down' | 'circuit_open';
+    circuit_state: 'closed' | 'open' | 'half-open';
+    circuit_errors: number;
     stuck_analyses: number;
     memory_mb: number;
     uptime_s: number;
@@ -17,6 +19,11 @@ interface HealthResult {
 
 export async function GET() {
     try {
+    const STALE_ANALYSIS_MS = 2 * 60 * 60 * 1000;
+    const DEGRADED_STUCK_THRESHOLD = 2;
+    const UNHEALTHY_STUCK_THRESHOLD = 5;
+    const circuit = getCircuitState();
+
     const [dbResult, redisResult, stuckResult] = await Promise.allSettled([
         getServiceClient()
             .from('global_feature_flags')
@@ -24,6 +31,7 @@ export async function GET() {
             .limit(1),
 
         (async () => {
+            if (circuit.state === 'open') return 'circuit_open';
             const redis = getRedis();
             if (!redis) return 'unconfigured';
             await redis.ping();
@@ -34,7 +42,7 @@ export async function GET() {
             .from('candidate_submissions')
             .select('id', { count: 'exact', head: true })
             .eq('analysis_status', 'pending')
-            .lt('completed_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()),
+            .lt('completed_at', new Date(Date.now() - STALE_ANALYSIS_MS).toISOString()),
     ]);
 
     const db: HealthResult['db'] =
@@ -53,14 +61,16 @@ export async function GET() {
             : -1;
 
     const status: HealthResult['status'] =
-        db === 'down' ? 'unhealthy'
-            : redis === 'down' ? 'degraded'
+        db === 'down' || stuck_analyses > UNHEALTHY_STUCK_THRESHOLD ? 'unhealthy'
+            : redis === 'down' || redis === 'circuit_open' || stuck_analyses > DEGRADED_STUCK_THRESHOLD ? 'degraded'
                 : 'healthy';
 
     const result: HealthResult = {
         status,
         db,
         redis,
+        circuit_state: circuit.state,
+        circuit_errors: circuit.consecutiveErrors,
         stuck_analyses,
         memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         uptime_s: Math.round(process.uptime()),

@@ -7,6 +7,8 @@ import type { ModelConfig } from '../providers';
 
 vi.mock('@/lib/upstash/client', () => ({
     getRedis: vi.fn(),
+    isCircuitOpen: vi.fn(() => false),
+    recordRedisAttempt: vi.fn(),
     redisGet: vi.fn(),
     redisSet: vi.fn(),
 }));
@@ -109,11 +111,11 @@ describe('IntelligentRateLimiter', () => {
             expect(result.reason).toBe('model_not_found');
         });
 
-        it('fails open (allowed=true) when Redis is unavailable', async () => {
+        it('fails closed when Redis is unavailable for critical AI limiter path', async () => {
             getRedis.mockReturnValue(null);
             const result = await limiter.canUseModel(model.id, allModels);
-            expect(result.allowed).toBe(true);
-            expect(result.model?.id).toBe(model.id);
+            expect(result.allowed).toBe(false);
+            expect(result.reason).toBe('limiter_unavailable');
         });
 
         it('returns allowed=true when all counters are zero (fresh state)', async () => {
@@ -171,12 +173,13 @@ describe('IntelligentRateLimiter', () => {
             expect(result.reason).toBe('cooldown');
         });
 
-        it('fails open when Redis throws an error', async () => {
+        it('fails closed when Redis throws an error', async () => {
             getRedis.mockReturnValue({
                 mget: vi.fn().mockRejectedValue(new Error('Redis connection refused')),
             });
             const result = await limiter.canUseModel(model.id, allModels);
-            expect(result.allowed).toBe(true);
+            expect(result.allowed).toBe(false);
+            expect(result.reason).toBe('limiter_error');
         });
 
         it('checks cooldown keys for all 5 tier levels', async () => {

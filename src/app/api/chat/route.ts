@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
         }
         const {
             messages,
+            systemPrompt,
             problemContext,
             guestMode,
             companyPersona,
@@ -109,7 +110,11 @@ export async function POST(req: NextRequest) {
             const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
                 ?? req.headers.get('x-real-ip')
                 ?? 'unknown';
-            const ipRateLimit = await checkIpRateLimit(ip, { maxRequests: 100, windowSeconds: 86400 });
+            const ipRateLimit = await checkIpRateLimit(ip, {
+                maxRequests: 100,
+                windowSeconds: 86400,
+                endpoint: 'chat',
+            });
             if (!ipRateLimit.success) {
                 return withCorrelationIdResponse(ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.'));
             }
@@ -217,6 +222,9 @@ export async function POST(req: NextRequest) {
         }
 
         let enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${baseSystemPrompt}`;
+        if (typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) {
+            enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${systemPrompt.trim()}`;
+        }
     const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
 
         const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
@@ -266,7 +274,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Only inject server RAG if it differs from what the client already sent
-        if (ragContext && ragContext !== problemContext?.ragContext) {
+        if (ragContext) {
             enhancedSystemPrompt += `\n\n<server_rag_context>\n${ragContext}\n</server_rag_context>`;
         }
 

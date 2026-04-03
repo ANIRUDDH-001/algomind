@@ -6,11 +6,38 @@ import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
+import { getCircuitState } from '@/lib/upstash/client';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 validateEnv();
 
 // Reduced from 60 — now just JWT verify + DB writes before firing edge function
 export const maxDuration = 20;
+
+const INVOKE_MAX_ATTEMPTS = 4;
+const INVOKE_BACKOFF_MS = [100, 500, 2000];
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function checkDependenciesHealthy(submissionId: string) {
+    const supabaseAdmin = getServiceClient();
+
+    const { error: dbError } = await supabaseAdmin
+        .from('candidate_submissions')
+        .select('id')
+        .eq('id', submissionId)
+        .single();
+
+    const circuit = getCircuitState();
+
+    return {
+        dbOk: !dbError,
+        redisOk: circuit.state !== 'open',
+        circuitState: circuit.state,
+    };
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -111,6 +138,26 @@ export async function POST(req: NextRequest) {
             void invalidateStudentContext(updated.candidate_id);
         }
 
+        const dependencyHealth = await checkDependenciesHealthy(submissionId);
+        if (!dependencyHealth.dbOk || !dependencyHealth.redisOk) {
+            void logSystemEvent({
+                type: 'route_error',
+                errorMessage: 'Assessment async queue denied due to unhealthy dependencies',
+                metadata: {
+                    route: 'assess_complete',
+                    submissionId,
+                    dbOk: dependencyHealth.dbOk,
+                    redisOk: dependencyHealth.redisOk,
+                    circuitState: dependencyHealth.circuitState,
+                },
+            });
+
+            return NextResponse.json({
+                success: false,
+                error: 'Analysis service temporarily unavailable. Please retry in a moment.',
+            }, { status: 503 });
+        }
+
         // 4. Kick off async analysis (fire and forget — edge function handles its own errors)
         const edgeFunctionSecret = process.env.INTERNAL_API_SECRET;
         if (!edgeFunctionSecret) {
@@ -122,13 +169,59 @@ export async function POST(req: NextRequest) {
                 .update({ assess_async_trigger_at: new Date().toISOString() })
                 .eq('id', submissionId);
 
-            supabaseAdmin.functions.invoke('run-assessment', {
-                body: { submissionId, questionStates, integrityFlags, candidateId: submission.candidate_id ?? null },
-                headers: { Authorization: `Bearer ${edgeFunctionSecret}` },
-            }).catch(err => {
-                console.error('[Assess Complete] Edge function invoke failed (non-fatal):', err);
-                // Analysis will stay as 'pending' — employer can trigger retry from owner panel
-            });
+            void (async () => {
+                let lastInvokeError: unknown = null;
+
+                for (let attempt = 1; attempt <= INVOKE_MAX_ATTEMPTS; attempt++) {
+                    try {
+                        await supabaseAdmin.functions.invoke('run-assessment', {
+                            body: {
+                                submissionId,
+                                questionStates,
+                                integrityFlags,
+                                candidateId: submission.candidate_id ?? null,
+                                retryConfig: {
+                                    maxAttempts: INVOKE_MAX_ATTEMPTS,
+                                    backoffMs: INVOKE_BACKOFF_MS,
+                                },
+                            },
+                            headers: { Authorization: `Bearer ${edgeFunctionSecret}` },
+                        });
+
+                        return;
+                    } catch (err) {
+                        lastInvokeError = err;
+                        const waitMs = INVOKE_BACKOFF_MS[attempt - 1] ?? 0;
+                        if (waitMs > 0) {
+                            await sleep(waitMs);
+                        }
+                    }
+                }
+
+                const errMsg = lastInvokeError instanceof Error
+                    ? lastInvokeError.message
+                    : String(lastInvokeError);
+
+                await supabaseAdmin
+                    .from('candidate_submissions')
+                    .update({
+                        analysis_status: 'failed',
+                        analysis_error: `analysis_invoke_failed_after_retries: ${errMsg}`.slice(0, 500),
+                    })
+                    .eq('id', submissionId)
+                    .eq('analysis_status', 'pending');
+
+                void logSystemEvent({
+                    type: 'route_error',
+                    errorMessage: 'run-assessment invoke failed after retries',
+                    metadata: {
+                        route: 'assess_complete',
+                        submissionId,
+                        attempts: INVOKE_MAX_ATTEMPTS,
+                        error: errMsg,
+                    },
+                });
+            })();
         }
 
         // 5. Return immediately — candidate doesn't wait for analysis

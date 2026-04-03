@@ -66,6 +66,10 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
         return;
     }
 
+    if (!supabaseAdmin || typeof (supabaseAdmin as { from?: unknown }).from !== 'function') {
+        return;
+    }
+
     const correlationId = event.correlation_id ?? event.correlationId ?? await getCorrelationId();
     const sessionId = event.session_id ?? event.sessionId;
     const userId = event.user_id ?? event.userId;
@@ -90,11 +94,16 @@ export async function logSystemEvent(event: SystemEventPayload): Promise<void> {
     };
 
     // True fire-and-forget: catch any errors and silently discard them
-    Promise.resolve(
-        supabaseAdmin.from('system_events').insert([payload])
-    )
-        .then(() => { })
-        .catch(() => { });
+    try {
+        const eventsTable = supabaseAdmin.from('system_events') as unknown as { insert?: (rows: unknown[]) => Promise<unknown> };
+        if (typeof eventsTable.insert === 'function') {
+            Promise.resolve(eventsTable.insert([payload]))
+                .then(() => { })
+                .catch(() => { });
+        }
+    } catch {
+        // Keep telemetry fire-and-forget and never throw to callers.
+    }
 
     // BetterStack Logtail — fire-and-forget, never blocks
     const betterStackToken = process.env.BETTERSTACK_SOURCE_TOKEN;

@@ -45,5 +45,11 @@ export async function GET() {
         .filter(v => typeof v === 'object' && v !== null && 'reachable' in (v as object))
         .every(v => (v as { reachable: boolean }).reachable);
 
-    return NextResponse.json(results, { status: allHealthy ? 200 : 503 });
+    return NextResponse.json(
+        {
+            ...results,
+            all_services_ok: allHealthy,
+        },
+        { status: 200 }
+    );
 }

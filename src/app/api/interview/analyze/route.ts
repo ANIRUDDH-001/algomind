@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
             const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
                 ?? req.headers.get('x-real-ip')
                 ?? 'unknown';
-            const ipLimit = await checkIpRateLimit(ip, { maxRequests: 20, windowSeconds: 86400 });
+            const ipLimit = await checkIpRateLimit(ip, {
+                maxRequests: 20,
+                windowSeconds: 86400,
+                endpoint: 'interview_analysis',
+            });
             if (!ipLimit.success) {
                 return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
             }

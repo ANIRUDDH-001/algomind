@@ -1,9 +1,10 @@
 // Intelligent Rate Limiter using Upstash Redis for global shared state.
 // Tracks RPM, RPD, TPM with safety margins and exponential backoff
 import { ModelConfig } from './providers';
-import { getRedis, redisGet, redisSet } from '../upstash/client';
+import { getRedis, isCircuitOpen, recordRedisAttempt, redisGet, redisSet } from '../upstash/client';
 import { markModelDeprecated } from './model-registry';
 import { logSystemEvent } from '../monitoring/events';
+import { getFailureMode } from '../rate-limit/decision-layer';
 
 interface RateLimitResult {
     allowed: boolean;
@@ -36,10 +37,20 @@ export class IntelligentRateLimiter {
         const model = models.find((m) => m.id === modelId);
         if (!model) return { allowed: false, reason: 'model_not_found' };
 
+        const failureMode = getFailureMode('ai_model_selection');
+
         const redis = getRedis();
-        // If Redis is unavailable, fail open to maintain latency and availability
+        // AI model selection is critical and follows centralized fail policy.
+        if (isCircuitOpen()) {
+            return failureMode === 'fail-closed'
+                ? { allowed: false, reason: 'limiter_unavailable' }
+                : { allowed: true, model };
+        }
+
         if (!redis) {
-            return { allowed: true, model };
+            return failureMode === 'fail-closed'
+                ? { allowed: false, reason: 'limiter_unavailable' }
+                : { allowed: true, model };
         }
 
         try {
@@ -48,6 +59,7 @@ export class IntelligentRateLimiter {
             const cooldownKeys = this.COOLDOWN_TIERS.map((_, idx) => `rl:${modelId}:cooldown:${idx}`);
             if (cooldownKeys.length > 0) {
                 const cooldowns = await redis.mget(...cooldownKeys);
+                recordRedisAttempt(true);
                 const inCooldown = cooldowns.some((val) => val !== null && val !== undefined);
                 if (inCooldown) {
                     return { allowed: false, model, reason: 'cooldown' };
@@ -57,6 +69,7 @@ export class IntelligentRateLimiter {
             // b. Check rpm counter with atomic INCR
             const rpmKey = `rl:${modelId}:rpm`;
             const currentRpm = await redis.incr(rpmKey);
+            recordRedisAttempt(true);
             if (currentRpm === 1) await redis.expire(rpmKey, 65);
 
             if (currentRpm > model.rpm) {
@@ -67,6 +80,7 @@ export class IntelligentRateLimiter {
             // c. Check day counter
             const dayKey = `rl:${modelId}:day`;
             const currentDay = await redis.incr(dayKey);
+            recordRedisAttempt(true);
             if (currentDay === 1) await redis.expire(dayKey, 86400);
 
             if (currentDay > model.rpd) {
@@ -78,9 +92,11 @@ export class IntelligentRateLimiter {
             return { allowed: true, model };
 
         } catch (error) {
+            recordRedisAttempt(false, error);
             console.error(`Rate limiter check error for ${modelId}:`, error);
-            // d. Fail open on Redis connectivity or query errors
-            return { allowed: true, model };
+            return failureMode === 'fail-closed'
+                ? { allowed: false, reason: 'limiter_error' }
+                : { allowed: true, model };
         }
     }
 

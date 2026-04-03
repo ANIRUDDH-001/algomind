@@ -29,6 +29,10 @@ interface AnalysisRequest {
     }>;
     integrityFlags?: string[];
     candidateId?: string | null;
+    retryConfig?: {
+        maxAttempts?: number;
+        backoffMs?: number[];
+    };
 }
 
 function extractCandidateSecret(req: Request): string | null {
@@ -70,7 +74,7 @@ Deno.serve(async (req: Request) => {
         return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
     }
 
-    const { submissionId, questionStates, integrityFlags, candidateId } = body;
+    const { submissionId, questionStates, integrityFlags, candidateId, retryConfig } = body;
 
     // Idempotency guard: if analysis already completed, return immediately
     const { data: currentStatus } = await supabase
@@ -130,6 +134,7 @@ Deno.serve(async (req: Request) => {
             const result = await runGeminiAnalysis({
                 problem,
                 transcript: normalizedTranscript,
+                retryConfig,
             });
 
             const weight = Math.max(qs.elapsed_secs ?? 1, 1);
@@ -240,6 +245,7 @@ Deno.serve(async (req: Request) => {
 // ── Minimal Gemini Analysis (no CognitiveAnalyzer class dependency) ──────────
 
 const GEMINI_MAX_RETRIES = 3;
+const GEMINI_DEFAULT_BACKOFF_MS = [100, 500, 2000];
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -249,10 +255,19 @@ function isRetryableGeminiStatus(status: number): boolean {
     return status === 408 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
-async function runGeminiAnalysis({ problem, transcript }: {
+async function runGeminiAnalysis({ problem, transcript, retryConfig }: {
     problem: { title: string; description: string; difficulty: string };
     transcript: Array<{ role: string; content: string }>;
+    retryConfig?: {
+        maxAttempts?: number;
+        backoffMs?: number[];
+    };
 }): Promise<GeminiResult> {
+    const maxAttempts = Math.max(1, Math.min(retryConfig?.maxAttempts ?? GEMINI_MAX_RETRIES, 4));
+    const backoffMs = Array.isArray(retryConfig?.backoffMs) && retryConfig.backoffMs.length > 0
+        ? retryConfig.backoffMs
+        : GEMINI_DEFAULT_BACKOFF_MS;
+
     const transcriptText = transcript
         .map(t => `${t.role === 'assistant' ? 'Interviewer' : 'Candidate'}: ${t.content}`)
         .join('\n');
@@ -282,7 +297,7 @@ Respond ONLY with valid JSON matching this schema exactly:
   }
 }`;
 
-    for (let attempt = 1; attempt <= GEMINI_MAX_RETRIES; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
             const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
                 ? AbortSignal.timeout(45000)
@@ -303,16 +318,16 @@ Respond ONLY with valid JSON matching this schema exactly:
 
             if (!resp.ok) {
                 const body = await resp.text();
-                const retryable = isRetryableGeminiStatus(resp.status) && attempt < GEMINI_MAX_RETRIES;
+                const retryable = isRetryableGeminiStatus(resp.status) && attempt < maxAttempts;
                 console.error(
-                    `[run-assessment] Gemini error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`,
+                    `[run-assessment] Gemini error (attempt ${attempt}/${maxAttempts}):`,
                     resp.status,
                     body
                 );
 
                 if (retryable) {
-                    const backoffMs = Math.min(8000, (2 ** (attempt - 1)) * 1000) + Math.floor(Math.random() * 300);
-                    await sleep(backoffMs);
+                    const wait = backoffMs[attempt - 1] ?? backoffMs[backoffMs.length - 1] ?? 2000;
+                    await sleep(wait);
                     continue;
                 }
 
@@ -323,15 +338,15 @@ Respond ONLY with valid JSON matching this schema exactly:
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
             return parseGeminiResultText(text);
         } catch (err) {
-            const shouldRetry = attempt < GEMINI_MAX_RETRIES;
+            const shouldRetry = attempt < maxAttempts;
             const message = err instanceof Error ? err.message : String(err);
-            console.error(`[run-assessment] Gemini parse/network error (attempt ${attempt}/${GEMINI_MAX_RETRIES}):`, message);
+            console.error(`[run-assessment] Gemini parse/network error (attempt ${attempt}/${maxAttempts}):`, message);
             if (!shouldRetry) {
                 throw new Error(message.startsWith('parse_failed:') || message.startsWith('schema_invalid:') ? message : `analysis_failed: ${message}`);
             }
 
-            const backoffMs = Math.min(8000, (2 ** (attempt - 1)) * 1000) + Math.floor(Math.random() * 300);
-            await sleep(backoffMs);
+            const wait = backoffMs[attempt - 1] ?? backoffMs[backoffMs.length - 1] ?? 2000;
+            await sleep(wait);
         }
     }
 

@@ -1,4 +1,5 @@
 import { getServiceClient } from '@/lib/supabase/service';
+import { getFailureMode } from './decision-layer';
 
 export async function checkIpRateLimit(
     ip: string,
@@ -9,15 +10,8 @@ export async function checkIpRateLimit(
         failureMode?: 'fail-open' | 'fail-closed';
     }
 ): Promise<{ success: boolean; allowed?: boolean; remaining?: number }> {
-    const defaultModeMap: Record<string, 'fail-open' | 'fail-closed'> = {
-        assess_start: 'fail-closed',
-        verify_code: 'fail-open',
-        flags: 'fail-open',
-        employer_export: 'fail-open',
-    };
-
     const failureMode = options.failureMode
-        ?? (options.endpoint ? defaultModeMap[options.endpoint] : undefined)
+        ?? getFailureMode(options.endpoint)
         ?? 'fail-open';
 
     try {

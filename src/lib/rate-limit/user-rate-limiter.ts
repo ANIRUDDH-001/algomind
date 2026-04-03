@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 import { redisGet, redisSet } from '@/lib/upstash/client';
+import { getFailureMode } from './decision-layer';
 
 const DAILY_LIMIT = 10; // Free tier: ~1 full interview per day
 
@@ -27,6 +28,8 @@ interface LocalUsage {
  * Admins are exempt from limits
  */
 export async function checkUserRateLimit(userId: string | null): Promise<RateLimitResult> {
+    const failureMode = getFailureMode('user_rate_limit');
+
     // HACKATHON MODE: disabled for production
     if (HACKATHON_UNLIMITED) {
         return { allowed: true, remaining: 9999, isAdmin: false };
@@ -84,8 +87,9 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
             if (error.code === 'PGRST202') {
                 console.error('🚨 [CRITICAL SECURITY] Missing RPC function "check_user_rate_limit". Blocking request to prevent silent bypass. PLEASE RUN MIGRATIONS!');
             }
-            // Fail CLOSED safely
-            return { allowed: false, remaining: 0, isAdmin: false, error: true };
+            return failureMode === 'fail-open'
+                ? { allowed: true, remaining: DAILY_LIMIT, isAdmin: false }
+                : { allowed: false, remaining: 0, isAdmin: false, error: true };
         }
 
         const result = data?.[0];
@@ -110,8 +114,9 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         };
     } catch (error: unknown) {
         console.error('❌ [Rate Limit] Unexpected error:', error);
-        // Fail CLOSED safely
-        return { allowed: false, remaining: 0, isAdmin: false, error: true };
+        return failureMode === 'fail-open'
+            ? { allowed: true, remaining: DAILY_LIMIT, isAdmin: false }
+            : { allowed: false, remaining: 0, isAdmin: false, error: true };
     }
 }
 
