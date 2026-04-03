@@ -1506,7 +1506,7 @@ export type Database = {
         Row: {
           annotations: Json
           created_at: string | null
-          expires_at: string | null
+          expires_at: string
           is_public: boolean
           public_token: string
           session_id: string
@@ -1517,7 +1517,7 @@ export type Database = {
         Insert: {
           annotations?: Json
           created_at?: string | null
-          expires_at?: string | null
+          expires_at?: string
           is_public?: boolean
           public_token?: string
           session_id: string
@@ -1528,7 +1528,7 @@ export type Database = {
         Update: {
           annotations?: Json
           created_at?: string | null
-          expires_at?: string | null
+          expires_at?: string
           is_public?: boolean
           public_token?: string
           session_id?: string

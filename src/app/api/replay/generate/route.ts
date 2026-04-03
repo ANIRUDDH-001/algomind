@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getAIClient } from '@/lib/ai/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
+import { apiError, ErrorCodes } from '@/lib/api/error-response';
 import crypto from 'crypto';
 
 interface ReplayGenerateRequest {
@@ -15,37 +16,94 @@ interface Annotation {
     type: 'good' | 'missed' | 'info';
 }
 
+const DEFAULT_REPLAY_TTL_DAYS = 30;
+
+function getReplayTtlDays(): number {
+    const raw = process.env.REPLAY_TOKEN_TTL_DAYS;
+    if (!raw) return DEFAULT_REPLAY_TTL_DAYS;
+
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return DEFAULT_REPLAY_TTL_DAYS;
+    }
+
+    // Product policy allows shorter TTL than default, but not longer public exposure windows.
+    return Math.min(parsed, DEFAULT_REPLAY_TTL_DAYS);
+}
+
+function getReplayExpiryIso(now = new Date()): string {
+    const expiresAt = new Date(now);
+    expiresAt.setUTCDate(expiresAt.getUTCDate() + getReplayTtlDays());
+    return expiresAt.toISOString();
+}
+
 export async function POST(req: NextRequest) {
     const correlationId = getCorrelationIdFromRequest(req);
     const jsonWithCorrelationId = (body: unknown, init?: ResponseInit) =>
         NextResponse.json(body, { ...init, headers: withCorrelationIdHeaders(init?.headers, correlationId) });
+    const errorWithCorrelationId = (status: number, code: (typeof ErrorCodes)[keyof typeof ErrorCodes], message: string, retryable?: boolean) =>
+        apiError(status, code, message, {
+            retryable,
+            headers: Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
+        });
 
     try {
         const supabase = await createServerSupabase();
         if (!supabase) {
-            return jsonWithCorrelationId({ error: 'Supabase client not initialized' }, { status: 500 });
+            return errorWithCorrelationId(500, ErrorCodes.INTERNAL_ERROR, 'Supabase client not initialized', true);
         }
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            return jsonWithCorrelationId({ error: 'Unauthorized' }, { status: 401 });
+            return errorWithCorrelationId(401, ErrorCodes.UNAUTHORIZED, 'Unauthorized');
         }
 
         const body = await req.json() as ReplayGenerateRequest;
         const { sessionId } = body;
 
         if (!sessionId) {
-            return jsonWithCorrelationId({ error: 'Missing sessionId' }, { status: 400 });
+            return errorWithCorrelationId(400, ErrorCodes.MISSING_FIELD, 'Missing sessionId');
         }
 
         // 1. Check if replay already exists
+        const nowIso = new Date().toISOString();
         const { data: existingReplay } = await supabase
             .from('session_replays')
-            .select('public_token')
+            .select('public_token, expires_at')
             .eq('session_id', sessionId)
             .maybeSingle();
 
         if (existingReplay) {
+            const isExpired = Boolean(existingReplay.expires_at && existingReplay.expires_at < nowIso);
+            if (!isExpired) {
+                return jsonWithCorrelationId({
+                    publicToken: existingReplay.public_token,
+                    replayUrl: `/replay/${existingReplay.public_token}`
+                });
+            }
+
+            // Expired replays are rotated to a fresh token and TTL.
+            const rotatedToken = crypto.randomUUID();
+            const rotatedExpiresAt = getReplayExpiryIso();
+            const { error: rotateError } = await supabase
+                .from('session_replays')
+                .update({
+                    public_token: rotatedToken,
+                    expires_at: rotatedExpiresAt,
+                    is_public: true,
+                })
+                .eq('session_id', sessionId)
+                .eq('user_id', user.id);
+
+            if (!rotateError) {
+                return jsonWithCorrelationId({
+                    publicToken: rotatedToken,
+                    replayUrl: `/replay/${rotatedToken}`,
+                    expiresAt: rotatedExpiresAt,
+                });
+            }
+
+            console.error('[API/Replay] Token rotation failed:', rotateError);
             return jsonWithCorrelationId({
                 publicToken: existingReplay.public_token,
                 replayUrl: `/replay/${existingReplay.public_token}`
@@ -61,11 +119,11 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
         if (sessionError || !session) {
-            return jsonWithCorrelationId({ error: 'Session not found or forbidden' }, { status: 403 });
+            return errorWithCorrelationId(403, ErrorCodes.FORBIDDEN, 'Session not found or forbidden');
         }
 
         if (!session.transcript || session.transcript.length === 0) {
-            return jsonWithCorrelationId({ error: 'No transcript available for this session' }, { status: 400 });
+            return errorWithCorrelationId(400, ErrorCodes.INVALID_INPUT, 'No transcript available for this session');
         }
 
         // 3. Generate annotations using AI
@@ -141,6 +199,7 @@ Be specific to THIS transcript. Max 8 annotations.`;
 
         // 4. Insert into session_replays (using service role to bypass insert RLS if needed, but owner can insert directly)
         const publicToken = crypto.randomUUID();
+        const expiresAt = getReplayExpiryIso();
         const { error: insertError } = await supabase
             .from('session_replays')
             .insert({
@@ -148,7 +207,8 @@ Be specific to THIS transcript. Max 8 annotations.`;
                 user_id: user.id,
                 public_token: publicToken,
                 annotations: annotations,
-                is_public: true
+                is_public: true,
+                expires_at: expiresAt,
             });
 
         if (insertError) {
@@ -159,7 +219,8 @@ Be specific to THIS transcript. Max 8 annotations.`;
         return jsonWithCorrelationId({
             publicToken,
             annotations,
-            replayUrl: `/replay/${publicToken}`
+            replayUrl: `/replay/${publicToken}`,
+            expiresAt,
         });
 
     } catch (error) {
@@ -169,6 +230,6 @@ Be specific to THIS transcript. Max 8 annotations.`;
             correlationId,
             metadata: { context: 'api_replay_generate_catch', error: String(error) }
         });
-        return jsonWithCorrelationId({ error: 'Internal server error while generating replay' }, { status: 500 });
+        return errorWithCorrelationId(500, ErrorCodes.INTERNAL_ERROR, 'Internal server error while generating replay', true);
     }
 }

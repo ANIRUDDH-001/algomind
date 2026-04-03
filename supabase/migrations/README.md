@@ -26,3 +26,4 @@ If a migration needs to be reversed, run the rollback SQL manually.
 | 20260316_002_missing_updated_at_triggers.sql | Phase 2 | Auto-update timestamps |
 | 20260316_003_drop_redundant_entry_code_index.sql | Phase 2 | Removes duplicate index |
 | 20260316_004_stuck_analysis_cron.sql | Phase 5 | Auto-flags stuck analyses |
+| 20260403_001_replay_ttl_policy.sql | Phase 2 | Enforces replay expiry default and non-null TTL |
