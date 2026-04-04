@@ -14,6 +14,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { THRESHOLDS_ABSOLUTE } from './options.js';
+import { buildRealUserAuthHeaders } from './auth.js';
 
 // Configuration (Assertions 1-3: Flow settings)
 const CONFIG = {
@@ -52,15 +53,19 @@ export const options = {
  */
 export function setup() {
   const baseUrl = __ENV.STAGING_BASE_URL || 'http://localhost:3000';
-  const apiSecret = __ENV.INTERNAL_API_SECRET || '';
+  const campaignToken = __ENV.TEST_CAMPAIGN_TOKEN || '';
+  const candidateName = __ENV.TEST_CANDIDATE_NAME || 'Algomind Load Tester';
+  const entryCode = __ENV.TEST_ENTRY_CODE || '';
 
-  if (!apiSecret) {
-    throw new Error('INTERNAL_API_SECRET environment variable required for Scenario C');
+  if (!campaignToken) {
+    throw new Error('TEST_CAMPAIGN_TOKEN environment variable required for Scenario C');
   }
 
   return {
     baseUrl,
-    apiSecret,
+    campaignToken,
+    candidateName,
+    entryCode,
   };
 }
 
@@ -70,20 +75,22 @@ export function setup() {
  */
 export default function (data) {
   const baseUrl = data.baseUrl;
-  const apiSecret = data.apiSecret;
+  const campaignToken = data.campaignToken;
+  const candidateName = data.candidateName;
+  const entryCode = data.entryCode;
 
   // Step 1: Start assessment session
   const startResponse = http.post(
     `${baseUrl}/api/assess/start`,
     JSON.stringify({
-      problemId: `problem-${__VU}`,
-      userId: `user-${__VU}`,
+      campaignToken,
+      candidateName,
+      entryCode,
     }),
     {
-      headers: {
+      headers: buildRealUserAuthHeaders({
         'Content-Type': 'application/json',
-        'X-API-Key': apiSecret,
-      },
+      }),
       tags: { step: 'assess-start' },
     }
   );
@@ -135,10 +142,9 @@ export default function (data) {
         timestamp: new Date().toISOString(),
       }),
       {
-        headers: {
+        headers: buildRealUserAuthHeaders({
           'Content-Type': 'application/json',
-          'X-API-Key': apiSecret,
-        },
+        }),
         tags: {
           step: 'assess-chat',
           turn: i + 1,

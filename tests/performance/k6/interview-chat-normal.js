@@ -14,6 +14,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
+import { buildRealUserAuthHeaders } from './auth.js';
 import {
   THRESHOLDS_ABSOLUTE,
   SHARED_TAGS,
@@ -28,7 +29,7 @@ const CONFIG = {
   maxMessageChars: 500,            // Assertion 2: max message length
   minThinkTime: 1.5,               // Assertion 3: min think time (s)
   maxThinkTime: 4.0,               // Assertion 4: max think time (s)
-  authBearerRatio: 0.8,            // Assertion 5: 80% bearer auth
+  authBearerRatio: 0.0,            // Assertion 5: real-user auth only
 };
 
 // Test scenario executor (Assertions 6-9: Load executor configuration)
@@ -83,27 +84,16 @@ export function setup() {
  * Assertion 15: Default function executes chat flow
  */
 export default function (data) {
-  // Select Auth method: 80% Bearer, 20% Internal
-  const useBearer = Math.random() < CONFIG.authBearerRatio;
-  
   let params = {
-    headers: {
+    headers: buildRealUserAuthHeaders({
       'Content-Type': 'application/json',
       'User-Agent': 'k6-phase7-normal',
-    },
+    }),
     tags: {
       scenario: 'interview-chat-normal',
-      auth: useBearer ? 'bearer' : 'internal',
+      auth: 'real-user',
     },
   };
-
-  if (useBearer) {
-    // Bearer token auth (simulated)
-    params.headers['Authorization'] = `Bearer fake-jwt-token-${Math.random()}`;
-  } else {
-    // Internal API key (from environment)
-    params.headers['X-API-Key'] = __ENV.INTERNAL_API_SECRET || '';
-  }
 
   // Generate message payload
   const messageLength = Math.floor(

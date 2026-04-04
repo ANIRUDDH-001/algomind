@@ -13,6 +13,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { THRESHOLDS_ABSOLUTE } from './options.js';
+import { buildRealUserAuthHeaders } from './auth.js';
 
 // Configuration (Assertions 1-3: Voice smoke profile)
 const CONFIG = {
@@ -67,12 +68,11 @@ export default function (data) {
   const voiceMessage = `[VOICE_TRANSCRIPTION] help me understand how to solve this problem step by step`;
 
   const params = {
-    headers: {
+    headers: buildRealUserAuthHeaders({
       'Content-Type': 'application/json',
       'User-Agent': 'k6-phase7-voice',
       'X-Request-Source': 'voice',
-      'Authorization': `Bearer fake-jwt-${__VU}-${__ITER}`,
-    },
+    }),
     tags: {
       scenario: 'voice-pipeline',
       request_source: 'voice',

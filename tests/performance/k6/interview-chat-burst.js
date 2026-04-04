@@ -17,6 +17,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { THRESHOLDS_ABSOLUTE } from './options.js';
+import { buildRealUserAuthHeaders } from './auth.js';
 
 // Configuration (Assertions 1-4: Spike profile settings)
 const CONFIG = {
@@ -87,11 +88,10 @@ export default function (data) {
   const isCooldownStage = false; // Set by external monitoring
 
   const params = {
-    headers: {
+    headers: buildRealUserAuthHeaders({
       'Content-Type': 'application/json',
       'User-Agent': 'k6-phase7-burst',
-      'Authorization': `Bearer fake-jwt-${__VU}-${__ITER}`,
-    },
+    }),
     tags: {
       scenario: 'interview-chat-burst',
       spike: isSpikeStage,

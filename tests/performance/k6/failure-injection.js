@@ -14,6 +14,7 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { THRESHOLDS_ABSOLUTE } from './options.js';
+import { buildRealUserAuthHeaders } from './auth.js';
 
 // Configuration (Assertions 1-4: Fault injection settings)
 const CONFIG = {
@@ -81,15 +82,14 @@ export default function (data) {
 
   // Build request with fault header (per-request, NOT global)
   const params = {
-    headers: {
+    headers: buildRealUserAuthHeaders({
       'Content-Type': 'application/json',
       'User-Agent': 'k6-phase7-fault',
-      'Authorization': `Bearer fake-jwt-${__VU}-${__ITER}`,
       // CRITICAL: Per-request fault isolation
       ...(faultType && {
         'x-test-fault': faultType,    // Fault only this request
       }),
-    },
+    }),
     tags: {
       scenario: 'failure-injection',
       fault_type: faultType || 'none',

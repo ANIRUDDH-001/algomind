@@ -83,6 +83,7 @@ export function setup() {
 export default function (data) {
   const baseUrl = data.baseUrl;
   const timeElapsed = (Date.now() - data.testStartTime) / 1000 / 60; // minutes
+  const hasRealBearer = !!__ENV.TEST_BEARER_TOKEN;
 
   // Every 5 minutes: collect window metrics
   if (Math.floor(timeElapsed) % 5 === 0) {
@@ -99,7 +100,9 @@ export default function (data) {
     headers: {
       'Content-Type': 'application/json',
       'User-Agent': 'k6-phase7-soak',
-      'Authorization': `Bearer fake-jwt-${__VU}-${__ITER}`,
+      ...(hasRealBearer
+        ? { Authorization: `Bearer ${__ENV.TEST_BEARER_TOKEN}` }
+        : { 'X-API-Key': __ENV.INTERNAL_API_SECRET || '' }),
     },
     tags: {
       scenario: 'soak-test',
