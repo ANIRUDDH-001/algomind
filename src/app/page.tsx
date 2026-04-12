@@ -455,13 +455,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 4.5: AVAILABLE EVERYWHERE (PWA Card) */}
+      {/* SECTION 4.5: INSTALL ALGOMIND (PWA Card) */}
       <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 relative overflow-hidden border-b border-transparent">
         <div className="max-w-6xl mx-auto w-full">
           <FadeInView>
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-black mb-4">Available Everywhere</h2>
-              <p className="text-zinc-400 text-lg">Install AlgoMind as a PWA on any device for a native-like experience.</p>
+              <h2 className="text-3xl md:text-5xl font-black mb-4">Install AlgoMind</h2>
+              <p className="text-zinc-400 text-lg">Install AlgoMind as a PWA for a native-like experience with offline app shell support.</p>
             </div>
           </FadeInView>
 
@@ -520,7 +520,7 @@ export default function HomePage() {
               {[
                 { icon: <Play className="w-6 h-6" />, title: "One-Tap Access", desc: "Launch instantly from your home screen or dock." },
                 { icon: <CheckCircle2 className="w-6 h-6" />, title: "Native Experience", desc: "Smooth transitions and immersive full-screen mode." },
-                { icon: <Brain className="w-6 h-6" />, title: "Offline Readiness", desc: "Access core resources even with spotty connectivity." }
+                { icon: <Brain className="w-6 h-6" />, title: "Works Offline", desc: "The app shell and practice page load even without a connection. Your progress syncs when you're back online." }
               ].map((item, i) => (
                 <FadeInView key={i} delay={i * 0.2}>
                   <div className="flex gap-4 items-start group">

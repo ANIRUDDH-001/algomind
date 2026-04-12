@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Navbar } from "@/components/layout/Navbar";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TourProvider } from "@/components/tour/TourProvider";
@@ -87,6 +88,7 @@ export default async function RootLayout({
               <TooltipProvider>
                 <ErrorBoundary>
                   <TourProvider>
+                    <ServiceWorkerRegistration />
                     {!hideNavbar && <Navbar />}
                     {/* Main Content Area */}
                     <main className={`flex-1 flex flex-col min-h-screen overflow-x-hidden pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
@@ -100,42 +102,6 @@ export default async function RootLayout({
             </ClientProviders>
           </AuthProvider>
         </QueryProvider>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                (function () {
-                  const reloadKey = 'sw-kill-switch-reloaded';
-
-                  navigator.serviceWorker.getRegistrations()
-                    .then(function (registrations) {
-                      return Promise.all(registrations.map(function (registration) {
-                        return registration.unregister();
-                      }));
-                    })
-                    .then(function () {
-                      if ('caches' in window) {
-                        return caches.keys().then(function (keys) {
-                          return Promise.all(keys.map(function (key) {
-                            return caches.delete(key);
-                          }));
-                        });
-                      }
-                    })
-                    .then(function () {
-                      if (navigator.serviceWorker.controller && !sessionStorage.getItem(reloadKey)) {
-                        sessionStorage.setItem(reloadKey, '1');
-                        window.location.reload();
-                      }
-                    })
-                    .catch(function (err) {
-                      console.error('ServiceWorker cleanup failed: ', err);
-                    });
-                })();
-              }
-            `,
-          }}
-        />
       </body>
     </html >
   );
