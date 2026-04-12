@@ -79,24 +79,24 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+        <div className="min-h-screen bg-[var(--surface-base)] text-zinc-100 font-sans">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+            <header className="sticky top-0 z-50 bg-[var(--surface-base)]/80 backdrop-blur-md border-b border-white/8 px-4 py-3">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link href="/dashboard?tab=history" className="p-2 rounded-lg hover:bg-slate-800 transition-colors">
-                            <ArrowLeft className="w-4 h-4 text-slate-400" />
+                        <Link href="/dashboard?tab=history" className="p-2 rounded-lg hover:bg-[var(--surface-2)] transition-colors">
+                            <ArrowLeft className="w-4 h-4 text-zinc-400" />
                         </Link>
                         <div className="flex items-center gap-2">
                             <Brain className="w-5 h-5 text-indigo-400" />
                             <div>
                                 <h1 className="font-bold text-white text-sm leading-tight flex items-center gap-2">
                                     {session.problem_title || problem?.title || 'Session'}
-                                    <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${difficultyColors[difficulty] || 'bg-slate-800 text-slate-400'}`}>
+                                    <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${difficultyColors[difficulty] || 'bg-[var(--surface-2)] text-zinc-400'}`}>
                                         {difficulty}
                                     </span>
                                 </h1>
-                                <p className="text-[10px] text-slate-500">{completedAt}</p>
+                                <p className="text-[10px] text-zinc-500">{completedAt}</p>
                             </div>
                         </div>
                     </div>
@@ -106,40 +106,40 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
             <main className="max-w-4xl mx-auto px-4 py-6 space-y-8">
                 {/* Summary Stats Bar */}
                 <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-center">
-                        <div className="text-2xl font-black text-white">{overallScore.toFixed(1)}<span className="text-sm text-slate-500">/10</span></div>
-                        <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mt-1">Score</div>
+                    <div className="bg-[var(--surface-1)]/50 border border-white/8 rounded-2xl p-4 text-center">
+                        <div className="text-2xl font-black text-white">{overallScore.toFixed(1)}<span className="text-sm text-zinc-500">/10</span></div>
+                        <div className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold mt-1">Score</div>
                     </div>
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-center">
+                    <div className="bg-[var(--surface-1)]/50 border border-white/8 rounded-2xl p-4 text-center">
                         <div className="flex items-center justify-center gap-1">
-                            <Clock className="w-4 h-4 text-slate-400" />
+                            <Clock className="w-4 h-4 text-zinc-400" />
                             <span className="text-2xl font-black text-white">{durationMin}</span>
-                            <span className="text-sm text-slate-500">min</span>
+                            <span className="text-sm text-zinc-500">min</span>
                         </div>
-                        <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mt-1">Duration</div>
+                        <div className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold mt-1">Duration</div>
                     </div>
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-center">
+                    <div className="bg-[var(--surface-1)]/50 border border-white/8 rounded-2xl p-4 text-center">
                         <div className="flex items-center justify-center gap-1">
-                            <MessageSquare className="w-4 h-4 text-slate-400" />
+                            <MessageSquare className="w-4 h-4 text-zinc-400" />
                             <span className="text-2xl font-black text-white">{userTurns}</span>
                         </div>
-                        <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mt-1">Turns</div>
+                        <div className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold mt-1">Turns</div>
                     </div>
                 </div>
 
                 {/* Problem Description */}
                 {problem?.description && (
                     <section>
-                        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Problem Description</h2>
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5">
-                            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{problem.description}</p>
+                        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-3">Problem Description</h2>
+                        <div className="bg-[var(--surface-1)]/50 border border-white/8 rounded-2xl p-5">
+                            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{problem.description}</p>
                         </div>
                     </section>
                 )}
 
                 {/* Transcript */}
                 <section>
-                    <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Interview Transcript</h2>
+                    <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">Interview Transcript</h2>
                     <div className="space-y-4">
                         {transcript.length > 0 ? (
                             transcript.filter(t => t.role !== 'system').map((msg, i) => {
@@ -148,7 +148,7 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
                                     <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] sm:max-w-[75%] rounded-3xl p-4 ${isUser
                                             ? 'bg-indigo-600/15 border border-indigo-500/25 text-indigo-50 rounded-tr-sm'
-                                            : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-tl-sm'
+                                            : 'bg-[var(--surface-1)] border border-white/8 text-zinc-300 rounded-tl-sm'
                                             }`}>
                                             <div className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">
                                                 {isUser ? 'You' : 'Kai'}
@@ -159,7 +159,7 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
                                 );
                             })
                         ) : (
-                            <div className="p-8 text-center border border-dashed border-slate-800 rounded-2xl text-slate-500">
+                            <div className="p-8 text-center border border-dashed border-white/8 rounded-2xl text-zinc-500">
                                 <p>No transcript available for this session.</p>
                             </div>
                         )}
@@ -169,16 +169,16 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
                 {/* Code Snapshots */}
                 {codeBlocks.length > 0 && (
                     <section>
-                        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-3 flex items-center gap-2">
                             <Code className="w-3.5 h-3.5" /> Code Submitted
                         </h2>
                         <div className="space-y-3">
                             {codeBlocks.map((block, i) => (
-                                <div key={i} className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden">
-                                    <div className="px-4 py-2 border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                <div key={i} className="bg-[var(--surface-1)]/70 border border-white/8 rounded-2xl overflow-hidden">
+                                    <div className="px-4 py-2 border-b border-white/8 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                                         {block.language}
                                     </div>
-                                    <pre className="p-4 overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed">
+                                    <pre className="p-4 overflow-x-auto text-sm text-zinc-300 font-mono leading-relaxed">
                                         <code>{block.code}</code>
                                     </pre>
                                 </div>
@@ -190,17 +190,17 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
                 {/* Assessment Scores */}
                 {skillEntries.length > 0 && (
                     <section>
-                        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
                             <BarChart2 className="w-3.5 h-3.5" /> Assessment Scores
                         </h2>
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-3">
+                        <div className="bg-[var(--surface-1)]/50 border border-white/8 rounded-2xl p-5 space-y-3">
                             {skillEntries.map(({ name, score }) => (
                                 <div key={name} className="space-y-1">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-300">{name}</span>
-                                        <span className="text-xs font-mono text-slate-500">{score.toFixed(1)}/10</span>
+                                        <span className="text-xs font-bold text-zinc-300">{name}</span>
+                                        <span className="text-xs font-mono text-zinc-500">{score.toFixed(1)}/10</span>
                                     </div>
-                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
                                         <div
                                             className="h-full rounded-full transition-all duration-500"
                                             style={{
@@ -225,7 +225,7 @@ export default async function SessionHistoryPage({ params }: HistoryPageProps) {
                     </Link>
                     <Link
                         href={`/interview?problemId=${session.problem_id}`}
-                        className="flex items-center gap-2 px-5 py-3 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl text-sm font-bold text-slate-300 transition-all"
+                        className="flex items-center gap-2 px-5 py-3 bg-[var(--surface-1)] border border-white/10 hover:bg-[var(--surface-2)] rounded-xl text-sm font-bold text-zinc-300 transition-all"
                     >
                         <RotateCcw className="w-4 h-4" /> Retry This Problem
                     </Link>

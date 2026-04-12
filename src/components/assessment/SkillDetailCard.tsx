@@ -102,7 +102,7 @@ export function SkillDetailCard({ skillId, definition, score }: SkillDetailCardP
                                     </div>
                                     <ul className="space-y-2">
                                         {score.strengths.map((s, i) => (
-                                            <li key={i} className="text-sm text-slate-300 flex gap-2">
+                                            <li key={i} className="text-sm text-zinc-300 flex gap-2">
                                                 <span className="text-emerald-500/50">•</span> {s}
                                             </li>
                                         ))}
@@ -114,7 +114,7 @@ export function SkillDetailCard({ skillId, definition, score }: SkillDetailCardP
                                     </div>
                                     <ul className="space-y-2">
                                         {score.improvements.map((s, i) => (
-                                            <li key={i} className="text-sm text-slate-300 flex gap-2">
+                                            <li key={i} className="text-sm text-zinc-300 flex gap-2">
                                                 <span className="text-amber-500/50">•</span> {s}
                                             </li>
                                         ))}

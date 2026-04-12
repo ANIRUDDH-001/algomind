@@ -10,13 +10,13 @@ interface MobileWarningProps {
 export function MobileWarning({ onContinue, onExit }: MobileWarningProps) {
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full border border-slate-700">
+            <div className="rounded-xl p-6 max-w-md w-full" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge-hi)' }}>
                 <div className="text-center mb-6">
                     <div className="text-5xl mb-4">📱</div>
                     <h2 className="text-2xl font-bold text-white mb-2">
                         Mobile Device Detected
                     </h2>
-                    <p className="text-slate-400">
+                    <p className="text-zinc-400">
                         You&apos;re using a {getDeviceName()}
                     </p>
                 </div>
@@ -33,11 +33,11 @@ export function MobileWarning({ onContinue, onExit }: MobileWarningProps) {
                         </p>
                     </div>
 
-                    <div className="p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg">
-                        <h3 className="text-blue-400 font-semibold mb-2">
+                    <div className="p-4 bg-indigo-950/40 border border-indigo-500/20 rounded-lg">
+                        <h3 className="text-indigo-400 font-semibold mb-2">
                             💡 Recommendation
                         </h3>
-                        <p className="text-sm text-blue-200/80">
+                        <p className="text-sm text-zinc-300">
                             For the best interview experience with full code editor support,
                             please use a desktop or laptop computer.
                         </p>
@@ -47,13 +47,19 @@ export function MobileWarning({ onContinue, onExit }: MobileWarningProps) {
                 <div className="space-y-3">
                     <button
                         onClick={onExit}
-                        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        className="w-full px-4 py-3 text-white rounded-lg font-medium transition-colors"
+                        style={{ background: 'var(--accent-primary)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
                     >
                         Switch to Desktop
                     </button>
                     <button
                         onClick={onContinue}
-                        className="w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                        className="w-full px-4 py-3 text-zinc-300 rounded-lg font-medium transition-colors"
+                        style={{ background: 'var(--surface-3)', border: '1px solid var(--surface-edge)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-edge-hi)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-3)')}
                     >
                         Continue Anyway (Voice Only)
                     </button>

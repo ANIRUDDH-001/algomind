@@ -119,50 +119,50 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
         <div className="space-y-6 mb-8" data-testid="cohort-stats-panel">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Users className="w-4 h-4 text-blue-400" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Total</span>
                     </div>
                     <span className="text-2xl font-black text-white">{stats.totalCandidates}</span>
-                    <span className="text-xs text-slate-500 ml-2">({stats.completedCount} completed)</span>
+                    <span className="text-xs text-zinc-500 ml-2">({stats.completedCount} completed)</span>
                 </div>
 
-                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Avg Score</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Avg Score</span>
                     </div>
                     <span className="text-2xl font-black text-white">{stats.avgOverallScore.toFixed(1)}</span>
-                    <span className="text-xs text-slate-500 ml-1">/10</span>
+                    <span className="text-xs text-zinc-500 ml-1">/10</span>
                 </div>
 
                 {stats.topCandidate && (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                    <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Award className="w-4 h-4 text-amber-400" />
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Top</span>
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Top</span>
                         </div>
                         <span className="text-sm font-bold text-white truncate block">{stats.topCandidate.name}</span>
                         <span className="text-xs text-emerald-400">{stats.topCandidate.score.toFixed(1)}/10</span>
                     </div>
                 )}
 
-                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="w-4 h-4 text-purple-400" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Decisions</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Decisions</span>
                     </div>
                     <span className="text-2xl font-black text-white">{hireTotal}</span>
-                    <span className="text-xs text-slate-500 ml-2">hire signals</span>
+                    <span className="text-xs text-zinc-500 ml-2">hire signals</span>
                 </div>
             </div>
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Score Distribution Bar Chart */}
-                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Score Distribution</h4>
+                <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
+                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-4">Score Distribution</h4>
                     <div className="flex items-end gap-3 h-24">
                         {stats.scoreDistribution.map(bucket => {
                             const height = maxBucketCount > 0 ? (bucket.count / maxBucketCount) * 100 : 0;
@@ -177,7 +177,7 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
                                         className="w-full rounded-t-md transition-all duration-500"
                                         style={{ height: `${Math.max(height, 4)}%`, background: color + '80' }}
                                     />
-                                    <span className="text-[9px] text-slate-500">{bucket.range}</span>
+                                    <span className="text-[9px] text-zinc-500">{bucket.range}</span>
                                 </div>
                             );
                         })}
@@ -186,8 +186,8 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
 
                 {/* Hire Decision Donut */}
                 {hireTotal > 0 && (
-                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4" data-testid="hire-donut">
-                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Hire Decisions</h4>
+                    <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4" data-testid="hire-donut">
+                        <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-4">Hire Decisions</h4>
                         <div className="flex flex-wrap gap-3">
                             {Object.entries(stats.hireDecisionCounts).map(([decision, count]) => {
                                 const pct = hireTotal > 0 ? ((count / hireTotal) * 100).toFixed(0) : '0';
@@ -197,10 +197,10 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
                                             className="w-3 h-3 rounded-full"
                                             style={{ background: HIRE_COLORS[decision] || '#6b7280' }}
                                         />
-                                        <span className="text-xs text-slate-300">
+                                        <span className="text-xs text-zinc-300">
                                             {HIRE_SHORT_LABELS[decision] || decision}
                                         </span>
-                                        <span className="text-xs font-bold text-slate-400">{count} ({pct}%)</span>
+                                        <span className="text-xs font-bold text-zinc-400">{count} ({pct}%)</span>
                                     </div>
                                 );
                             })}
@@ -210,8 +210,8 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
             </div>
 
             {/* Dimension Averages */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Average by Dimension (Cohort)</h4>
+            <div className="bg-[var(--surface-1)]/60 border border-white/8 rounded-xl p-4">
+                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-4">Average by Dimension (Cohort)</h4>
                 <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
                     {Object.entries(DIMENSION_LABELS).map(([dim, label]) => {
                         const avg = stats.avgByDimension[dim] || 0;
@@ -219,7 +219,7 @@ export function CohortStatsPanel({ submissions }: CohortStatsPanelProps) {
                         return (
                             <div key={dim} className="text-center">
                                 <div className={`text-lg font-black ${color}`}>{avg > 0 ? avg.toFixed(1) : '—'}</div>
-                                <div className="text-[9px] text-slate-500 font-bold">{label}</div>
+                                <div className="text-[9px] text-zinc-500 font-bold">{label}</div>
                             </div>
                         );
                     })}

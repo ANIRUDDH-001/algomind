@@ -35,7 +35,7 @@ export function GuestResultsOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[150] bg-slate-950 overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-[var(--surface-base)] overflow-y-auto"
             data-testid="guest-results-overlay"
         >
             {/* Sticky top bar */}

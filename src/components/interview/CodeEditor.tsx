@@ -45,11 +45,11 @@ function EditorLoadingState() {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center h-full bg-slate-900 rounded-lg border border-slate-700">
+        <div className="flex flex-col items-center justify-center h-full rounded-lg" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
             <div className="text-center space-y-4 p-8">
                 {/* Loading Animation */}
                 <div className="w-16 h-16 mx-auto relative">
-                    <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-white/10 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-indigo-600 rounded-full animate-spin border-t-transparent"></div>
                 </div>
 
@@ -58,16 +58,16 @@ function EditorLoadingState() {
                     <h3 className="text-white font-semibold mb-2">
                         Loading Code Editor
                     </h3>
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-zinc-400 text-sm">
                         {slowNetwork ? 'Still loading... This may take a while on slow networks' : 'Downloading Monaco Editor (2MB)...'}
                     </p>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-64 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-64 h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                     <div
-                        className="h-full bg-blue-600 transition-all duration-300"
-                        style={{ width: `${progress}%` }}
+                        className="h-full transition-all duration-300"
+                        style={{ width: `${progress}%`, background: 'var(--accent-primary)' }}
                     />
                 </div>
 
@@ -214,9 +214,9 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
     return (
         <div className="flex flex-col h-full">
             {/* Editor Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 sm:p-3 bg-slate-800 border-b border-slate-700 rounded-t-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 sm:p-3 rounded-t-lg" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--surface-edge)' }}>
                 <div className="flex items-center gap-2" data-tour="language-select">
-                    <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">Lang:</span>
+                    <span className="text-xs sm:text-sm text-zinc-400 whitespace-nowrap">Lang:</span>
                     <select
                         value={language}
                         onChange={(e) => {
@@ -224,7 +224,8 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                             setLanguage(newLang);
                             onLanguageChange?.(newLang);
                         }}
-                        className="px-2 sm:px-3 py-1.5 bg-slate-900 text-white rounded border border-slate-700 text-xs sm:text-sm focus:outline-none focus:border-blue-500 min-w-0"
+                        className="px-2 sm:px-3 py-1.5 text-white rounded text-xs sm:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 min-w-0"
+                        style={{ background: 'var(--surface-base)', border: '1px solid var(--surface-edge)' }}
                     >
                         <option value="python">Python</option>
                         <option value="javascript">JavaScript</option>
@@ -238,7 +239,8 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                     <button
                         onClick={handleRunCode}
                         disabled={isRunning || !code.trim() || runDisabled}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
+                        style={{ background: 'var(--accent-primary)', border: '1px solid rgba(99,102,241,0.3)' }}
                     >
                         {isRunning ? (
                             <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
@@ -279,12 +281,12 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
 
             {/* Execution Panel */}
             {(executionResult || isRunning) && (
-                <div className="h-48 max-h-[200px] border-t border-slate-700 bg-slate-900 flex flex-col shrink-0 overflow-hidden rounded-b-lg">
+                <div className="h-48 max-h-[200px] flex flex-col shrink-0 overflow-hidden rounded-b-lg" style={{ background: 'var(--surface-1)', borderTop: '1px solid var(--surface-edge)' }}>
                     {/* Header */}
-                    <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700 text-sm">
+                    <div className="flex items-center justify-between px-3 py-2 text-sm" style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--surface-edge)' }}>
                         <div className="flex items-center gap-4">
                             {isRunning ? (
-                                <span className="text-slate-400 flex items-center gap-2">
+                                <span className="text-zinc-400 flex items-center gap-2">
                                     <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                                     Executing...
                                 </span>
@@ -292,19 +294,19 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                                 <>
                                     <button
                                         onClick={() => setActiveTab('output')}
-                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'output' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'output' ? 'border-indigo-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-300'}`}
                                     >
                                         Output
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('error')}
-                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'error' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'error' ? 'border-indigo-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-300'}`}
                                     >
                                         Error
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('info')}
-                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                                        className={`pb-1 px-1 border-b-2 transition-colors ${activeTab === 'info' ? 'border-indigo-500 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-300'}`}
                                     >
                                         Info
                                     </button>
@@ -314,7 +316,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                         {!isRunning && (
                             <button
                                 onClick={() => setExecutionResult(null)}
-                                className="text-slate-400 hover:text-white transition-colors"
+                                className="text-zinc-400 hover:text-white transition-colors"
                             >
                                 Clear
                             </button>
@@ -326,17 +328,17 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
                         {!isRunning && executionResult && (
                             <>
                                 {activeTab === 'output' && (
-                                    <pre className={`whitespace-pre-wrap ${executionResult.exit_code === 0 ? 'text-green-400' : 'text-slate-300'}`}>
-                                        {executionResult.stdout || <span className="text-slate-500 italic">No output</span>}
+                                    <pre className={`whitespace-pre-wrap ${executionResult.exit_code === 0 ? 'text-green-400' : 'text-zinc-300'}`}>
+                                        {executionResult.stdout || <span className="text-zinc-500 italic">No output</span>}
                                     </pre>
                                 )}
                                 {activeTab === 'error' && (
                                     <pre className="whitespace-pre-wrap text-amber-400">
-                                        {executionResult.stderr || <span className="text-slate-500 italic">No errors</span>}
+                                        {executionResult.stderr || <span className="text-zinc-500 italic">No errors</span>}
                                     </pre>
                                 )}
                                 {activeTab === 'info' && (
-                                    <div className="text-slate-400">
+                                    <div className="text-zinc-400">
                                         Exit code: {executionResult.exit_code} | Runtime: {executionResult.runtime_ms}ms
                                     </div>
                                 )}

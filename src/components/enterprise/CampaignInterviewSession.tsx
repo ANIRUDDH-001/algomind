@@ -185,12 +185,12 @@ export function CampaignInterviewSession({
     // Render Question Selector
     if (activeQuestionIdx === null) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center py-10 px-4">
+            <div className="min-h-screen bg-[var(--surface-base)] flex flex-col items-center py-10 px-4">
                 <div className="max-w-3xl w-full">
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <h1 className="text-2xl font-bold text-white">Assessment Questions</h1>
-                            <p className="text-slate-400 text-sm mt-1">Select a question to begin. You can complete them in any order.</p>
+                            <p className="text-zinc-400 text-sm mt-1">Select a question to begin. You can complete them in any order.</p>
                         </div>
                         <Button
                             variant="destructive"
@@ -211,8 +211,8 @@ export function CampaignInterviewSession({
                                 <Card
                                     key={q.id}
                                     className={cn(
-                                        "bg-slate-900 border-slate-800 transition-all cursor-pointer hover:border-blue-500/50",
-                                        isDone && "opacity-75 cursor-default hover:border-slate-800",
+                                        "bg-[var(--surface-1)] border-white/8 transition-all cursor-pointer hover:border-blue-500/50",
+                                        isDone && "opacity-75 cursor-default hover:border-white/8",
                                         isStarted && "border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
                                     )}
                                     onClick={() => handleSelectQuestion(idx)}
@@ -223,17 +223,17 @@ export function CampaignInterviewSession({
                                                 "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                                                 isDone ? "bg-green-500/10 text-green-500" :
                                                     isStarted ? "bg-blue-500/10 text-blue-500" :
-                                                        "bg-slate-800 text-slate-400"
+                                                        "bg-[var(--surface-2)] text-zinc-400"
                                             )}>
                                                 {isDone ? <CheckCircle className="w-5 h-5" /> :
                                                     isStarted ? <Play className="w-5 h-5 ml-1" /> :
                                                         <span className="font-bold">{idx + 1}</span>}
                                             </div>
                                             <div>
-                                                <h3 className={cn("font-bold text-lg", isDone ? "text-slate-300" : "text-white")}>
+                                                <h3 className={cn("font-bold text-lg", isDone ? "text-zinc-300" : "text-white")}>
                                                     {q.title}
                                                 </h3>
-                                                <div className="flex items-center gap-3 mt-1 text-sm font-mono text-slate-400">
+                                                <div className="flex items-center gap-3 mt-1 text-sm font-mono text-zinc-400">
                                                     <span className={cn(
                                                         q.difficulty === 'easy' && "text-green-400",
                                                         q.difficulty === 'medium' && "text-amber-400",
@@ -269,26 +269,26 @@ export function CampaignInterviewSession({
 
                 {showExitModal && (
                     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                        <Card className="max-w-md w-full bg-slate-900 border-slate-800">
+                        <Card className="max-w-md w-full bg-[var(--surface-1)] border-white/8">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-red-400">
                                     <AlertTriangle className="w-5 h-5" /> Exit Assessment Early?
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <p className="text-slate-300 text-sm">
+                                <p className="text-zinc-300 text-sm">
                                     Your progress so far will be saved and submitted. You will not be able to return to this assessment.
                                 </p>
-                                <div className="space-y-2 bg-slate-950 p-3 rounded-lg border border-slate-800 text-sm">
+                                <div className="space-y-2 bg-[var(--surface-base)] p-3 rounded-lg border border-white/8 text-sm">
                                     {questions.map((q, idx) => {
                                         const status = questionStates[idx].status;
                                         return (
                                             <div key={q.id} className="flex justify-between items-center">
-                                                <span className="text-slate-300 truncate pr-4">{q.title}</span>
+                                                <span className="text-zinc-300 truncate pr-4">{q.title}</span>
                                                 <span className={cn(
                                                     "text-xs font-bold uppercase tracking-wider shrink-0",
                                                     status === 'completed' || status === 'expired' ? "text-green-400" :
-                                                        status === 'in_progress' ? "text-blue-400" : "text-slate-500"
+                                                        status === 'in_progress' ? "text-blue-400" : "text-zinc-500"
                                                 )}>
                                                     {status === 'not_started' ? 'Pending' :
                                                         status === 'in_progress' ? 'As-Is' : 'Done'}
@@ -298,7 +298,7 @@ export function CampaignInterviewSession({
                                     })}
                                 </div>
                                 <div className="flex justify-end gap-3 pt-4">
-                                    <Button variant="ghost" onClick={() => setShowExitModal(false)} className="text-slate-300">
+                                    <Button variant="ghost" onClick={() => setShowExitModal(false)} className="text-zinc-300">
                                         Cancel
                                     </Button>
                                     <Button onClick={handleExitComplete} className="bg-red-600 hover:bg-red-500 text-white" disabled={isSaving}>
@@ -318,9 +318,9 @@ export function CampaignInterviewSession({
     const activeState = questionStates[activeQuestionIdx!];
 
     return (
-        <div className="flex flex-col h-screen bg-slate-950 overflow-hidden">
+        <div className="flex flex-col h-screen bg-[var(--surface-base)] overflow-hidden">
             {/* Header: Unified with Campaign controls */}
-            <header className="h-14 bg-slate-950 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 z-50">
+            <header className="h-14 bg-[var(--surface-base)] border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 z-50">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => setActiveQuestionIdx(null)} className="text-zinc-400 hover:text-white shrink-0">
                         ← Back to Questions

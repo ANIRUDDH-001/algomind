@@ -50,7 +50,7 @@ export function TextInterviewMode({
     };
 
     return (
-        <div className={cn("flex flex-col h-full bg-slate-950/20", className)}>
+        <div className={cn("flex flex-col h-full", className)} style={{ background: 'rgba(10,10,15,0.3)' }}>
             <div className="flex-1 min-h-0">
                 <ConversationView
                     messages={messages}
@@ -59,9 +59,14 @@ export function TextInterviewMode({
                 />
             </div>
 
-            <div className="p-4 bg-slate-900/40 border-t border-slate-800/50 backdrop-blur-sm">
+            <div className="p-4 backdrop-blur-sm" style={{ background: 'rgba(17,17,24,0.8)', borderTop: '1px solid var(--surface-edge)' }}>
                 <div className="flex gap-2 max-w-4xl mx-auto">
-                    <div className="relative flex-1">
+                    <div
+                        className="relative flex-1"
+                        style={{ border: '1px solid var(--surface-edge)', borderRadius: '0.75rem', background: 'var(--surface-base)' }}
+                        onFocusCapture={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; }}
+                        onBlurCapture={(e) => { e.currentTarget.style.borderColor = 'var(--surface-edge)'; }}
+                    >
                         <textarea
                             ref={textareaRef}
                             value={input}
@@ -69,7 +74,8 @@ export function TextInterviewMode({
                             onKeyDown={handleKeyPress}
                             placeholder="Type your response..."
                             disabled={isProcessing}
-                            className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none min-h-[44px] overflow-hidden"
+                            className="w-full bg-transparent rounded-xl px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-all resize-none min-h-[44px] overflow-hidden"
+                            style={{ outline: 'none' }}
                             rows={1}
                         />
                     </div>
@@ -79,18 +85,21 @@ export function TextInterviewMode({
                         className={cn(
                             "rounded-xl h-[44px] w-[44px] p-0 shrink-0 transition-all duration-300",
                             input.trim() && !isProcessing
-                                ? "bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-                                : "bg-slate-800 text-slate-500"
+                                ? "text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:brightness-110"
+                                : "text-zinc-600"
                         )}
+                        style={input.trim() && !isProcessing
+                            ? { background: 'var(--accent-primary)' }
+                            : { background: 'var(--surface-2)' }}
                     >
                         {isProcessing ? (
-                            <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
                         ) : (
                             <Send className="w-4 h-4" />
                         )}
                     </Button>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2 text-center uppercase tracking-widest font-black">
+                <p className="text-[10px] text-zinc-500 mt-2 text-center uppercase tracking-widest font-black">
                     Press Enter to send
                 </p>
             </div>

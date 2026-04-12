@@ -122,7 +122,7 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2" data-tour="cognitive-radar">
                 <div className="space-y-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 flex items-center gap-1.5">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3 h-3 text-amber-400" /> Top Strengths
                     </h4>
                     <div className="space-y-2">
@@ -133,7 +133,7 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
                 </div>
 
                 <div className="space-y-3">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 flex items-center gap-1.5">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1 flex items-center gap-1.5">
                         <TrendingDown className="w-3 h-3 text-red-400" /> Areas for Growth
                     </h4>
                     <div className="space-y-2">
@@ -152,10 +152,10 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
 
 function StatItem({ icon, label, value, color = "text-white" }: { icon: React.ReactNode, label: string, value: string, color?: string }) {
     return (
-        <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-3 flex flex-col gap-1 shadow-inner">
+        <div className="bg-[var(--surface-1)]/40 border border-white/8/60 rounded-2xl p-3 flex flex-col gap-1 shadow-inner">
             <div className="flex items-center gap-2">
                 {icon}
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{label}</span>
             </div>
             <span className={`text-xl font-black ${color}`}>{value}</span>
         </div>
@@ -166,10 +166,10 @@ function SkillBar({ name, score, color }: { name: string, score: number, color: 
     return (
         <div className="space-y-1.5">
             <div className="flex justify-between items-center px-0.5">
-                <span className="text-[10px] font-bold text-slate-300 truncate mr-2">{name}</span>
-                <span className="text-[10px] font-black text-slate-500">{score.toFixed(1)}</span>
+                <span className="text-[10px] font-bold text-zinc-300 truncate mr-2">{name}</span>
+                <span className="text-[10px] font-black text-zinc-500">{score.toFixed(1)}</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden border border-slate-800/30">
+            <div className="h-1.5 w-full bg-[var(--surface-2)]/50 rounded-full overflow-hidden border border-white/8/30">
                 <div
                     className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${(score / 10) * 100}%`, backgroundColor: color }}

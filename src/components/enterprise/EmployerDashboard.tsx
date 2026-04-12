@@ -255,11 +255,11 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Campaign Management</h1>
-                    <p className="text-slate-400">Manage technical assessments and review candidate performance.</p>
+                    <p className="text-zinc-400">Manage technical assessments and review candidate performance.</p>
                 </div>
                 <Button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Campaign
@@ -297,9 +297,9 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                 activeTab === 'campaigns' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {campaigns.length === 0 ? (
-                            <div className="col-span-full py-20 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">
+                            <div className="col-span-full py-20 text-center text-zinc-500 bg-[var(--surface-1)] border border-white/8 rounded-xl">
                                 <Plus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                <h3 className="text-lg text-slate-300 font-medium">No Campaigns Yet</h3>
+                                <h3 className="text-lg text-zinc-300 font-medium">No Campaigns Yet</h3>
                                 <p className="mt-2">Create your first technical assessment campaign to start screening candidates.</p>
                             </div>
                         ) : (
@@ -307,7 +307,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                 const isExpired = campaign.expires_at && new Date(campaign.expires_at) < new Date();
                                 const isMax = campaign.max_uses && campaign.uses_count >= campaign.max_uses;
                                 const status = !campaign.is_active ? 'Deactivated' : (isExpired ? 'Expired' : (isMax ? 'Full' : 'Active'));
-                                const statusColor = status === 'Active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-slate-800 text-slate-400 border-slate-700';
+                                const statusColor = status === 'Active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-[var(--surface-2)] text-zinc-400 border-white/10';
 
                                 const qCount = campaign.campaign_questions?.length || 1;
                                 const totalTime = campaign.time_limit_mins;
@@ -320,7 +320,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     <Card key={campaign.id} className={`flex flex-col hover:shadow-xl transition-all border-l-[3px] ${borderLeftClass}`} style={{ background: 'var(--surface-1)', borderTopColor: 'var(--surface-edge)', borderRightColor: 'var(--surface-edge)', borderBottomColor: 'var(--surface-edge)' }}>
                                         <div className="p-6 flex-1">
                                             <div className="flex justify-between items-start mb-4">
-                                                <h3 className="font-bold text-lg text-slate-200 truncate pr-4" title={campaign.title}>
+                                                <h3 className="font-bold text-lg text-zinc-200 truncate pr-4" title={campaign.title}>
                                                     {campaign.title}
                                                 </h3>
                                                 <span className={`text-xs px-2.5 py-0.5 rounded-full border ${statusColor}`}>
@@ -328,11 +328,11 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                 </span>
                                             </div>
 
-                                            <div className="space-y-3 text-sm text-slate-400 mb-6">
+                                            <div className="space-y-3 text-sm text-zinc-400 mb-6">
                                                 <div className="flex items-center gap-2">
                                                     <Users className="w-4 h-4" />
                                                     <span>{campaign.completed_count !== undefined ? campaign.completed_count : campaign.uses_count} completed</span>
-                                                    <span className="text-slate-500 text-[10px] ml-1">
+                                                    <span className="text-zinc-500 text-[10px] ml-1">
                                                         ({campaign.uses_count} {campaign.max_uses ? `/ ${campaign.max_uses}` : ''} started)
                                                     </span>
                                                 </div>
@@ -342,13 +342,13 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                 </div>
 
                                                 {/* Entry Code Section */}
-                                                <div className="bg-slate-950/50 border border-slate-800/50 rounded-lg p-2 flex items-center justify-between mt-4">
+                                                <div className="bg-[var(--surface-base)]/50 border border-white/10 rounded-lg p-2 flex items-center justify-between mt-4">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider leading-none mb-1">Entry Code</span>
+                                                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider leading-none mb-1">Entry Code</span>
                                                         <span className="font-mono text-white text-xs">{campaign.entry_code || '---'}</span>
                                                     </div>
                                                     <Button
-                                                        variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-blue-400"
+                                                        variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-blue-400"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             navigator.clipboard.writeText(campaign.entry_code);
@@ -359,17 +359,17 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                     </Button>
                                                 </div>
 
-                                                <div className="text-xs text-slate-500 pt-2">
+                                                <div className="text-xs text-zinc-500 pt-2">
                                                     Created {new Date(campaign.created_at).toLocaleDateString()}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-950 px-3 py-3 border-t border-slate-800 grid grid-cols-2 gap-2">
+                                        <div className="bg-[var(--surface-base)] px-3 py-3 border-t border-white/8 grid grid-cols-2 gap-2">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="text-slate-300 hover:text-white hover:bg-slate-800 justify-start"
+                                                className="text-zinc-300 hover:text-white hover:bg-[var(--surface-2)] justify-start"
                                                 onClick={() => {
                                                     setSelectedCampaignId(campaign.id);
                                                     setActiveTab('submissions');
@@ -400,7 +400,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                                     Deactivate
                                                 </Button>
                                             ) : (
-                                                <div className="flex items-center px-3 text-xs text-slate-600 gap-2">
+                                                <div className="flex items-center px-3 text-xs text-zinc-600 gap-2">
                                                     <Power className="w-3.5 h-3.5" />
                                                     Inactive
                                                 </div>
@@ -431,11 +431,11 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                         {/* Cohort Stats Panel */}
                         <CohortStatsPanel submissions={submissions} />
                         {/* ... (rest of submissions tab remains the same) */}
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-[var(--surface-1)] p-4 rounded-xl border border-white/8">
                             <div className="flex items-center gap-3">
-                                <span className="text-slate-400 text-sm">Campaign:</span>
+                                <span className="text-zinc-400 text-sm">Campaign:</span>
                                 <select
-                                    className="bg-slate-950 border border-slate-800 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                                    className="bg-[var(--surface-base)] border border-white/8 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
                                     value={selectedCampaignId || ''}
                                     onChange={(e) => setSelectedCampaignId(e.target.value)}
                                 >
@@ -456,14 +456,14 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                 </Button>
                             )}
                             {compareSelection.length === 1 && (
-                                <span className="text-sm text-slate-500 italic">Select one more candidate to compare</span>
+                                <span className="text-sm text-zinc-500 italic">Select one more candidate to compare</span>
                             )}
 
                             {selectedCampaignId && (
                                 <div className="ml-auto">
                                     <Button
                                         variant="outline"
-                                        className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
+                                        className="border-white/10 text-zinc-300 hover:text-white hover:bg-[var(--surface-2)]"
                                         onClick={async () => {
                                             try {
                                                 const { blob, response } = await EmployerDashboardAdapter.exportSubmissions(selectedCampaignId);
@@ -496,26 +496,26 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                             )}
                         </div>
 
-                        <div className="flex flex-wrap gap-2 text-sm border-b border-slate-800 pb-4">
-                            <button onClick={() => setStatusFilter('all')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'all' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                        <div className="flex flex-wrap gap-2 text-sm border-b border-white/8 pb-4">
+                            <button onClick={() => setStatusFilter('all')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'all' ? "bg-[var(--surface-2)] text-white" : "text-zinc-400 hover:text-white hover:bg-[var(--surface-2)]/50")}>
                                 All {submissionsSummary ? `(${submissionsSummary.total})` : ''}
                             </button>
-                            <button onClick={() => setStatusFilter('completed')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'completed' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            <button onClick={() => setStatusFilter('completed')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'completed' ? "bg-[var(--surface-2)] text-white" : "text-zinc-400 hover:text-white hover:bg-[var(--surface-2)]/50")}>
                                 Completed {submissionsSummary ? `(${submissionsSummary.completed})` : ''}
                             </button>
-                            <button onClick={() => setStatusFilter('in_progress')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'in_progress' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            <button onClick={() => setStatusFilter('in_progress')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'in_progress' ? "bg-[var(--surface-2)] text-white" : "text-zinc-400 hover:text-white hover:bg-[var(--surface-2)]/50")}>
                                 In Progress {submissionsSummary ? `(${submissionsSummary.in_progress})` : ''}
                             </button>
-                            <button onClick={() => setStatusFilter('dropped_out')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'dropped_out' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            <button onClick={() => setStatusFilter('dropped_out')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'dropped_out' ? "bg-[var(--surface-2)] text-white" : "text-zinc-400 hover:text-white hover:bg-[var(--surface-2)]/50")}>
                                 Dropped Out {submissionsSummary ? `(${submissionsSummary.dropped_out})` : ''}
                             </button>
-                            <button onClick={() => setStatusFilter('expired')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'expired' ? "bg-slate-800 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50")}>
+                            <button onClick={() => setStatusFilter('expired')} className={cn("px-3 py-1.5 rounded-md transition-colors", statusFilter === 'expired' ? "bg-[var(--surface-2)] text-white" : "text-zinc-400 hover:text-white hover:bg-[var(--surface-2)]/50")}>
                                 Time Expired {submissionsSummary ? `(${submissionsSummary.expired})` : ''}
                             </button>
                         </div>
 
                         <div className="rounded-xl border-[var(--surface-edge)] overflow-hidden overflow-x-auto" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                            <table className="w-full text-sm text-left text-slate-300 whitespace-nowrap">
+                            <table className="w-full text-sm text-left text-zinc-300 whitespace-nowrap">
                                 <thead className="text-xs text-zinc-600 uppercase border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
                                     <tr>
                                         <th scope="col" className="px-4 py-3 w-10">Comp</th>
@@ -539,27 +539,27 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                 <tbody>
                                     {submissions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={16} className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan={16} className="px-6 py-12 text-center text-zinc-500">
                                                 {selectedCampaignId ? "No candidates have completed this assessment yet." : "Please select a campaign."}
                                             </td>
                                         </tr>
                                     ) : (
                                         submissions.map((sub, i) => (
-                                            <tr key={sub.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                                            <tr key={sub.id} className="border-b border-white/10 hover:bg-[var(--surface-2)]/30 transition-colors">
                                                 <td className="px-4 py-3">
                                                     <input
                                                         type="checkbox"
                                                         checked={compareSelection.includes(sub.id)}
                                                         onChange={() => toggleCompareSubmission(sub.id)}
                                                         disabled={!compareSelection.includes(sub.id) && compareSelection.length >= 2}
-                                                        className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-700 rounded focus:ring-blue-500 focus:ring-2 focus:ring-offset-slate-900"
+                                                        className="w-4 h-4 text-blue-600 bg-[var(--surface-2)] border-white/10 rounded focus:ring-indigo-500 focus:ring-2 focus:ring-offset-slate-900"
                                                     />
                                                 </td>
-                                                <td className="px-4 py-3 font-mono font-bold text-slate-200">{sub.rank ? `#${sub.rank}` : '-'}</td>
+                                                <td className="px-4 py-3 font-mono font-bold text-zinc-200">{sub.rank ? `#${sub.rank}` : '-'}</td>
                                                 <td className="px-4 py-3">{renderStatusBadge(sub.status, sub.updated_at)}</td>
                                                 <td className="px-6 py-3">
                                                     <div className="font-semibold text-white">{sub.candidate_name || 'Anonymous'}</div>
-                                                    <div className="text-xs text-slate-500">{sub.candidate_email || 'No email provided'}</div>
+                                                    <div className="text-xs text-zinc-500">{sub.candidate_email || 'No email provided'}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {sub.analysis_status === 'pending' && !sub.overall_score ? (
@@ -678,14 +678,14 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     };
 
                     return (
-                        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 min-h-screen overflow-y-auto">
-                            <Card className="bg-slate-900 border-slate-700 w-full max-w-4xl shadow-2xl my-8">
-                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 sticky top-0 z-10">
+                        <div className="fixed inset-0 bg-[var(--surface-base)]/90 backdrop-blur-md z-50 flex items-center justify-center p-4 min-h-screen overflow-y-auto">
+                            <Card className="bg-[var(--surface-1)] border-white/10 w-full max-w-4xl shadow-2xl my-8">
+                                <div className="p-6 border-b border-white/8 flex justify-between items-center bg-[var(--surface-1)]/50 sticky top-0 z-10">
                                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                         <BarChart2 className="w-5 h-5 text-purple-400" />
                                         Candidate Comparison
                                     </h3>
-                                    <Button variant="ghost" onClick={() => setShowCompareModal(false)} size="sm" className="text-slate-400 hover:text-white">
+                                    <Button variant="ghost" onClick={() => setShowCompareModal(false)} size="sm" className="text-zinc-400 hover:text-white">
                                         Close
                                     </Button>
                                 </div>
@@ -695,18 +695,18 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center text-center">
                                             <div className="text-sm text-blue-400 font-medium mb-2 line-clamp-1">{c1.candidate_name || 'Candidate 1'}</div>
                                             <div className="mb-3">{renderStatusBadge(c1.status, c1.updated_at)}</div>
-                                            <div className="text-3xl font-bold text-slate-100">{c1.overall_score ? c1.overall_score.toFixed(1) : '-'}</div>
-                                            <div className="text-xs text-slate-500 mt-1">Overall Vector</div>
+                                            <div className="text-3xl font-bold text-zinc-100">{c1.overall_score ? c1.overall_score.toFixed(1) : '-'}</div>
+                                            <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
                                         </div>
                                         <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center text-center">
                                             <div className="text-sm text-purple-400 font-medium mb-2 line-clamp-1">{c2.candidate_name || 'Candidate 2'}</div>
                                             <div className="mb-3">{renderStatusBadge(c2.status, c2.updated_at)}</div>
-                                            <div className="text-3xl font-bold text-slate-100">{c2.overall_score ? c2.overall_score.toFixed(1) : '-'}</div>
-                                            <div className="text-xs text-slate-500 mt-1">Overall Vector</div>
+                                            <div className="text-3xl font-bold text-zinc-100">{c2.overall_score ? c2.overall_score.toFixed(1) : '-'}</div>
+                                            <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/50 relative">
+                                    <div className="bg-[var(--surface-base)] rounded-xl p-4 border border-white/10 relative">
                                         <RadarChart
                                             currentData={scores1}
                                             previousScores={scores2}
@@ -714,14 +714,14 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                             showAllTime={false}
                                             size="large"
                                         />
-                                        <div className="absolute top-4 right-4 flex flex-col gap-2 text-xs bg-slate-900/80 p-3 rounded-lg border border-slate-800 backdrop-blur-sm">
+                                        <div className="absolute top-4 right-4 flex flex-col gap-2 text-xs bg-[var(--surface-1)]/80 p-3 rounded-lg border border-white/8 backdrop-blur-sm">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-blue-500 border border-slate-900"></div>
-                                                <span className="text-slate-200">{c1.candidate_name || 'Candidate 1'}</span>
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 border border-[var(--surface-base)]"></div>
+                                                <span className="text-zinc-200">{c1.candidate_name || 'Candidate 1'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-purple-500 border border-slate-900"></div>
-                                                <span className="text-slate-200">{c2.candidate_name || 'Candidate 2'}</span>
+                                                <div className="w-3 h-3 rounded-full bg-purple-500 border border-[var(--surface-base)]"></div>
+                                                <span className="text-zinc-200">{c2.candidate_name || 'Candidate 2'}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -749,24 +749,24 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
             {/* Submission Details Side Panel */}
             {
                 viewDetailsSubmissionId && (
-                    <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-right duration-300">
+                    <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-[var(--surface-1)] border-l border-white/8 shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-right duration-300">
                         {isLoadingReport || !reportData ? (
                             <div className="flex items-center justify-center flex-1">
                                 <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
                             </div>
                         ) : (
                             <>
-                                <div className="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-900">
+                                <div className="p-6 border-b border-white/8 flex justify-between items-start bg-[var(--surface-1)]">
                                     <div>
                                         <h3 className="text-xl font-bold text-white mb-1">{reportData.candidate.name || 'Anonymous'}</h3>
-                                        <p className="text-sm text-slate-400">{reportData.candidate.email || 'No email provided'}</p>
+                                        <p className="text-sm text-zinc-400">{reportData.candidate.email || 'No email provided'}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => window.print()} className="text-slate-300 border-slate-700 hover:text-white hover:bg-slate-800">
+                                        <Button variant="outline" size="sm" onClick={() => window.print()} className="text-zinc-300 border-white/10 hover:text-white hover:bg-[var(--surface-2)]">
                                             <Download className="w-4 h-4 mr-2" />
                                             Print / PDF
                                         </Button>
-                                        <Button variant="ghost" onClick={() => setViewDetailsSubmissionId(null)} className="text-slate-400 hover:text-white">
+                                        <Button variant="ghost" onClick={() => setViewDetailsSubmissionId(null)} className="text-zinc-400 hover:text-white">
                                             Close
                                         </Button>
                                     </div>
@@ -774,15 +774,15 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                 <div className="flex-1 overflow-y-auto p-6 space-y-8 report-print-area">
                                     {/* Summary section */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</div>
+                                        <div className="bg-[var(--surface-base)] p-4 rounded-xl border border-white/8">
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Status</div>
                                             <div>{renderStatusBadge(
                                                 submissions.find(s => s.id === viewDetailsSubmissionId)?.status || 'unknown',
                                                 reportData.candidate.lastActiveAt
                                             )}</div>
                                         </div>
-                                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Overall Vector</div>
+                                        <div className="bg-[var(--surface-base)] p-4 rounded-xl border border-white/8">
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Overall Vector</div>
                                             <div className={`text-2xl font-bold ${getScoreColor(reportData.scores?.overall).split(' ')[0]}`}>
                                                 {reportData.scores?.overall ? reportData.scores.overall.toFixed(1) : 'N/A'}
                                             </div>
@@ -790,20 +790,20 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     </div>
 
                                     {/* Timing section */}
-                                    <div className="text-sm text-slate-400 space-y-2">
+                                    <div className="text-sm text-zinc-400 space-y-2">
                                         <div className="flex justify-between">
                                             <span>Started:</span>
-                                            <span className="text-slate-200">{new Date(reportData.candidate.startedAt).toLocaleString()}</span>
+                                            <span className="text-zinc-200">{new Date(reportData.candidate.startedAt).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span>Last Active:</span>
-                                            <span className="text-slate-200">{new Date(reportData.candidate.lastActiveAt).toLocaleString()}</span>
+                                            <span className="text-zinc-200">{new Date(reportData.candidate.lastActiveAt).toLocaleString()}</span>
                                         </div>
                                     </div>
 
                                     {/* Radar Chart (if scores available) */}
                                     {reportData.scores && (
-                                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                        <div className="bg-[var(--surface-base)] p-4 rounded-xl border border-white/8">
                                             <h4 className="text-white font-bold mb-4 flex items-center gap-2">
                                                 <BarChart2 className="w-4 h-4 text-purple-400" /> Skill Breakdown
                                             </h4>
@@ -819,7 +819,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     {reportData.overallFeedback && (
                                         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
                                             <h4 className="text-blue-400 font-bold mb-2">Overall Feedback</h4>
-                                            <p className="text-slate-300 text-sm">{reportData.overallFeedback}</p>
+                                            <p className="text-zinc-300 text-sm">{reportData.overallFeedback}</p>
                                         </div>
                                     )}
 
@@ -831,22 +831,22 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                         <div className="space-y-4">
                                             {(reportData.questions || []).map((qs: any, index: number) => {
                                                 return (
-                                                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                                    <div key={index} className="bg-[var(--surface-base)] border border-white/8 rounded-xl p-4">
                                                         <div className="flex justify-between items-center mb-2">
-                                                            <div className="font-bold text-slate-200">{qs.title}</div>
-                                                            <div className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
+                                                            <div className="font-bold text-zinc-200">{qs.title}</div>
+                                                            <div className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--surface-2)] text-zinc-400 uppercase">
                                                                 {qs.status}
                                                             </div>
                                                         </div>
-                                                        <div className="flex justify-between items-center text-sm text-slate-400 mb-3">
+                                                        <div className="flex justify-between items-center text-sm text-zinc-400 mb-3">
                                                             <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {qs.timeSpentMins} / {qs.timeLimitMins} mins</span>
                                                             <span>{qs.status === 'completed' && reportData.scores?.overall ? 'Scored' : 'Not scored'}</span>
                                                         </div>
 
                                                         {qs.status !== 'not_started' && qs.transcript && qs.transcript.length > 0 && (
-                                                            <div className="mt-4 pt-4 border-t border-slate-800">
-                                                                <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Transcript Preview</div>
-                                                                <div className="bg-slate-900 rounded p-3 font-mono text-xs text-slate-300 max-h-32 overflow-hidden relative">
+                                                            <div className="mt-4 pt-4 border-t border-white/8">
+                                                                <div className="text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wide">Transcript Preview</div>
+                                                                <div className="bg-[var(--surface-1)] rounded p-3 font-mono text-xs text-zinc-300 max-h-32 overflow-hidden relative">
                                                                     <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-900 to-transparent"></div>
                                                                     {qs.transcript.map((t: any, i: number) => (
                                                                         <div key={i} className="mb-2">
@@ -863,7 +863,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                     </div>
 
                                     {/* Full Transcript Viewer Button */}
-                                    <div className="pt-4 border-t border-slate-800 pb-8">
+                                    <div className="pt-4 border-t border-white/8 pb-8">
                                         <Button
                                             className="w-full bg-blue-600 hover:bg-blue-500 text-white"
                                             onClick={() => {

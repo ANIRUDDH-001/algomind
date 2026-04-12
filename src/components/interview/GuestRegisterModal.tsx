@@ -10,14 +10,14 @@ interface GuestRegisterModalProps {
     onClose: () => void;
 }
 
-export function GuestRegisterModal({ isOpen, onClose }: GuestRegisterModalProps) {
+export function GuestRegisterModal({ isOpen, onClose: _onClose }: GuestRegisterModalProps) {
     const router = useRouter();
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden group">
+            <div className="rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden group" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                 {/* Visual Flair */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/20 blur-3xl rounded-full group-hover:bg-blue-600/30 transition-colors duration-500" />
                 <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-600/20 blur-3xl rounded-full group-hover:bg-indigo-600/30 transition-colors duration-500" />
@@ -29,38 +29,38 @@ export function GuestRegisterModal({ isOpen, onClose }: GuestRegisterModalProps)
 
                     <div className="space-y-2">
                         <h2 className="text-3xl font-extrabold text-white tracking-tight">Level Up Your Preparation</h2>
-                        <p className="text-slate-400 text-lg">
+                        <p className="text-zinc-400 text-lg">
                             You&apos;ve completed your guest trial. Sign in to unlock the full AlgoMind experience.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                        <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             <History className="w-5 h-5 text-blue-400 mt-1" />
                             <div>
                                 <h4 className="font-semibold text-white text-sm">Session Persistence</h4>
-                                <p className="text-slate-400 text-xs">Save transcripts and track your growth over time.</p>
+                                <p className="text-zinc-400 text-xs">Save transcripts and track your growth over time.</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             <Target className="w-5 h-5 text-indigo-400 mt-1" />
                             <div>
                                 <h4 className="font-semibold text-white text-sm">Advanced Insights</h4>
-                                <p className="text-slate-400 text-xs">Deep-dive analysis on your coding patterns.</p>
+                                <p className="text-zinc-400 text-xs">Deep-dive analysis on your coding patterns.</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             <ShieldCheck className="w-5 h-5 text-emerald-400 mt-1" />
                             <div>
                                 <h4 className="font-semibold text-white text-sm">Full Library</h4>
-                                <p className="text-slate-400 text-xs">Access 250+ community & premium problems.</p>
+                                <p className="text-zinc-400 text-xs">Access 250+ community & premium problems.</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             <LogIn className="w-5 h-5 text-purple-400 mt-1" />
                             <div>
                                 <h4 className="font-semibold text-white text-sm">Instant Auth</h4>
-                                <p className="text-slate-400 text-xs">Secure login with Github or Google.</p>
+                                <p className="text-zinc-400 text-xs">Secure login with Github or Google.</p>
                             </div>
                         </div>
                     </div>
@@ -74,7 +74,7 @@ export function GuestRegisterModal({ isOpen, onClose }: GuestRegisterModalProps)
                         </Button>
                         <button
                             onClick={() => router.push('/')}
-                            className="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors"
+                            className="text-zinc-500 hover:text-zinc-300 text-sm font-medium transition-colors"
                         >
                             Continue Browsing
                         </button>

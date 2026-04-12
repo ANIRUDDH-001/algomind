@@ -50,8 +50,8 @@ export function ShareReplayButton({ sessionId, className }: ShareReplayButtonPro
             disabled={status === 'loading'}
             className={cn(
                 "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
-                status === 'idle' ? "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-blue-400" :
-                    status === 'loading' ? "bg-slate-800 border-slate-700 text-slate-400 cursor-not-allowed" :
+                status === 'idle' ? "bg-[var(--surface-1)] border-white/10 text-zinc-300 hover:bg-[var(--surface-2)] hover:text-blue-400" :
+                    status === 'loading' ? "bg-[var(--surface-2)] border-white/10 text-zinc-400 cursor-not-allowed" :
                         status === 'success' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" :
                             "bg-red-500/20 border-red-500/30 text-red-400",
                 className

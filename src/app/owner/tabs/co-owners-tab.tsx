@@ -75,7 +75,7 @@ export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
                         placeholder="trusted.colleague@example.com"
-                        className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
+                        className="flex-1 bg-[var(--surface-2)]/50 border border-white/15 rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
                         disabled={isAdding}
                     />
                     <Button
@@ -97,7 +97,7 @@ export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
                         {ownersList.map(owner => (
                             <Card key={owner.id} className="p-5 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 flex items-center justify-between gap-4 group">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-amber-500 shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-amber-500 shrink-0">
                                         <Key className="w-5 h-5" />
                                     </div>
                                     <div>

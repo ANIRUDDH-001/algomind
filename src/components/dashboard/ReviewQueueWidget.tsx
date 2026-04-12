@@ -93,7 +93,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                     return (
                         <div
                             key={review.problemId}
-                            className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-amber-500/30 transition-colors group"
+                            className="flex items-center justify-between p-3 rounded-2xl bg-[var(--surface-1)]/50 border border-white/8 hover:border-amber-500/30 transition-colors group"
                         >
                             <div className="flex flex-col gap-1.5">
                                 <div className="flex items-center gap-2">
@@ -105,18 +105,18 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                                     )}>
                                         {review.problemDifficulty}
                                     </span>
-                                    <span className="text-sm font-bold text-slate-200 capitalize group-hover:text-amber-400 transition-colors">
+                                    <span className="text-sm font-bold text-zinc-200 capitalize group-hover:text-amber-400 transition-colors">
                                         {review.problemTitle || review.problemId.replace(/-/g, ' ')}
                                     </span>
                                     {approxScore != null && (
-                                        <Badge variant="outline" className="text-[9px] bg-slate-800/50 text-slate-300 border-slate-700 h-4 px-1.5 ml-1">
+                                        <Badge variant="outline" className="text-[9px] bg-[var(--surface-2)]/50 text-zinc-300 border-white/10 h-4 px-1.5 ml-1">
                                             Score: {approxScore}/10
                                         </Badge>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-400 font-medium">Rep #{review.fsrsReps}</span>
-                                    <span className="text-[10px] text-slate-600">•</span>
+                                    <span className="text-[10px] text-zinc-400 font-medium">Rep #{review.fsrsReps}</span>
+                                    <span className="text-[10px] text-zinc-600">•</span>
                                     <span className={cn(
                                         "text-[10px] font-bold",
                                         isOverdue ? "text-red-400" : "text-amber-400"
@@ -144,7 +144,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
 
                 {hasMore && (
                     <div className="flex items-center justify-between pt-2 px-1">
-                        <span className="text-xs font-medium text-slate-500">And {dueReviews.length - displayLimit} more waiting</span>
+                        <span className="text-xs font-medium text-zinc-500">And {dueReviews.length - displayLimit} more waiting</span>
                     </div>
                 )}
             </div>
@@ -167,7 +167,7 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                             </div>
                             <h4 className="text-sm font-bold text-emerald-400">All caught up! 🎉</h4>
                             {upcomingReviews.length > 0 && (
-                                <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
+                                <p className="text-xs text-zinc-500 flex items-center justify-center gap-1.5">
                                     <Clock className="w-3 h-3" /> Next review: {new Date(upcomingReviews[0].fsrsDueDate).toLocaleDateString()}
                                 </p>
                             )}
@@ -209,14 +209,14 @@ export function ReviewQueueWidget({ userId, onDueCountChange }: ReviewQueueWidge
                 <div className="mt-auto space-y-2 pt-4 border-t border-amber-800/20">
                     <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-1.5">
-                            <Flame className={cn("w-3.5 h-3.5", reviewedThisWeek > 0 ? "text-amber-500" : "text-slate-600")} />
-                            <span className="text-slate-400 font-medium">
+                            <Flame className={cn("w-3.5 h-3.5", reviewedThisWeek > 0 ? "text-amber-500" : "text-zinc-600")} />
+                            <span className="text-zinc-400 font-medium">
                                 {reviewedThisWeek} problem{reviewedThisWeek !== 1 ? 's' : ''} reviewed this week
                             </span>
                         </div>
                         <span className="font-bold text-amber-500">{progressPercent}%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-900/50 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-[var(--surface-1)]/50 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-out"
                             style={{ width: `${progressPercent}%` }}

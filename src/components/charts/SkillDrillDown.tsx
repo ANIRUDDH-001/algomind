@@ -34,10 +34,10 @@ export function SkillDrillDown({ skill, sessions, onClose }: SkillDrillDownProps
     }
 
     return (
-        <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 shadow-2xl relative w-full mt-6 md:mt-0 animate-in fade-in slide-in-from-bottom-4 duration-300 backdrop-blur-md">
+        <div className="bg-[var(--surface-1)]/80 border border-white/10 rounded-2xl p-4 shadow-2xl relative w-full mt-6 md:mt-0 animate-in fade-in slide-in-from-bottom-4 duration-300 backdrop-blur-md">
             <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1 rounded-full hover:bg-slate-800"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors p-1 rounded-full hover:bg-[var(--surface-2)]"
             >
                 <X className="w-4 h-4" />
             </button>
@@ -46,13 +46,13 @@ export function SkillDrillDown({ skill, sessions, onClose }: SkillDrillDownProps
                 {def.name}
             </h3>
 
-            <p className="text-xs text-slate-400 mb-4 line-clamp-2">
+            <p className="text-xs text-zinc-400 mb-4 line-clamp-2">
                 {def.description}
             </p>
 
             <div className="flex items-end gap-3 mb-4">
                 <div className="text-3xl font-black text-white">
-                    {currentScore.toFixed(1)} <span className="text-lg text-slate-500 font-normal">/ 10</span>
+                    {currentScore.toFixed(1)} <span className="text-lg text-zinc-500 font-normal">/ 10</span>
                 </div>
                 {previousScore !== null && (
                     <div className={`text-xs font-bold mb-1.5 ${trend >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -89,7 +89,7 @@ export function SkillDrillDown({ skill, sessions, onClose }: SkillDrillDownProps
 
             <button
                 onClick={() => toast('Coming in insights update', { icon: '🚧' })}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-colors border border-slate-700 hover:border-slate-600 flex items-center justify-center gap-1"
+                className="w-full py-2 bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-white text-xs font-bold rounded-lg transition-colors border border-white/10 hover:border-white/15 flex items-center justify-center gap-1"
             >
                 Practice this skill &rarr;
             </button>

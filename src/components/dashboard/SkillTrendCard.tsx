@@ -46,17 +46,17 @@ function SkillTrendCardBase({ skill, sessions, className }: SkillTrendCardProps)
                 'stable';
 
     return (
-        <div className={cn("flex flex-col gap-4 p-5 bg-slate-900/40 border border-slate-800/60 rounded-3xl h-full shadow-lg", className)}>
+        <div className={cn("flex flex-col gap-4 p-5 bg-[var(--surface-1)]/40 border border-white/8/60 rounded-3xl h-full shadow-lg", className)}>
             <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">{definition.name}</h4>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-zinc-500">{definition.name}</h4>
                     <div className="flex items-center gap-2">
                         <span className="text-2xl font-black text-white">{current.toFixed(1)}</span>
                         <div className={cn(
                             "flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter",
                             trend === 'improving' ? "bg-emerald-500/10 text-emerald-400" :
                                 trend === 'declining' ? "bg-red-500/10 text-red-400" :
-                                    "bg-slate-500/10 text-slate-500"
+                                    "bg-white/5 text-zinc-500"
                         )}>
                             {trend === 'improving' && <TrendingUp className="w-3 h-3" />}
                             {trend === 'declining' && <TrendingDown className="w-3 h-3" />}

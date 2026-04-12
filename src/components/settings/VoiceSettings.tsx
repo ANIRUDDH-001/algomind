@@ -161,7 +161,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
     };
 
     if (loading && voices.length === 0) {
-        return <div className="p-4 text-center text-slate-500">Loading voice engine...</div>;
+        return <div className="p-4 text-center text-zinc-500">Loading voice engine...</div>;
     }
 
     return (

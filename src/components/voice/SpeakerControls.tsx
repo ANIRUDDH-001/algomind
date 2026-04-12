@@ -35,7 +35,7 @@ export function SpeakerControls({
     const englishVoices = availableVoices.filter(v => v.lang.startsWith('en'));
 
     return (
-        <div className="flex flex-col gap-4 p-4 border rounded-xl bg-slate-900/50 backdrop-blur-sm shadow-sm">
+        <div className="flex flex-col gap-4 p-4 border rounded-xl bg-[var(--surface-1)]/50 backdrop-blur-sm shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Volume2 className="h-5 w-5 text-blue-400" />
@@ -47,11 +47,11 @@ export function SpeakerControls({
 
                 <div className="flex gap-2">
                     {isSpeaking && !isPaused ? (
-                        <Button size="icon" variant="ghost" onClick={onPause} className="h-8 w-8 hover:bg-slate-800">
+                        <Button size="icon" variant="ghost" onClick={onPause} className="h-8 w-8 hover:bg-[var(--surface-2)]">
                             <Pause className="h-4 w-4" />
                         </Button>
                     ) : isSpeaking && isPaused ? (
-                        <Button size="icon" variant="ghost" onClick={onResume} className="h-8 w-8 hover:bg-slate-800">
+                        <Button size="icon" variant="ghost" onClick={onResume} className="h-8 w-8 hover:bg-[var(--surface-2)]">
                             <Play className="h-4 w-4" />
                         </Button>
                     ) : (
@@ -77,7 +77,7 @@ export function SpeakerControls({
                             if (v) onVoiceChange(v);
                         }}
                     >
-                        <SelectTrigger className="h-8 text-xs bg-slate-800 border-slate-700">
+                        <SelectTrigger className="h-8 text-xs bg-[var(--surface-2)] border-white/10">
                             <SelectValue placeholder="Select Voice" />
                         </SelectTrigger>
                         <SelectContent>

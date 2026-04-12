@@ -43,17 +43,17 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
     if (isLoading) {
         return (
             <div className="flex justify-center items-center py-12">
-                <Dumbbell className="w-8 h-8 text-slate-800 animate-pulse" />
+                <Dumbbell className="w-8 h-8 text-zinc-800 animate-pulse" />
             </div>
         );
     }
 
     if (!snapshot) {
         return (
-            <div className="p-12 border border-dashed border-slate-800 rounded-3xl text-center bg-slate-900/20" data-tour="insights">
-                <Lightbulb className="w-8 h-8 text-slate-600 mx-auto mb-4" />
-                <h3 className="text-slate-400 font-bold mb-1">Complete your first interview</h3>
-                <p className="text-slate-500 text-sm">Personalized insights will unlock here once we evaluate your cognitive profile.</p>
+            <div className="p-12 border border-dashed border-white/8 rounded-3xl text-center bg-[var(--surface-1)]/20" data-tour="insights">
+                <Lightbulb className="w-8 h-8 text-zinc-600 mx-auto mb-4" />
+                <h3 className="text-zinc-400 font-bold mb-1">Complete your first interview</h3>
+                <p className="text-zinc-500 text-sm">Personalized insights will unlock here once we evaluate your cognitive profile.</p>
             </div>
         );
     }
@@ -78,7 +78,7 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
                     {insights.map((card, idx) => (
                         <div
                             key={idx}
-                            className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col"
+                            className="bg-[var(--surface-1)]/40 border border-white/8 rounded-3xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col"
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <Badge
@@ -87,12 +87,12 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
                                         "uppercase text-[10px] font-black tracking-widest px-2",
                                         card.priority === 'high' ? "border-red-500/50 text-red-500 bg-red-500/5" :
                                             card.priority === 'medium' ? "border-blue-500/50 text-blue-500 bg-blue-500/5" :
-                                                "border-slate-500/50 text-slate-400 bg-slate-500/5"
+                                                "border-white/10 text-zinc-400 bg-white/5"
                                     )}
                                 >
                                     {card.priority} Priority
                                 </Badge>
-                                <div className="p-2 bg-slate-800/50 rounded-xl">
+                                <div className="p-2 bg-[var(--surface-2)]/50 rounded-xl">
                                     {TYPE_ICONS[card.type] || <Lightbulb className="w-4 h-4 text-amber-400" />}
                                 </div>
                             </div>
@@ -100,29 +100,29 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
                             <h3 className="text-lg font-bold text-white mb-2 leading-tight">
                                 {card.title}
                             </h3>
-                            <p className="text-xs text-slate-500 mb-6 leading-relaxed flex-1">
+                            <p className="text-xs text-zinc-500 mb-6 leading-relaxed flex-1">
                                 {card.body}
                             </p>
 
                             {card.problemSuggestions && card.problemSuggestions.length > 0 && (
                                 <div className="space-y-2 mt-auto">
                                     {card.problemSuggestions.map(prob => (
-                                        <div key={prob.id} className="flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800/80 rounded-2xl">
+                                        <div key={prob.id} className="flex items-center justify-between p-3 bg-[var(--surface-base)]/50 border border-white/8/80 rounded-2xl">
                                             <div className="flex items-center gap-3">
                                                 <div className={cn(
                                                     "w-1.5 h-1.5 rounded-full",
                                                     prob.difficulty === 'easy' ? "bg-emerald-500" :
                                                         prob.difficulty === 'medium' ? "bg-blue-500" : "bg-red-500"
                                                 )} />
-                                                <span className="text-xs font-bold text-slate-300">{prob.title}</span>
+                                                <span className="text-xs font-bold text-zinc-300">{prob.title}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {prob.leetcodeUrl && (
-                                                    <a href={prob.leetcodeUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-blue-400" title="View on LeetCode">
+                                                    <a href={prob.leetcodeUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-zinc-500 hover:text-blue-400" title="View on LeetCode">
                                                         <ExternalLink className="w-3.5 h-3.5" />
                                                     </a>
                                                 )}
-                                                <Link href={`/interview?problemId=${prob.id}`} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-purple-400" title="Mock Interview">
+                                                <Link href={`/interview?problemId=${prob.id}`} className="p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-zinc-500 hover:text-purple-400" title="Mock Interview">
                                                     <Play className="w-3.5 h-3.5" />
                                                 </Link>
                                             </div>
@@ -131,7 +131,7 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
                                 </div>
                             )}
 
-                            <Target className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-800 opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+                            <Target className="absolute -bottom-4 -right-4 w-24 h-24 text-zinc-800 opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
                         </div>
                     ))}
                 </div>
@@ -140,11 +140,11 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
             {/* RECOMMENDED PROBLEMS COLLECTION */}
             {recommendedProblems.length > 0 && (
                 <div className="mt-12 space-y-4">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Recommended for you</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400">Recommended for you</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {recommendedProblems.map(prob => (
                             <Link key={prob.id} href={`/interview?problemId=${prob.id}`} className="block group">
-                                <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl hover:border-blue-500/30 transition-all h-full flex flex-col">
+                                <div className="p-4 bg-[var(--surface-1)]/40 border border-white/8 rounded-2xl hover:border-blue-500/30 transition-all h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className={cn(
                                             "text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded",
@@ -154,13 +154,13 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
                                             {prob.difficulty}
                                         </div>
                                         {prob.leetcodeUrl && (
-                                            <span className="text-[9px] font-bold bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">LC</span>
+                                            <span className="text-[9px] font-bold bg-[var(--surface-2)] text-zinc-400 px-1.5 py-0.5 rounded">LC</span>
                                         )}
                                     </div>
-                                    <h4 className="font-bold text-slate-200 mb-1">{prob.title}</h4>
+                                    <h4 className="font-bold text-zinc-200 mb-1">{prob.title}</h4>
                                     <div className="flex flex-wrap gap-1 mt-auto pt-3">
                                         {prob.patternTags?.slice(0, 2).map((tag, idx) => (
-                                            <span key={idx} className="text-[10px] bg-slate-950/50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-800/50">
+                                            <span key={idx} className="text-[10px] bg-[var(--surface-base)]/50 text-zinc-500 px-1.5 py-0.5 rounded border border-white/10">
                                                 {tag}
                                             </span>
                                         ))}
@@ -173,12 +173,12 @@ export function InsightsPanel({ userId }: InsightsPanelProps) {
             )}
 
             {/* TIER REASONING STRIP */}
-            <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="p-4 bg-[var(--surface-1)]/40 border border-white/8 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h4 className="text-white font-bold text-sm">Target Tier {recommendedTier}</h4>
-                    <p className="text-xs text-slate-500 mt-1 max-w-2xl">{tierReasoning}</p>
+                    <p className="text-xs text-zinc-500 mt-1 max-w-2xl">{tierReasoning}</p>
                 </div>
-                <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right shrink-0">
+                <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest text-right shrink-0">
                     Based on {sessionsSnapshot} session{sessionsSnapshot !== 1 ? 's' : ''}
                 </div>
             </div>

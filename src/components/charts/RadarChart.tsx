@@ -180,9 +180,9 @@ export function RadarChart({
             </ResponsiveContainer>
 
             {allTimeData && (
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-4 text-[10px] text-slate-400 font-medium">
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-4 text-[10px] text-zinc-400 font-medium">
                     <div className="flex items-center gap-1.5"><span className="text-[COLORS.chart[2]] text-xs" style={{ color: COLORS.chart[2] }}>●</span> This session</div>
-                    <div className="flex items-center gap-1.5"><span className="text-slate-500 text-xs shadow-none">○</span> All-time avg</div>
+                    <div className="flex items-center gap-1.5"><span className="text-zinc-500 text-xs shadow-none">○</span> All-time avg</div>
                 </div>
             )}
         </div>

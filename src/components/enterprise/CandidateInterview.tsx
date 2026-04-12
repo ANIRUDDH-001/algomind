@@ -182,8 +182,8 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
     if (phase === 'entry_code') {
         const isLocked = lockoutTimer > 0;
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-                <Card className="max-w-md w-full p-8 bg-slate-900 border-slate-800">
+            <div className="min-h-screen bg-[var(--surface-base)] flex flex-col items-center justify-center p-4">
+                <Card className="max-w-md w-full p-8 bg-[var(--surface-1)] border-white/8">
                     <div className="flex justify-center mb-6">
                         <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center">
                             <Briefcase className="w-8 h-8 text-blue-500" />
@@ -191,14 +191,14 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                     </div>
 
                     <h1 className="text-2xl font-bold text-center text-white mb-2">{campaign.title}</h1>
-                    <p className="text-slate-400 text-sm text-center mb-8">
+                    <p className="text-zinc-400 text-sm text-center mb-8">
                         To access this assessment, enter the entry code provided by your employer.
                     </p>
 
                     <form onSubmit={handleVerify} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
                                     Name
                                 </label>
                                 <input
@@ -206,13 +206,13 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                     required
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    className="w-full bg-[var(--surface-base)] border border-white/8 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                                     placeholder="Jane Doe"
                                     disabled={isVerifying || isLocked || !!user}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
                                     Email
                                 </label>
                                 <input
@@ -220,7 +220,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                     required
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                    className="w-full bg-[var(--surface-base)] border border-white/8 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                                     placeholder="jane@example.com"
                                     disabled={isVerifying || isLocked || !!user}
                                 />
@@ -228,7 +228,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                         </div>
 
                         <div className="pt-2">
-                            <label className="block text-sm font-medium text-slate-300 mb-2 text-center">
+                            <label className="block text-sm font-medium text-zinc-300 mb-2 text-center">
                                 Entry Code
                             </label>
                             <input
@@ -241,7 +241,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                         setEntryCode(formatted);
                                     }
                                 }}
-                                className="w-full bg-slate-950 border-2 border-slate-700 focus:border-blue-500 rounded-lg px-4 py-3 text-white text-center font-mono text-xl tracking-[0.2em] transition-colors uppercase disabled:opacity-50"
+                                className="w-full bg-[var(--surface-base)] border-2 border-white/10 focus:border-indigo-500 rounded-lg px-4 py-3 text-white text-center font-mono text-xl tracking-[0.2em] transition-colors uppercase disabled:opacity-50"
                                 placeholder="XXX-XXX-XXX"
                                 disabled={isVerifying || isLocked}
                             />
@@ -257,7 +257,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                         <div className="pt-4">
                             <Button
                                 type="submit"
-                                className={`w-full py-6 font-semibold shadow-lg ${isLocked ? 'bg-slate-800 text-slate-500' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                                className={`w-full py-6 font-semibold shadow-lg ${isLocked ? 'bg-[var(--surface-2)] text-zinc-500' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
                                 disabled={isVerifying || isLocked || !entryCode || !name || !email}
                             >
                                 {isVerifying ? <div className="w-5 h-5 mx-auto rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> :
@@ -299,55 +299,55 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
         const displayQuestions = hasQuestions ? campaignQuestions : [{ title: "Coding Challenge", time_limit_mins: totalTimeLimitMins, difficulty: 'medium' }];
 
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 py-12 overflow-y-auto">
-                <Card className="max-w-lg w-full p-8 bg-slate-900 border-slate-800 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-6">
+            <div className="min-h-screen bg-[var(--surface-base)] flex flex-col items-center justify-center p-4 py-12 overflow-y-auto">
+                <Card className="max-w-lg w-full p-8 bg-[var(--surface-1)] border-white/8 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/8 pb-6">
                         <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
                             <Briefcase className="w-6 h-6 text-blue-500" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white leading-tight">Assessment Overview</h2>
-                            <p className="text-slate-400 text-sm mt-0.5">{campaign.title}</p>
+                            <p className="text-zinc-400 text-sm mt-0.5">{campaign.title}</p>
                         </div>
                     </div>
 
                     <div className="space-y-6">
                         <div>
-                            <p className="text-slate-300 font-medium mb-3">You will complete {displayQuestions.length} coding question{displayQuestions.length > 1 ? 's' : ''}:</p>
+                            <p className="text-zinc-300 font-medium mb-3">You will complete {displayQuestions.length} coding question{displayQuestions.length > 1 ? 's' : ''}:</p>
 
-                            <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800/50">
+                            <div className="bg-[var(--surface-base)] border border-white/8 rounded-xl overflow-hidden divide-y divide-slate-800/50">
                                 {displayQuestions.map((q: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-900/50 hover:bg-slate-800/50 transition-colors">
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-[var(--surface-1)]/50 hover:bg-[var(--surface-2)]/50 transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-slate-500 font-mono text-xs w-5 font-bold">#{idx + 1}</span>
-                                            <span className="font-medium text-slate-200">{q.title}</span>
+                                            <span className="text-zinc-500 font-mono text-xs w-5 font-bold">#{idx + 1}</span>
+                                            <span className="font-medium text-zinc-200">{q.title}</span>
                                         </div>
                                         <div className="flex items-center gap-4 text-sm font-mono">
                                             <span className={difficultyColors[q.difficulty || 'medium']} title={q.difficulty}>
                                                 {difficultyLabels[q.difficulty || 'medium']}
                                             </span>
-                                            <span className="text-slate-400 flex items-center gap-1.5 min-w-[60px] justify-end">
+                                            <span className="text-zinc-400 flex items-center gap-1.5 min-w-[60px] justify-end">
                                                 <Clock className="w-3.5 h-3.5" />
                                                 {q.time_limit_mins}m
                                             </span>
                                         </div>
                                     </div>
                                 ))}
-                                <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex justify-between items-center text-sm font-semibold">
-                                    <span className="text-slate-400 uppercase tracking-wider text-xs ml-2">Total Time</span>
+                                <div className="p-3 bg-[var(--surface-base)]/80 border-t border-white/8 flex justify-between items-center text-sm font-semibold">
+                                    <span className="text-zinc-400 uppercase tracking-wider text-xs ml-2">Total Time</span>
                                     <span className="text-blue-400 mr-2">{totalTimeLimitMins} mins</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-slate-800/30 rounded-xl p-5 border border-slate-700/50">
-                            <h3 className="text-slate-200 font-bold mb-3 flex items-center gap-2">
+                        <div className="bg-[var(--surface-2)]/30 rounded-xl p-5 border border-white/15">
+                            <h3 className="text-zinc-200 font-bold mb-3 flex items-center gap-2">
                                 <span className="bg-blue-500 text-xs px-2 py-0.5 rounded text-white font-mono">RULES</span>
                             </h3>
-                            <ul className="text-sm text-slate-400 space-y-2.5">
+                            <ul className="text-sm text-zinc-400 space-y-2.5">
                                 <li className="flex gap-2">
                                     <span className="text-blue-400 mt-0.5">•</span>
-                                    <span>Timer starts when you click "<strong className="text-slate-300">Begin Assessment</strong>"</span>
+                                    <span>Timer starts when you click "<strong className="text-zinc-300">Begin Assessment</strong>"</span>
                                 </li>
                                 <li className="flex gap-2">
                                     <span className="text-blue-400 mt-0.5">•</span>
@@ -367,7 +367,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                                 </li>
                                 <li className="flex gap-2">
                                     <span className="text-blue-400 mt-0.5">•</span>
-                                    <span>Scores shown after completion: <strong className="text-slate-300">{campaign.show_score_to_candidate ? 'Yes' : 'No'}</strong></span>
+                                    <span>Scores shown after completion: <strong className="text-zinc-300">{campaign.show_score_to_candidate ? 'Yes' : 'No'}</strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -392,7 +392,7 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
                 </Card>
 
                 <div className="max-w-lg w-full mt-6">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 text-center mb-4">Optional Voice Settings</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-600 text-center mb-4">Optional Voice Settings</p>
                     <VoiceSettings inline />
                 </div>
             </div>
@@ -401,11 +401,11 @@ export function CandidateInterview({ campaign }: { campaign: CampaignData }) {
 
     if (phase === 'submitting') {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-                <Card className="max-w-md w-full p-8 bg-slate-900 border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="min-h-screen bg-[var(--surface-base)] flex flex-col items-center justify-center p-4">
+                <Card className="max-w-md w-full p-8 bg-[var(--surface-1)] border-white/8 text-center flex flex-col items-center justify-center space-y-4">
                     <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
                     <p className="text-white font-medium">Submitting your assessment...</p>
-                    <p className="text-slate-400 text-sm">Please don't close this tab.</p>
+                    <p className="text-zinc-400 text-sm">Please don't close this tab.</p>
                 </Card>
             </div>
         );

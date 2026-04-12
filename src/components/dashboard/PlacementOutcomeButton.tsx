@@ -108,7 +108,7 @@ export function PlacementOutcomeButton() {
       </Button>
 
       {isOpen && (
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 space-y-4">
+        <div className="rounded-2xl border border-white/10 bg-[var(--surface-1)]/60 p-5 space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">
               Company Name *
@@ -117,7 +117,7 @@ export function PlacementOutcomeButton() {
               placeholder="e.g. Google, TCS, Infosys"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="bg-slate-800 border-white/10 text-white placeholder-zinc-500"
+              className="bg-[var(--surface-2)] border-white/10 text-white placeholder-zinc-500"
             />
           </div>
 
@@ -129,7 +129,7 @@ export function PlacementOutcomeButton() {
               placeholder="e.g. SDE-1, Software Engineer"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="bg-slate-800 border-white/10 text-white placeholder-zinc-500"
+              className="bg-[var(--surface-2)] border-white/10 text-white placeholder-zinc-500"
             />
           </div>
 

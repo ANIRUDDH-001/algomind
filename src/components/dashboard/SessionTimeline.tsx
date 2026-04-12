@@ -27,7 +27,7 @@ export function SessionTimeline({ sessions, onSessionClick }: SessionTimelinePro
     const isMilestone = (index: number) => (sessions.length - index) % 5 === 0 && (sessions.length - index) !== 0;
 
     return (
-        <div className="relative group/timeline w-full bg-slate-900/10 rounded-3xl p-6 border border-slate-800/30 overflow-hidden shadow-inner" data-tour="journey-progress">
+        <div className="relative group/timeline w-full bg-[var(--surface-1)]/10 rounded-3xl p-6 border border-white/8/30 overflow-hidden shadow-inner" data-tour="journey-progress">
             <div className="flex items-center justify-between mb-8 px-2">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
@@ -35,7 +35,7 @@ export function SessionTimeline({ sessions, onSessionClick }: SessionTimelinePro
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-white tracking-wide uppercase">Journey Progress</h3>
-                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">
+                        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5">
                             {sessions.length} sessions completed
                         </p>
                     </div>
@@ -45,7 +45,7 @@ export function SessionTimeline({ sessions, onSessionClick }: SessionTimelinePro
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-white hover:bg-slate-800"
+                        className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-[var(--surface-2)]"
                         onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
                     >
                         <ChevronLeft className="w-4 h-4" />
@@ -53,7 +53,7 @@ export function SessionTimeline({ sessions, onSessionClick }: SessionTimelinePro
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-white hover:bg-slate-800"
+                        className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-[var(--surface-2)]"
                         onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
                     >
                         <ChevronRight className="w-4 h-4" />

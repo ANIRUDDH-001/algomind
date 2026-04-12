@@ -68,7 +68,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6 lg:p-10">
+        <div className="min-h-screen bg-[var(--surface-base)] text-white p-6 lg:p-10">
             <div className="max-w-[1400px] mx-auto space-y-8">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-orange-500 flex items-center gap-3">

@@ -26,7 +26,7 @@ export function AssessmentLoader() {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--surface-base)]/80 backdrop-blur-xl">
             <div className="flex flex-col items-center gap-8 max-w-md w-full px-6">
 
                 <div className="relative">
@@ -52,19 +52,19 @@ export function AssessmentLoader() {
                     <h2 className="text-2xl font-black tracking-tight text-white uppercase">
                         Cognitive Analysis in Progress
                     </h2>
-                    <p className="text-slate-400 font-medium">
+                    <p className="text-zinc-400 font-medium">
                         AlgoMind is processing your interview transcript to extract skill insights. This usually takes about 10-15 seconds.
                     </p>
 
                     <div className="flex flex-col gap-2 mt-8">
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500"
                                 animate={{ x: [-400, 400] }}
                                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                             />
                         </div>
-                        <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-slate-500">
+                        <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-zinc-500">
                             <motion.span
                                 key={currentSkill}
                                 initial={{ opacity: 0, y: 5 }}

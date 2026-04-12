@@ -88,7 +88,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
     const durationMin = Math.floor(durationSec / 60);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+        <div className="min-h-screen text-zinc-100 flex flex-col font-sans" style={{ background: 'var(--surface-base)' }}>
             {/* B6: Fallback banner when viewing without annotations */}
             {isFallback && (
                 <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-center">
@@ -101,7 +101,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                 </div>
             )}
             {/* HEADER */}
-            <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-4 shrink-0">
+            <header className="sticky top-0 z-50 glass border-b border-white/8 p-4 shrink-0">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-500 rounded-xl p-2 shrink-0">
@@ -113,21 +113,22 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                                 <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-widest ${session.problem_difficulty === 'easy' ? 'bg-emerald-500/10 text-emerald-400' :
                                     session.problem_difficulty === 'medium' ? 'bg-blue-500/10 text-blue-400' :
                                         session.problem_difficulty === 'hard' ? 'bg-red-500/10 text-red-400' :
-                                            'bg-slate-800 text-slate-400'
+                                            'bg-white/5 text-zinc-400'
                                     }`}>
                                     {session.problem_difficulty || 'Unknown'}
                                 </span>
                             </h1>
-                            <p className="text-xs text-slate-500">{durationMin} min mock interview</p>
+                            <p className="text-xs text-zinc-500">{durationMin} min mock interview</p>
                         </div>
                     </div>
 
                     <Link
                         href="/"
-                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl text-sm font-bold transition-all text-white group"
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all text-white group hover:brightness-110"
+                        style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge-hi)', border: '1px solid var(--surface-edge-hi)' }}
                     >
                         Try AlgoMind
-                        <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
+                        <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-indigo-400" />
                     </Link>
                 </div>
             </header>
@@ -139,18 +140,18 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                     {/* ANNOTATIONS SCROLL-N-SNAP STRIP (Mobile) / TIMELINE (Desktop) */}
                     {annotations.length > 0 && (
                         <div className="mb-8">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">AI Interviewer Notes</h3>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">AI Interviewer Notes</h3>
                             <div className="grid gap-3 sm:grid-cols-2">
                                 {annotations.map((ann, idx) => (
-                                    <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 flex gap-4">
+                                    <div key={idx} className="surface-1 rounded-2xl p-4 flex gap-4">
                                         <div className="shrink-0 mt-1">
                                             {ann.type === 'good' ? <ThumbsUp className="w-4 h-4 text-emerald-400" /> :
                                                 ann.type === 'missed' ? <AlertCircle className="w-4 h-4 text-amber-400" /> :
                                                     <Lightbulb className="w-4 h-4 text-blue-400" />}
                                         </div>
                                         <div>
-                                            <p className="text-sm text-slate-300 leading-relaxed font-medium">{ann.text}</p>
-                                            <div className="mt-2 text-[10px] font-mono text-slate-500">
+                                            <p className="text-sm text-zinc-300 leading-relaxed font-medium">{ann.text}</p>
+                                            <div className="mt-2 text-[10px] font-mono text-zinc-500">
                                                 {Math.floor(ann.timestamp_seconds / 60)}:{String(ann.timestamp_seconds % 60).padStart(2, '0')}
                                             </div>
                                         </div>
@@ -162,7 +163,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
 
                     {/* TRANSCRIPT */}
                     <div className="space-y-6 mt-8">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6">Interview Transcript</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-6">Interview Transcript</h3>
 
                         {transcript.length > 0 ? (
                             transcript.map((msg, i) => {
@@ -173,8 +174,9 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                                     <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] sm:max-w-[75%] rounded-3xl p-5 ${isUser
                                             ? 'bg-blue-600/20 border border-blue-500/30 text-blue-50 rounded-tr-sm'
-                                            : 'bg-slate-900 border border-slate-800 text-slate-300 rounded-tl-sm'
-                                            }`}>
+                                            : 'text-zinc-300 rounded-tl-sm'
+                                            }`}
+                                            style={!isUser ? { background: 'var(--surface-1)', borderColor: 'var(--surface-edge)', border: '1px solid var(--surface-edge)' } : {}}>
                                             <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-50 flex items-center justify-between">
                                                 <span>{isUser ? 'Candidate' : 'Interviewer'}</span>
                                             </div>
@@ -186,7 +188,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
                                 );
                             })
                         ) : (
-                            <div className="p-12 text-center border border-dashed border-slate-800 rounded-3xl text-slate-500 space-y-4">
+                            <div className="p-12 text-center border border-dashed border-white/8 rounded-3xl text-zinc-500 space-y-4">
                                 <p>Transcript data is missing or corrupted for this session.</p>
                             </div>
                         )}
@@ -195,7 +197,7 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
             </main>
 
             {/* MOBILE PERSISTENT CTA */}
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 z-50">
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 glass border-t border-white/8 z-50">
                 <Link
                     href="/"
                     className="flex justify-center items-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold transition-colors shadow-lg shadow-blue-900/20"

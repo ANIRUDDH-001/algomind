@@ -25,14 +25,14 @@ export function AIStatusTab() {
             .catch(() => setLoading(false));
     }, []);
 
-    if (loading) return <div className="text-slate-400 p-4">Loading model status...</div>;
+    if (loading) return <div className="text-zinc-400 p-4">Loading model status...</div>;
 
     return (
         <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">AI Model Status</h2>
             <div className="grid gap-2">
                 {models.map(m => (
-                    <div key={m.id} className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-800">
+                    <div key={m.id} className="flex items-center justify-between p-3 bg-[var(--surface-1)] rounded-lg border border-white/8">
                         <div className="flex items-center gap-3">
                             {m.is_active && !m.deprecated_at
                                 ? <CheckCircle className="w-4 h-4 text-green-500" />
@@ -42,7 +42,7 @@ export function AIStatusTab() {
                             }
                             <div>
                                 <div className="text-sm font-mono text-white">{m.id}</div>
-                                <div className="text-xs text-slate-500">{m.provider} · Tier {m.tier}</div>
+                                <div className="text-xs text-zinc-500">{m.provider} · Tier {m.tier}</div>
                             </div>
                         </div>
                         <div className="text-xs">
@@ -50,7 +50,7 @@ export function AIStatusTab() {
                                 ? <span className="text-red-400">Deprecated</span>
                                 : m.is_active
                                     ? <span className="text-green-400">Active</span>
-                                    : <span className="text-slate-500">Inactive</span>
+                                    : <span className="text-zinc-500">Inactive</span>
                             }
                         </div>
                     </div>

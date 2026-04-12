@@ -132,7 +132,7 @@ function DashboardContent() {
                 <div className="max-w-md space-y-4">
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
                         <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
-                        <p className="text-slate-500 text-sm mt-2">{error}</p>
+                        <p className="text-zinc-500 text-sm mt-2">{error}</p>
                     </div>
                 </div>
             </div>
@@ -226,7 +226,7 @@ function DashboardContent() {
 
                                     {/* Kai's Cognitive Narrative */}
                                     {progress?.narrative && (
-                                        <div className="rounded-2xl border border-white/5 p-5 bg-slate-900/40">
+                                        <div className="rounded-2xl border border-white/5 p-5 bg-[var(--surface-1)]/40">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-black shrink-0">
                                                     K
@@ -340,7 +340,7 @@ function DashboardContent() {
                                                         </div>
                                                         <button
                                                             onClick={() => handleSessionClick(session)}
-                                                            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-blue-400"
+                                                            className="p-2 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-blue-400"
                                                         >
                                                             <ChevronRight className="w-5 h-5" />
                                                         </button>
@@ -356,7 +356,7 @@ function DashboardContent() {
                                 <div className="space-y-8">
                                     <div className="flex flex-col gap-1">
                                         <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Personalized Insights</h2>
-                                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">AI-generated path based on your cognitive profile</p>
+                                        <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest">AI-generated path based on your cognitive profile</p>
                                     </div>
 
                                     {progress?.userId && (

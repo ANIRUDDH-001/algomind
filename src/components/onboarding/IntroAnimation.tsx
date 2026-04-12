@@ -175,7 +175,7 @@ export function IntroAnimation({ onComplete, skip }: IntroAnimationProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: step >= 2 ? 1 : 0 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
-                className="absolute bottom-1/4 text-slate-300 text-lg font-medium"
+                className="absolute bottom-1/4 text-zinc-300 text-lg font-medium"
             >
                 AI-Powered DSA Interview Practice
             </motion.p>

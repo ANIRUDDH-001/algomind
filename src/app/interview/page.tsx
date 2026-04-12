@@ -236,24 +236,24 @@ function InterviewContent() {
 
     if (loading) {
         return (
-            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex flex-col lg:flex-row p-4 gap-4 animate-pulse">
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] flex flex-col lg:flex-row p-4 gap-4 animate-pulse">
                 {/* Desktop Skeleton Layout */}
-                <div className="hidden lg:flex w-1/4 h-full bg-slate-900/50 rounded-xl border border-slate-800/50 flex-col p-4 gap-4">
-                    <div className="h-6 w-3/4 bg-slate-800 rounded"></div>
-                    <div className="h-4 w-1/2 bg-slate-800 rounded"></div>
-                    <div className="flex-1 bg-slate-800/30 rounded-lg"></div>
+                <div className="hidden lg:flex w-1/4 h-full bg-[var(--surface-1)]/50 rounded-xl border border-white/10 flex-col p-4 gap-4">
+                    <div className="h-6 w-3/4 bg-[var(--surface-2)] rounded"></div>
+                    <div className="h-4 w-1/2 bg-[var(--surface-2)] rounded"></div>
+                    <div className="flex-1 bg-[var(--surface-2)]/30 rounded-lg"></div>
                 </div>
-                <div className="hidden lg:flex w-1/2 h-full bg-slate-900/50 rounded-xl border border-slate-800/50 flex-col p-8 items-center justify-center gap-6">
-                    <div className="w-32 h-32 rounded-full bg-slate-800/50"></div>
-                    <div className="h-8 w-64 bg-slate-800 rounded"></div>
+                <div className="hidden lg:flex w-1/2 h-full bg-[var(--surface-1)]/50 rounded-xl border border-white/10 flex-col p-8 items-center justify-center gap-6">
+                    <div className="w-32 h-32 rounded-full bg-[var(--surface-2)]/50"></div>
+                    <div className="h-8 w-64 bg-[var(--surface-2)] rounded"></div>
                 </div>
-                <div className="hidden lg:flex w-1/4 h-full bg-slate-900/50 rounded-xl border border-slate-800/50"></div>
+                <div className="hidden lg:flex w-1/4 h-full bg-[var(--surface-1)]/50 rounded-xl border border-white/10"></div>
 
                 {/* Mobile Skeleton Layout */}
                 <div className="lg:hidden flex-1 flex flex-col items-center justify-center gap-4">
-                    <div className="w-24 h-24 rounded-full bg-slate-800/50"></div>
-                    <div className="h-6 w-48 bg-slate-800 rounded"></div>
-                    <p className="text-slate-500 text-sm">Preparing Session...</p>
+                    <div className="w-24 h-24 rounded-full bg-[var(--surface-2)]/50"></div>
+                    <div className="h-6 w-48 bg-[var(--surface-2)] rounded"></div>
+                    <p className="text-zinc-500 text-sm">Preparing Session...</p>
                 </div>
             </div>
         );
@@ -261,15 +261,15 @@ function InterviewContent() {
 
     if (error || !problem) {
         return (
-            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex items-center justify-center text-white">
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] flex items-center justify-center text-white">
                 <div className="text-center max-w-md px-6">
                     <p className="text-red-400 text-lg mb-4">{error || 'Problem not found'}</p>
                     {rateLimitInfo && !rateLimitInfo.allowed ? (
-                        <p className="text-slate-500 text-sm">
+                        <p className="text-zinc-500 text-sm">
                             You&apos;ve used all your daily questions. Come back tomorrow!
                         </p>
                     ) : (
-                        <p className="text-slate-500 text-sm">
+                        <p className="text-zinc-500 text-sm">
                             Run the SQL script in Supabase to add problems to your database.
                         </p>
                     )}
@@ -280,17 +280,17 @@ function InterviewContent() {
 
     if (!user && !guestModeEnabled) {
         return (
-            <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 flex items-center justify-center text-white">
+            <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] flex items-center justify-center text-white">
                 <div className="text-center max-w-md px-6">
                     <p className="text-amber-400 text-lg mb-4">Guest mode is currently disabled.</p>
-                    <p className="text-slate-500 text-sm">Please sign in to continue your interview practice.</p>
+                    <p className="text-zinc-500 text-sm">Please sign in to continue your interview practice.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 text-slate-100 overflow-hidden">
+        <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] text-zinc-100 overflow-hidden">
             <BrowserCompatBanner />
             <InterviewErrorBoundary>
                 {problem && interviewConfig && (
@@ -310,7 +310,7 @@ function InterviewContent() {
 
 export default function InterviewPage() {
     return (
-        <Suspense fallback={<div className="fixed inset-0 top-[var(--navbar-h)] bg-slate-950 overflow-hidden" />}>
+        <Suspense fallback={<div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] overflow-hidden" />}>
             <InterviewContent />
         </Suspense>
     );

@@ -68,30 +68,30 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
     );
 
     return (
-        <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-sm">
+        <section className="rounded-2xl border border-white/5 bg-[var(--surface-1)]/40 p-6 backdrop-blur-sm">
             <div className="space-y-1">
                 <h2 className="text-2xl font-black tracking-tight text-white">Let&apos;s personalize your prep</h2>
-                <p className="text-sm font-medium text-slate-400">Two quick questions - 30 seconds</p>
+                <p className="text-sm font-medium text-zinc-400">Two quick questions - 30 seconds</p>
             </div>
 
             <div className="mt-6 space-y-6">
                 <div className="space-y-3">
                     <div className="space-y-1">
-                        <p className="text-sm font-semibold text-slate-100">When is your placement season?</p>
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                        <p className="text-sm font-semibold text-zinc-100">When is your placement season?</p>
+                        <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">
                             Select Month & Year
                         </label>
                     </div>
-                    <div className="space-y-3 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                    <div className="space-y-3 rounded-xl border border-white/10 bg-[var(--surface-base)]/70 p-4">
                         <div className="flex items-center justify-between">
                             <button
                                 onClick={prevMonth}
                                 className="rounded-lg p-2 hover:bg-white/5 transition"
                                 aria-label="Previous months"
                             >
-                                <ChevronLeft className="w-4 h-4 text-slate-400" />
+                                <ChevronLeft className="w-4 h-4 text-zinc-400" />
                             </button>
-                            <span className="text-sm font-semibold text-slate-200">
+                            <span className="text-sm font-semibold text-zinc-200">
                                 {calendarMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
                             </span>
                             <button
@@ -99,7 +99,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                                 className="rounded-lg p-2 hover:bg-white/5 transition"
                                 aria-label="Next months"
                             >
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                                <ChevronRight className="w-4 h-4 text-zinc-400" />
                             </button>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
@@ -118,7 +118,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                                         className={`rounded-lg py-3 px-2 text-sm font-medium transition ${
                                             isSelected
                                                 ? 'bg-indigo-600 text-white'
-                                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                                : 'bg-[var(--surface-2)] text-zinc-300 hover:bg-[var(--surface-3)]'
                                         }`}
                                     >
                                         {date.toLocaleString('en-US', { month: 'short' })}
@@ -128,7 +128,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                             })}
                         </div>
                         {!placementMonth && (
-                            <div className="text-xs text-slate-500 text-center">
+                            <div className="text-xs text-zinc-500 text-center">
                                 Select a month to continue
                             </div>
                         )}
@@ -137,8 +137,8 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
 
                 <div className="space-y-3">
                     <div className="space-y-1">
-                        <p className="text-sm font-semibold text-slate-100">Which companies are you targeting?</p>
-                        <label htmlFor="target-companies" className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                        <p className="text-sm font-semibold text-zinc-100">Which companies are you targeting?</p>
+                        <label htmlFor="target-companies" className="text-xs font-bold uppercase tracking-widest text-zinc-500">
                             Target Companies
                         </label>
                     </div>
@@ -147,7 +147,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                         value={targetCompanies}
                         onChange={(event) => setTargetCompanies(event.target.value)}
                         placeholder="e.g. Google, Microsoft, TCS, Infosys"
-                        className="h-11 rounded-xl border-white/10 bg-slate-950/70 text-slate-100 placeholder:text-slate-500"
+                        className="h-11 rounded-xl border-white/10 bg-[var(--surface-base)]/70 text-zinc-100 placeholder:text-zinc-500"
                     />
                 </div>
             </div>
@@ -163,7 +163,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
                 <Button
                     onClick={onSkip}
                     variant="ghost"
-                    className="flex-1 rounded-xl border border-white/10 bg-transparent text-slate-300 hover:bg-white/5 hover:text-white"
+                    className="flex-1 rounded-xl border border-white/10 bg-transparent text-zinc-300 hover:bg-white/5 hover:text-white"
                 >
                     Skip for now
                 </Button>

@@ -43,12 +43,12 @@ interface HireReadinessTrendProps {
 export function HireReadinessTrend({ trend }: HireReadinessTrendProps) {
     if (!trend || trend.length === 0) {
         return (
-            <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4" data-testid="hire-readiness-empty">
+            <div className="bg-[var(--surface-1)]/40 border border-white/8/60 rounded-2xl p-4" data-testid="hire-readiness-empty">
                 <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hire Readiness</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Hire Readiness</span>
                 </div>
-                <p className="text-xs text-slate-500">Complete sessions to track hire readiness trend.</p>
+                <p className="text-xs text-zinc-500">Complete sessions to track hire readiness trend.</p>
             </div>
         );
     }
@@ -79,11 +79,11 @@ export function HireReadinessTrend({ trend }: HireReadinessTrendProps) {
     const lineColor = HIRE_COLORS[latestValue] ?? '#6b7280';
 
     return (
-        <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4" data-testid="hire-readiness-trend">
+        <div className="bg-[var(--surface-1)]/40 border border-white/8/60 rounded-2xl p-4" data-testid="hire-readiness-trend">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hire Readiness</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Hire Readiness</span>
                 </div>
                 <span
                     className="text-xs font-black px-2 py-0.5 rounded-full"
@@ -140,13 +140,13 @@ export function HireReadinessTrend({ trend }: HireReadinessTrendProps) {
             </svg>
 
             {/* Y-axis labels */}
-            <div className="flex justify-between text-[8px] text-slate-600 font-bold mt-1 px-1">
+            <div className="flex justify-between text-[8px] text-zinc-600 font-bold mt-1 px-1">
                 <span>Strong No</span>
                 <span>Borderline</span>
                 <span>Strong Hire</span>
             </div>
 
-            <p className="text-[9px] text-slate-600 mt-2 italic leading-tight" data-testid="hire-readiness-tooltip">
+            <p className="text-[9px] text-zinc-600 mt-2 italic leading-tight" data-testid="hire-readiness-tooltip">
                 Hire Readiness reflects AI evaluation of interview performance at this difficulty level. It is one signal, not a prediction.
             </p>
         </div>

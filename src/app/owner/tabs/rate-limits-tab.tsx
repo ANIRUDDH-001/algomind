@@ -88,7 +88,7 @@ export function RateLimitsTab() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="user@example.com"
-                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl pl-9 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                            className="w-full bg-[var(--surface-2)]/50 border border-white/15 rounded-xl pl-9 pr-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                             disabled={isUpdating}
                         />
                     </div>
@@ -98,7 +98,7 @@ export function RateLimitsTab() {
                         value={overrideLimit}
                         onChange={(e) => setOverrideLimit(e.target.value)}
                         placeholder="e.g. 50"
-                        className="w-full sm:w-32 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                        className="w-full sm:w-32 bg-[var(--surface-2)]/50 border border-white/15 rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50"
                         disabled={isUpdating}
                     />
                     <Button

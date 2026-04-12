@@ -28,12 +28,12 @@ export class InterviewErrorBoundary extends React.Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="fixed inset-0 top-[var(--navbar-h,64px)] bg-slate-950 flex items-center justify-center text-white">
+                <div className="fixed inset-0 top-[var(--navbar-h,64px)] flex items-center justify-center text-white" style={{ background: 'var(--surface-base)' }}>
                     <div className="text-center max-w-md px-6">
                         <p className="text-red-400 text-lg mb-4">Session encountered an unexpected error</p>
                         <button
                             onClick={() => this.setState({ hasError: false, error: null })}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 transition-colors rounded-xl font-bold"
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-xl font-bold"
                         >
                             Try Again
                         </button>

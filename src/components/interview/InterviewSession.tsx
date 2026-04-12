@@ -1567,11 +1567,11 @@ export function InterviewSession({
 
             {sprintTransitionMsg && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-slate-800 border border-emerald-500/50 rounded-2xl p-8 text-center max-w-sm mx-4">
+                    <div className="border border-emerald-500/50 rounded-2xl p-8 text-center max-w-sm mx-4" style={{ background: 'var(--surface-2)' }}>
                         <div className="text-5xl mb-4">⚡</div>
                         <h2 className="text-xl font-bold text-white mb-2">Sprint Progress</h2>
                         <p className="text-emerald-400 text-lg font-medium">{sprintTransitionMsg}</p>
-                        <p className="text-slate-400 text-sm mt-3">Problem 1 of 2 complete · Timer continues</p>
+                        <p className="text-zinc-400 text-sm mt-3">Problem 1 of 2 complete · Timer continues</p>
                     </div>
                 </div>
             )}

@@ -79,8 +79,9 @@ export function AssessmentCompleteContent() {
     const scoreOffset = score ? circumference - (score / 10) * circumference : circumference;
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-            <Card className={`max-w-md w-full p-8 bg-slate-900 border-slate-800 text-center transition-all duration-1000 transform ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: 'var(--surface-base)' }}>
+            <Card className={`max-w-md w-full p-8 text-center transition-all duration-1000 transform ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+                style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
 
                 {/* CSS Animated Checkmark */}
                 <div className="mx-auto w-24 h-24 mb-8 relative">
@@ -91,14 +92,14 @@ export function AssessmentCompleteContent() {
                 </div>
 
                 <h1 className="text-3xl font-bold text-white mb-4" data-testid="thank-you-title">Interview Complete</h1>
-                <p className="text-slate-400 mb-6 leading-relaxed" data-testid="employer-review-note">
+                <p className="text-zinc-400 mb-6 leading-relaxed" data-testid="employer-review-note">
                     Thank you for completing the assessment. Results will be reviewed by the employer. You&apos;ll hear from them directly regarding next steps.
                 </p>
 
                 {/* Analysis pending banner — shown when async edge function is processing */}
                 {!analysisAvailable && submissionId && (
-                    <div className="mb-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                        <div className="flex items-center gap-2 mb-1 text-slate-300 text-sm font-medium">
+                    <div className="mb-6 p-4 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
+                        <div className="flex items-center gap-2 mb-1 text-zinc-300 text-sm font-medium">
                             <Clock className="w-4 h-4" />
                             Processing your results…
                         </div>
@@ -111,16 +112,17 @@ export function AssessmentCompleteContent() {
 
                 {/* Optional Score Gauge — only if show_score_to_candidate is true */}
                 {showScore && score !== null && (
-                    <div className={`mb-10 p-6 bg-slate-950/50 rounded-xl border border-slate-800 transition-all duration-1000 delay-500 ${isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                    <div className={`mb-10 p-6 rounded-xl transition-all duration-1000 delay-500 ${isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                        style={{ background: 'var(--surface-base)', border: '1px solid var(--surface-edge)' }}
                         data-testid="score-display"
                     >
-                        <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">Your Performance</h3>
+                        <h3 className="text-sm font-medium text-zinc-400 mb-4 uppercase tracking-wider">Your Performance</h3>
                         <div className="relative w-32 h-32 mx-auto justify-center items-center flex">
                             <svg className="transform -rotate-90 w-32 h-32">
                                 <circle
                                     cx="64" cy="64" r={radius}
                                     stroke="currentColor" strokeWidth="8" fill="transparent"
-                                    className="text-slate-800"
+                                    className="text-white/20"
                                 />
                                 <circle
                                     cx="64" cy="64" r={radius}
@@ -134,7 +136,7 @@ export function AssessmentCompleteContent() {
                             </svg>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-3xl font-bold text-white">{score.toFixed(1)}</span>
-                                <span className="text-xs text-slate-500">/ 10</span>
+                                <span className="text-xs text-zinc-500">/ 10</span>
                             </div>
                         </div>
                     </div>
@@ -150,7 +152,7 @@ export function AssessmentCompleteContent() {
                                 <TrendingUp className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
                                 <div>
                                     <span className="text-xs font-bold text-emerald-400" data-testid="strongest-area">Your strongest area: {strongest.name}</span>
-                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                    <p className="text-[11px] text-zinc-400 mt-0.5">
                                         You showed strong capability in this dimension. Keep building on this strength.
                                     </p>
                                 </div>
@@ -162,7 +164,7 @@ export function AssessmentCompleteContent() {
                                 <TrendingDown className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
                                 <div>
                                     <span className="text-xs font-bold text-amber-400" data-testid="improvement-area">To improve: {weakest.name}</span>
-                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                    <p className="text-[11px] text-zinc-400 mt-0.5">
                                         Practice problems that focus on {weakest.name.toLowerCase()} to strengthen this area.
                                     </p>
                                 </div>
@@ -184,7 +186,7 @@ export function AssessmentCompleteContent() {
                             {weakest && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-black text-indigo-500">1.</span>
-                                    <span className="text-xs text-slate-300">
+                                    <span className="text-xs text-zinc-300">
                                         Focus on <strong className="text-indigo-300">{weakest.name}</strong> — {SKILL_DEFINITIONS[weakest.skill].description.split('.')[0]}.
                                     </span>
                                 </div>
@@ -192,7 +194,7 @@ export function AssessmentCompleteContent() {
                             {secondWeakest && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-black text-indigo-500">2.</span>
-                                    <span className="text-xs text-slate-300">
+                                    <span className="text-xs text-zinc-300">
                                         Strengthen <strong className="text-indigo-300">{secondWeakest.name}</strong> — {SKILL_DEFINITIONS[secondWeakest.skill].description.split('.')[0]}.
                                     </span>
                                 </div>
@@ -202,20 +204,21 @@ export function AssessmentCompleteContent() {
                 )}
 
                 {/* Viral CTA Loop */}
-                <div className="border-t border-slate-800 pt-8 mt-4">
+                <div className="border-t border-white/8 pt-8 mt-4">
                     <div className="flex justify-center mb-4">
                         <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
                             <Sparkles className="w-6 h-6 text-blue-500" />
                         </div>
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Want to improve for next time?</h3>
-                    <p className="text-sm text-slate-400 mb-6">
+                    <p className="text-sm text-zinc-400 mb-6">
                         AlgoMind offers AI-powered technical interviews that adapt to your skill level. Practice standard DSA and behavioral questions instantly.
                     </p>
 
                     <Button
                         onClick={() => router.push('/')}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium group"
+                        className="w-full text-white py-6 text-lg font-medium group hover:brightness-110"
+                        style={{ background: 'var(--accent-primary)' }}
                     >
                         Practice on AlgoMind
                         <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />

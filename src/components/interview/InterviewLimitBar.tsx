@@ -56,16 +56,16 @@ export function InterviewLimitBar({
     }
 
     return (
-        <div className="flex flex-col gap-1.5 text-xs text-slate-400">
+        <div className="flex flex-col gap-1.5 text-xs text-zinc-400">
             <div className="flex items-center gap-4">
                 {/* Time: elapsed / total */}
                 <div className="flex items-center gap-1.5">
                     <span className={isWarning ? 'text-amber-400' : ''}>
                         ⏱ {formatMs(elapsed)}
                     </span>
-                    <span className="text-slate-600">/</span>
-                    <span className="text-slate-500">{formatMs(maxMs)}</span>
-                    <div className="w-16 h-1 bg-slate-700 rounded-full overflow-hidden">
+                    <span className="text-zinc-600">/</span>
+                    <span className="text-zinc-500">{formatMs(maxMs)}</span>
+                    <div className="w-16 h-1 bg-[var(--surface-3)] rounded-full overflow-hidden">
                         <div
                             className={`h-full rounded-full transition-all ${timePercent > 80 ? 'bg-amber-500' : 'bg-blue-500'}`}
                             style={{ width: `${timePercent}%` }}

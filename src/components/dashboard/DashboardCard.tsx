@@ -43,7 +43,7 @@ export function DashboardCard({
                         <CardTitle className="text-lg font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                             {title}
                         </CardTitle>
-                        {subtitle && <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">{subtitle}</p>}
+                        {subtitle && <p className="text-xs text-zinc-500 font-medium tracking-wide uppercase">{subtitle}</p>}
                     </div>
                     {action && (
                         <Button

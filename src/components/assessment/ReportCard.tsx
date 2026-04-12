@@ -77,7 +77,7 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
                                 <div className="flex-1 space-y-4 relative z-10">
                                     <div className="space-y-1">
                                         <h1 className="text-3xl font-black text-white leading-tight">Assessment Complete.</h1>
-                                        <p className="text-slate-400 font-medium">Interview Performance: <span className="text-blue-400">{assessment.problem?.title || 'Interview Assessment'}</span></p>
+                                        <p className="text-zinc-400 font-medium">Interview Performance: <span className="text-blue-400">{assessment.problem?.title || 'Interview Assessment'}</span></p>
                                     </div>
                                     <div className="flex flex-wrap gap-4 pt-2">
                                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-zinc-300 font-semibold" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
@@ -172,7 +172,7 @@ export function ReportCard({ assessment, onClose }: ReportCardProps) {
 
                         <Button
                             onClick={() => router.push('/dashboard')}
-                            className="h-11 px-12 bg-white text-black hover:bg-slate-200 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-2"
+                            className="h-11 px-12 bg-white text-black hover:bg-zinc-200 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-2"
                         >
                             <LayoutDashboard className="w-4 h-4" />
                             Go to Dashboard

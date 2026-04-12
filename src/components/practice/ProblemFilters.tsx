@@ -72,20 +72,25 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
         onFilterChange({ ...currentFilters, topic: newTopic });
     };
 
-    // Shared select styles - dark background with proper text color
-    const selectStyles = "appearance-none bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors";
+    // Shared select styles - tokenized surface with indigo focus ring
+    const selectStyles = "appearance-none text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors";
 
     return (
         <div className="flex flex-col gap-4 mb-6">
             {/* Search Bar */}
             <div className="relative w-full md:max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
                     type="text"
                     placeholder="Search problems (e.g., 'Two Sum')"
                     value={currentFilters.searchQuery}
                     onChange={handleSearchChange}
-                    className="w-full bg-slate-800 border border-slate-700 text-white text-sm font-medium rounded-lg pl-10 pr-4 py-2.5 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    className="w-full text-sm font-medium rounded-lg pl-10 pr-4 py-2.5 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
+                    style={{
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--surface-edge)',
+                        color: 'white'
+                    }}
                 />
             </div>
 
@@ -96,14 +101,19 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                         value={currentFilters.topic}
                         onChange={(e) => handleTopicChange(e.target.value)}
                         className={selectStyles}
+                        style={{
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            outline: 'none'
+                        }}
                     >
                         {TOPICS.map((topic) => (
-                            <option key={topic.value} value={topic.value} className="bg-slate-800 text-white">
+                            <option key={topic.value} value={topic.value} style={{ background: 'var(--surface-2)', color: 'white' }}>
                                 {topic.label}
                             </option>
                         ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
 
                 {/* Curated List Dropdown */}
@@ -112,14 +122,19 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                         value={currentFilters.curatedList}
                         onChange={(e) => handleCuratedListChange(e.target.value)}
                         className={selectStyles}
+                        style={{
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            outline: 'none'
+                        }}
                     >
                         {CURATED_LISTS.map((list) => (
-                            <option key={list.value} value={list.value} className="bg-slate-800 text-white">
+                            <option key={list.value} value={list.value} style={{ background: 'var(--surface-2)', color: 'white' }}>
                                 {list.label}
                             </option>
                         ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
 
                 {/* Difficulty Dropdown */}
@@ -128,13 +143,18 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                         value={currentFilters.difficulty}
                         onChange={(e) => handleDifficultyChange(e.target.value as 'all' | 'easy' | 'medium' | 'hard')}
                         className={selectStyles}
+                        style={{
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            outline: 'none'
+                        }}
                     >
-                        <option value="all" className="bg-slate-800 text-white">All Levels</option>
-                        <option value="easy" className="bg-slate-800 text-white">🟢 Easy</option>
-                        <option value="medium" className="bg-slate-800 text-white">🟡 Medium</option>
-                        <option value="hard" className="bg-slate-800 text-white">🔴 Hard</option>
+                        <option value="all" style={{ background: 'var(--surface-2)', color: 'white' }}>All Levels</option>
+                        <option value="easy" style={{ background: 'var(--surface-2)', color: 'white' }}>🟢 Easy</option>
+                        <option value="medium" style={{ background: 'var(--surface-2)', color: 'white' }}>🟡 Medium</option>
+                        <option value="hard" style={{ background: 'var(--surface-2)', color: 'white' }}>🔴 Hard</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
 
                 {/* Attempted Status Dropdown */}
@@ -143,12 +163,17 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                         value={currentFilters.attempted}
                         onChange={(e) => handleAttemptedChange(e.target.value as 'all' | 'attempted' | 'not-attempted')}
                         className={selectStyles}
+                        style={{
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--surface-edge)',
+                            outline: 'none'
+                        }}
                     >
-                        <option value="all" className="bg-slate-800 text-white">All Status</option>
-                        <option value="attempted" className="bg-slate-800 text-white">✓ Attempted</option>
-                        <option value="not-attempted" className="bg-slate-800 text-white">New Problems</option>
+                        <option value="all" style={{ background: 'var(--surface-2)', color: 'white' }}>All Status</option>
+                        <option value="attempted" style={{ background: 'var(--surface-2)', color: 'white' }}>✓ Attempted</option>
+                        <option value="not-attempted" style={{ background: 'var(--surface-2)', color: 'white' }}>New Problems</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
             </div>
         </div>

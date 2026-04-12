@@ -81,7 +81,7 @@ function ConfigSlider({
                 step={step}
                 value={value}
                 onChange={(e) => onChange(configKey, Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-1.5 bg-[var(--surface-2)] rounded-full appearance-none cursor-pointer accent-blue-500"
             />
         </div>
     );
@@ -277,7 +277,7 @@ export function VoiceDebugTab() {
                             onClick={() => handleConfigChange('debugMode', !config.debugMode)}
                             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ${config.debugMode
                                 ? 'bg-indigo-600 border-indigo-500'
-                                : 'bg-slate-700 border-slate-600'
+                                : 'bg-[var(--surface-3)] border-white/15'
                                 }`}
                         >
                             <span

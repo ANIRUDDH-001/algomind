@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     await requireAdmin();
 
     return (
-        <div className="min-h-screen bg-slate-950">
+        <div className="min-h-screen bg-[var(--surface-base)]">
             {/* Main Content Area */}
             <main className="max-w-[1400px] mx-auto p-6 md:p-10 w-full relative">
                 <div className="mb-6">

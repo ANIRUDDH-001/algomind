@@ -124,7 +124,7 @@ export default function AdminsClient() {
                                     value={newEmail}
                                     onChange={(e) => setNewEmail(e.target.value)}
                                     placeholder="engineer@example.com"
-                                    className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    className="flex-1 bg-[var(--surface-2)]/50 border border-white/15 rounded-xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                                     disabled={isAdding}
                                 />
                                 <Button
@@ -163,7 +163,7 @@ export default function AdminsClient() {
                         <Card className="p-8 bg-[var(--surface-1)]/40 border-red-900/50 flex flex-col items-center justify-center text-center gap-4">
                             <AlertCircle className="w-8 h-8 text-red-500" />
                             <p className="text-red-400 font-medium">{error}</p>
-                            <Button onClick={fetchAdmins} variant="outline" className="border-slate-700 active:scale-95 transition-all">
+                            <Button onClick={fetchAdmins} variant="outline" className="border-white/10 active:scale-95 transition-all">
                                 Retry
                             </Button>
                         </Card>
@@ -174,7 +174,7 @@ export default function AdminsClient() {
                             {admins.map((admin) => (
                                 <Card key={admin.id} className="p-4 sm:p-5 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-zinc-400 shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-zinc-400 shrink-0">
                                             {admin.email[0].toUpperCase()}
                                         </div>
                                         <div>
@@ -207,7 +207,7 @@ export default function AdminsClient() {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="border-slate-700 bg-slate-800 text-zinc-300 hover:bg-slate-700 hover:text-white"
+                                                    className="border-white/10 bg-[var(--surface-2)] text-zinc-300 hover:bg-[var(--surface-3)] hover:text-white"
                                                     onClick={() => setConfirmingDelete(null)}
                                                 >
                                                     Cancel

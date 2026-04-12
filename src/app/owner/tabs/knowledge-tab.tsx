@@ -191,9 +191,9 @@ export function KnowledgeTab() {
         });
     };
 
-    if (adminLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-zinc-400">Loading...</div>;
+    if (adminLoading) return <div className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center text-zinc-400">Loading...</div>;
 
-    if (!isAdmin) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Access Denied</div>;
+    if (!isAdmin) return <div className="min-h-screen bg-[var(--surface-base)] flex items-center justify-center text-white">Access Denied</div>;
 
     const priorityColors: Record<string, string> = {
         critical: 'text-red-400',
@@ -203,7 +203,7 @@ export function KnowledgeTab() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white pb-20">
+        <div className="min-h-screen bg-[var(--surface-base)] text-white pb-20">
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
@@ -218,16 +218,16 @@ export function KnowledgeTab() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="bg-slate-900 border border-slate-800 p-1 mb-6 rounded-lg">
-                        <TabsTrigger value="queue" className="data-[state=active]:bg-slate-800 text-sm">
+                    <TabsList className="bg-[var(--surface-1)] border border-white/8 p-1 mb-6 rounded-lg">
+                        <TabsTrigger value="queue" className="data-[state=active]:bg-[var(--surface-2)] text-sm">
                             <LayoutDashboard className="w-4 h-4 mr-2" />
                             Gaps Queue ({gaps.length})
                         </TabsTrigger>
-                        <TabsTrigger value="base" className="data-[state=active]:bg-slate-800 text-sm">
+                        <TabsTrigger value="base" className="data-[state=active]:bg-[var(--surface-2)] text-sm">
                             <Database className="w-4 h-4 mr-2" />
                             Knowledge Base
                         </TabsTrigger>
-                        <TabsTrigger value="stats" className="data-[state=active]:bg-slate-800 text-sm">
+                        <TabsTrigger value="stats" className="data-[state=active]:bg-[var(--surface-2)] text-sm">
                             <BarChart3 className="w-4 h-4 mr-2" />
                             Stats & Coverage
                         </TabsTrigger>
@@ -235,8 +235,8 @@ export function KnowledgeTab() {
 
                     {/* Tab 1: Queue */}
                     <TabsContent value="queue">
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                            <div className="p-4 border-b border-slate-800 bg-slate-900/50">
+                        <div className="bg-[var(--surface-1)] border border-white/8 rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-white/8 bg-[var(--surface-1)]/50">
                                 <h2 className="font-semibold flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4 text-amber-500" />
                                     Prioritized Knowledge Gaps
@@ -244,7 +244,7 @@ export function KnowledgeTab() {
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-zinc-500 uppercase bg-slate-900/80 border-b border-slate-800">
+                                    <thead className="text-xs text-zinc-500 uppercase bg-[var(--surface-1)]/80 border-b border-white/8">
                                         <tr>
                                             <th className="px-6 py-3">Priority</th>
                                             <th className="px-6 py-3">Question</th>
@@ -260,17 +260,17 @@ export function KnowledgeTab() {
                                             </tr>
                                         )}
                                         {gaps.map((gap) => (
-                                            <tr key={gap.id} className="hover:bg-slate-800/20 transition-colors">
+                                            <tr key={gap.id} className="hover:bg-[var(--surface-2)]/20 transition-colors">
                                                 <td className={`px-6 py-4 font-semibold uppercase ${priorityColors[gap.priority] || priorityColors.low}`}>
                                                     {gap.priority}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="font-medium text-slate-200 line-clamp-2" title={gap.user_query}>
+                                                    <div className="font-medium text-zinc-200 line-clamp-2" title={gap.user_query}>
                                                         {gap.user_query}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-1 text-slate-300 font-mono">
+                                                    <div className="flex items-center gap-1 text-zinc-300 font-mono">
                                                         <ArrowLeft className="w-3 h-3 rotate-90 text-emerald-500" />
                                                         {gap.upvotes}
                                                     </div>
@@ -281,7 +281,7 @@ export function KnowledgeTab() {
                                                             Drafted
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-2)] text-zinc-300">
                                                             New
                                                         </span>
                                                     )}
@@ -312,8 +312,8 @@ export function KnowledgeTab() {
 
                     {/* Tab 2: Knowledge Base */}
                     <TabsContent value="base">
-                        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                        <div className="bg-[var(--surface-1)] border border-white/8 rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-white/8 flex justify-between items-center bg-[var(--surface-1)]/50">
                                 <h2 className="font-semibold flex items-center gap-2">
                                     <Database className="w-4 h-4 text-emerald-500" />
                                     Active Chunks ({stats.total})
@@ -329,7 +329,7 @@ export function KnowledgeTab() {
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-zinc-500 uppercase bg-slate-900/80 border-b border-slate-800">
+                                    <thead className="text-xs text-zinc-500 uppercase bg-[var(--surface-1)]/80 border-b border-white/8">
                                         <tr>
                                             <th className="px-6 py-3">Title</th>
                                             <th className="px-6 py-3">Topic / Sub</th>
@@ -340,8 +340,8 @@ export function KnowledgeTab() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-800/50">
                                         {chunks.map((chunk) => (
-                                            <tr key={chunk.id} className="hover:bg-slate-800/20 transition-colors">
-                                                <td className="px-6 py-4 font-medium text-slate-200">
+                                            <tr key={chunk.id} className="hover:bg-[var(--surface-2)]/20 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-zinc-200">
                                                     {chunk.title || 'Untitled Segment'}
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -376,15 +376,15 @@ export function KnowledgeTab() {
                     {/* Tab 3: Stats */}
                     <TabsContent value="stats">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                            <div className="bg-[var(--surface-1)] border border-white/8 p-6 rounded-xl">
                                 <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><Database className="w-4 h-4" /> Total Chunks</div>
                                 <div className="text-3xl font-bold text-white">{stats.total}</div>
                             </div>
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                            <div className="bg-[var(--surface-1)] border border-white/8 p-6 rounded-xl">
                                 <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Embedded</div>
                                 <div className="text-3xl font-bold text-emerald-400">{stats.embeddingStats?.['done'] || 0}</div>
                             </div>
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                            <div className="bg-[var(--surface-1)] border border-white/8 p-6 rounded-xl">
                                 <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center justify-between">
                                     <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /> Pending</span>
                                     {((stats.embeddingStats?.['pending'] || 0) > 0 || (stats.embeddingStats?.['failed'] || 0) > 0) && (
@@ -393,7 +393,7 @@ export function KnowledgeTab() {
                                 </div>
                                 <div className="text-3xl font-bold text-amber-400">{stats.embeddingStats?.['pending'] || 0}</div>
                             </div>
-                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                            <div className="bg-[var(--surface-1)] border border-white/8 p-6 rounded-xl">
                                 <div className="text-sm font-medium text-zinc-400 mb-1 flex items-center gap-2"><ArrowLeft className="w-4 h-4 rotate-45 text-indigo-500" /> Resolved Embedding %</div>
                                 <div className="text-3xl font-bold text-indigo-400">
                                     {stats.total > 0 ? Math.round(((stats.embeddingStats?.['done'] || 0) / stats.total) * 100) : 0}%
@@ -407,17 +407,17 @@ export function KnowledgeTab() {
             {/* Approval / Edit Modal */}
             {(activeGap || isAddingManual) && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                    <div className="bg-[var(--surface-base)] border border-white/8 shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 border-b border-white/8 flex justify-between items-center bg-[var(--surface-1)]/50">
                             <h2 className="text-xl font-bold text-white">{isAddingManual ? 'Create Manual Knowledge Chunk' : 'Review Knowledge Draft'}</h2>
                             <Button variant="ghost" size="icon" onClick={() => { setActiveGap(null); setIsAddingManual(false); }} className="text-zinc-400 hover:text-white"><XCircle className="w-5 h-5" /></Button>
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             {activeGap && (
-                                <div className="bg-slate-900 border border-indigo-500/20 p-4 rounded-xl">
+                                <div className="bg-[var(--surface-1)] border border-indigo-500/20 p-4 rounded-xl">
                                     <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Original User Query</h3>
-                                    <div className="text-slate-300 italic">" {activeGap.user_query} "</div>
+                                    <div className="text-zinc-300 italic">" {activeGap.user_query} "</div>
                                 </div>
                             )}
 
@@ -428,18 +428,18 @@ export function KnowledgeTab() {
                                     <div className="col-span-6 md:col-span-4 space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Content Title</label>
-                                            <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" />
+                                            <input type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Content Body (Markdown Supported)</label>
-                                            <textarea rows={12} value={formData.content} onChange={e => setFormData({ ...formData, content: e.target.value })} className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors leading-relaxed" />
+                                            <textarea rows={12} value={formData.content} onChange={e => setFormData({ ...formData, content: e.target.value })} className="w-full px-4 py-3 rounded-lg bg-[var(--surface-1)] border border-white/8 text-zinc-300 font-mono text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors leading-relaxed" />
                                         </div>
                                     </div>
 
-                                    <div className="col-span-6 md:col-span-2 space-y-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                    <div className="col-span-6 md:col-span-2 space-y-4 bg-[var(--surface-1)]/50 p-4 rounded-xl border border-white/8">
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Topic</label>
-                                            <select value={formData.topic} onChange={e => setFormData({ ...formData, topic: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:border-indigo-500">
+                                            <select value={formData.topic} onChange={e => setFormData({ ...formData, topic: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-white focus:border-indigo-500">
                                                 <option value="dsa">Data Structures & Algo</option>
                                                 <option value="system-design">System Design</option>
                                                 <option value="behavioral">Behavioral</option>
@@ -447,11 +447,11 @@ export function KnowledgeTab() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Subtopic</label>
-                                            <input type="text" value={formData.subtopic} onChange={e => setFormData({ ...formData, subtopic: e.target.value })} placeholder="e.g. graphs, dynamic-programming" className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:border-indigo-500" />
+                                            <input type="text" value={formData.subtopic} onChange={e => setFormData({ ...formData, subtopic: e.target.value })} placeholder="e.g. graphs, dynamic-programming" className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-white focus:border-indigo-500" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Difficulty</label>
-                                            <select value={formData.difficulty} onChange={e => setFormData({ ...formData, difficulty: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:border-indigo-500">
+                                            <select value={formData.difficulty} onChange={e => setFormData({ ...formData, difficulty: e.target.value })} className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-white focus:border-indigo-500">
                                                 <option value="easy">Easy</option>
                                                 <option value="medium">Medium</option>
                                                 <option value="hard">Hard</option>
@@ -459,18 +459,18 @@ export function KnowledgeTab() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Keywords</label>
-                                            <input type="text" value={formData.keywords} onChange={e => setFormData({ ...formData, keywords: e.target.value })} placeholder="comma, separated" className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:border-indigo-500" />
+                                            <input type="text" value={formData.keywords} onChange={e => setFormData({ ...formData, keywords: e.target.value })} placeholder="comma, separated" className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-white focus:border-indigo-500" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-400 mb-1">Admin Notes (Not Embedded)</label>
-                                            <textarea rows={3} value={formData.adminNotes} onChange={e => setFormData({ ...formData, adminNotes: e.target.value })} placeholder="Internal notes" className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-zinc-300 focus:border-indigo-500" />
+                                            <textarea rows={3} value={formData.adminNotes} onChange={e => setFormData({ ...formData, adminNotes: e.target.value })} placeholder="Internal notes" className="w-full px-4 py-2.5 rounded-lg bg-[var(--surface-1)] border border-white/8 text-zinc-300 focus:border-indigo-500" />
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="px-6 py-4 border-t border-slate-800 flex justify-end gap-3 bg-slate-900/50">
+                        <div className="px-6 py-4 border-t border-white/8 flex justify-end gap-3 bg-[var(--surface-1)]/50">
                             <Button variant="ghost" onClick={() => { setActiveGap(null); setIsAddingManual(false); }} className="text-zinc-400">Cancel</Button>
                             {!drafting && <Button onClick={handleApprove} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-900/20 px-8">Save & Embed Chunk</Button>}
                         </div>

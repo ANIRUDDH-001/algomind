@@ -22,11 +22,11 @@ export class InterviewErrorBoundary extends Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return this.props.fallback ?? (
-                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
+                <div className="min-h-screen flex items-center justify-center p-8" style={{ background: 'var(--surface-base)' }}>
                     <div className="text-center space-y-4 max-w-md">
                         <p className="text-2xl">⚠️</p>
                         <h2 className="text-xl font-bold text-white">Interview session crashed</h2>
-                        <p className="text-slate-400 text-sm">{this.state.error?.message}</p>
+                        <p className="text-zinc-400 text-sm">{this.state.error?.message}</p>
                         <button
                             onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
                             className="px-4 py-2 bg-blue-600 rounded-xl text-white text-sm font-bold hover:bg-blue-500 transition"

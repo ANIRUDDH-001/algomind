@@ -112,7 +112,7 @@ export function TestCasePanel({ testCases, executionResult, isRunning }: TestCas
         : 'fail';
 
     const headerBg: Record<string, string> = {
-        idle:    'border-slate-700/50 bg-slate-800/40',
+        idle:    'border-white/15 bg-[var(--surface-2)]/40',
         running: 'border-indigo-600/30 bg-indigo-950/20',
         pass:    'border-emerald-700/30 bg-emerald-950/10',
         fail:    'border-red-700/30 bg-red-950/10',
@@ -150,7 +150,7 @@ export function TestCasePanel({ testCases, executionResult, isRunning }: TestCas
 
             {/* Cases */}
             {expanded && (
-                <div className="border-t border-slate-700/30 divide-y divide-slate-700/20">
+                <div className="border-t border-white/10/30 divide-y divide-slate-700/20">
                     {results.map((r, i) => (
                         <div key={i} className="px-3 py-2.5">
                             <div className="flex items-start gap-2.5">

@@ -269,7 +269,7 @@ export default function PracticePage() {
                             <div className="flex items-center justify-center py-16">
                                 <div className="flex flex-col items-center gap-4">
                                     <div className="w-10 h-10 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-                                    <p className="text-slate-400 text-sm">Loading problems...</p>
+                                    <p className="text-zinc-400 text-sm">Loading problems...</p>
                                 </div>
                             </div>
                         ) : displayedProblems.length === 0 ? (

@@ -29,7 +29,7 @@ interface ManualControlsProps {
 // ---------------------------------------------------------------------------
 
 const READINESS_DOT: Record<InterruptionReadiness, { color: string; label: string }> = {
-    blocked: { color: 'bg-slate-500', label: 'Blocked' },
+    blocked: { color: 'bg-zinc-500', label: 'Blocked' },
     grace_period: { color: 'bg-amber-400 animate-pulse', label: 'Grace period' },
     cooldown: { color: 'bg-orange-400', label: 'Cooldown' },
     ready: { color: 'bg-emerald-400', label: 'Ready' },
@@ -66,7 +66,7 @@ export function ManualControls({
         <div
             className={cn(
                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full',
-                'bg-slate-900/80 backdrop-blur-sm border border-slate-700/50',
+                'bg-[var(--surface-1)]/80 backdrop-blur-sm border border-white/15',
                 'shadow-lg shadow-black/20',
                 'animate-in fade-in slide-in-from-bottom-2 duration-200',
             )}
@@ -77,13 +77,13 @@ export function ManualControls({
                     className={cn('w-2 h-2 rounded-full', dot.color)}
                     title={dot.label}
                 />
-                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
                     {dot.label}
                 </span>
             </div>
 
             {/* Separator */}
-            <div className="w-px h-4 bg-slate-700" />
+            <div className="w-px h-4 bg-[var(--surface-3)]" />
 
             {/* Stop button — always works, bypasses debounce */}
             {showStop && (
