@@ -12,31 +12,35 @@ export function SessionGateControlPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch('/api/owner/system-config')
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) {
-          setError('Failed to load config');
-          setIsLoading(false);
-          return;
-        }
+  async function fetchConfig() {
+    setIsLoading(true);
 
-        const configMap: Record<string, string> =
-          Array.isArray(data.config)
-            ? Object.fromEntries(data.config.map((item: { key: string; value: string }) => [item.key, item.value]))
-            : data.config || {};
+    try {
+      const r = await fetch('/api/owner/system-config');
+      const data = await r.json();
 
-        setGatingEnabled(configMap.enable_session_gating === 'true');
-        setInterviewLimit(parseInt(configMap.free_tier_weekly_interview_limit, 10) || 5);
-        setLearnLimit(parseInt(configMap.free_tier_weekly_learn_limit, 10) || 5);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load config');
-        setIsLoading(false);
-      });
-  }, []);
+      if (!r.ok) {
+        setError(data?.error || 'Failed to load config');
+        return;
+      }
+
+      const configMap: Record<string, string> =
+        Array.isArray(data.config)
+          ? Object.fromEntries(data.config.map((item: { key: string; value: string }) => [item.key, item.value]))
+          : data.config || {};
+
+      setGatingEnabled(configMap.enable_session_gating === 'true');
+      setInterviewLimit(parseInt(configMap.free_tier_weekly_interview_limit, 10) || 5);
+      setLearnLimit(parseInt(configMap.free_tier_weekly_learn_limit, 10) || 5);
+      setError(null);
+    } catch {
+      setError('Failed to load config');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchConfig(); }, []);
 
   const handleSave = async () => {
     if (gatingEnabled === null) return;
@@ -73,7 +77,17 @@ export function SessionGateControlPanel() {
     <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-5">
       <h3 className="text-sm font-bold text-white mb-4">Session Gate Control</h3>
 
-      {error && <div className="text-xs text-red-400 p-3 bg-red-950/20 rounded-lg mb-4">{error}</div>}
+      {error && (
+        <div className="flex items-center justify-between p-3 bg-red-950/20 rounded-lg mb-4">
+          <span className="text-xs text-red-400">{error}</span>
+          <button
+            onClick={() => { setError(null); setIsLoading(true); fetchConfig(); }}
+            className="text-xs text-red-300 hover:text-red-200 underline ml-3 shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">

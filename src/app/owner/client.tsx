@@ -54,7 +54,7 @@ const TABS = [
     { id: 'co-owners', label: 'Co-Owners', icon: Key },
     { id: 'admins', label: 'Admins', icon: Shield },
     { id: 'employers', label: 'Employers', icon: Briefcase },
-    { id: 'settings', label: 'Config', icon: SlidersHorizontal },
+    { id: 'settings', label: 'Config Keys', icon: SlidersHorizontal },
 ];
 
 export function OwnerDashboardClient(props: OwnerDashboardProps) {

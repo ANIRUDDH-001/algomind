@@ -30,7 +30,36 @@ export default async function OwnerPage() {
         adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'employer'),
         adminSupabase.from('global_feature_flags').select('*').order('key'),
         adminSupabase.from('co_owners').select('*').order('granted_at', { ascending: false }),
-        adminSupabase.from('system_events').select('*').order('created_at', { ascending: false }).limit(20),
+        adminSupabase
+            .from('system_events')
+            .select('*')
+            .in('type', [
+                'db_error',
+                'db.error',
+                'route_error',
+                'api.route_error',
+                'model_error',
+                'ai.model_error',
+                'model_deprecated',
+                'ai.model_deprecated',
+                'model_verification_failed',
+                'ai.model_verification_failed',
+                'cron_failed',
+                'cron.failed',
+                'batch.failed',
+                'assessment_insufficient',
+                'assessment.insufficient_response',
+                'embedding_failed',
+                'ai.embedding_failed',
+                'piston_error',
+                'integration.piston_error',
+                'leetcode_fetch_failed',
+                'integration.leetcode_fetch_failed',
+                'transcript_save_failed',
+                'integration.transcript_save_failed',
+            ])
+            .order('created_at', { ascending: false })
+            .limit(20),
     ]);
 
     const [usersRes, adminsRes, employersRes, flagsRes, coOwnersRes, eventsRes] = results;

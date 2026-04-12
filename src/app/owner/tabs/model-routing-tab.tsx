@@ -34,7 +34,6 @@ export function ModelRoutingTab() {
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Add model form
     const [showAddForm, setShowAddForm] = useState(false);
     const [newModelId, setNewModelId] = useState('');
     const [newProvider, setNewProvider] = useState<string>('groq');
@@ -65,7 +64,6 @@ export function ModelRoutingTab() {
         if (index <= 0) return;
         const updated = [...models];
         [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-        // Recalculate priorities
         updated.forEach((m, i) => { m.priority = (i + 1) * 10; });
         setModels(updated);
         setHasChanges(true);
@@ -207,7 +205,6 @@ export function ModelRoutingTab() {
                 </div>
             </div>
 
-            {/* Use-case sub-tabs */}
             <div className="flex gap-2">
                 {(['chat', 'analysis'] as const).map((uc) => (
                     <button
@@ -227,7 +224,6 @@ export function ModelRoutingTab() {
                 ))}
             </div>
 
-            {/* Add model form */}
             {showAddForm && (
                 <Card className="p-4 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 space-y-3">
                     <h3 className="text-sm font-semibold text-zinc-300">Add Model to {activeUseCase}</h3>
@@ -265,84 +261,85 @@ export function ModelRoutingTab() {
                 </Card>
             )}
 
-            {/* Model list */}
             <Card className="bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 overflow-hidden">
-                {models.length === 0 ? (
-                    <div className="p-8 text-center text-zinc-500">
-                        No models configured for {activeUseCase}. Add one above.
-                    </div>
-                ) : (
-                    <div className="divide-y divide-zinc-800">
-                        {/* Header */}
-                        <div className="grid grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                            <span>#</span>
-                            <span>Model</span>
-                            <span>Provider</span>
-                            <span>Priority</span>
-                            <span>Active</span>
-                            <span>Actions</span>
-                        </div>
-                        {models.map((entry, index) => (
-                            <div
-                                key={entry.id}
-                                className={`grid grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 px-4 py-3 items-center transition-colors ${
-                                    entry.is_active ? 'hover:bg-white/5' : 'opacity-50 bg-zinc-900/30'
-                                }`}
-                            >
-                                <span className="text-zinc-500 font-mono text-sm">{index + 1}</span>
-                                <div>
-                                    <span className="text-white font-medium text-sm">{entry.model_id}</span>
-                                    {entry.notes && (
-                                        <span className="text-zinc-500 text-xs ml-2">{entry.notes}</span>
-                                    )}
-                                </div>
-                                <Badge variant="outline" className={providerColor(entry.provider)}>
-                                    {entry.provider}
-                                </Badge>
-                                <span className="text-zinc-400 font-mono text-sm">{entry.priority}</span>
-                                <button
-                                    onClick={() => toggleActive(index)}
-                                    className="flex items-center"
-                                    title={entry.is_active ? 'Deactivate' : 'Activate'}
-                                >
-                                    {entry.is_active ? (
-                                        <ToggleRight className="w-6 h-6 text-green-400" />
-                                    ) : (
-                                        <ToggleLeft className="w-6 h-6 text-zinc-600" />
-                                    )}
-                                </button>
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() => moveUp(index)}
-                                        disabled={index === 0}
-                                        className="p-1 rounded hover:bg-white/10 disabled:opacity-20 text-zinc-400"
-                                        title="Move up (higher priority)"
-                                    >
-                                        <ArrowUp className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => moveDown(index)}
-                                        disabled={index === models.length - 1}
-                                        className="p-1 rounded hover:bg-white/10 disabled:opacity-20 text-zinc-400"
-                                        title="Move down (lower priority)"
-                                    >
-                                        <ArrowDown className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => removeEntry(entry)}
-                                        className="p-1 rounded hover:bg-red-500/20 text-zinc-400 hover:text-red-400"
-                                        title="Remove"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                <div className="overflow-x-auto">
+                    <div className="min-w-[580px]">
+                        {models.length === 0 ? (
+                            <div className="p-8 text-center text-zinc-500">
+                                No models configured for {activeUseCase}. Add one above.
                             </div>
-                        ))}
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                <div className="grid grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                    <span>#</span>
+                                    <span>Model</span>
+                                    <span>Provider</span>
+                                    <span>Priority</span>
+                                    <span>Active</span>
+                                    <span>Actions</span>
+                                </div>
+                                {models.map((entry, index) => (
+                                    <div
+                                        key={entry.id}
+                                        className={`grid grid-cols-[40px_1fr_100px_80px_80px_80px] gap-3 px-4 py-3 items-center transition-colors ${
+                                            entry.is_active ? 'hover:bg-white/5' : 'opacity-50 bg-zinc-900/30'
+                                        }`}
+                                    >
+                                        <span className="text-zinc-500 font-mono text-sm">{index + 1}</span>
+                                        <div>
+                                            <span className="text-white font-medium text-sm">{entry.model_id}</span>
+                                            {entry.notes && (
+                                                <span className="text-zinc-500 text-xs ml-2">{entry.notes}</span>
+                                            )}
+                                        </div>
+                                        <Badge variant="outline" className={providerColor(entry.provider)}>
+                                            {entry.provider}
+                                        </Badge>
+                                        <span className="text-zinc-400 font-mono text-sm">{entry.priority}</span>
+                                        <button
+                                            onClick={() => toggleActive(index)}
+                                            className="flex items-center"
+                                            title={entry.is_active ? 'Deactivate' : 'Activate'}
+                                        >
+                                            {entry.is_active ? (
+                                                <ToggleRight className="w-6 h-6 text-green-400" />
+                                            ) : (
+                                                <ToggleLeft className="w-6 h-6 text-zinc-600" />
+                                            )}
+                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => moveUp(index)}
+                                                disabled={index === 0}
+                                                className="p-1 rounded hover:bg-white/10 disabled:opacity-20 text-zinc-400"
+                                                title="Move up (higher priority)"
+                                            >
+                                                <ArrowUp className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => moveDown(index)}
+                                                disabled={index === models.length - 1}
+                                                className="p-1 rounded hover:bg-white/10 disabled:opacity-20 text-zinc-400"
+                                                title="Move down (lower priority)"
+                                            >
+                                                <ArrowDown className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeEntry(entry)}
+                                                className="p-1 rounded hover:bg-red-500/20 text-zinc-400 hover:text-red-400"
+                                                title="Remove"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </Card>
 
-            {/* Info card */}
             <Card className="p-4 bg-amber-500/5 border-amber-500/20">
                 <p className="text-amber-300 text-sm font-medium">How routing works</p>
                 <p className="text-zinc-400 text-xs mt-1">
