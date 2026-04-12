@@ -33,8 +33,18 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
     };
 
     return (
-        <div className="w-full overflow-x-auto mobile-scroll-container mb-8 -mx-2 px-2">
-            <nav className="flex items-center gap-1 p-1.5 backdrop-blur-xl rounded-2xl w-max min-w-full sm:w-fit shadow-2xl" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+        <div className="relative w-full mb-8">
+            {/* Scroll affordance — right fade */}
+            <div
+                className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none z-10 md:hidden"
+                style={{
+                    background: 'linear-gradient(to right, transparent, var(--surface-base))'
+                }}
+                aria-hidden="true"
+            />
+
+            <div className="w-full overflow-x-auto mobile-scroll-container -mx-2 px-2">
+                <nav className="flex items-center gap-1 p-1.5 backdrop-blur-xl rounded-2xl w-max min-w-full sm:w-fit shadow-2xl" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -70,7 +80,8 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
                         </button>
                     );
                 })}
-            </nav>
+                </nav>
+            </div>
         </div>
     );
 }

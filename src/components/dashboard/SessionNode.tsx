@@ -19,13 +19,13 @@ export function SessionNode({ session, isLatest, onClick }: SessionNodeProps) {
     // Color based on score
     const colorClass =
         score >= 7.5 ? "bg-emerald-500 shadow-emerald-500/40" :
-            score >= 5.5 ? "bg-blue-500 shadow-blue-500/40" :
+            score >= 5.5 ? "bg-indigo-500 shadow-indigo-500/40" :
                 score >= 4.0 ? "bg-amber-500 shadow-amber-500/40" :
                     "bg-red-500 shadow-red-500/40";
 
     const ringClass =
         score >= 7.5 ? "ring-emerald-500/20" :
-            score >= 5.5 ? "ring-blue-500/20" :
+            score >= 5.5 ? "ring-indigo-500/20" :
                 score >= 4.0 ? "ring-amber-500/20" :
                     "ring-red-500/20";
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Play } from 'lucide-react';
 import type { Problem } from '@/lib/supabase/problems';
 
 interface ProblemCardProps {
@@ -49,13 +49,24 @@ export function ProblemCard({ problem, attempted, onStart }: ProblemCardProps) {
                         </h3>
                     </div>
 
-                    {/* Start button — visible on hover (desktop) or always (mobile) */}
+                    {/* Desktop: hover-reveal button */}
                     <motion.button
                         onClick={(e) => { e.stopPropagation(); onStart(problem.id); }}
                         whileTap={{ scale: 0.95 }}
                         className="btn-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex"
                     >
                         Practice
+                    </motion.button>
+
+                    {/* Mobile: always-visible compact start button */}
+                    <motion.button
+                        onClick={(e) => { e.stopPropagation(); onStart(problem.id); }}
+                        whileTap={{ scale: 0.95 }}
+                        className="sm:hidden shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-indigo-400 transition-colors"
+                        style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
+                        aria-label={`Start practice: ${problem.title}`}
+                    >
+                        <Play className="w-4 h-4" />
                     </motion.button>
                 </div>
 

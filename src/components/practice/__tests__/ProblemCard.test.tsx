@@ -21,6 +21,7 @@ vi.mock('framer-motion', () => ({
 
 vi.mock('lucide-react', () => ({
     CheckCircle: (props: any) => <span data-testid="icon-check" className={props.className} />,
+    Play: (props: any) => <span data-testid="icon-play" className={props.className} />,
 }));
 
 import { ProblemCard } from '../ProblemCard';

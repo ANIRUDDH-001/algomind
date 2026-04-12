@@ -292,7 +292,7 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex"
         >
           <span className="text-[10px] uppercase tracking-widest font-bold">Swipe to explore</span>
           <motion.div
@@ -306,7 +306,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 2: FEATURES (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-8 md:py-16 px-4 relative max-w-7xl mx-auto border-b border-transparent">
+      <section className="md:snap-start min-h-screen md:min-h-[100dvh] w-full flex flex-col justify-center py-8 md:py-16 px-4 relative max-w-7xl mx-auto border-b border-transparent">
         <FadeInView>
           <div className="text-center mb-6 md:mb-10">
             <h2 className="text-3xl md:text-5xl font-black mb-4">Master every angle</h2>
@@ -411,7 +411,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 3: HOW IT WORKS (Timeline - Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 bg-surface-1 border-y border-white/5 relative">
+      <section className="md:snap-start min-h-screen md:min-h-[100dvh] w-full flex flex-col justify-center py-20 bg-surface-1 border-y border-white/5 relative">
         <div className="max-w-7xl mx-auto px-4 w-full">
           <FadeInView>
             <h2 className="text-3xl md:text-5xl font-black mb-12 md:mb-20 text-center">Your path to an offer</h2>
@@ -447,7 +447,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 4: STATS / SOCIAL PROOF (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 max-w-5xl mx-auto">
+      <section className="md:snap-start min-h-screen md:min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 max-w-5xl mx-auto">
         <FadeInView>
           <h2 className="text-3xl md:text-5xl font-black mb-12 md:mb-16 text-center text-white">The platform built for success</h2>
         </FadeInView>
@@ -465,7 +465,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 4.5: INSTALL ALGOMIND (PWA Card) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 relative overflow-hidden border-b border-transparent">
+      <section className="md:snap-start min-h-screen md:min-h-[100dvh] w-full flex flex-col justify-center py-20 px-4 relative overflow-hidden border-b border-transparent">
         <div className="max-w-6xl mx-auto w-full">
           <FadeInView>
             <div className="text-center mb-16">
@@ -549,7 +549,7 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 5: CTA BANNER & FOOTER (Snap Item) */}
-      <section className="snap-start min-h-[100dvh] w-full flex flex-col justify-between pt-10 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
+      <section className="md:snap-start min-h-screen md:min-h-[100dvh] w-full flex flex-col justify-between pt-10 pb-0 px-4 max-w-5xl mx-auto border-t border-transparent">
         <div className="flex-grow flex flex-col justify-center">
           <FadeInView>
             <div className="relative rounded-[2.5rem] p-10 md:p-16 text-center overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.15)] border border-indigo-500/20"
