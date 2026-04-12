@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, Crown, Brain, LogIn } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
