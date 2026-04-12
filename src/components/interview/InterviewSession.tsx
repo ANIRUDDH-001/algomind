@@ -59,6 +59,7 @@ import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 interface InterviewSessionProps {
     problem: Problem;
     interviewConfig: InterviewConfig;  // New single source
+    backHref?: '/dashboard' | '/practice';
     isGuest?: boolean;
     isReviewMode?: boolean;
     readOnly?: boolean;
@@ -87,6 +88,7 @@ type MobileTab = typeof mobileTabs[number];
 export function InterviewSession({
     problem,
     interviewConfig,
+    backHref,
     initialTranscript,
     readOnly = false,
     isGuest = false,
@@ -166,6 +168,19 @@ export function InterviewSession({
     const [sprintTransitionMsg, setSprintTransitionMsg] = useState<string | null>(null);
     const [sprintProblem2, setSprintProblem2] = useState<Problem | null>(null);
     const [sprintCurrentIndex, setSprintCurrentIndex] = useState<0 | 1>(0);
+
+    const resolvedBackHref = backHref ?? (isReviewMode ? '/dashboard' : '/practice');
+
+    const handleBackNavigation = useCallback(() => {
+        if (isAssessment) return;
+
+        if (!readOnly && hasStarted) {
+            const confirmed = confirm('Leave this interview? Your progress will not be saved.');
+            if (!confirmed) return;
+        }
+
+        router.push(resolvedBackHref);
+    }, [hasStarted, isAssessment, readOnly, resolvedBackHref, router]);
 
     // Sprint: fetch problem 2 upfront so it's ready when problem 1 ends
     useEffect(() => {
@@ -889,15 +904,28 @@ export function InterviewSession({
                                                 </div>
                                                 </div>
                                             </div>
-                                            <a
-                                                href={leetcodeUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-200"
-                                            >
-                                                <BookOpen className="w-3.5 h-3.5" />
-                                                LeetCode
-                                            </a>
+                                            <div className="flex items-center gap-2">
+                                                {!isAssessment && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleBackNavigation}
+                                                        className="h-8 px-2.5 text-[11px] font-bold text-zinc-300 border-zinc-700 hover:text-white hover:bg-zinc-800"
+                                                    >
+                                                        <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                                                        Back
+                                                    </Button>
+                                                )}
+                                                <a
+                                                    href={leetcodeUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-200"
+                                                >
+                                                    <BookOpen className="w-3.5 h-3.5" />
+                                                    LeetCode
+                                                </a>
+                                            </div>
                                         </div>
                                         <div className="mt-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                                             {renderProblemCardContent(true, false)}
@@ -1345,16 +1373,17 @@ export function InterviewSession({
                         >
                             <Flag className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> End & Analyze
                         </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push('/dashboard?tab=history')}
-                            className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-zinc-800 border-zinc-700 transition-all duration-300 rounded-xl"
-                        >
-                            <ArrowLeft className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> Back
-                        </Button>
-                    )
+                    ) : null
+                )}
+                {!isAssessment && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBackNavigation}
+                        className="w-full h-10 lg:h-8 text-[11px] lg:text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-zinc-800 border-zinc-700 transition-all duration-300 rounded-xl"
+                    >
+                        <ArrowLeft className="w-4 h-4 lg:w-3 lg:h-3 mr-1.5" /> Back
+                    </Button>
                 )}
             </div>
         </div>

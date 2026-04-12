@@ -149,9 +149,9 @@ function LoginContent() {
 
                     <p className="text-center text-xs text-zinc-600">
                         By continuing you agree to our{' '}
-                        <a href="/legal/terms" className="text-indigo-400 hover:text-indigo-300 transition-colors">
-                            Terms of Service
-                        </a>
+                        <a href="/legal/terms" className="text-indigo-400 hover:text-indigo-300 transition-colors">Terms of Service</a>
+                        {' '}and{' '}
+                        <a href="/legal/privacy" className="text-indigo-400 hover:text-indigo-300 transition-colors">Privacy Policy</a>
                     </p>
                 </div>
             </div>

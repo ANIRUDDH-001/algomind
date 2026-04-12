@@ -248,7 +248,7 @@ export default function PracticePage() {
                             Create a free account to unlock 300+ curated DSA problems, track your progress, and review past interviews.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-                            <Button className="btn-primary" onClick={() => router.push('/login?tab=register')}>
+                            <Button className="btn-primary" onClick={() => router.push('/login')}>
                                 Create Free Account
                             </Button>
                             <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10" onClick={handleRandomProblem}>

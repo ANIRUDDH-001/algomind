@@ -289,6 +289,8 @@ function InterviewContent() {
         );
     }
 
+    const backHref = isReviewMode ? '/dashboard' : '/practice';
+
     return (
         <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] text-zinc-100 overflow-hidden">
             <BrowserCompatBanner />
@@ -300,6 +302,7 @@ function InterviewContent() {
                         readOnly={!!sessionId}
                         isGuest={isGuest}
                         isReviewMode={isReviewMode}
+                        backHref={backHref}
                         userTtsProvider={userTtsProvider}
                     />
                 )}
