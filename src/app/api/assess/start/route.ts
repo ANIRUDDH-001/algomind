@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
             const verifyResult = Array.isArray(verifyData) ? verifyData[0] : verifyData;
             if (verifyError || !verifyResult?.valid) {
                 void logSystemEvent({
-                    type: 'route_error',
+                    type: 'client_error',
                     errorMessage: 'assess_start_invalid_entry_code',
                     metadata: {
                         route: 'assess_start',

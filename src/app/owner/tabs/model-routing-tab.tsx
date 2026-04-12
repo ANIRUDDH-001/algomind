@@ -167,7 +167,7 @@ export function ModelRoutingTab() {
 
     if (isLoading) {
         return (
-            <Card className="p-8 text-center bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50">
+            <Card className="p-8 text-center bg-(--surface-1)/40 border-(--surface-edge)/50">
                 <Loader2 className="w-6 h-6 mx-auto animate-spin text-amber-400" />
                 <p className="text-zinc-400 mt-3">Loading model routing...</p>
             </Card>
@@ -225,7 +225,7 @@ export function ModelRoutingTab() {
             </div>
 
             {showAddForm && (
-                <Card className="p-4 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 space-y-3">
+                <Card className="p-4 bg-(--surface-1)/40 border-(--surface-edge)/50 space-y-3">
                     <h3 className="text-sm font-semibold text-zinc-300">Add Model to {activeUseCase}</h3>
                     <div className="flex gap-3 items-end">
                         <div className="flex-1">
@@ -237,6 +237,11 @@ export function ModelRoutingTab() {
                                 placeholder="e.g. llama-3.3-70b-versatile"
                                 className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-amber-500"
                             />
+                            {newModelId.toLowerCase().includes('preview') && (
+                                <p className="text-xs text-amber-400 mt-1">
+                                    ⚠️ Model IDs with "preview" suffix may not be valid. Verify against the official model list before adding.
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="text-xs text-zinc-500 mb-1 block">Provider</label>
@@ -261,9 +266,9 @@ export function ModelRoutingTab() {
                 </Card>
             )}
 
-            <Card className="bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 overflow-hidden">
+            <Card className="bg-(--surface-1)/40 border-(--surface-edge)/50 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <div className="min-w-[580px]">
+                    <div className="min-w-145">
                         {models.length === 0 ? (
                             <div className="p-8 text-center text-zinc-500">
                                 No models configured for {activeUseCase}. Add one above.

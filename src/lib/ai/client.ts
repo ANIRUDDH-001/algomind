@@ -85,6 +85,7 @@ export class UnifiedAIClient {
     ): Promise<CompletionResult> {
         const attemptedModels: string[] = [];
         const correlationId = options.correlationId ?? crypto.randomUUID();
+        const callStart = Date.now();
 
         if (options.userId && options.sessionId) {
             const budget = await checkTokenBudget(
@@ -128,6 +129,19 @@ export class UnifiedAIClient {
                 models
             );
             if (primaryResult.success) {
+                if (primaryResult.modelUsed && primaryResult.provider) {
+                    void logSystemEvent({
+                        type: 'llm_request',
+                        correlationId,
+                        metadata: {
+                            useCase,
+                            model_id: primaryResult.modelUsed,
+                            provider: primaryResult.provider,
+                            duration_ms: Date.now() - callStart,
+                            messageCount: messages.length,
+                        },
+                    });
+                }
                 return primaryResult;
             }
 
@@ -141,6 +155,19 @@ export class UnifiedAIClient {
                     models
                 );
                 if (fallbackResult.success) {
+                    if (fallbackResult.modelUsed && fallbackResult.provider) {
+                        void logSystemEvent({
+                            type: 'llm_request',
+                            correlationId,
+                            metadata: {
+                                useCase,
+                                model_id: fallbackResult.modelUsed,
+                                provider: fallbackResult.provider,
+                                duration_ms: Date.now() - callStart,
+                                messageCount: messages.length,
+                            },
+                        });
+                    }
                     return fallbackResult;
                 }
             }
@@ -151,16 +178,6 @@ export class UnifiedAIClient {
                 attemptedModels,
             };
         }
-
-        void logSystemEvent({
-            type: 'llm_request',
-            correlationId,
-            metadata: {
-                useCase,
-                messageCount: messages.length,
-                preferredProvider: options.preferredProvider,
-            },
-        });
 
         // ── PRIMARY: Bedrock (when ENABLE_AWS_BEDROCK is ON) ────────────
         // When the flag is ON, Bedrock is the primary provider.
@@ -189,6 +206,17 @@ export class UnifiedAIClient {
                         if (options.userId && options.sessionId && tokensUsed > 0) {
                             void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
                         }
+                        void logSystemEvent({
+                            type: 'llm_request',
+                            correlationId,
+                            metadata: {
+                                useCase,
+                                model_id: modelId,
+                                provider: 'bedrock',
+                                duration_ms: Date.now() - callStart,
+                                messageCount: messages.length,
+                            },
+                        });
                         // Log Bedrock usage for budget tracking
                         const inputChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0) + (options.systemPrompt?.length || 0);
                         logAWSUsage({
@@ -264,6 +292,17 @@ export class UnifiedAIClient {
                     if (options.userId && options.sessionId && tokensUsed > 0) {
                         void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
                     }
+                    void logSystemEvent({
+                        type: 'llm_request',
+                        correlationId,
+                        metadata: {
+                            useCase,
+                            model_id: modelConfig.id,
+                            provider: modelConfig.provider,
+                            duration_ms: Date.now() - callStart,
+                            messageCount: messages.length,
+                        },
+                    });
                     return {
                         success: true,
                         modelUsed: modelConfig.id,

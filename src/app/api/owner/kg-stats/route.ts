@@ -8,49 +8,43 @@ export async function GET() {
     const { user, errorResponse } = await requireOwnerForApi();
     if (errorResponse) return errorResponse;
 
+    const svc = getServiceClient();
+
     const [
       sessionCountRes,
       conceptStateCountRes,
-      diagnosticCountRes,
-      weakestConceptRes,
+      diagnosticRes,
+      hardestConceptRes,
     ] = await Promise.all([
-      getServiceClient()
+      svc
         .from('learn_sessions')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
 
-      getServiceClient()
+      svc
         .from('concept_states')
         .select('id', { count: 'exact', head: true }),
 
-      getServiceClient()
-        .from('concept_states')
-        .select('user_id', { count: 'exact' })
-        .gt('evidence_count', 0),
+      svc.rpc('count_distinct_diagnosed_users'),
 
-      getServiceClient()
-        .from('concept_states')
-        .select('concept_slug, confidence')
-        .order('confidence', { ascending: true })
-        .limit(250),
+      svc.rpc('get_hardest_concepts', { p_limit: 5 }),
     ]);
 
-    const rows = weakestConceptRes.data ?? [];
-    const slugCounts: Record<string, { total: number; count: number }> = {};
-    for (const row of rows) {
-      if (!slugCounts[row.concept_slug]) slugCounts[row.concept_slug] = { total: 0, count: 0 };
-      slugCounts[row.concept_slug].total += row.confidence || 0;
-      slugCounts[row.concept_slug].count += 1;
+    if (diagnosticRes.error) {
+      console.warn('[kg-stats] count_distinct_diagnosed_users RPC error:', diagnosticRes.error.message);
     }
-    const avgBySlug = Object.entries(slugCounts)
-      .map(([slug, { total, count }]) => ({ slug, avg: total / count }))
-      .sort((a, b) => a.avg - b.avg);
+    if (hardestConceptRes.error) {
+      console.warn('[kg-stats] get_hardest_concepts RPC error:', hardestConceptRes.error.message);
+    }
+
+    const hardestConcepts = ((hardestConceptRes.data ?? []) as Array<{ concept_slug: string; avg_confidence: number }>)
+      .map((row) => ({ slug: row.concept_slug, avg: row.avg_confidence }));
 
     return NextResponse.json({
-      usersWithDiagnostic: diagnosticCountRes.count ?? 0,
+      usersWithDiagnostic: (diagnosticRes.data as number | null) ?? 0,
       learnSessionsThisWeek: sessionCountRes.count ?? 0,
       totalConceptStateRows: conceptStateCountRes.count ?? 0,
-      hardestConcepts: avgBySlug.slice(0, 5),
+      hardestConcepts,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);

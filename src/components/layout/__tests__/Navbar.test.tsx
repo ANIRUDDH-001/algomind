@@ -101,6 +101,7 @@ vi.mock('lucide-react', () => ({
     Briefcase: (props: any) => <span data-testid="icon-briefcase" className={props.className} />,
     BookOpen: (props: any) => <span data-testid="icon-bookopen" className={props.className} />,
     Brain: (props: any) => <span data-testid="icon-brain" className={props.className} />,
+    LogIn: (props: any) => <span data-testid="icon-login" className={props.className} />,
     Sparkles: (props: any) => <span data-testid="icon-sparkles" className={props.className} />,
 }));
 
@@ -160,7 +161,7 @@ describe('Navbar Component', () => {
         });
     });
 
-    it('3. Mobile: bottom nav shows 2 items (Home, Practice) when user is NOT logged in (guest)', async () => {
+    it('3. Mobile: bottom nav shows 2 items (Home, Sign In) when user is NOT logged in (guest)', async () => {
         (useAuth as any).mockReturnValue({
             user: null, signOut: mockSignOut, loading: false, isConfigured: true,
         });

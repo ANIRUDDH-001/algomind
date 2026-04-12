@@ -26,6 +26,21 @@ function createChainableMock() {
         gte: vi.fn(function() { return chain; }),
         order: vi.fn(function() { return chain; }),
         limit: vi.fn(function() { return chain; }),
+        rpc: vi.fn((fnName: string) => {
+            if (fnName === 'count_distinct_diagnosed_users') {
+                return Promise.resolve({ data: 4, error: null });
+            }
+            if (fnName === 'get_hardest_concepts') {
+                return Promise.resolve({
+                    data: [
+                        { concept_slug: 'arrays', avg_confidence: 0.7 },
+                        { concept_slug: 'hash-tables', avg_confidence: 0.4 },
+                    ],
+                    error: null,
+                });
+            }
+            return Promise.resolve({ data: null, error: null });
+        }),
         single: vi.fn(function() { return Promise.resolve({ data: { account_type: 'owner' }, error: null }); })
     };
     return chain;
@@ -79,19 +94,6 @@ describe('GET /api/owner/kg-stats', () => {
         vi.mocked(getServiceClient).mockImplementation(() => {
             const innerChain = createChainableMock();
             innerChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            
-            // Return different data for count queries
-            // @ts-expect-error - Mock chain typing
-            innerChain.limit = vi.fn(function() {
-                return Promise.resolve({
-                    count: 50,
-                    data: [
-                        { concept_slug: 'arrays', confidence: 0.7, user_id: 'u1' },
-                        { concept_slug: 'hash-tables', confidence: 0.4, user_id: 'u2' }
-                    ],
-                    error: null
-                });
-            });
 
             return innerChain as any;
         });
@@ -118,19 +120,6 @@ describe('GET /api/owner/kg-stats', () => {
         vi.mocked(getServiceClient).mockImplementation(() => {
             const innerChain = createChainableMock();
             innerChain.single = vi.fn().mockResolvedValue({ data: { account_type: 'owner' }, error: null });
-            
-            // @ts-expect-error - Mock chain typing
-            innerChain.limit = vi.fn(function() {
-                return Promise.resolve({
-                    count: 50,
-                    data: [
-                        { concept_slug: 'dynamic-programming', confidence: 0.2, user_id: 'u1' },
-                        { concept_slug: 'graphs', confidence: 0.5, user_id: 'u2' },
-                        { concept_slug: 'dynamic-programming', confidence: 0.25, user_id: 'u3' }
-                    ],
-                    error: null
-                });
-            });
 
             return innerChain as any;
         });

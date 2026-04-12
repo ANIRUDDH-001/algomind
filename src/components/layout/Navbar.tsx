@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
@@ -338,7 +338,7 @@ export function Navbar() {
                                     ])
                                 : [
                                     { href: '/', label: 'Home', icon: Home },
-                                    { href: '/practice', label: 'Practice', icon: BookOpen },
+                                    { href: '/login', label: 'Sign In', icon: LogIn },
                                 ]
                             ).map((item) => {
                                 const Icon = item.icon;

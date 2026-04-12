@@ -6,6 +6,32 @@ import { getCorrelationId } from '@/lib/tracing/correlation';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
+ * EVENT STORAGE POLICY:
+ *
+ * DB (system_events table):
+ *   - FATAL, ERROR events: always stored (sample rate 1.0)
+ *   - WARN events: stored at 50% sample rate in production
+ *   - INFO events: stored at 10% sample rate in production
+ *   - DEBUG events: stored at 1% sample rate in production
+ *
+ * BetterStack (external sink):
+ *   - All events are forwarded regardless of DB sampling
+ *
+ * Owner Dashboard "Overview" tab:
+ *   - Only shows ERROR and FATAL event types (filtered in owner/page.tsx)
+ *
+ * Event types that SHOULD NOT generate DB rows in normal operation:
+ *   - llm_request: logged post-call, 10% sample, INFO — background signal only
+ *   - kg_cache_hit / kg_cache_miss: DEBUG — very high volume, DB sample near-zero
+ *   - cron_triggered / cron_completed: INFO — keep for job monitoring
+ *
+ * Event types that MUST ALWAYS generate DB rows:
+ *   - db_error, route_error, model_error, embedding_failed: ERROR/FATAL
+ *   - cron_failed, batch.failed: ERROR
+ *   - model_deprecated: WARN
+ */
+
+/**
  * Severity levels for system events.
  * Used for sampling policy, alerting, and dashboard filtering.
  */

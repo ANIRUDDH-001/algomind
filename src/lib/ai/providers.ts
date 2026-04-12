@@ -60,6 +60,28 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Groq Llama 3.1 8B"
     },
+    {
+        id: "moonshotai/kimi-k2-instruct",
+        provider: 'groq',
+        tier: 2,
+        rpm: 60,
+        tpm: 10000,
+        rpd: 1000,
+        contextWindow: 131072,
+        supportsEmbeddings: false,
+        description: "Kimi K2 — 60 RPM, best for concurrent sessions"
+    },
+    {
+        id: "qwen/qwen3-32b",
+        provider: 'groq',
+        tier: 3,
+        rpm: 60,
+        tpm: 6000,
+        rpd: 1000,
+        contextWindow: 32768,
+        supportsEmbeddings: false,
+        description: "Qwen3 32B — 60 RPM, strong multilingual reasoning"
+    },
     // gemma2-9b-it removed — decommissioned by Groq Oct 8 2025, replaced by llama-3.1-8b-instant
     // Note: llama-4-scout and llama-4-maverick are now verified IDs
     {
@@ -153,16 +175,16 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Gemini 2.5 Flash"
     },
-    { 
-        id: "gemini-2.5-flash-lite", 
-        provider: 'gemini', 
-        tier: 11, 
-        rpm: 10, 
-        rpd: 20, 
-        tpm: 250000, 
-        contextWindow: 1000000, 
-        supportsEmbeddings: false, 
-        description: "Gemini 2.5 Flash Lite" 
+    {
+        id: "gemini-2.5-flash-lite",
+        provider: 'gemini',
+        tier: 11,
+        rpm: 10,
+        rpd: 20,
+        tpm: 250000,
+        contextWindow: 1048576,
+        supportsEmbeddings: false,
+        description: "Gemini 2.5 Flash Lite — 10 RPM / 20 RPD"
     },
     {
         id: "gemma-3-27b-it",
