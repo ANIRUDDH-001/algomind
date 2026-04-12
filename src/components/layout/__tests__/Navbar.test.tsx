@@ -93,6 +93,7 @@ vi.mock('lucide-react', () => ({
     LogOut: (props: any) => <span data-testid="icon-logout" className={props.className} />,
     Settings: (props: any) => <span data-testid="icon-settings" className={props.className} />,
     BarChart: (props: any) => <span data-testid="icon-barchart" className={props.className} />,
+    History: (props: any) => <span data-testid="icon-history" className={props.className} />,
     Home: (props: any) => <span data-testid="icon-home" className={props.className} />,
     Mic: (props: any) => <span data-testid="icon-mic" className={props.className} />,
     Shield: (props: any) => <span data-testid="icon-shield" className={props.className} />,

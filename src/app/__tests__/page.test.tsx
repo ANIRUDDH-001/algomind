@@ -125,7 +125,7 @@ describe('HomePage — Unauthenticated', () => {
     it('5. Stats section renders 3 stat blocks', async () => {
         render(<HomePage />);
         await waitFor(() => {
-            expect(screen.getByText('300+')).toBeDefined();
+            expect(screen.getByText('343')).toBeDefined();
             expect(screen.getByText('8')).toBeDefined();
             expect(screen.getByText('24/7')).toBeDefined();
         });

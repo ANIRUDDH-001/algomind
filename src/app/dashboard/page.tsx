@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProgress } from '@/hooks/useProgress';
@@ -79,6 +79,31 @@ function DashboardContent() {
         return () => {
             isMounted = false;
         };
+    }, [progress]);
+
+    // Compute weakest skill from last 3 sessions to personalize next focus area.
+    const weakestSkill = useMemo(() => {
+        if (!progress?.sessions?.length) return null;
+
+        const recentSessions = progress.sessions.slice(-3);
+        const skillTotals: Record<string, { sum: number; count: number }> = {};
+
+        recentSessions.forEach((session) => {
+            Object.entries(session.skills || {}).forEach(([skill, score]) => {
+                if (!skillTotals[skill]) skillTotals[skill] = { sum: 0, count: 0 };
+                skillTotals[skill].sum += score as number;
+                skillTotals[skill].count += 1;
+            });
+        });
+
+        const averages = Object.entries(skillTotals).map(([skill, { sum, count }]) => ({
+            skill,
+            average: sum / count,
+        }));
+
+        if (!averages.length) return null;
+        averages.sort((a, b) => a.average - b.average);
+        return averages[0];
     }, [progress]);
 
     useEffect(() => {
@@ -368,9 +393,19 @@ function DashboardContent() {
                                             <Brain className="w-8 h-8 text-indigo-400" />
                                         </div>
                                         <div>
-                                            <h4 className="text-white font-bold mb-1 uppercase tracking-wide">Next Milestone</h4>
+                                            <h4 className="text-white font-bold mb-1 uppercase tracking-wide">Your Next Focus Area</h4>
                                             <p className="text-sm text-zinc-500 max-w-xl">
-                                                Complete 3 more sessions focused on <strong>Complexity Analysis</strong> to reach your next skill milestone and unlock detailed performance benchmarks.
+                                                {weakestSkill ? (
+                                                    <>
+                                                        Your weakest area is <strong className="text-zinc-300">{SKILL_DEFINITIONS[weakestSkill.skill as keyof typeof SKILL_DEFINITIONS]?.name ?? weakestSkill.skill}</strong> (avg{' '}
+                                                        <strong className="text-zinc-300">{weakestSkill.average.toFixed(1)}/10</strong>).
+                                                        Focus your next 3 sessions on problems that exercise this dimension to improve your cognitive profile.
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Complete your first interview session to unlock personalized skill milestone recommendations.
+                                                    </>
+                                                )}
                                             </p>
                                         </div>
                                     </div>

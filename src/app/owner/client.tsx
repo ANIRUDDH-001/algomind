@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
-    Users, Flag, Shield, Settings, Briefcase,
-    Activity, Key, LayoutGrid, Database, BookOpen, Mic, BarChart2, Zap
+    Users, Flag, Shield, Briefcase,
+    Key, LayoutGrid, Database, BookOpen, Mic, BarChart2, Zap,
+    DollarSign, Cpu, GitBranch, Gauge, HeartPulse, SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // We'll extract tab contents into separate components for maintainability
@@ -39,21 +40,21 @@ export interface OwnerDashboardProps {
 const TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'flags', label: 'Feature Flags', icon: Flag },
-    { id: 'aws-budget', label: 'AWS Budget', icon: Activity },
-    { id: 'models', label: 'Models', icon: Activity },
-    { id: 'ai-routing', label: 'AI Routing', icon: Activity },
+    { id: 'aws-budget', label: 'AWS Budget', icon: DollarSign },
+    { id: 'models', label: 'Models', icon: Cpu },
+    { id: 'ai-routing', label: 'AI Routing', icon: GitBranch },
     { id: 'cache', label: 'Cache & Redis', icon: Database },
     { id: 'rag', label: 'RAG Knowledge', icon: BookOpen },
     { id: 'voice-debug', label: 'Voice Debug', icon: Mic },
     { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-    { id: 'ai-status', label: 'AI Status', icon: Activity },
+    { id: 'ai-status', label: 'AI Status', icon: HeartPulse },
     { id: 'algomind-2o', label: 'AlgoMind 2.0', icon: Zap },
-    { id: 'limits', label: 'Rate Limits', icon: Activity },
+    { id: 'limits', label: 'Rate Limits', icon: Gauge },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'co-owners', label: 'Co-Owners', icon: Key },
     { id: 'admins', label: 'Admins', icon: Shield },
     { id: 'employers', label: 'Employers', icon: Briefcase },
-    { id: 'settings', label: 'Config', icon: Settings },
+    { id: 'settings', label: 'Config', icon: SlidersHorizontal },
 ];
 
 export function OwnerDashboardClient(props: OwnerDashboardProps) {

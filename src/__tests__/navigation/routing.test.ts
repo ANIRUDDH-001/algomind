@@ -59,6 +59,7 @@ vi.mock('lucide-react', () => ({
   LogOut: () => e('span'),
   Settings: () => e('span'),
   BarChart: () => e('span'),
+  History: () => e('span'),
   Home: () => e('span'),
   Mic: () => e('span'),
   Shield: () => e('span'),

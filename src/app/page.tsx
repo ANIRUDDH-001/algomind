@@ -444,7 +444,7 @@ export default function HomePage() {
         </FadeInView>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[400px] md:h-64">
           <TiltCard className="h-full">
-            <AnimatedCounter value="300+" label="Leetcode Style Problems" />
+            <AnimatedCounter value="343" label="Curated DSA Problems" />
           </TiltCard>
           <TiltCard className="h-full">
             <AnimatedCounter value="8" label="Cognitive Skills Tracked" />
