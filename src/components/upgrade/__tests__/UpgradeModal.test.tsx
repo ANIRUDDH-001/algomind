@@ -54,13 +54,13 @@ describe('UpgradeModal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it('does close and navigate when Upgrade Now is clicked', async () => {
+  it('does close and navigate when View Plans is clicked', async () => {
     const onOpenChange = vi.fn();
     renderModal(true, null, onOpenChange);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /upgrade now/i })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /view plans/i })[0]);
     expect(onOpenChange).toHaveBeenCalledWith(false);
-    expect(pushMock).toHaveBeenCalledWith('/employer');
+    expect(pushMock).toHaveBeenCalledWith('/settings');
   });
 
   it('does show fallback reason text from payload', () => {

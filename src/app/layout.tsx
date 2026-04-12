@@ -89,7 +89,7 @@ export default async function RootLayout({
                   <TourProvider>
                     {!hideNavbar && <Navbar />}
                     {/* Main Content Area */}
-                    <main className={`flex-1 flex flex-col min-h-screen overflow-x-hidden overflow-y-auto pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
+                    <main className={`flex-1 flex flex-col min-h-screen overflow-x-hidden pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
                       {children}
                     </main>
                     <TourOverlay />

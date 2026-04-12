@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -13,10 +12,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Mic, Shield, Flag, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Shield, Flag, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
 import Link from 'next/link';
 
-import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { motion } from 'framer-motion';
@@ -55,11 +53,7 @@ export function Navbar() {
             } catch { }
         };
         fetchAccountType();
-    }, [user?.id]);
-
-    const dashboardHref = accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
-        ? '/employer/dashboard'
-        : '/dashboard';
+    }, [user]);
 
     useEffect(() => {
         const checkModels = async () => {
@@ -95,6 +89,10 @@ export function Navbar() {
     if (hideNavbarRoutes.includes(pathname)) {
         return null;
     }
+
+    const hideBottomNav =
+        ['/interview', '/assess', '/learn/'].some(route => pathname.startsWith(route)) ||
+        pathname === '/learn/diagnostic';
 
     return (
         <>
@@ -175,7 +173,7 @@ export function Navbar() {
                                         <DropdownMenuTrigger asChild>
                                             <button
                                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all shadow-lg border hover:scale-105 group"
-                                                style={{ background: 'var(--surface-s2)', borderColor: 'var(--surface-edge)' }}
+                                                style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}
                                             >
                                                 <div className="relative">
                                                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -313,8 +311,8 @@ export function Navbar() {
                 </nav>
             </header>
 
-            {/* MOBILE BOTTOM NAV — always show for non-interview pages */}
-            {!['/interview', '/assess'].some(route => pathname.startsWith(route)) && (
+            {/* MOBILE BOTTOM NAV — show on browse pages only */}
+            {!hideBottomNav && (
                 <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden"
                     style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="glass border-t border-white/5 px-2 py-1">
@@ -364,8 +362,6 @@ export function Navbar() {
                 </nav>
             )}
 
-            {/* Spacer to push content below fixed navbar */}
-            <div className="w-full h-16" />
         </>
     );
 }

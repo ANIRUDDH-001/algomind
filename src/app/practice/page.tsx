@@ -4,12 +4,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemsPaginated, getRandomProblem, type Problem } from '@/lib/supabase/problems';
-import { ProblemFilters, CURATED_LISTS } from '@/components/practice/ProblemFilters';
+import { ProblemFilters } from '@/components/practice/ProblemFilters';
 import { ProblemCard } from '@/components/practice/ProblemCard';
 import { DifficultyModeSelector, type DifficultyMode } from '@/components/practice/DifficultyModeSelector';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Loader2, Shuffle, Brain, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Shuffle, Brain, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
@@ -195,10 +195,6 @@ export default function PracticePage() {
         }
     };
 
-
-    // Pagination button styles - dark background
-    const paginationBtnStyles = "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800";
-
     return (
         <div className="min-h-screen pb-12 px-4" style={{ background: 'var(--surface-base)' }}>
             <div className="max-w-5xl mx-auto">
@@ -264,7 +260,7 @@ export default function PracticePage() {
                 ) : (
                     <>
                         {/* Filters */}
-                        <div className="glass sticky top-[var(--navbar-h,64px)] z-20 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
+                        <div className="glass sticky top-[var(--navbar-h,64px)] z-30 py-3 px-4 -mx-4 sm:mx-0 sm:rounded-2xl mb-6">
                             <ProblemFilters onFilterChange={handleFilterChange} currentFilters={filters} />
                         </div>
 

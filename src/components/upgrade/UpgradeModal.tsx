@@ -54,10 +54,10 @@ export function UpgradeModal({ open, onOpenChange, payload }: UpgradeModalProps)
             className="bg-amber-500 text-zinc-950 hover:bg-amber-400"
             onClick={() => {
               onOpenChange(false);
-              router.push('/employer');
+              router.push('/settings');
             }}
           >
-            Upgrade Now
+            View Plans
           </Button>
         </DialogFooter>
       </DialogContent>
