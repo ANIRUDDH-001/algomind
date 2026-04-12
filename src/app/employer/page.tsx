@@ -99,7 +99,7 @@ export default function EmployerPage() {
     // Show loading state while checking auth and account type
     if (authLoading || checkingType) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[var(--surface-1)]">
+            <div className="min-h-screen flex items-center justify-center bg-[var(--surface-1)] pb-20 md:pb-4">
                 <div className="w-12 h-12 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
             </div>
         );
@@ -108,7 +108,7 @@ export default function EmployerPage() {
     // If logged in as candidate, show the upgrade prompt
     if (user && accountType === 'candidate') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 pb-20 md:pb-4">
                 <div className="max-w-md w-full bg-[var(--surface-2)]/50 backdrop-blur-sm p-8 rounded-xl border border-white/10 text-center">
                     <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Briefcase className="w-8 h-8 text-blue-400" />
@@ -173,7 +173,7 @@ export default function EmployerPage() {
 
     // Public marketing page
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-x-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-x-hidden pb-20 md:pb-4">
             <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
                 {/* Hero Section */}
                 <div className="text-center mb-20 max-w-4xl mx-auto">

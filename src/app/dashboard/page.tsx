@@ -128,7 +128,7 @@ function DashboardContent() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 text-center">
+            <div className="min-h-screen flex items-center justify-center p-6 text-center pb-20 md:pb-4">
                 <div className="max-w-md space-y-4">
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
                         <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
@@ -140,7 +140,7 @@ function DashboardContent() {
     }
 
     return (
-        <div {...handlers} className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+        <div {...handlers} className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden">
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader
                     progress={progress}

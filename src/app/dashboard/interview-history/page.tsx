@@ -55,7 +55,7 @@ export default async function AssessmentHistoryPage() {
     } : null;
 
     return (
-        <div className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden" style={{ background: 'var(--surface-base)' }}>
+        <div className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden" style={{ background: 'var(--surface-base)' }}>
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader
                     progress={assessmentProgress as any}
@@ -71,7 +71,7 @@ export default async function AssessmentHistoryPage() {
                 ) : (
                     <div className="animate-in fade-in duration-700">
                         <div className="mb-6 flex flex-col gap-1">
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Your Assessment History</h2>
+                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">Your History</h2>
                             <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest">Track your progress across technical sessions</p>
                         </div>
                         <CandidateHistoryTable submissions={submissionsData} />

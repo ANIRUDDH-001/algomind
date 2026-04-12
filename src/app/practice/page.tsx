@@ -196,7 +196,7 @@ export default function PracticePage() {
     };
 
     return (
-        <div className="min-h-screen pb-12 px-4" style={{ background: 'var(--surface-base)' }}>
+        <div className="min-h-screen pb-20 md:pb-4 px-4" style={{ background: 'var(--surface-base)' }}>
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

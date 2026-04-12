@@ -4,8 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function SettingsPage() {
     return (
-        <div className="page-container max-w-2xl mx-auto py-12">
-            <Link href="/" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors mb-6 text-sm font-bold uppercase tracking-widest">
+        <div className="page-container max-w-2xl mx-auto py-12 pb-20 md:pb-4">
+            <Link href="/dashboard" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors mb-6 text-sm font-bold uppercase tracking-widest">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
             </Link>

@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Shield, Flag, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain } from 'lucide-react';
 import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
@@ -91,7 +91,7 @@ export function Navbar() {
     }
 
     const hideBottomNav =
-        ['/interview', '/assess', '/learn/'].some(route => pathname.startsWith(route)) ||
+        ['/interview', '/assess', '/learn/', '/replay/'].some(route => pathname.startsWith(route)) ||
         pathname === '/learn/diagnostic';
 
     return (
@@ -123,7 +123,7 @@ export function Navbar() {
                                 <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-500">AlgoMind</span>
                             </button>
 
-                            {/* Navigation Links — Home+Practice for everyone, Dashboard+Assessments for auth */}
+                            {/* Navigation Links — Home+Practice for everyone, Dashboard+History for auth */}
                             <div className="hidden md:flex items-center gap-6">
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
@@ -133,10 +133,12 @@ export function Navbar() {
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
                                         ...(accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
                                             ? [{ href: '/employer/dashboard', label: 'Employer', authOnly: true }]
-                                            : [{ href: '/dashboard/interview-history', label: 'Assessments', authOnly: true }]),
+                                            : [{ href: '/dashboard/interview-history', label: 'History', authOnly: true }]),
                                     ] : []),
                                 ].map((link) => {
-                                    const isActive = pathname === link.href;
+                                    const isActive = link.href === '/'
+                                        ? pathname === '/'
+                                        : pathname === link.href || pathname.startsWith(link.href + '/');
                                     return (
                                         <Link
                                             key={link.href}
@@ -213,8 +215,8 @@ export function Navbar() {
                                                 onClick={() => router.push('/dashboard/interview-history')}
                                                 className="text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer focus:bg-white/5 rounded-xl px-3 py-2 text-xs font-bold"
                                             >
-                                                <Flag className="mr-2 h-4 w-4" />
-                                                My Assessments
+                                                <History className="mr-2 h-4 w-4" />
+                                                My History
                                             </DropdownMenuItem>
 
                                             {accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true' && (
