@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import dynamic from 'next/dynamic';
 import { Play } from 'lucide-react';
 import { OnMount } from '@monaco-editor/react';
@@ -88,6 +88,7 @@ interface CodeEditorProps {
     onCodeChange: (code: string) => void;
     defaultLanguage?: string;
     initialCode?: string;
+    problemTitle?: string;
     onLanguageChange?: (lang: string) => void;
     onExecutionStart?: () => void;
     onExecutionResult?: (result: ExecutionResult) => void;
@@ -104,12 +105,13 @@ const LANGUAGE_API_MAP: Record<string, string> = {
     cpp: 'cpp',
 };
 
-export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false, onKeyDown, runDisabled = false }: CodeEditorProps) {
+export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCode = '', problemTitle, onLanguageChange, onExecutionStart, onExecutionResult, readOnly = false, onKeyDown, runDisabled = false }: CodeEditorProps) {
     const [code, setCode] = useState(initialCode);
     const [language, setLanguage] = useState(defaultLanguage);
     const [isRunning, setIsRunning] = useState(false);
     const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
     const [activeTab, setActiveTab] = useState<'output' | 'error' | 'info'>('output');
+    const editorLabelId = useId();
 
     const [editorHeight, setEditorHeight] = useState<string>('calc(100dvh - 320px)');
 
@@ -254,29 +256,35 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
 
             {/* Monaco Editor */}
             <div className="flex-1" style={{ height: editorHeight, minHeight: '200px' }}>
-                <Editor
-                    height="100%"
-                    language={language}
-                    value={code}
-                    onChange={handleEditorChange}
-                    onMount={handleEditorDidMount}
-                    theme="vs-dark"
-                    options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        lineNumbers: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: 'on',
-                        quickSuggestions: true,
-                        suggestOnTriggerCharacters: !readOnly,
-                        accessibilitySupport: 'auto',
-                        formatOnPaste: !readOnly,
-                        formatOnType: !readOnly,
-                        readOnly: readOnly,
-                    }}
-                />
+                <div className="sr-only" id={editorLabelId}>
+                    Code editor - write your solution here
+                </div>
+                <div aria-labelledby={editorLabelId} className="h-full">
+                    <Editor
+                        height="100%"
+                        language={language}
+                        value={code}
+                        onChange={handleEditorChange}
+                        onMount={handleEditorDidMount}
+                        theme="vs-dark"
+                        options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            tabSize: 2,
+                            wordWrap: 'on',
+                            quickSuggestions: true,
+                            suggestOnTriggerCharacters: !readOnly,
+                            accessibilitySupport: 'auto',
+                            ariaLabel: `Code editor for ${problemTitle ?? 'interview problem'}. Press Escape to exit focus mode.`,
+                            formatOnPaste: !readOnly,
+                            formatOnType: !readOnly,
+                            readOnly: readOnly,
+                        }}
+                    />
+                </div>
             </div>
 
             {/* Execution Panel */}

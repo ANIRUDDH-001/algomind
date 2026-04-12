@@ -1,7 +1,7 @@
  
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IntroAnimation } from '@/components/onboarding/IntroAnimation';
 import { shouldShowOnboarding, markOnboardingComplete } from '@/lib/onboarding/manager';
 
@@ -102,6 +102,43 @@ export default function HomePage() {
   // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const handleMainCTA = useCallback(async () => {
+    if (user) {
+      setIsRedirecting(true);
+      try {
+        const res = await fetch('/api/user/account-type');
+        if (res.ok) {
+          const { accountType } = await res.json();
+          switch (accountType) {
+            case 'owner':
+              router.push('/owner');
+              break;
+            case 'admin':
+              router.push('/admin');
+              break;
+            case 'employer':
+              router.push('/employer/dashboard');
+              break;
+            default:
+              router.push('/dashboard');
+          }
+        } else {
+          router.push('/dashboard');
+        }
+      } catch {
+        router.push('/dashboard');
+      } finally {
+        setIsRedirecting(false);
+      }
+    } else {
+      if (guestModeEnabled) {
+        router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
+      } else {
+        router.push('/login?reason=guest_disabled');
+      }
+    }
+  }, [user, router, guestModeEnabled]);
 
   const handleOnboardingComplete = () => {
     markOnboardingComplete();
@@ -211,35 +248,7 @@ export default function HomePage() {
             data-tour="home-hero-cta"
           >
             <Button
-              onClick={async () => {
-                if (user) {
-                  setIsRedirecting(true);
-                  try {
-                    const res = await fetch('/api/user/account-type');
-                    if (res.ok) {
-                      const { accountType } = await res.json();
-                      switch (accountType) {
-                        case 'owner': router.push('/owner'); break;
-                        case 'admin': router.push('/admin'); break;
-                        case 'employer': router.push('/employer/dashboard'); break;
-                        default: router.push('/dashboard');
-                      }
-                    } else {
-                      router.push('/dashboard');
-                    }
-                  } catch {
-                    router.push('/dashboard');
-                  } finally {
-                    setIsRedirecting(false);
-                  }
-                } else {
-                  if (guestModeEnabled) {
-                    router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
-                  } else {
-                    router.push('/login?reason=guest_disabled');
-                  }
-                }
-              }}
+              onClick={handleMainCTA}
               disabled={loading}
               size="lg"
               className="w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]"
@@ -557,35 +566,7 @@ export default function HomePage() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Button
-                    onClick={async () => {
-                      if (user) {
-                        setIsRedirecting(true);
-                        try {
-                          const res = await fetch('/api/user/account-type');
-                          if (res.ok) {
-                            const { accountType } = await res.json();
-                            switch (accountType) {
-                              case 'owner': router.push('/owner'); break;
-                              case 'admin': router.push('/admin'); break;
-                              case 'employer': router.push('/employer/dashboard'); break;
-                              default: router.push('/dashboard');
-                            }
-                          } else {
-                            router.push('/dashboard');
-                          }
-                        } catch {
-                          router.push('/dashboard');
-                        } finally {
-                          setIsRedirecting(false);
-                        }
-                      } else {
-                        if (guestModeEnabled) {
-                          router.push('/interview?problemId=guest-reverse-linked-list&demo=true');
-                        } else {
-                          router.push('/login?reason=guest_disabled');
-                        }
-                      }
-                    }}
+                    onClick={handleMainCTA}
                     disabled={loading}
                     size="lg"
                     className="btn-primary h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"

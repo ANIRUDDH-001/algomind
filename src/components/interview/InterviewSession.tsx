@@ -1042,6 +1042,7 @@ export function InterviewSession({
                                             onCodeChange={setUserCode}
                                             defaultLanguage={codeLanguage}
                                             initialCode={userCode}
+                                            problemTitle={problem?.title}
                                             onLanguageChange={setCodeLanguage}
                                             onExecutionStart={() => {
                                                 setIsCodeRunning(true);
@@ -1516,6 +1517,7 @@ export function InterviewSession({
                                         onCodeChange={setUserCode}
                                         defaultLanguage={codeLanguage}
                                         initialCode={userCode}
+                                        problemTitle={problem?.title}
                                         onLanguageChange={setCodeLanguage}
                                         onExecutionStart={() => {
                                             setIsCodeRunning(true);

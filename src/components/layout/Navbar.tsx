@@ -111,6 +111,7 @@ export function Navbar() {
                             {/* Logo */}
                             <button
                                 onClick={() => router.push('/')}
+                                aria-label="Go to AlgoMind homepage"
                                 className="flex items-center gap-3 font-bold text-xl text-white hover:text-indigo-400 transition-colors group shrink-0"
                             >
                                 <Image
@@ -174,6 +175,7 @@ export function Navbar() {
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button
+                                                aria-label={`Open account menu for ${user.email ?? 'user'}`}
                                                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all shadow-lg border hover:scale-105 group"
                                                 style={{ background: 'var(--surface-2)', borderColor: 'var(--surface-edge)' }}
                                             >
@@ -343,6 +345,8 @@ export function Navbar() {
                                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                                 return (
                                     <Link key={item.href} href={item.href}
+                                        aria-label={item.label}
+                                        aria-current={isActive ? 'page' : undefined}
                                         className="flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all relative"
                                     >
                                         <motion.div whileTap={{ scale: 0.85 }}>

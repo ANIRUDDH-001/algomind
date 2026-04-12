@@ -23,14 +23,52 @@ interface RecommendationData {
 export function RecommendationBanner() {
   const router = useRouter();
   const [data, setData] = useState<RecommendationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/knowledge/recommendations')
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => null);
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch recommendations');
+        return r.json();
+      })
+      .then((nextData) => {
+        if (cancelled) return;
+        setData(nextData);
+        setFetchError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFetchError(true);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (fetchError) {
+      console.warn('[RecommendationBanner] Failed to load recommendations');
+    }
+  }, [fetchError]);
+
+  if (loading) {
+    return (
+      <div className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--surface-1)' }} />
+    );
+  }
+
+  if (fetchError) {
+    return null;
+  }
 
   if (!data || dismissed) return null;
 

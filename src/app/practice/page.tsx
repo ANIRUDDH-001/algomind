@@ -302,15 +302,31 @@ export default function PracticePage() {
 
                                 <Brain className="w-16 h-16 text-zinc-600 mx-auto mb-4 relative z-10" />
                                 <p className="text-zinc-200 font-bold text-lg mb-2 relative z-10">No problems found</p>
-                                <p className="text-zinc-500 text-sm mb-6 relative z-10">
+                                <p className="text-zinc-500 text-sm mb-2 relative z-10">
+                                    No problems match:
+                                    {filters.difficulty !== 'all' && ` Difficulty: ${filters.difficulty}`}
+                                    {filters.curatedList && ` · List: ${filters.curatedList}`}
+                                    {filters.searchQuery && ` · Search: "${filters.searchQuery}"`}
+                                    {filters.topic && ` · Topic: ${filters.topic}`}
+                                </p>
+                                <p className="text-zinc-500 text-sm mb-4 relative z-10">
                                     Try changing your filters or add more problems to the database
                                 </p>
                                 <Button
-                                    onClick={() => handleFilterChange({ difficulty: 'all', curatedList: '', attempted: 'all', searchQuery: '', topic: '' })}
-                                    variant="outline"
-                                    className="relative z-10"
+                                    onClick={() => {
+                                        setFilters({
+                                            difficulty: 'all',
+                                            curatedList: '',
+                                            attempted: 'all',
+                                            searchQuery: '',
+                                            topic: '',
+                                        });
+                                        setCurrentPage(1);
+                                    }}
+                                    className="mt-4 px-5 py-2.5 rounded-xl text-sm font-bold text-indigo-400 transition-all focus-visible:ring-2 focus-visible:ring-indigo-400/60 relative z-10"
+                                    style={{ background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.2)' }}
                                 >
-                                    Clear Filters
+                                    Clear All Filters
                                 </Button>
                             </div>
                         ) : (

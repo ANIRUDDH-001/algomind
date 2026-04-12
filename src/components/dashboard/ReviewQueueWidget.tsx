@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getDueReviews, getUpcomingReviews } from '@/lib/spaced-repetition/queue';
 import { SpacedRepetitionRecord } from '@/lib/spaced-repetition/types';
 import { getDueSkills, DueSkill } from '@/lib/spaced-repetition/skill-scheduler';
-import { CheckCircle2, ChevronRight, Clock, Trash2, Flame } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from './DashboardCard';

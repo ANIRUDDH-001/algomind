@@ -11,7 +11,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, Settings, LayoutDashboard } from 'lucide-react';
+import { LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 
 export function UserButton() {

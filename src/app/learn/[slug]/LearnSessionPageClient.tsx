@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Square, Volume2, Send, Loader2 } from 'lucide-react';
+import { AlertCircle, Mic, MicOff, Square, Volume2, Send, Loader2 } from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { useVAD } from '@/hooks/useVAD';
 import { useSTT } from '@/hooks/useSTT';
@@ -25,6 +25,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [textInput, setTextInput] = useState('');
   const [userTranscript, setUserTranscript] = useState('');
+  const [upgradeDismissed, setUpgradeDismissed] = useState(false);
 
   // VAD mode state
   const [vadMode, setVadMode] = useState<'onnx' | 'push-to-talk'>('push-to-talk');
@@ -188,7 +189,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   }, [vadMode, stt, session.state, session.kaiTyping, handleVoiceSend]);
 
   const isListening = vadHook.isListening || stt.isListening;
-  const showUpgrade = session.error === 'LIMIT_REACHED';
+  const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
 
   // Render
   return (
@@ -323,6 +324,36 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
             </div>
           </motion.div>
         )}
+
+        {session.error && session.error !== 'LIMIT_REACHED' && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 my-2 p-4 rounded-xl flex items-start gap-3"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+          >
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-bold text-red-300 mb-1">Connection lost</p>
+              <p className="text-xs text-zinc-400">
+                Kai couldn&apos;t respond. Your session progress is saved.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (session.retryLastMessage) {
+                  void session.retryLastMessage();
+                  return;
+                }
+                window.location.reload();
+              }}
+              className="shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg"
+              style={{ background: 'var(--surface-3)' }}
+            >
+              Retry
+            </button>
+          </motion.div>
+        )}
         <div ref={transcriptEndRef} />
       </div>
 
@@ -412,7 +443,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
       <UpgradeModal
         open={showUpgrade}
         onOpenChange={(open) => {
-          if (!open) router.push('/learn');
+          if (!open) setUpgradeDismissed(true);
         }}
         payload={{ reason: 'limit_reached' }}
       />

@@ -44,6 +44,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [results, setResults] = useState<LearnSessionResults | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
   const [kaiTyping, setKaiTyping] = useState(false);
 
   const startTimeRef = useRef<number | null>(null);
@@ -106,6 +107,26 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     }
   }, [state, conceptSlug, onSessionStart, onSpeakMessage, addTranscriptEntry]);
 
+  const handleSessionResults = useCallback(async (data: {
+    sessionId?: string;
+    assessment?: LearnSessionResults['assessment'];
+  }) => {
+    const durationSeconds = startTimeRef.current
+      ? Math.round((Date.now() - startTimeRef.current) / 1000)
+      : 0;
+
+    const sessionResults: LearnSessionResults = {
+      sessionId: sessionId ?? data.sessionId ?? '',
+      conceptSlug,
+      durationSeconds,
+      assessment: data.assessment ?? { understood: [], struggled: [], notes: '', confidenceDelta: 0 },
+    };
+
+    setResults(sessionResults);
+    setState('complete');
+    onSessionEnd?.(sessionResults);
+  }, [sessionId, conceptSlug, onSessionEnd]);
+
   /**
    * Send a user message and get Kai's response.
    */
@@ -122,6 +143,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     const updatedTranscript = [...transcript, { ...userEntry, id: `u-${Date.now()}` }];
     setTranscript(updatedTranscript);
     setKaiTyping(true);
+    setError(null);
 
     abortControllerRef.current = new AbortController();
 
@@ -146,7 +168,53 @@ export function useLearnSession(options: UseLearnSessionOptions) {
         await onSpeakMessage?.(data.response);
       }
 
+      setError(null);
+      setLastFailedMessage(null);
+
       // Auto-end if session limit reached
+      if (data.sessionComplete) {
+        await handleSessionResults(data);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setError('Failed to send message');
+      setLastFailedMessage(userMessage);
+    } finally {
+      setKaiTyping(false);
+    }
+  }, [state, sessionId, kaiTyping, transcript, conceptSlug, buildMessages, addTranscriptEntry, onSpeakMessage, handleSessionResults]);
+
+  const retryLastMessage = useCallback(async () => {
+    if (state !== 'active' || !sessionId || kaiTyping || !lastFailedMessage) return;
+
+    setKaiTyping(true);
+    setError(null);
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const res = await fetch('/api/learn/concept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conceptSlug,
+          messages: buildMessages(transcript),
+          sessionId,
+          action: 'turn',
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!res.ok) throw new Error(`Turn failed: ${res.status}`);
+      const data = await res.json();
+
+      if (data.response) {
+        addTranscriptEntry({ role: 'assistant', content: data.response, at: new Date().toISOString() });
+        await onSpeakMessage?.(data.response);
+      }
+
+      setError(null);
+      setLastFailedMessage(null);
+
       if (data.sessionComplete) {
         await handleSessionResults(data);
       }
@@ -156,7 +224,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     } finally {
       setKaiTyping(false);
     }
-  }, [state, sessionId, kaiTyping, transcript, conceptSlug, buildMessages, addTranscriptEntry, onSpeakMessage]);
+  }, [state, sessionId, kaiTyping, lastFailedMessage, conceptSlug, buildMessages, transcript, addTranscriptEntry, onSpeakMessage, handleSessionResults]);
 
   /**
    * End the session explicitly.
@@ -184,27 +252,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
       setState('error');
       setError(err instanceof Error ? err.message : 'Failed to end session');
     }
-  }, [state, sessionId, conceptSlug, transcript, buildMessages]);
-
-  const handleSessionResults = useCallback(async (data: {
-    sessionId?: string;
-    assessment?: LearnSessionResults['assessment'];
-  }) => {
-    const durationSeconds = startTimeRef.current
-      ? Math.round((Date.now() - startTimeRef.current) / 1000)
-      : 0;
-
-    const sessionResults: LearnSessionResults = {
-      sessionId: sessionId ?? data.sessionId ?? '',
-      conceptSlug,
-      durationSeconds,
-      assessment: data.assessment ?? { understood: [], struggled: [], notes: '', confidenceDelta: 0 },
-    };
-
-    setResults(sessionResults);
-    setState('complete');
-    onSessionEnd?.(sessionResults);
-  }, [sessionId, conceptSlug, onSessionEnd]);
+  }, [state, sessionId, conceptSlug, transcript, buildMessages, handleSessionResults]);
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -213,6 +261,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     setSessionId(null);
     setResults(null);
     setError(null);
+    setLastFailedMessage(null);
     setKaiTyping(false);
     startTimeRef.current = null;
   }, []);
@@ -226,6 +275,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     kaiTyping,
     startSession,
     sendMessage,
+    retryLastMessage,
     endSession,
     reset,
   };

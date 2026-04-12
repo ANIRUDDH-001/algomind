@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, Briefcase, Clock, AlertCircle } from 'lucide-react';
+import { Briefcase, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 // Remove InterviewSession import
 import { CampaignInterviewSession, type QuestionState, type ProblemWithTiming } from '@/components/enterprise/CampaignInterviewSession';

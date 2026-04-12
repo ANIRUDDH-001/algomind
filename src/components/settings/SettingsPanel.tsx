@@ -7,7 +7,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, User, LogOut, Database, Shield, Play } from 'lucide-react';
+import { Shield, Play } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 

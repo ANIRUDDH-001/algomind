@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, AlertCircle, BarChart2, MessageSquare, Search, Check, Copy, Power, PowerOff } from 'lucide-react';
+import { Plus, Link as LinkIcon, Download, Trash2, Users, Clock, BarChart2, MessageSquare, Copy, Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RadarChart } from '@/components/charts/RadarChart';

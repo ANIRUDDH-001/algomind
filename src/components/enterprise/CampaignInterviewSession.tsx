@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, CheckCircle, Clock, AlertTriangle, Send, LogOut, Code, Mic, MessageSquare } from 'lucide-react';
+import { Play, CheckCircle, Clock, AlertTriangle, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { ConversationView } from '@/components/interview/ConversationView';

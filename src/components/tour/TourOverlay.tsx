@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -97,10 +97,74 @@ export function TourOverlay() {
 
     const [isMounted, setIsMounted] = useState(false);
     const isMobile = useMediaQuery('(max-width: 767px)');
+    const tooltipRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+    const wasOpenRef = useRef(false);
+
+    const restorePreviousFocus = useCallback(() => {
+        window.setTimeout(() => {
+            previousFocusRef.current?.focus();
+        }, 100);
+    }, []);
+
+    const handleTourEnd = useCallback(() => {
+        skipTour();
+    }, [skipTour]);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            handleTourEnd();
+            return;
+        }
+
+        if (e.key !== 'Tab') return;
+
+        const focusableElements = tooltipRef.current?.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusableElements?.length) return;
+
+        const firstEl = focusableElements[0];
+        const lastEl = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstEl) {
+            e.preventDefault();
+            lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+            e.preventDefault();
+            firstEl.focus();
+        }
+    }, [handleTourEnd]);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (isOpen && !wasOpenRef.current) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+            wasOpenRef.current = true;
+            return;
+        }
+
+        if (!isOpen && wasOpenRef.current) {
+            wasOpenRef.current = false;
+            restorePreviousFocus();
+        }
+    }, [isOpen, restorePreviousFocus]);
+
+    useEffect(() => {
+        if (!isOpen || !currentStep || currentStep.type !== 'spotlight') return;
+
+        const timer = window.setTimeout(() => {
+            tooltipRef.current?.focus();
+        }, 50);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [currentStepIndex, currentStep, isOpen]);
 
     if (!isMounted || !isOpen || !currentStep) return null;
 
@@ -203,7 +267,7 @@ export function TourOverlay() {
                                     {currentStep.ctaLabel ?? (isWelcome ? 'Show Me Around' : 'Finish')}
                                 </Button>
                                 <Button
-                                    onClick={skipTour}
+                                    onClick={handleTourEnd}
                                     variant="ghost"
                                     size="sm"
                                     className="text-zinc-600 hover:text-zinc-300 text-xs"
@@ -270,8 +334,13 @@ export function TourOverlay() {
 
                 {/* Tooltip card */}
                 <AnimatePresence mode="wait">
-                    <div
+                    <motion.div
                         key={`card-${currentStep.id}`}
+                        ref={tooltipRef}
+                        tabIndex={-1}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Tour step ${spotlightIndex + 1} of ${TOTAL_SPOTLIGHT}`}
                         style={
                             isMobile
                                 ? {
@@ -293,6 +362,7 @@ export function TourOverlay() {
                                 }
                         }
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={handleKeyDown}
                     >
                         <TourCard
                             title={currentStep.title}
@@ -304,12 +374,12 @@ export function TourOverlay() {
                             isNavigating={isNavigating}
                             onNext={nextStep}
                             onPrev={prevStep}
-                            onSkip={skipTour}
+                            onSkip={handleTourEnd}
                             onToggleAudio={toggleAudio}
                             showBack={currentStepIndex > 1}
                             isLast={isLastSpotlight}
                         />
-                    </div>
+                    </motion.div>
                 </AnimatePresence>
 
                 {/* Mobile tap hint */}

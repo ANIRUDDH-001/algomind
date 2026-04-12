@@ -212,6 +212,9 @@ export default function DiagnosticPage() {
               </div>
 
               {/* Question Card */}
+              <div aria-live="polite" aria-atomic="true" className="sr-only">
+                {`Question ${currentQuestionIndex + 1}: ${currentQuestion.title}${currentQuestion.description ? `. ${currentQuestion.description}` : ''}`}
+              </div>
               <motion.div
                 key={currentQuestion.id}
                 initial={{ opacity: 0, x: 20 }}
@@ -242,8 +245,8 @@ export default function DiagnosticPage() {
                         ? answer.color + ' ring-2 ring-offset-2 ring-offset-[#0A0A0F]'
                         : 'bg-zinc-800 hover:bg-zinc-700 border border-zinc-700'
                     } ${
-                      isAdvancing ? 'opacity-80 cursor-not-allowed' : ''
-                    }`}
+                      isAdvancing ? 'opacity-60 cursor-not-allowed' : ''
+                    } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0F]`}
                   >
                     <span className="inline-block mr-3 font-bold">
                       {answer.value}

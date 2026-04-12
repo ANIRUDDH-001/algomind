@@ -4,7 +4,7 @@ import React from 'react';
 import { UserProgress } from '@/types/assessment';
 import { Button } from '@/components/ui/button';
 import { ExportReportButton } from './ExportReportButton';
-import { Brain, PlusCircle, Calendar, ArrowRight, BookOpen } from 'lucide-react';
+import { PlusCircle, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';

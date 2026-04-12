@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Mic, Play, Settings, Volume2 } from 'lucide-react';
+import { Play, Volume2 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '@/lib/supabase/user-preferences';
 import type { TTSProvider } from '@/lib/voice/tts-engine';
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getInsightSnapshot, InsightSnapshot } from '@/lib/recommendations/insight-engine';
-import { Lightbulb, ArrowRight, Target, Dumbbell, Play, ExternalLink, Activity, TrendingDown, Clock, Map, BarChart2, TrendingUp, Scale, AlertCircle } from 'lucide-react';
+import { Lightbulb, Target, Dumbbell, Play, ExternalLink, Activity, TrendingDown, Clock, Map, BarChart2, TrendingUp, Scale, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';

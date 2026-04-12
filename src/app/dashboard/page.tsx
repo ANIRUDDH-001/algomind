@@ -20,7 +20,7 @@ import { ShareReplayButton } from '@/components/dashboard/ShareReplayButton';
 import { useReviewCount } from '@/hooks/useReviewCount';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { Brain, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Brain, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { SessionHistory } from '@/types/assessment';
@@ -151,19 +151,6 @@ function DashboardContent() {
         onTabChange: handleTabChange
     });
 
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-6 text-center pb-20 md:pb-4">
-                <div className="max-w-md space-y-4">
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                        <h2 className="text-red-400 font-bold text-xl">Oops! Failed to load progress</h2>
-                        <p className="text-zinc-500 text-sm mt-2">{error}</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div {...handlers} className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden">
             <div className="max-w-7xl mx-auto">
@@ -180,7 +167,24 @@ function DashboardContent() {
                     ))}
                 </div>
 
-                {!isLoading && (!progress || progress.totalSessions === 0) ? (
+                {!isLoading && error ? (
+                    <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-1)', border: '1px solid var(--danger)20' }}>
+                        <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-6 h-6 text-red-400" />
+                        </div>
+                        <h3 className="text-white font-bold mb-2">Failed to load your progress</h3>
+                        <p className="text-zinc-400 text-sm mb-4">
+                            There was a problem fetching your session data. This is usually temporary.
+                        </p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all"
+                            style={{ background: 'var(--accent-primary)' }}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                ) : !isLoading && (!progress || progress.totalSessions === 0) ? (
                     <EmptyState
                         title="Your journey hasn't started yet!"
                         description="Complete your first voice-enabled interview to see your cognitive skill profile here."
@@ -319,8 +323,15 @@ function DashboardContent() {
                                         subtitle="Detailed list of all your practice sessions"
                                         isLoading={isLoading}
                                     >
-                                        <div className="space-y-4 max-h-150 overflow-y-auto pr-2 custom-scrollbar" data-tour="history-list">
-                                            {progress?.sessions.map((session) => (
+                                        {/* Scrollable session history list - shows last 600px of content */}
+                                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar" data-tour="history-list">
+                                            {progress?.sessions.map((session) => {
+                                                const scoreTier =
+                                                    session.overallScore >= 7.5 ? 'Excellent' :
+                                                        session.overallScore >= 5.5 ? 'Good' :
+                                                            'Needs Work';
+
+                                                return (
                                                 <div
                                                     key={session.sessionId}
                                                     onClick={() => !isLoading && handleSessionClick(session)}
@@ -335,12 +346,20 @@ function DashboardContent() {
                                                     }}
                                                 >
                                                     <div className="flex items-center gap-4">
-                                                        <div className={cn(
-                                                            "w-12 h-12 rounded-xl flex items-center justify-center font-black text-white",
-                                                            session.overallScore >= 7.5 ? "bg-emerald-500" :
-                                                                session.overallScore >= 5.5 ? "bg-blue-500" : "bg-amber-500"
-                                                        )}>
-                                                            {session.overallScore.toFixed(1)}
+                                                        <div className="flex flex-col items-center gap-0.5">
+                                                            <div
+                                                                aria-label={`Score: ${session.overallScore.toFixed(1)} out of 10 - ${scoreTier}`}
+                                                                className={cn(
+                                                                    "w-12 h-12 rounded-xl flex items-center justify-center font-black text-white",
+                                                                    session.overallScore >= 7.5 ? "bg-emerald-500" :
+                                                                        session.overallScore >= 5.5 ? "bg-blue-500" : "bg-amber-500"
+                                                                )}
+                                                            >
+                                                                {session.overallScore.toFixed(1)}
+                                                            </div>
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                                                                {scoreTier}
+                                                            </span>
                                                         </div>
                                                         <div>
                                                             <h4 className="font-bold text-white uppercase tracking-wide text-sm">{session.problemId.replace(/-/g, ' ')}</h4>
@@ -371,7 +390,8 @@ function DashboardContent() {
                                                         </button>
                                                     </div>
                                                 </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </DashboardCard>
                                 </div>
