@@ -99,7 +99,6 @@ vi.mock('lucide-react', () => ({
     Shield: (props: any) => <span data-testid="icon-shield" className={props.className} />,
     Flag: (props: any) => <span data-testid="icon-flag" className={props.className} />,
     Briefcase: (props: any) => <span data-testid="icon-briefcase" className={props.className} />,
-    BookOpen: (props: any) => <span data-testid="icon-bookopen" className={props.className} />,
     Brain: (props: any) => <span data-testid="icon-brain" className={props.className} />,
     LogIn: (props: any) => <span data-testid="icon-login" className={props.className} />,
     Sparkles: (props: any) => <span data-testid="icon-sparkles" className={props.className} />,
@@ -181,24 +180,24 @@ describe('Navbar Component', () => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
             const links = bottomNav?.querySelectorAll('a');
-            // Candidate has: Home, Practice, Learn, Progress, Settings (Total 5)
-            expect(links?.length).toBe(5);
+            // Candidate has: Home, Learn, Progress, Settings (Total 4)
+            expect(links?.length).toBe(4);
         });
     });
 
     it("5. Active route link has 'text-indigo-400' class (not blue)", async () => {
-        (usePathname as any).mockReturnValue('/practice');
+        (usePathname as any).mockReturnValue('/learn');
         const { container } = render(<Navbar />);
         await waitFor(() => {
             // Desktop nav link
-            const desktopLinks = container.querySelectorAll('a[href="/practice"]');
+            const desktopLinks = container.querySelectorAll('a[href="/learn"]');
             const desktopLink = desktopLinks[0];
             expect(desktopLink.className).toContain('text-indigo-400');
 
             // Mobile nav icon
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
-            const mobileLink = bottomNav?.querySelector('a[href="/practice"]');
+            const mobileLink = bottomNav?.querySelector('a[href="/learn"]');
             const mobileSpan = mobileLink?.querySelector('span');
             expect(mobileSpan?.className).toContain('text-indigo-400');
         });
@@ -210,7 +209,7 @@ describe('Navbar Component', () => {
         await waitFor(() => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
-            const inactiveIcon = bottomNav?.querySelector('a[href="/practice"] [data-testid*="icon"]');
+            const inactiveIcon = bottomNav?.querySelector('a[href="/learn"] [data-testid*="icon"]');
             expect(inactiveIcon?.className).toContain('text-zinc-500');
         });
     });

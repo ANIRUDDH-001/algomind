@@ -6,8 +6,8 @@ test.describe('Complete interview flow', () => {
         await setE2EAuthCookie(page.context());
     });
 
-    test('can start a practice interview', async ({ page }) => {
-        await page.goto('/practice');
+    test('can start an interview', async ({ page }) => {
+        await page.goto('/interview');
         await page.click('[data-testid="problem-card"]:first-child');
         await page.waitForURL(/\/interview/);
         expect(await page.locator('[data-testid="interview-session"]').isVisible()).toBe(true);

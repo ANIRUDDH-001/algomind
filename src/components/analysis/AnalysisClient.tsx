@@ -472,8 +472,8 @@ export function AnalysisClient({
                 {...ANIM.fadeUp}
                 transition={TRANSITIONS.page}
             >
-                <Link href="/practice" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
-                    <ArrowLeft className="w-4 h-4" /> Back to Practice
+                <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-400 transition-colors mb-4">
+                    <ArrowLeft className="w-4 h-4" /> Back to Dashboard
                 </Link>
                 <h1 className="text-2xl font-black text-white tracking-tight">
                     Interview Analysis
@@ -917,9 +917,9 @@ export function AnalysisClient({
                             </Link>
                         )}
 
-                        <Link href="/practice" className="block">
+                        <Link href="/dashboard" className="block">
                             <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300">
-                                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Practice
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
                             </Button>
                         </Link>
 

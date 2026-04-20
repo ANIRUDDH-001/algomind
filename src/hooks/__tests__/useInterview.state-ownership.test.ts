@@ -47,10 +47,6 @@ vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
   useGlobalFeatureFlag: () => false,
 }));
 
-vi.mock('@/lib/voice/language-detector', () => ({
-  detectSpokenLanguage: vi.fn().mockReturnValue('english'),
-}));
-
 vi.mock('@/lib/interview/prompts', () => ({
   generateSystemPrompt: vi.fn().mockReturnValue('system'),
   generateTurnPrompt: vi.fn().mockReturnValue('turn'),

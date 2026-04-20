@@ -28,7 +28,7 @@ const FLAG_GROUPS = [
     {
         title: 'Features',
         icon: '✨',
-        keys: ['ENABLE_LEARN_MODE', 'ENABLE_COMPARATIVE_ANALYSIS', 'ENABLE_DIFFICULTY_MODES', 'ENABLE_HINGLISH_SUPPORT', 'ENABLE_SILENT_OBSERVER'],
+        keys: ['ENABLE_LEARN_MODE', 'ENABLE_COMPARATIVE_ANALYSIS', 'ENABLE_DIFFICULTY_MODES', 'ENABLE_SILENT_OBSERVER'],
     },
     {
         title: 'Performance',

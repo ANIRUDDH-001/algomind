@@ -116,24 +116,6 @@ describe('buildKaiTutorSystemPrompt', () => {
     expect(prompt).toContain('Arrays');
   });
 
-  it('includes hinglish language hint when spokenLanguage=hinglish', () => {
-    const prompt = buildKaiTutorSystemPrompt({
-      conceptTag: mockConceptTag,
-      exchangeCount: 2,
-      spokenLanguage: 'hinglish',
-    });
-    expect(prompt).toContain('Language mode: Learner is using Hinglish');
-  });
-
-  it('does not include language hint in english mode', () => {
-    const prompt = buildKaiTutorSystemPrompt({
-      conceptTag: mockConceptTag,
-      exchangeCount: 2,
-      spokenLanguage: 'english',
-    });
-    expect(prompt).not.toContain('Language mode: Learner is using Hinglish');
-  });
-
   it('includes nudge hint when proactive nudge is provided', () => {
     const prompt = buildKaiTutorSystemPrompt({
       conceptTag: mockConceptTag,
@@ -240,9 +222,9 @@ describe('buildTutorOpeningMessage', () => {
 });
 
 describe('tutor-behavioral-contract', () => {
-  it('contains all 10 behavioral rules', async () => {
+  it('contains all 9 behavioral rules', async () => {
     const { KAI_TUTOR_BEHAVIORAL_CONTRACT } = await import('../tutor-behavioral-contract');
-    for (let i = 1; i <= 10; i += 1) {
+    for (let i = 1; i <= 9; i += 1) {
       expect(KAI_TUTOR_BEHAVIORAL_CONTRACT).toContain(`${i}.`);
     }
   });

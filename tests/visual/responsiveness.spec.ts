@@ -14,7 +14,6 @@ const PAGES = [
     { name: 'interview', path: '/interview?problemId=two-sum' },
     { name: 'dashboard', path: '/dashboard' },
     { name: 'settings', path: '/settings' },
-    { name: 'practice', path: '/practice' },
     { name: 'admin-admins', path: '/admin/admins', isAdmin: true },
 ];
 

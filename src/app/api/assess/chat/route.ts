@@ -7,7 +7,6 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
-import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
@@ -87,30 +86,6 @@ export async function POST(req: NextRequest) {
                 'Assessment analysis has already begun.'
             );
         }
-
-        // Fetch user's Hinglish preference (only relevant if global flag is ON)
-        let userHinglishEnabled = false;
-        if (payload?.sub) {
-            const { data: userPref } = await getServiceClient()
-                .from('user_preferences')
-                .select('hinglish_enabled')
-                .eq('user_id', payload.sub)
-                .maybeSingle();
-            userHinglishEnabled = userPref?.hinglish_enabled ?? false;
-        }
-
-        // Hinglish detection — read flag, user pref and sniff last user turn
-        const hinglishGlobalEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
-        const hinglishActive = hinglishGlobalEnabled && userHinglishEnabled;
-        const lastUserMsg = [...(messages || [])].reverse().find((m: { role: string }) => m.role === 'user');
-        const spokenLanguage: 'english' | 'hinglish' =
-            (hinglishActive && lastUserMsg && detectSpokenLanguage(lastUserMsg.content ?? '') === 'hinglish')
-                ? 'hinglish'
-                : 'english';
-        const hinglishBlock = (spokenLanguage === 'hinglish')
-            ? '\n\nSPOKEN LANGUAGE: Candidate is speaking Hinglish. Mirror naturally with Hindi fillers ' +
-            '(yaar, matlab, toh, basically, dekho). Technical terms stay English. NO Devanagari script.'
-            : '';
 
         if (!messages || !Array.isArray(messages)) {
             return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
@@ -213,7 +188,7 @@ export async function POST(req: NextRequest) {
 
         // Add minimal instructions prioritizing standard assessment style
         enhancedSystemPrompt += '\n\n## CANDIDATE INTERVIEW GUIDELINES\nYou are conducting a technical interview. Keep your answers concise, ask probing questions about space/time complexity, and do not write the code for the candidate.';
-        enhancedSystemPrompt += hinglishBlock;
+
 
         const result = await client.generateResponse(messages, {
             preferredModel: 'auto',
@@ -225,7 +200,7 @@ export async function POST(req: NextRequest) {
             userId: typeof payload.sub === 'string' ? payload.sub : undefined,
             sessionId: submissionId,
             promptVersion: PROMPT_VERSION_TAGS.assessmentChat,
-            languageCode: spokenLanguage,
+            languageCode: 'english',
         });
 
         if (!result.success) {

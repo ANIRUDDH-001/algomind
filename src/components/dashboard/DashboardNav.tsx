@@ -43,7 +43,7 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
                 aria-hidden="true"
             />
 
-            <div className="w-full overflow-x-auto mobile-scroll-container -mx-2 px-2">
+            <div className="w-full overflow-x-auto mobile-scroll-container snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0" role="region" aria-label="Dashboard navigation tabs">
                 <nav className="flex items-center gap-1 p-1.5 backdrop-blur-xl rounded-2xl w-max min-w-full sm:w-fit shadow-2xl" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
@@ -55,7 +55,7 @@ export function DashboardNav({ activeTab, onTabChange, isLinkMode, reviewDueCoun
                             onClick={() => handleTabClick(tab.id as TabId)}
                             data-tour={`tab-${tab.id}`}
                             className={cn(
-                                "flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 active:scale-95 group whitespace-nowrap",
+                                "flex items-center gap-2 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 active:scale-95 group whitespace-nowrap snap-start",
                                 isActive
                                     ? "text-white shadow-lg shadow-indigo-500/20"
                                     : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"

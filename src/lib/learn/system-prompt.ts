@@ -10,7 +10,6 @@ export function buildLearnSystemPrompt(params: {
     conceptTags: string[];
     kaiMemory: string | null;
     userPreviousScore: number | null;
-    hinglishActive?: boolean;
 }): string {
     const {
         problemTitle,
@@ -19,32 +18,14 @@ export function buildLearnSystemPrompt(params: {
         conceptTags,
         kaiMemory,
         userPreviousScore,
-        hinglishActive = false,
     } = params;
 
-    const languageRules = hinglishActive
-        ? `Language rules:
-- Explain concepts in Hinglish (natural mix of Hindi and English)
-- ALWAYS use English for: algorithm names, data structure names, complexity notation, variable names, function names
-- When introducing a new term: say it in English first, then explain in Hinglish
-  Pattern: '[English term] — matlab [simple Hindi explanation]'
-- When student has understood a concept, transition to English practice:
-  Say: 'Ab English mein practice karte hain. Real interviews mein sirf English bolna hai.'
-- Never translate DSA terms to Hindi. They MUST be said in English.`
-        : `Language rules:
+    const languageRules = `Language rules:
 - Respond in clear English only.
 - Use precise technical terminology.
 - Keep explanations concise and structured.`;
 
-    const teachingStyle = hinglishActive
-        ? `Teaching approach:
-- Start with the intuition, not the algorithm
-- Ask questions to check understanding: 'Samjha? Ab tum mujhe batao...'
-- Give hints in layers — don't reveal the full solution
-- Celebrate correct answers: 'Bilkul sahi! Exactly!'
-- If student is stuck, guide with analogies from daily Indian life
-- After teaching, always do a mini-quiz: 'Ab ek sawal: if the array is [...]?'`
-        : `Teaching approach:
+    const teachingStyle = `Teaching approach:
 - Start with the intuition, not the algorithm
 - Ask questions to check understanding before moving on
 - Give hints in layers — don't reveal the full solution

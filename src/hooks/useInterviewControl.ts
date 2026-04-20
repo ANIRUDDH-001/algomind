@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateTurnPrompt, generateSystemPrompt, generateInterviewOpeningTrigger, GUEST_INTRO_TEXT, MAX_USER_INPUT, type SystemPromptOptions } from '@/lib/interview/prompts';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
-import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import type { Message } from './useInterviewMessages';
 import type { UseInterviewVoiceReturn } from './useInterviewVoice';
 import type { UseInterviewMessagesReturn } from './useInterviewMessages';
@@ -216,7 +215,7 @@ export function useInterviewControl({
             timeRemaining: optionsRef.current.timeRemaining,
         });
 
-        const detectedLang = detectSpokenLanguage(safeUserText);
+        const detectedLang = 'english'; // Hinglish support removed
 
         const currentProblemTitle = currentProblemRef.current?.problemTitle ?? '';
         const currentProblemContent = currentProblemRef.current?.problemContent ?? '';
@@ -244,31 +243,6 @@ export function useInterviewControl({
                 isGuest: optionsRef.current.isGuest ?? false,
                 sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
                 secondProblem: currentProblemRef.current?.secondProblem,
-                spokenLanguage: detectedLang,
-            });
-            cachedSystemPromptRef.current = currentSysPrompt;
-        } else if (detectedLang === 'hinglish' && !cachedSystemPromptRef.current.includes('SPOKEN LANGUAGE')) {
-            currentSysPrompt = generateSystemPrompt({
-                problem: {
-                    id: currentProblemRef.current?.problemId ?? '',
-                    title: currentProblemTitle,
-                    content: currentProblemContent,
-                    description: currentProblemContent,
-                    difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
-                } as Problem,
-                difficulty: (currentProblemRef.current?.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard',
-                difficultyMode: currentProblemRef.current?.difficultyMode as SystemPromptOptions['difficultyMode'],
-                ragContext: currentProblemRef.current?.ragContext ?? '',
-                kaiMemory: currentProblemRef.current?.kaiMemory ?? '',
-                kaiMemoryStructured: optionsRef.current.config.kaiMemoryStructured ?? undefined,
-                language: currentProblemRef.current?.language,
-                optimalApproach: currentProblemRef.current?.optimalApproach,
-                turnsRemaining: optionsRef.current.turnsRemaining,
-                timeRemaining: optionsRef.current.timeRemaining,
-                isGuest: optionsRef.current.isGuest ?? false,
-                sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
-                secondProblem: currentProblemRef.current?.secondProblem,
-                spokenLanguage: 'hinglish',
             });
             cachedSystemPromptRef.current = currentSysPrompt;
         } else {
@@ -488,7 +462,6 @@ export function useInterviewControl({
             isGuest: optionsRef.current.isGuest ?? false,
             sprintProblemIndex: opts.sprintProblemIndex ?? 0,
             secondProblem: opts.secondProblem,
-            spokenLanguage: 'english', 
         });
 
         // Cache for reuse across turns - only <session_state> block changes per turn

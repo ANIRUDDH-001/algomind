@@ -56,15 +56,16 @@ export const TOUR_STEPS: TourStep[] = [
         position: 'bottom',
         shape: 'rounded',
         title: 'Your Launch Pad',
-        body: 'Three paths from here: jump straight into a voice interview, browse the full problem library, or check your dashboard. Most days you start with Practice.',
+        body: 'Three paths from here: jump straight into a voice interview, review your learn path, or check your dashboard. Most days you start with Interview.',
         kaiSays: "Your jump-off point — three paths forward.",
     },
 
-    // ── STEP 2 ─── Practice — Difficulty Mode Selector ────────────────────────
+    // ── STEP 2 ─── Interview — Difficulty Mode Selector ───────────────────────
     {
         id: 2,
         type: 'spotlight',
-        route: '/practice',
+        route: '/interview',
+        routeParams: '?problemId=two-sum',
         target: '[data-tour="difficulty-mode-selector"]',
         position: 'bottom',
         shape: 'rectangle',
@@ -73,11 +74,12 @@ export const TOUR_STEPS: TourStep[] = [
         kaiSays: "Four modes. Match what you're training for.",
     },
 
-    // ── STEP 3 ─── Practice — Problem List ────────────────────────────────────
+    // ── STEP 3 ─── Interview — Problem List ───────────────────────────────────
     {
         id: 3,
         type: 'spotlight',
-        route: '/practice',
+        route: '/interview',
+        routeParams: '?problemId=two-sum',
         target: '[data-tour="problem-list"]',
         position: 'top',
         shape: 'rectangle',

@@ -17,7 +17,6 @@ import type { KaiMemoryStructured } from '@/types/kai-memory';
 import type { Problem } from '@/types/problem';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';
-import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 import { toast } from 'sonner';
 
 /** Unique ID for stable message identification. */
@@ -445,9 +444,6 @@ export function useInterview(options: UseInterviewOptions) {
             timeRemaining: optionsRef.current.timeRemaining,
         });
 
-        // Detect spoken language from this turn's user text
-        const detectedLang = detectSpokenLanguage(safeUserText);
-
         // Rebuild system prompt every turn so turnsRemaining / timeRemaining are current
         const currentSysPrompt = generateSystemPrompt({
             problem: {
@@ -469,7 +465,6 @@ export function useInterview(options: UseInterviewOptions) {
             isGuest: optionsRef.current.isGuest ?? false,
             sprintProblemIndex: currentProblemRef.current?.sprintProblemIndex ?? 0,
             secondProblem: currentProblemRef.current?.secondProblem,
-            spokenLanguage: detectedLang,
         });
 
         try {
@@ -690,7 +685,6 @@ export function useInterview(options: UseInterviewOptions) {
             isGuest: optionsRef.current.isGuest ?? false,
             sprintProblemIndex: opts.sprintProblemIndex ?? 0,
             secondProblem: opts.secondProblem,
-            spokenLanguage: 'english', // No user text yet at interview start
         });
 
         const introTrigger = generateInterviewOpeningTrigger(

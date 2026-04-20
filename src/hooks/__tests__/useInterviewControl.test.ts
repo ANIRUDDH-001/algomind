@@ -6,10 +6,6 @@ import { useInterviewControl } from '../useInterviewControl';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { InterviewStateMachine } from '@/lib/interview/state-machine';
 
-vi.mock('@/lib/voice/language-detector', () => ({
-    detectSpokenLanguage: vi.fn().mockReturnValue('english')
-}));
-
 vi.mock('@/lib/interview/prompts', () => ({
     generateTurnPrompt: vi.fn(),
     generateSystemPrompt: vi.fn(),

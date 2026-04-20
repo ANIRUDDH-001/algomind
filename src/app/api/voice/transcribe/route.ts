@@ -105,23 +105,8 @@ export async function POST(req: NextRequest) {
 
                 // Drop only if BOTH confidence low AND text too short (likely noise)
                 if (!confidenceOk && !hasSubstantiveText) {
-                    console.log(`[Transcribe] Dropping: conf=${confidence?.toFixed(3)}, text="${data.text?.substring(0, 60)}"`);
                     return NextResponse.json({ text: '', model, confidence, duration: data.duration });
                 }
-
-                // If text is substantive, always pass through regardless of confidence
-                // Hinglish and Indian accents regularly score 0.3-0.6 on Whisper
-                if (hasSubstantiveText) {
-                    console.log(`[Transcribe] Passing: conf=${confidence?.toFixed(3)}, words=${MIN_TRANSCRIPT_WORDS}+`);
-                }
-
-                // Add response logging before return:
-                console.log('[Transcribe] Result:', {
-                    confidence: confidence?.toFixed(3),
-                    length: data.text?.length ?? 0,
-                    wordCount: data.text?.trim().split(/\s+/).length ?? 0,
-                    passed: true,
-                });
 
                 return NextResponse.json({
                     text: data.text?.trim() || '',

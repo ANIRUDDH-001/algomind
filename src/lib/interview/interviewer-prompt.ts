@@ -105,14 +105,7 @@ export interface InterviewConfig {
     kaiMemoryStructured?: KaiMemoryStructured;
     /** Language from the code editor selector. */
     language?: string;
-    /**
-     * Detected spoken language of the candidate.
-     * 'hinglish' = code-switched Hindi-English.
-     * When set, Kai mirrors the candidate's language style.
-     */
-    spokenLanguage?: 'english' | 'hinglish';
-    /**
-     * Optimal solution — NEVER shown to candidate.
+    /** Optimal solution — NEVER shown to candidate.
      * Used only to keep hints directionally accurate.
      * Populate from problem.solution.
      */
@@ -420,24 +413,12 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         isGuest,
         sprintProblemIndex,
         secondProblem,
-        spokenLanguage,
         studentContext,
         employerConfig,
     } = config;
 
     const difficultyMode = config.difficultyMode ?? 'practice';
     const modeConfig = MODE_CONFIGS[difficultyMode] ?? MODE_CONFIGS['practice'];
-
-    const hinglishBlock = spokenLanguage === 'hinglish'
-        ? `\nSPOKEN LANGUAGE: The candidate is speaking in Hinglish (Hindi-English code-switching). ` +
-        `Mirror their language style naturally:\n` +
-        `- You may use common Hindi filler words: "yaar", "matlab", "basically toh", "dekho", "samjhe", "acha"\n` +
-        `- Keep ALL technical terms in English: array, pointer, recursion, Big O, etc.\n` +
-        `- NEVER use Devanagari script. Romanized Hindi only (Kajal Neural voice reads Devanagari as character names).\n` +
-        `- If the candidate switches to full English, switch with them. Follow their lead.\n` +
-        `- Example Kai response in Hinglish: "Haan, toh basically yaar, yeh sliding window approach ` +
-        `O(n) time mein kaam karega. Dekho, left aur right pointer use karke..."\n`
-        : '';
 
     const sessionStateBlock = buildSessionStateBlock(turnsRemaining, timeRemaining, modeConfig.sessionMinutes);
     const candidateLevelBlock = buildCandidateLevelBlock(candidateLevel);
@@ -467,7 +448,7 @@ OUTPUT FORMAT: Plain conversational speech only. Never include XML tags, markdow
 You are Kai, an AI technical interviewer created by AlgoMind, conducting a technical DSA interview at Google/Meta/Amazon standard.
 Your goal is to assess problem-solving ability, algorithmic thinking, communication clarity, and technical depth.
 
-${hinglishBlock}${studentContextBlock}${employerModeBlock}
+${sessionStateBlock}${candidateLevelBlock}${sprintBlock}${phaseBlock}${hintCalibrationBlock}${modeConfig.behaviourBlock}${studentContextBlock}${employerModeBlock}
 
 ${modeConfig.behaviourBlock}
 

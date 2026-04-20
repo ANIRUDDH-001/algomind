@@ -59,7 +59,7 @@ import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 interface InterviewSessionProps {
     problem: Problem;
     interviewConfig: InterviewConfig;  // New single source
-    backHref?: '/dashboard' | '/practice';
+    backHref?: '/dashboard';
     isGuest?: boolean;
     isReviewMode?: boolean;
     readOnly?: boolean;
@@ -169,7 +169,7 @@ export function InterviewSession({
     const [sprintProblem2, setSprintProblem2] = useState<Problem | null>(null);
     const [sprintCurrentIndex, setSprintCurrentIndex] = useState<0 | 1>(0);
 
-    const resolvedBackHref = backHref ?? (isReviewMode ? '/dashboard' : '/practice');
+    const resolvedBackHref = backHref ?? '/dashboard';
 
     const handleBackNavigation = useCallback(() => {
         if (isAssessment) return;

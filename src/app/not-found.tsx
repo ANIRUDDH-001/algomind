@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, Brain } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -40,11 +40,11 @@ export default function NotFound() {
             Home
           </Link>
           <Link
-            href="/practice"
+            href="/interview"
             className="btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
           >
-            <BookOpen className="w-4 h-4" />
-            Go Practice
+            <Brain className="w-4 h-4" />
+            Start Interview
           </Link>
         </div>
       </div>

@@ -249,7 +249,6 @@ export async function POST(req: NextRequest) {
 
       // Build diagnostic results from MCQ answers
       const results = buildDiagnosticResultsFromAnswers(body.answers);
-      console.log('[Diagnostic API] Generated results from answers:', results);
 
       let initializedWithFallback = false;
       try {

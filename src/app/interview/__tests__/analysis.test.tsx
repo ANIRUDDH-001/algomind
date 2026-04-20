@@ -199,11 +199,11 @@ describe('AnalysisPage Server Component', () => {
         expect(redirect).toHaveBeenCalledWith('/login');
     });
 
-    it('should redirect to /practice if session is not found', async () => {
+    it('should redirect to /dashboard if session is not found', async () => {
         const mockSupabase = mockSupabaseResponse(null);
         (serverSupabase.createServerSupabase as any).mockResolvedValue(mockSupabase);
 
         await expect(AnalysisPage({ searchParams: Promise.resolve({ sessionId: 'missing' }) })).rejects.toThrow('NEXT_REDIRECT');
-        expect(redirect).toHaveBeenCalledWith('/practice');
+        expect(redirect).toHaveBeenCalledWith('/dashboard');
     });
 });

@@ -36,14 +36,6 @@ export const FEATURE_FLAGS = {
         requiresBrowserSupport: false,
     },
 
-    // Hinglish Support
-    ENABLE_HINGLISH_SUPPORT: {
-        storageKey: 'feature_ENABLE_HINGLISH_SUPPORT',
-        defaultValue: true, // ENABLE by default (user preference)
-        description: 'Allow interviews in Hinglish (Hindi + English mix)',
-        requiresBrowserSupport: false,
-    },
-
     // Silent Observer Coaching Nudge
     ENABLE_SILENT_OBSERVER: {
         storageKey: 'feature_ENABLE_SILENT_OBSERVER',
@@ -106,7 +98,7 @@ export const FEATURE_FLAGS = {
     ENABLE_LEARN_MODE: {
         storageKey: 'feature_ENABLE_LEARN_MODE',
         defaultValue: false,
-        description: 'AI tutor mode with Hinglish support. User can learn concepts after poor performance.',
+        description: 'AI tutor mode. User can learn concepts after poor performance.',
         requiresBrowserSupport: false,
     },
 

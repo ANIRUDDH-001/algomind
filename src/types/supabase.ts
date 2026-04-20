@@ -1864,7 +1864,6 @@ export type Database = {
         Row: {
           created_at: string | null
           email_notifications: boolean | null
-          hinglish_enabled: boolean
           id: string
           leetcode_fetch_error: string | null
           leetcode_fetch_status: string | null
@@ -1885,8 +1884,6 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email_notifications?: boolean | null
-          hinglish_enabled?: boolean
-          id?: string
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null
@@ -1906,8 +1903,6 @@ export type Database = {
         Update: {
           created_at?: string | null
           email_notifications?: boolean | null
-          hinglish_enabled?: boolean
-          id?: string
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null

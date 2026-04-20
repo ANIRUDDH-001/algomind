@@ -92,7 +92,6 @@ export interface SystemPromptOptions {
     isGuest?: boolean;
     sprintProblemIndex?: 0 | 1;
     secondProblem?: Pick<Problem, 'title' | 'content' | 'description' | 'difficulty'>;
-    spokenLanguage?: 'english' | 'hinglish';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,7 +126,6 @@ export function generateSystemPrompt(options: SystemPromptOptions): string {
         isGuest,
         sprintProblemIndex,
         secondProblem,
-        spokenLanguage,
     } = options;
 
     // Guest users are always locked to practice
@@ -150,7 +148,6 @@ export function generateSystemPrompt(options: SystemPromptOptions): string {
         isGuest,
         sprintProblemIndex,
         secondProblem,
-        spokenLanguage,
     };
 
     return generateInterviewerSystemPrompt(config);

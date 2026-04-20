@@ -16,15 +16,6 @@ describe('Learn Mode System Prompts', () => {
             const prompt = buildLearnSystemPrompt(baseParams);
             expect(prompt).toContain('You are Kai, a warm and patient DSA tutor');
             expect(prompt).toContain('Respond in clear English only');
-            expect(prompt).not.toContain('Hinglish');
-            expect(prompt).not.toContain('Samjha?');
-        });
-
-        it('should include Hinglish rules when hinglishActive=true', () => {
-            const prompt = buildLearnSystemPrompt({ ...baseParams, hinglishActive: true });
-            expect(prompt).toContain('You are Kai, a warm and patient DSA tutor');
-            expect(prompt).toContain('Hinglish');
-            expect(prompt).toContain('Samjha?');
         });
 
         it('should inject problem context correctly', () => {

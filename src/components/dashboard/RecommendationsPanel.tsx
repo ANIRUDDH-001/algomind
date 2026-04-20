@@ -89,10 +89,10 @@ export function RecommendationsPanel({ recommendations }: RecommendationsPanelPr
                             ))
                         ) : (
                             <Link
-                                href="/practice"
+                                href="/interview"
                                 className="flex items-center justify-between p-3 bg-[var(--surface-base)]/50 border border-white/8/80 rounded-2xl hover:bg-[var(--surface-2)] transition-all text-xs font-bold text-zinc-400"
                             >
-                                Explore more problems
+                                Start another interview
                                 <ArrowRight className="w-3 h-3" />
                             </Link>
                         )}

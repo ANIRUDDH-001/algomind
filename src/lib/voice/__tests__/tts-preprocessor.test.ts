@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { preprocessForTTS, stripDevanagariForTTS } from '../tts-preprocessor';
+import { preprocessForTTS } from '../tts-preprocessor';
 
 describe('preprocessForTTS', () => {
     it("converts O(n^2) to 'O of N squared'", () => {
@@ -19,27 +19,5 @@ describe('preprocessForTTS', () => {
         // English words should survive
         expect(result).toContain('basically');
         expect(result).toContain('approach');
-    });
-});
-
-describe('stripDevanagariForTTS', () => {
-    it("removes Devanagari words and leaves English intact", () => {
-        expect(stripDevanagariForTTS('hello नमस्ते world')).toBe('hello world');
-    });
-
-    it('leaves pure English text unchanged', () => {
-        expect(stripDevanagariForTTS('pure english text')).toBe('pure english text');
-    });
-
-    it('strips leading Devanagari and returns the rest', () => {
-        expect(stripDevanagariForTTS('यार binary search')).toBe('binary search');
-    });
-
-    it('handles an empty string safely', () => {
-        expect(stripDevanagariForTTS('')).toBe('');
-    });
-
-    it('collapses multiple spaces into one', () => {
-        expect(stripDevanagariForTTS('a  b')).toBe('a b');
     });
 });

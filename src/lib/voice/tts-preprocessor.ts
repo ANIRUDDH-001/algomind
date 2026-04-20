@@ -105,24 +105,3 @@ export function preprocessForTTS(text: string): string {
     result = result.replace(/[\u0900-\u097F]+/g, '');
     return result;
 }
-
-/**
- * Strip Devanagari script from TTS input.
- * AWS Polly Kajal Neural reads Devanagari character names aloud
- * rather than pronouncing Hindi words — this is a safety layer.
- * AlgoMind instructs Kai to use romanized Hinglish only, but if
- * Devanagari leaks through, this prevents broken TTS output.
- *
- * - Full Devanagari words are removed entirely (the English word
- *   in the same sentence provides context).
- * - Isolated Devanagari characters (punctuation, matras) are also stripped.
- * - Multiple spaces resulting from removal are collapsed.
- */
-export function stripDevanagariForTTS(text: string): string {
-    // Remove sequences of Devanagari characters (including matras/nukta)
-    // Unicode block: \u0900-\u097F (Devanagari) + common extensions
-    return text
-        .replace(/[\u0900-\u097F]+/g, '')   // Remove Devanagari runs
-        .replace(/ {2,}/g, ' ')             // Collapse multiple spaces from removal
-        .trim();                             // Strip leading/trailing whitespace
-}

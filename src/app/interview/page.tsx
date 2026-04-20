@@ -289,7 +289,7 @@ function InterviewContent() {
         );
     }
 
-    const backHref = isReviewMode ? '/dashboard' : '/practice';
+    const backHref = '/dashboard';
 
     return (
         <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] text-zinc-100 overflow-hidden">

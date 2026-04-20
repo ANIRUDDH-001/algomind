@@ -71,12 +71,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.log(`📊 [Analyze] Starting assessment for session ${sessionId}, user=${user?.id ?? 'guest'}`);
+        console.info(`📊 [Analyze] Starting assessment for session ${sessionId}, user=${user?.id ?? 'guest'}`);
 
         const analyzer = new CognitiveAnalyzer();
         const assessment = await analyzer.analyze(sessionId, problem, transcript);
 
-        console.log(`✅ [Analyze] Assessment complete: overall=${assessment.overallScore}, model=${assessment.modelUsed}`);
+        console.info(`✅ [Analyze] Assessment complete: overall=${assessment.overallScore}, model=${assessment.modelUsed}`);
 
         return NextResponse.json(assessment);
     } catch (error: unknown) {

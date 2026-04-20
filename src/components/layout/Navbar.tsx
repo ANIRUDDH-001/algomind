@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain, LogIn } from 'lucide-react';
+import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, Crown, Brain, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
@@ -124,12 +124,11 @@ export function Navbar() {
                                 <span className="tracking-tight font-black bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-500">AlgoMind</span>
                             </button>
 
-                            {/* Navigation Links — Home+Practice for everyone, Dashboard+History for auth */}
+                            {/* Navigation Links — Home for everyone, Dashboard+History for auth */}
                             <div className="hidden md:flex items-center gap-6">
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
                                     ...(user ? [
-                                        { href: '/practice', label: 'Practice', authOnly: true },
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
                                         ...(accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
@@ -331,7 +330,6 @@ export function Navbar() {
                                     ]
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
-                                        { href: '/practice', label: 'Practice', icon: BookOpen },
                                         { href: '/learn', label: 'Learn', icon: Brain },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },

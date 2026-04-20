@@ -19,13 +19,11 @@ vi.mock('@/lib/monitoring/events');
 vi.mock('@/lib/rate-limit/ip-rate-limiter');
 vi.mock('@/lib/ai/model-registry');
 vi.mock('@/lib/feature-flags-server');
-vi.mock('@/lib/voice/language-detector');
 vi.mock('@/lib/voice/text-chunker', () => ({
     chunkTextForSpeech: vi.fn((text: string) => [text]),
 }));
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
-import { detectSpokenLanguage } from '@/lib/voice/language-detector';
 
 const GEMINI_MODEL = {
     id: 'gemini-2.0-flash',
@@ -70,7 +68,7 @@ describe('Chat API (/api/chat)', () => {
                 return {
                     select: vi.fn().mockReturnValue({
                         eq: vi.fn().mockReturnValue({
-                            maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false } }),
+                            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
                         }),
                     }),
                 };
@@ -95,7 +93,6 @@ describe('Chat API (/api/chat)', () => {
         vi.mocked(checkIpRateLimit).mockResolvedValue({ success: true, remaining: 19 } as any);
         vi.mocked(getActiveModels).mockResolvedValue([GEMINI_MODEL] as any);
         vi.mocked(getGlobalFeatureFlag).mockResolvedValue(false);
-        vi.mocked(detectSpokenLanguage).mockReturnValue('english');
     });
 
     const createRequest = (body: any) => new NextRequest('http://localhost:3000/api/chat', {
@@ -235,40 +232,7 @@ describe('Chat API (/api/chat)', () => {
         }));
     });
 
-    it('11. Hinglish mapping: global ON, user OFF -> english', async () => {
-        vi.mocked(getGlobalFeatureFlag).mockResolvedValue(true);
-        mockSupabase.from = vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                    maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false } })
-                })
-            })
-        });
-        
-        const req = createRequest({ messages: [{ role: 'user', content: 'kuch hindi bolte hain' }] });
-        await POST(req);
-        
-        expect(detectSpokenLanguage).not.toHaveBeenCalled();
-    });
-
-    it('12. Hinglish mapping: global ON, user ON -> detectSpokenLanguage called', async () => {
-        vi.mocked(getGlobalFeatureFlag).mockResolvedValue(true);
-        mockSupabase.from = vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                    maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: true } })
-                })
-            })
-        });
-        vi.mocked(detectSpokenLanguage).mockReturnValue('hinglish');
-        
-        const req = createRequest({ messages: [{ role: 'user', content: 'kuch hindi bolte hain' }] });
-        await POST(req);
-        
-        expect(detectSpokenLanguage).toHaveBeenCalledWith('kuch hindi bolte hain');
-    });
-
-    it('13. Returns SSE stream when Accept: text/event-stream header set', async () => {
+    it('11. Returns SSE stream when Accept: text/event-stream header set', async () => {
         const req = new NextRequest('http://localhost:3000/api/chat', {
             method: 'POST',
             headers: {

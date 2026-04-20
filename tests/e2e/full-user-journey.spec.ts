@@ -1,7 +1,7 @@
 /**
  * E2E: Full user journey covering the critical demo path.
  *
- * Tests the complete flow: practice → difficulty mode → interview → analysis →
+ * Tests the complete flow: interview entry → difficulty mode → interview → analysis →
  * learn mode → retry → comparative analysis → dashboard.
  */
 import { test, expect } from '@playwright/test';
@@ -19,8 +19,8 @@ test.describe('Full User Journey', () => {
         await setE2EAuthCookie(context);
         await mockChatAPI(page, "Let's discuss your approach to Two Sum. What data structure would you use?");
 
-        // Navigate to practice page
-        await page.goto('/practice');
+        // Navigate to interview entry
+        await page.goto('/interview');
         await page.waitForLoadState('networkidle');
 
         // Select Warm-Up mode if difficulty selector is visible

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
-        console.log('[Keepalive] DB ping successful at', new Date().toISOString());
+        console.info('[Keepalive] DB ping successful at', new Date().toISOString());
         return NextResponse.json({
             alive: true,
             at: new Date().toISOString(),

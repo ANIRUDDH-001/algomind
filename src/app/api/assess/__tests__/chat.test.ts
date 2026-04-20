@@ -95,7 +95,7 @@ describe('Assess Chat API (/api/assess/chat)', () => {
                     return {
                         select: vi.fn().mockReturnValue({
                             eq: vi.fn().mockReturnValue({
-                                maybeSingle: vi.fn().mockResolvedValue({ data: { hinglish_enabled: false }, error: null }),
+                                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
                             }),
                         }),
                     };

@@ -17,7 +17,7 @@ export interface KaiTutorPromptOptions {
   studentContext?: StudentContext;
   currentConfidence?: number;
   exchangeCount: number;
-  spokenLanguage?: 'english' | 'hinglish';
+
   proactiveNudge?: string | null;
 }
 
@@ -31,7 +31,6 @@ export function buildKaiTutorSystemPrompt(options: KaiTutorPromptOptions): strin
     studentContext,
     currentConfidence,
     exchangeCount,
-    spokenLanguage,
     proactiveNudge,
   } = options;
 
@@ -48,9 +47,7 @@ export function buildKaiTutorSystemPrompt(options: KaiTutorPromptOptions): strin
     : '<student_context>No prior data available.</student_context>';
 
   const sessionPhase = getSessionPhase(exchangeCount);
-  const languageHint = spokenLanguage === 'hinglish'
-    ? 'Language mode: Learner is using Hinglish. Warm Hinglish responses are preferred.'
-    : '';
+  const languageHint = '';
   const nudgeHint = proactiveNudge
     ? `<nudge_hint>${proactiveNudge}</nudge_hint>`
     : '';
@@ -84,7 +81,7 @@ Phase instruction: ${sessionPhase.instruction}
 ${KAI_TUTOR_BEHAVIORAL_CONTRACT}
 
 <output_rules>
-- Respond in plain spoken English only (or Hinglish if student uses it)
+- Respond in plain spoken English only
 - No markdown. No bullet points. No code blocks.
 - Maximum 100 words per response.
 - End every response with exactly ONE question (never zero, never two).

@@ -67,18 +67,6 @@ export function VoiceOnboarding() {
             </div>
 
             <div className="flex gap-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg h-fit shrink-0">
-                    <Globe className="w-6 h-6 text-purple-600 dark:text-purple-300" />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Hinglish Support</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Speak in English, Hindi, or mix both! Technical terms stay in English.
-                    </p>
-                </div>
-            </div>
-
-            <div className="flex gap-4">
                 <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg h-fit shrink-0">
                     <Volume2 className="w-6 h-6 text-orange-600 dark:text-orange-300" />
                 </div>

@@ -37,7 +37,9 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                 </div>
 
                 {/* Stats row — horizontal scroll on mobile */}
-                <div className="flex gap-3 overflow-x-auto pb-1 mobile-scroll-container -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+                <div className="relative">
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10 sm:hidden" aria-hidden="true" style={{ background: 'linear-gradient(to right, transparent, var(--surface-base))' }} />
+                    <div className="flex gap-3 overflow-x-auto pb-1 mobile-scroll-container snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" role="region" aria-label="Dashboard statistics scroll area">
                     {[
                         { label: 'Sessions', value: totalSessions, sub: null },
                         { label: 'Avg Score', value: `${avgScore.toFixed(1)}`, sub: '/10', accent: true },
@@ -52,7 +54,7 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                             </>
                         );
 
-                        const className = "shrink-0 px-4 py-3 rounded-xl flex flex-col gap-0.5 min-w-25";
+                        const className = "shrink-0 snap-start px-4 py-3 rounded-xl flex flex-col gap-0.5 min-w-25";
                         const style = { background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' };
 
                         return (
@@ -61,6 +63,7 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             </div>
 
@@ -74,10 +77,10 @@ export function DashboardHeader({ progress }: DashboardHeaderProps) {
                         </Button>
                     </Link>
                 )}
-                <Link href="/practice">
+                <Link href="/interview">
                     <Button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 px-6 sm:px-8 shadow-xl shadow-indigo-900/20 transition-all active:scale-95 w-full sm:w-auto">
                         <PlusCircle className="w-4 h-4 mr-2" />
-                        Start Practice
+                        Start Interview
                     </Button>
                 </Link>
             </div>

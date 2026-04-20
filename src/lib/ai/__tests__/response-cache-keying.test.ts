@@ -35,13 +35,13 @@ describe('response cache identity keying', () => {
             },
         });
 
-        await cache.set('What is BFS?', 'hinglish response', {
+        await cache.set('What is BFS?', 'english response v2', {
             model: 'groq',
             identity: {
                 modelId: 'groq',
-                promptVersion: 'interview-chat.v1',
+                promptVersion: 'interview-chat.v2',
                 ragContextHash: 'abc123',
-                languageCode: 'hinglish',
+                languageCode: 'english',
             },
         });
 
@@ -52,15 +52,15 @@ describe('response cache identity keying', () => {
             languageCode: 'english',
         });
 
-        const hinglish = await cache.get('What is BFS?', {
+        const englishV2 = await cache.get('What is BFS?', {
             modelId: 'groq',
-            promptVersion: 'interview-chat.v1',
+            promptVersion: 'interview-chat.v2',
             ragContextHash: 'abc123',
-            languageCode: 'hinglish',
+            languageCode: 'english',
         });
 
         expect(english?.response).toBe('english response');
-        expect(hinglish?.response).toBe('hinglish response');
+        expect(englishV2?.response).toBe('english response v2');
     });
 
     it('falls back to legacy key when scoped identity misses', async () => {

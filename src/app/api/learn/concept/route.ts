@@ -15,8 +15,6 @@ import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { detectSpokenLanguage } from '@/lib/voice/language-detector';
-import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 import type { ConceptTag } from '@/types/knowledge-graph';
 import type { KaiTutorAssessment } from '@/lib/knowledge-graph/types';
@@ -217,10 +215,6 @@ export async function POST(req: NextRequest) {
     }
 
     const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
-    const hinglishEnabled = await getGlobalFeatureFlag('ENABLE_HINGLISH_SUPPORT');
-    const spokenLanguage: 'english' | 'hinglish' = hinglishEnabled
-      ? detectSpokenLanguage(lastUserMessage)
-      : 'english';
 
     const proactiveNudge = detectProactiveNudge(lastUserMessage);
 
@@ -229,7 +223,6 @@ export async function POST(req: NextRequest) {
       studentContext,
       currentConfidence,
       exchangeCount: Math.floor(messages.length / 2),
-      spokenLanguage,
       proactiveNudge,
     });
 

@@ -5,11 +5,13 @@ import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 interface ModelStatus {
     id: string;
     provider: string;
-    is_active: boolean;
     tier: number;
-    deprecated_at: string | null;
+    is_active: boolean;
     is_verified: boolean;
+    deprecated_at: string | null;
     notes: string | null;
+    last_verified: string | null;
+    rateLimiterData: unknown | null;
 }
 
 export function AIStatusTab() {
@@ -32,8 +34,8 @@ export function AIStatusTab() {
         return (
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-white">AI Model Status</h2>
-                <div className="text-sm text-zinc-500 p-4 bg-zinc-900/30 rounded-lg border border-zinc-800">
-                    No active models found in the registry. Add models via the <strong className="text-zinc-300">Models</strong> tab.
+                <div className="text-sm text-zinc-500 p-4 rounded-lg border border-zinc-800 bg-zinc-900/30">
+                    No models found in the registry. Add models via the <strong className="text-zinc-300">Models</strong> tab.
                 </div>
             </div>
         );
@@ -53,17 +55,23 @@ export function AIStatusTab() {
                                     : <AlertTriangle className="w-4 h-4 text-amber-500" />
                             }
                             <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <div className="text-sm font-mono text-white">{m.id}</div>
+                                <div className="text-sm font-mono text-white flex items-center gap-2">
+                                    {m.id}
                                     {m.is_verified && (
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900/70 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
-                                            <CheckCircle className="w-3 h-3" />
-                                            Verified
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" title="Verified" />
+                                    )}
+                                </div>
+                                <div className="text-xs text-zinc-500">
+                                    {m.provider} · Tier {m.tier}
+                                    {m.last_verified && (
+                                        <span className="ml-2 text-zinc-600">
+                                            · Verified {new Date(m.last_verified).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                     )}
                                 </div>
-                                {m.notes && <div className="text-xs text-zinc-500 mt-1">{m.notes}</div>}
-                                <div className="text-xs text-zinc-500">{m.provider} · Tier {m.tier}</div>
+                                {m.notes && (
+                                    <div className="text-xs text-zinc-600 mt-0.5">{m.notes}</div>
+                                )}
                             </div>
                         </div>
                         <div className="text-xs">

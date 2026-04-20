@@ -52,7 +52,7 @@ export default async function AnalysisPage({
     const isPending = params.pending === 'true';
 
     if (!sessionId) {
-        redirect('/practice');
+        redirect('/dashboard');
     }
 
     const supabase = await createServerSupabase();
@@ -71,7 +71,7 @@ export default async function AnalysisPage({
         .single();
 
     if (!session) {
-        redirect('/practice');
+        redirect('/dashboard');
     }
 
     const { data: problemData } = await supabase
