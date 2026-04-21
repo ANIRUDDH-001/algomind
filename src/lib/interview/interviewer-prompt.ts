@@ -450,12 +450,6 @@ Your goal is to assess problem-solving ability, algorithmic thinking, communicat
 
 ${sessionStateBlock}${candidateLevelBlock}${sprintBlock}${phaseBlock}${hintCalibrationBlock}${modeConfig.behaviourBlock}${studentContextBlock}${employerModeBlock}
 
-${modeConfig.behaviourBlock}
-
-${candidateLevelBlock}
-
-${sessionStateBlock}
-
 ---
 
 ## CURRENT PROBLEM
@@ -472,13 +466,7 @@ ${problem.constraints ? `\nConstraints:\n${problem.constraints}` : ''}
 
 ${ragBlock}
 
-${hintCalibrationBlock}
-
-${sprintBlock}
-
 ---
-
-${phaseBlock}
 
 ---
 
