@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `algomind-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `algomind-dynamic-${CACHE_VERSION}`;
 
@@ -6,7 +6,7 @@ const DYNAMIC_CACHE = `algomind-dynamic-${CACHE_VERSION}`;
 const PRECACHE_URLS = [
     '/',
     '/login',
-    '/practice',
+    '/interview',
     '/icon-192x192.png',
     '/icon-512x512.png',
 ];

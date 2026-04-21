@@ -5,7 +5,7 @@ const axios = require('axios');
 const routes = [
   'http://localhost:3000',
   'http://localhost:3000/login',
-  'http://localhost:3000/practice',
+  'http://localhost:3000/interview',
   'http://localhost:3000/dashboard'
 ];
 
