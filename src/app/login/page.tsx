@@ -78,7 +78,7 @@ function LoginContent() {
                         <p className="text-zinc-400 text-sm">Sign in to track your DSA interview progress</p>
                     </div>
 
-                    {isConfigured && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (
+                    {(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && (
                         <div className="p-3 rounded-xl space-y-2" style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}>
                             <p className="text-xs text-zinc-500">TEST AUTH (Dev/Test Only)</p>
                             <input 
