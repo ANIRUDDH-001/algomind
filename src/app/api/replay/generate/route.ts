@@ -158,6 +158,9 @@ Be specific to THIS transcript. Max 8 annotations.`;
 
         let annotations: Annotation[] = [];
         try {
+            // generateResponse() centralizes think-tag stripping (Phase 1).
+            // Annotations are short structured strings; think tags cannot span them.
+            // No additional stripping is needed here.
             const aiResponse = await aiClient.generateResponse([{ role: 'user', content: prompt }], {
                 temperature: 0.3,
                 correlationId,

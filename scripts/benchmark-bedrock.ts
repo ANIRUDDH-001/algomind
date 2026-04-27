@@ -11,13 +11,13 @@ const ITERATIONS = 10;
 
 const MODELS = [
     {
-        id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
-        label: 'Claude Haiku 4.5 (cross-region)',
+        id: process.env.BEDROCK_BENCH_MODEL_A || 'openai.gpt-oss-120b-1:0',
+        label: 'Model A',
         key: 'bedrockHaiku',
     },
     {
-        id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-        label: 'Claude Sonnet 4.5 (cross-region)',
+        id: process.env.BEDROCK_BENCH_MODEL_B || 'openai.gpt-oss-20b-1:0',
+        label: 'Model B',
         key: 'bedrockSonnet',
         iterations: 5, // fewer — expensive model
     },
@@ -48,6 +48,40 @@ function avg(arr: number[]): number {
 }
 function sleep(ms: number) {
     return new Promise(r => setTimeout(r, ms));
+}
+
+function detectModelFamily(modelId: string): 'openai' | 'anthropic' {
+    if (modelId.startsWith('openai.')) return 'openai';
+    return 'anthropic';
+}
+
+function buildPayloadForModel(modelId: string, prompt: string): string {
+    const family = detectModelFamily(modelId);
+
+    if (family === 'openai') {
+        return JSON.stringify({
+            messages: [
+                { role: 'system', content: 'You are Kai, an AI interview coach. 2-3 sentences max.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 256,
+        });
+    }
+
+    return JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 256,
+        system: 'You are Kai, an AI interview coach. 2-3 sentences max.',
+        messages: [{ role: 'user', content: prompt }],
+    });
+}
+
+function extractTextFromResponse(modelId: string, body: Record<string, any>): string {
+    const family = detectModelFamily(modelId);
+    if (family === 'openai') {
+        return body.choices?.[0]?.message?.content || '';
+    }
+    return body.content?.[0]?.text || '';
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -84,12 +118,7 @@ async function main() {
 
         for (let i = 0; i < iters; i++) {
             const prompt = PROMPTS[i % PROMPTS.length];
-            const payload = JSON.stringify({
-                anthropic_version: 'bedrock-2023-05-31',
-                max_tokens: 256,
-                system: 'You are Kai, an AI interview coach. 2-3 sentences max.',
-                messages: [{ role: 'user', content: prompt }],
-            });
+            const payload = buildPayloadForModel(model.id, prompt);
 
             const start = performance.now();
             try {
@@ -102,7 +131,7 @@ async function main() {
                 const lat = performance.now() - start;
 
                 const body = JSON.parse(new TextDecoder().decode(res.body));
-                const text = body.content?.[0]?.text || '';
+                const text = extractTextFromResponse(model.id, body);
                 latencies.push(lat);
                 console.log(`  [${i + 1}/${iters}] ${Math.round(lat)}ms (${text.length} chars)`);
             } catch (e: unknown) {

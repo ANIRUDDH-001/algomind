@@ -4,7 +4,7 @@
  *
  * Tests AWS services directly using SDK:
  *   1. AWS Polly Neural TTS (Kajal, ap-south-1)
- *   2. AWS Bedrock Claude Haiku 4.5 (cross-region via us-east-1)
+ *   2. AWS Bedrock text model (cross-region via us-east-1)
  *
  * Loads credentials from .env.local (via dotenv). No secrets in this file.
  *
@@ -39,6 +39,40 @@ function percentile(arr, p) {
 function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function detectModelFamily(modelId) {
+    if (modelId.startsWith('openai.')) return 'openai';
+    if (modelId.startsWith('anthropic.') || modelId.startsWith('us.anthropic.')) return 'anthropic';
+    return 'anthropic';
+}
+
+function buildBedrockPayload(modelId, prompt) {
+    const family = detectModelFamily(modelId);
+    if (family === 'openai') {
+        return JSON.stringify({
+            messages: [
+                { role: 'system', content: 'You are Kai, an AI interview coach. Keep responses concise (2-3 sentences).' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 512,
+        });
+    }
+
+    return JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 512,
+        system: 'You are Kai, an AI interview coach. Keep responses concise (2-3 sentences).',
+        messages: [{ role: 'user', content: prompt }],
+    });
+}
+
+function extractBedrockText(modelId, result) {
+    const family = detectModelFamily(modelId);
+    if (family === 'openai') {
+        return result.choices?.[0]?.message?.content || '';
+    }
+    return result.content?.[0]?.text || '';
+}
 
 // ─── TTS test texts (~185 chars each, matching typical AI response) ─────────
 
@@ -145,10 +179,10 @@ async function benchmarkPolly() {
     return null;
 }
 
-// ─── AWS Bedrock Benchmark (Claude Haiku 4.5 cross-region) ──────────────────
+// ─── AWS Bedrock Benchmark (text model, cross-region) ────────────────────────
 
 async function benchmarkBedrock() {
-    console.log('\n▸ AWS Bedrock — Claude Haiku 4.5 (cross-region, us-east-1)');
+    console.log('\n▸ AWS Bedrock — text model (cross-region, us-east-1)');
     console.log(`  Iterations: ${ITERATIONS}`);
 
     const { BedrockRuntimeClient, InvokeModelCommand } = await import('@aws-sdk/client-bedrock-runtime');
@@ -166,18 +200,13 @@ async function benchmarkBedrock() {
         },
     });
 
-    const modelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'; // Cross-region inference profile
+    const modelId = process.env.AWS_DIRECT_BEDROCK_MODEL_ID || 'openai.gpt-oss-120b-1:0';
     const latencies = [];
     const ttfbs = [];
 
     for (let i = 0; i < ITERATIONS; i++) {
         const prompt = pick(AI_PROMPTS);
-        const body = JSON.stringify({
-            anthropic_version: 'bedrock-2023-05-31',
-            max_tokens: 512,
-            system: 'You are Kai, an AI interview coach. Keep responses concise (2-3 sentences).',
-            messages: [{ role: 'user', content: prompt }],
-        });
+        const body = buildBedrockPayload(modelId, prompt);
 
         const command = new InvokeModelCommand({
             modelId,
@@ -194,7 +223,7 @@ async function benchmarkBedrock() {
 
             // Parse response to verify it worked
             const result = JSON.parse(new TextDecoder().decode(response.body));
-            const responseText = result.content?.[0]?.text || '';
+            const responseText = extractBedrockText(modelId, result);
 
             process.stdout.write(`  [${i + 1}/${ITERATIONS}] ${latency.toFixed(0)}ms (${responseText.length} chars)\r`);
         } catch (err) {
@@ -334,8 +363,8 @@ async function main() {
     // 2. AWS Polly TTS
     results.tts = await benchmarkPolly();
 
-    // 3. AWS Bedrock Claude Haiku 4.5
-    results.bedrockHaiku = await benchmarkBedrock();
+    // 3. AWS Bedrock text model
+    results.bedrockModel = await benchmarkBedrock();
 
     // ── Summary ─────────────────────────────────────────────────────────
 
@@ -346,7 +375,7 @@ async function main() {
     const stages = [
         { key: 'stt', name: 'Groq Whisper STT' },
         { key: 'tts', name: 'AWS Polly TTS (Kajal Neural)' },
-        { key: 'bedrockHaiku', name: 'Bedrock Claude Haiku 4.5' },
+        { key: 'bedrockModel', name: 'Bedrock text model' },
     ];
 
     for (const s of stages) {
@@ -360,17 +389,17 @@ async function main() {
     }
 
     // Compute E2E estimate
-    if (results.stt && results.tts && results.bedrockHaiku) {
-        const e2eAvg = results.stt.avg + results.bedrockHaiku.avg + results.tts.avg;
-        const e2eP50 = results.stt.p50 + results.bedrockHaiku.p50 + results.tts.p50;
-        const e2eP95 = results.stt.p95 + results.bedrockHaiku.p95 + results.tts.p95;
+    if (results.stt && results.tts && results.bedrockModel) {
+        const e2eAvg = results.stt.avg + results.bedrockModel.avg + results.tts.avg;
+        const e2eP50 = results.stt.p50 + results.bedrockModel.p50 + results.tts.p50;
+        const e2eP95 = results.stt.p95 + results.bedrockModel.p95 + results.tts.p95;
         results.e2e = {
             p50: e2eP50, p95: e2eP95, avg: e2eAvg,
-            breakdown: { stt: results.stt.avg, ai: results.bedrockHaiku.avg, tts: results.tts.avg },
+            breakdown: { stt: results.stt.avg, ai: results.bedrockModel.avg, tts: results.tts.avg },
         };
         console.log(`\n  E2E (STT + AI + TTS additive):`);
         console.log(`    p50=${e2eP50}ms  p95=${e2eP95}ms  avg=${e2eAvg}ms`);
-        console.log(`    Breakdown: STT ${results.stt.avg}ms + AI ${results.bedrockHaiku.avg}ms + TTS ${results.tts.avg}ms`);
+        console.log(`    Breakdown: STT ${results.stt.avg}ms + AI ${results.bedrockModel.avg}ms + TTS ${results.tts.avg}ms`);
     }
 
     console.log('\n═══════════════════════════════════════════════════════════\n');

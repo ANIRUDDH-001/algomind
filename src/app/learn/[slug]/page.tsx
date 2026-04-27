@@ -2,6 +2,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { notFound, redirect } from 'next/navigation';
 import LearnSessionPageClient from './LearnSessionPageClient';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LearnErrorFallback } from './LearnErrorFallback';
 
 interface LearnSessionPageProps {
   params: Promise<{ slug: string }>;
@@ -25,5 +27,9 @@ export default async function LearnSessionPage({ params }: LearnSessionPageProps
     notFound();
   }
 
-  return <LearnSessionPageClient slug={slug} />;
+  return (
+    <ErrorBoundary fallback={<LearnErrorFallback conceptSlug={slug} />}>
+      <LearnSessionPageClient slug={slug} />
+    </ErrorBoundary>
+  );
 }

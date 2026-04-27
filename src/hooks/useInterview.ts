@@ -1,5 +1,90 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useReducer } from 'react';
+
+// ──────────────────────────────────────────────────────────────────────────
+// Reducer: round / limit state
+// Consolidates 4 useState calls (roundCount, interviewStartTime,
+// isLimitReached, limitReason) so that setting the limit doesn't trigger
+// an extra render from the limitReason setter.
+// ──────────────────────────────────────────────────────────────────────────
+type RoundState = {
+    count: number;
+    isLimitReached: boolean;
+    limitReason: 'rounds' | 'time' | null;
+    startTime: number | null;
+};
+
+type RoundAction =
+    | { type: 'INCREMENT' }
+    | { type: 'SET_COUNT'; value: number }
+    | { type: 'SET_LIMIT'; reason: 'rounds' | 'time' }
+    | { type: 'CLEAR_LIMIT' }
+    | { type: 'SET_START_TIME'; time: number | null }
+    | { type: 'RESET' };
+
+const INITIAL_ROUND_STATE: RoundState = {
+    count: 0,
+    isLimitReached: false,
+    limitReason: null,
+    startTime: null,
+};
+
+function roundReducer(state: RoundState, action: RoundAction): RoundState {
+    switch (action.type) {
+        case 'INCREMENT':       return { ...state, count: state.count + 1 };
+        case 'SET_COUNT':       return { ...state, count: action.value };
+        case 'SET_LIMIT':       return { ...state, isLimitReached: true, limitReason: action.reason };
+        case 'CLEAR_LIMIT':     return { ...state, isLimitReached: false, limitReason: null };
+        case 'SET_START_TIME':  return { ...state, startTime: action.time };
+        case 'RESET':           return INITIAL_ROUND_STATE;
+        default:                return state;
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Reducer: voice / VAD state
+// Consolidates 6 useState calls so that a single voice-layer event (e.g.
+// VAD probability tick) doesn't cascade through many individual setters.
+// ──────────────────────────────────────────────────────────────────────────
+type VoiceState = {
+    error: Error | null;
+    micActivating: boolean;
+    vadFailed: boolean;
+    vadSpeechProbability: number;
+    emptyTranscriptFeedback: boolean;
+    ttsError: boolean;
+};
+
+type VoiceAction =
+    | { type: 'SET_ERROR'; error: Error | null }
+    | { type: 'CLEAR_ERROR' }
+    | { type: 'SET_MIC_ACTIVATING'; value: boolean }
+    | { type: 'SET_VAD_FAILED'; value: boolean }
+    | { type: 'SET_VAD_PROBABILITY'; value: number }
+    | { type: 'SET_EMPTY_FEEDBACK'; value: boolean }
+    | { type: 'SET_TTS_ERROR'; value: boolean };
+
+const INITIAL_VOICE_STATE: VoiceState = {
+    error: null,
+    micActivating: false,
+    vadFailed: false,
+    vadSpeechProbability: 0,
+    emptyTranscriptFeedback: false,
+    ttsError: false,
+};
+
+function voiceReducer(state: VoiceState, action: VoiceAction): VoiceState {
+    switch (action.type) {
+        case 'SET_ERROR':           return { ...state, error: action.error };
+        case 'CLEAR_ERROR':         return { ...state, error: null };
+        case 'SET_MIC_ACTIVATING':  return { ...state, micActivating: action.value };
+        case 'SET_VAD_FAILED':      return { ...state, vadFailed: action.value };
+        case 'SET_VAD_PROBABILITY': return { ...state, vadSpeechProbability: action.value };
+        case 'SET_EMPTY_FEEDBACK':  return { ...state, emptyTranscriptFeedback: action.value };
+        case 'SET_TTS_ERROR':       return { ...state, ttsError: action.value };
+        default:                    return state;
+    }
+}
 import { InterviewStateMachine, InterviewState } from '@/lib/interview/state-machine';
 import {
     generateSystemPrompt,
@@ -89,11 +174,12 @@ export function useInterview(options: UseInterviewOptions) {
     const transcriptRef = useRef('');
     useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
-    // Interview limits
-    const [roundCount, setRoundCount] = useState(0);
-    const [interviewStartTime, setInterviewStartTime] = useState<number | null>(null);
-    const [isLimitReached, setIsLimitReached] = useState(false);
-    const [limitReason, setLimitReason] = useState<'rounds' | 'time' | null>(null);
+    // Interview limits — consolidated into a single reducer.
+    const [roundState, dispatchRound] = useReducer(roundReducer, INITIAL_ROUND_STATE);
+    const roundCount = roundState.count;
+    const interviewStartTime = roundState.startTime;
+    const isLimitReached = roundState.isLimitReached;
+    const limitReason = roundState.limitReason;
 
     const INTERVIEW_MAX_ROUNDS = options.config.maxTurnsPerProblem;
     const INTERVIEW_MAX_MS = options.config.maxDurationMs;
@@ -107,10 +193,17 @@ export function useInterview(options: UseInterviewOptions) {
 
     // ── Phase 2a: micIntent state machine ──────────────────────────
     const [micIntent, setMicIntent] = useState<MicIntent>('off');
-    const [voiceError, setVoiceError] = useState<Error | null>(null);
     const [micStoppedManually, setMicStoppedManually] = useState(false);
     const [sendCountdown, setSendCountdown] = useState<number | null>(null);
-    const [ttsError, setTtsError] = useState(false);
+
+    // Voice / VAD state — consolidated into a single reducer (see voiceReducer above).
+    const [voiceState, dispatchVoice] = useReducer(voiceReducer, INITIAL_VOICE_STATE);
+    const voiceError = voiceState.error;
+    const micActivating = voiceState.micActivating;
+    const vadFailed = voiceState.vadFailed;
+    const vadSpeechProbability = voiceState.vadSpeechProbability;
+    const emptyTranscriptFeedback = voiceState.emptyTranscriptFeedback;
+    const ttsError = voiceState.ttsError;
 
     // Smart pause: refs for interruption detection during AI speech
     const smartPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -120,12 +213,10 @@ export function useInterview(options: UseInterviewOptions) {
     // When true, onSpeechEnd must NOT discard the audio — the echo guard
     // only applies when AI audio is still playing AND we didn't stop it for the user.
     const speechInterruptedTTSRef = useRef(false);
-    // A2: Visual "mic activating" state during the debounce window.
-    const [micActivating, setMicActivating] = useState(false);
-    // A4: Brief "didn't catch that" feedback shown when STT returns empty.
-    const [emptyTranscriptFeedback, setEmptyTranscriptFeedback] = useState(false);
-    // A7: Live VAD speech probability (0–1) for the visualizer bar.
-    const [vadSpeechProbability, setVadSpeechProbability] = useState(0);
+    // A2/A4/A7: micActivating, emptyTranscriptFeedback, vadSpeechProbability
+    // are now part of voiceState above (voiceReducer). The aliases defined
+    // alongside voiceState preserve read-site compatibility.
+
     // Send countdown interval ref
     const sendCountdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -139,7 +230,7 @@ export function useInterview(options: UseInterviewOptions) {
     const whisperEnabled = useGlobalFeatureFlag('ENABLE_WHISPER_STT', true);
 
     // Track whether VAD failed and we need to cascade to browser STT
-    const [vadFailed, setVadFailed] = useState(false);
+    // (`vadFailed` alias is declared above alongside voiceState).
 
     // sttProvider: start with 'whisper' if enabled, but cascade to 'browser' if VAD fails
     const sttProvider = (
@@ -176,11 +267,11 @@ export function useInterview(options: UseInterviewOptions) {
         },
         // Phase 0d: onSilenceTimeout no longer kills mic — just a no-op
         onSilenceTimeout: () => { },
-        onError: (err) => setVoiceError(new Error(err)),
+        onError: (err) => dispatchVoice({ type: 'SET_ERROR', error: new Error(err) }),
         // A4: Show brief "Didn't catch that" feedback on empty transcription.
         onEmpty: () => {
-            setEmptyTranscriptFeedback(true);
-            setTimeout(() => setEmptyTranscriptFeedback(false), 2500);
+            dispatchVoice({ type: 'SET_EMPTY_FEEDBACK', value: true });
+            setTimeout(() => dispatchVoice({ type: 'SET_EMPTY_FEEDBACK', value: false }), 2500);
         },
     });
 
@@ -229,11 +320,11 @@ export function useInterview(options: UseInterviewOptions) {
         },
         onFrameProcessed: (prob: number) => {
             // A7: Feed live probability to the visualizer bar.
-            setVadSpeechProbability(prob);
+            dispatchVoice({ type: 'SET_VAD_PROBABILITY', value: prob });
         },
         onFallback: () => {
             console.warn('[useInterview] VAD failed, cascading to browser STT');
-            setVadFailed(true);
+            dispatchVoice({ type: 'SET_VAD_FAILED', value: true });
             // A3: Notify user that voice detection degraded — they need to click mic.
             toast.warning('Voice detection unavailable', {
                 description: 'Click the mic button to speak instead.',
@@ -280,6 +371,8 @@ export function useInterview(options: UseInterviewOptions) {
     const submitUserResponseRef = useRef<((text: string, ctx: ProblemContext) => Promise<void>) | null>(null);
     // Prevent concurrent submit paths (manual send + auto-send + time-up) from racing.
     const submitInFlightRef = useRef(false);
+    // AbortController for the in-flight /api/chat request — lets handleInterruption cancel it.
+    const chatAbortRef = useRef<AbortController | null>(null);
 
     // Time limit enforcement: tied strictly to global UI hook
     useEffect(() => {
@@ -295,8 +388,7 @@ export function useInterview(options: UseInterviewOptions) {
             return; // submitUserResponse will handle limit after AI responds
         }
 
-        setIsLimitReached(true);
-        setLimitReason('time');
+        dispatchRound({ type: 'SET_LIMIT', reason: 'time' });
         setMicIntent('off');
         stopListening();
         stateMachine.current.transition('SUBMIT_SOLUTION');
@@ -323,6 +415,8 @@ export function useInterview(options: UseInterviewOptions) {
 
                 return await response.json();
             } catch (error) {
+                // Never retry an aborted request — user cancelled it intentionally.
+                if (error instanceof Error && error.name === 'AbortError') throw error;
                 if (currentRetries > 0) {
                     console.log(`[Retry] Network error. Retrying in ${currentBackoff}ms...`, error);
                     await new Promise(resolve => setTimeout(resolve, currentBackoff));
@@ -335,35 +429,126 @@ export function useInterview(options: UseInterviewOptions) {
         return runFetch(retries, backoff);
     }, []);
 
-    const callChatApi = useCallback(async (prompt: string, _systemPrompt: string, _problemContext: ProblemContext) => {
+    /**
+     * Call /api/chat with SSE streaming (Accept: text/event-stream).
+     * When `streamingMessageId` is provided, incrementally updates the message
+     * with `id === streamingMessageId` in `messages[]` as chunks arrive.
+     * Falls back to JSON if server returns non-SSE content type.
+     */
+    const callChatApi = useCallback(async (
+        prompt: string,
+        _systemPrompt: string,
+        _problemContext: ProblemContext,
+        streamingMessageId?: string,
+    ): Promise<string> => {
+        const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
+        const requestBody = JSON.stringify({
+            messages: [
+                ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+                { role: 'user', content: prompt }
+            ],
+            problemContext: {
+                title: currentProblemRef.current?.problemTitle ?? '',
+                content: currentProblemRef.current?.problemContent ?? '',
+                ragContext: optionsRef.current.config.ragContext,
+                tags: (currentProblemRef.current as any)?.tags ?? [],
+            },
+            sessionToken: optionsRef.current.sessionToken,
+            guestMode: optionsRef.current.isGuest ?? false,
+            interviewState: stateMachine.current.getState(),
+        });
+
+        // Abort any prior in-flight chat request before starting a new one.
+        chatAbortRef.current?.abort();
+        const controller = new AbortController();
+        chatAbortRef.current = controller;
+
         try {
-            const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
-            const data = await fetchWithRetry(endpoint, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [
-                        ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
-                        { role: 'user', content: prompt }
-                    ],
-                    problemContext: {
-                        title: currentProblemRef.current?.problemTitle ?? '',
-                        content: currentProblemRef.current?.problemContent ?? '',
-                        ragContext: optionsRef.current.config.ragContext,
-                        tags: (currentProblemRef.current as any)?.tags ?? [],
-                    },
-                    sessionToken: optionsRef.current.sessionToken,
-                    guestMode: optionsRef.current.isGuest ?? false,
-                    interviewState: stateMachine.current.getState(),
-                })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                },
+                body: requestBody,
+                signal: controller.signal,
             });
 
-            return data.response;
+            if (!response.ok) {
+                const err = (await response.json().catch(() => ({ error: 'Failed to fetch chat response' }))) as { error?: string };
+                throw new Error(err.error || `Request failed with status ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+
+            // --- SSE path ---
+            if (contentType.includes('text/event-stream') && response.body) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullText = '';
+
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+
+                        let separatorIdx: number;
+                        while ((separatorIdx = buffer.indexOf('\n\n')) !== -1) {
+                            const rawEvent = buffer.slice(0, separatorIdx);
+                            buffer = buffer.slice(separatorIdx + 2);
+
+                            const dataLine = rawEvent.split('\n').find(l => l.startsWith('data:'));
+                            if (!dataLine) continue;
+                            const payload = dataLine.slice(5).trim();
+                            if (!payload || payload === '[DONE]') continue;
+
+                            let parsed: { delta?: string; done?: boolean; error?: string; fullText?: string };
+                            try {
+                                parsed = JSON.parse(payload);
+                            } catch {
+                                continue;
+                            }
+                            if (parsed.error) {
+                                throw new Error(parsed.error);
+                            }
+                            if (typeof parsed.delta === 'string' && parsed.delta.length > 0) {
+                                fullText += parsed.delta;
+                                if (streamingMessageId) {
+                                    const snapshot = fullText;
+                                    setMessages(prev => prev.map(m =>
+                                        m.id === streamingMessageId ? { ...m, content: snapshot } : m
+                                    ));
+                                }
+                            }
+                            if (parsed.done && typeof parsed.fullText === 'string' && parsed.fullText.length > 0) {
+                                fullText = parsed.fullText;
+                            }
+                        }
+                    }
+                } finally {
+                    try { reader.releaseLock(); } catch { /* noop */ }
+                }
+
+                return fullText;
+            }
+
+            // --- JSON fallback path (server didn't return SSE) ---
+            const data = await response.json();
+            return data.response as string;
         } catch (error) {
+            if ((error as Error)?.name === 'AbortError') {
+                throw error;
+            }
             console.error('API Call Failed:', error);
             throw error;
+        } finally {
+            if (chatAbortRef.current === controller) {
+                chatAbortRef.current = null;
+            }
         }
-    }, [fetchWithRetry]);
+    }, []);
 
     const addMessage = useCallback((msg: Message) => {
         setMessages(prev => [...prev, msg]);
@@ -396,9 +581,9 @@ export function useInterview(options: UseInterviewOptions) {
         try {
 
         // A1 fix: Reset ttsError at start of each submission
-        setTtsError(false);
+        dispatchVoice({ type: 'SET_TTS_ERROR', value: false });
         // Reset VAD failure state to allow retry on this turn
-        setVadFailed(false);
+        dispatchVoice({ type: 'SET_VAD_FAILED', value: false });
 
         // A1 fix: Cancel any active smart pause timer
         if (smartPauseTimerRef.current) {
@@ -467,20 +652,39 @@ export function useInterview(options: UseInterviewOptions) {
             secondProblem: currentProblemRef.current?.secondProblem,
         });
 
+        // Create a placeholder streaming assistant message up-front so the UI can
+        // render incremental tokens as they arrive from SSE. callChatApi will
+        // update this message in place when `streamingMessageId` is passed.
+        const streamingMsgId = generateMessageId();
+        const placeholderMsg: Message = {
+            id: streamingMsgId,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date(),
+            status: 'streaming',
+        };
+        addMessage(placeholderMsg);
+
         try {
-            const responseText = await callChatApi(prompt, currentSysPrompt, problemContext);
+            const responseText = await callChatApi(prompt, currentSysPrompt, problemContext, streamingMsgId);
 
             // Step 1i: TERMINATE_INTERVIEW token detection
             if (typeof responseText === 'string' && responseText.includes('TERMINATE_INTERVIEW')) {
                 const cleanResponse = responseText.replace('TERMINATE_INTERVIEW', '').trim();
-                const aiMsg: Message = {
-                    id: generateMessageId(),
-                    role: 'assistant',
-                    content: cleanResponse,
-                    timestamp: new Date(),
-                    status: 'complete',
-                };
-                addMessage(aiMsg);
+                // Finalize the streaming placeholder with the cleaned text
+                setMessages(prev => prev.map(m =>
+                    m.id === streamingMsgId
+                        ? { ...m, content: cleanResponse, status: 'complete' as const }
+                        : m
+                ));
+                const refIdx = conversationHistoryRef.current.findIndex(m => m.id === streamingMsgId);
+                if (refIdx !== -1) {
+                    conversationHistoryRef.current[refIdx] = {
+                        ...conversationHistoryRef.current[refIdx],
+                        content: cleanResponse,
+                        status: 'complete',
+                    };
+                }
                 setIsProcessing(false);
                 setMicIntent('off');
                 stopListening();
@@ -489,12 +693,23 @@ export function useInterview(options: UseInterviewOptions) {
                 return;
             }
 
-            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
-
-            addMessage(aiMsg);
+            // Finalize the streaming placeholder → complete
+            setMessages(prev => prev.map(m =>
+                m.id === streamingMsgId
+                    ? { ...m, content: responseText, status: 'complete' as const }
+                    : m
+            ));
+            const refIdx = conversationHistoryRef.current.findIndex(m => m.id === streamingMsgId);
+            if (refIdx !== -1) {
+                conversationHistoryRef.current[refIdx] = {
+                    ...conversationHistoryRef.current[refIdx],
+                    content: responseText,
+                    status: 'complete',
+                };
+            }
 
             const newRoundCount = roundCount + 1;
-            setRoundCount(newRoundCount);
+            dispatchRound({ type: 'INCREMENT' });
 
             const elapsedMs = interviewStartTime ? Date.now() - interviewStartTime : 0;
             const roundLimitHit = newRoundCount >= INTERVIEW_MAX_ROUNDS;
@@ -503,8 +718,7 @@ export function useInterview(options: UseInterviewOptions) {
             // If time/turn limit hit: skip TTS, end immediately so analysis includes this last AI reply
             if (roundLimitHit || timeLimitHit) {
                 setIsProcessing(false);
-                setIsLimitReached(true);
-                setLimitReason(roundLimitHit ? 'rounds' : 'time');
+                dispatchRound({ type: 'SET_LIMIT', reason: roundLimitHit ? 'rounds' : 'time' });
                 setMicIntent('off');
                 stopListening();
                 stateMachine.current.transition('SUBMIT_SOLUTION');
@@ -520,7 +734,7 @@ export function useInterview(options: UseInterviewOptions) {
             currentAiTextRef.current = responseText;
             const ttsOk = await speakAndWait(responseText, 3);
             if (!ttsOk) {
-                setTtsError(true);
+                dispatchVoice({ type: 'SET_TTS_ERROR', value: true });
                 console.error('[submitUserResponse] TTS failed after 3 retries');
             }
 
@@ -540,8 +754,34 @@ export function useInterview(options: UseInterviewOptions) {
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
         } catch (e) {
+            // AbortError = user intentionally cancelled via handleInterruption.
+            // Keep whatever partial tokens streamed into the placeholder, mark cancelled,
+            // but don't append an apology — the user already saw Kai stop.
+            if ((e as Error)?.name === 'AbortError') {
+                setMessages(prev => prev.map(m =>
+                    m.id === streamingMsgId ? { ...m, status: 'cancelled' as const } : m
+                ));
+                setIsProcessing(false);
+                setMicStoppedManually(false);
+                setMicIntent('auto-on');
+                return;
+            }
+
             console.error('❌ [ERROR] Failed to process user response:', e);
-            addMessage({ id: generateMessageId(), role: 'assistant', content: "Something went wrong. Could you repeat that?", timestamp: new Date(), status: 'complete' });
+            // Repurpose the streaming placeholder as the error message so we don't
+            // leave a stale empty bubble hanging around.
+            const errorText = "Something went wrong. Could you repeat that?";
+            setMessages(prev => {
+                const hasPlaceholder = prev.some(m => m.id === streamingMsgId);
+                if (hasPlaceholder) {
+                    return prev.map(m =>
+                        m.id === streamingMsgId
+                            ? { ...m, content: errorText, status: 'complete' as const }
+                            : m
+                    );
+                }
+                return [...prev, { id: generateMessageId(), role: 'assistant', content: errorText, timestamp: new Date(), status: 'complete' }];
+            });
             setIsProcessing(false);
             // Even on error, activate mic so user can try again
             setMicStoppedManually(false);
@@ -641,7 +881,7 @@ export function useInterview(options: UseInterviewOptions) {
         conversationHistoryRef.current = [];
         setMessages([]);
         resetTranscript();
-        setVadFailed(false);
+        dispatchVoice({ type: 'SET_VAD_FAILED', value: false });
         currentProblemRef.current = {
             problemTitle,
             problemContent,
@@ -692,10 +932,8 @@ export function useInterview(options: UseInterviewOptions) {
             optionsRef.current.isGuest ? 'practice' : (difficultyMode ?? 'practice')
         );
 
-        setRoundCount(0);
-        setInterviewStartTime(Date.now());
-        setIsLimitReached(false);
-        setLimitReason(null);
+        dispatchRound({ type: 'RESET' });
+        dispatchRound({ type: 'SET_START_TIME', time: Date.now() });
 
         setIsProcessing(true);
         try {
@@ -719,14 +957,40 @@ export function useInterview(options: UseInterviewOptions) {
             // ── End guest intro ──────────────────────────────────────────────────────
 
             let responseText = '';
+            let introMsgId: string | null = null;
             if (optionsRef.current.isReviewMode) {
                 responseText = `Let's review ${problemTitle} which you've seen before. Without looking at your previous solution, explain your approach to this problem.`;
+                const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
+                addMessage(aiMsg);
             } else {
-                responseText = await callChatApi(introTrigger, sysPrompt, currentProblemRef.current!);
-            }
-            const aiMsg: Message = { id: generateMessageId(), role: 'assistant', content: responseText, timestamp: new Date(), status: 'complete' };
+                // Create streaming placeholder before the SSE call so tokens appear as they stream in.
+                introMsgId = generateMessageId();
+                const placeholder: Message = {
+                    id: introMsgId,
+                    role: 'assistant',
+                    content: '',
+                    timestamp: new Date(),
+                    status: 'streaming',
+                };
+                addMessage(placeholder);
 
-            addMessage(aiMsg);
+                responseText = await callChatApi(introTrigger, sysPrompt, currentProblemRef.current!, introMsgId);
+
+                // Finalize placeholder
+                setMessages(prev => prev.map(m =>
+                    m.id === introMsgId
+                        ? { ...m, content: responseText, status: 'complete' as const }
+                        : m
+                ));
+                const refIdx = conversationHistoryRef.current.findIndex(m => m.id === introMsgId);
+                if (refIdx !== -1) {
+                    conversationHistoryRef.current[refIdx] = {
+                        ...conversationHistoryRef.current[refIdx],
+                        content: responseText,
+                        status: 'complete',
+                    };
+                }
+            }
             // A1 fix: setIsProcessing(false) MOVED to after speakAndWait
 
             // Serial TTS: await full speech completion, then activate mic
@@ -734,7 +998,7 @@ export function useInterview(options: UseInterviewOptions) {
             currentAiTextRef.current = responseText;
             const ttsOk = await speakAndWait(responseText, 3);
             if (!ttsOk) {
-                setTtsError(true);
+                dispatchVoice({ type: 'SET_TTS_ERROR', value: true });
                 console.error('[startInterview] TTS failed after 3 retries');
             }
 
@@ -747,7 +1011,12 @@ export function useInterview(options: UseInterviewOptions) {
 
             stateMachine.current.transition('AI_FINISHED_SPEAKING');
             setState(stateMachine.current.getState());
-        } catch {
+        } catch (e) {
+            // Aborted intro = user navigated away / cancelled; stay silent.
+            if ((e as Error)?.name === 'AbortError') {
+                setIsProcessing(false);
+                return;
+            }
             addMessage({ id: generateMessageId(), role: 'assistant', content: "I'm having trouble connecting. Let's try again.", timestamp: new Date(), status: 'complete' });
             setIsProcessing(false);
             // Even on error, activate mic
@@ -846,9 +1115,9 @@ export function useInterview(options: UseInterviewOptions) {
         if (shouldListen && !isListeningRef.current) {
             // A2: Reduced from 350ms → 50ms for near-instant mic activation.
             // setMicActivating(true) gives the UI a visual cue during this window.
-            setMicActivating(true);
+            dispatchVoice({ type: 'SET_MIC_ACTIVATING', value: true });
             const timer = setTimeout(() => {
-                setMicActivating(false);
+                dispatchVoice({ type: 'SET_MIC_ACTIVATING', value: false });
                 // Re-check conditions inside the timeout
                 if (!isSpeakingRef.current && !isProcessingRef.current && !isListeningRef.current) {
                     console.log(`[Mic Sync] Starting mic. sttProvider=${sttProvider}, resolvedSTT=${stt.resolvedProvider}`);
@@ -859,7 +1128,7 @@ export function useInterview(options: UseInterviewOptions) {
                     if (sttProvider === 'whisper') vad.startListening();
                 }
             }, 50);
-            return () => { clearTimeout(timer); setMicActivating(false); };
+            return () => { clearTimeout(timer); dispatchVoice({ type: 'SET_MIC_ACTIVATING', value: false }); };
         } else if (!shouldListen) {
             // Always stop both STT and VAD when we shouldn't be listening.
             // isListeningRef lags by one render cycle (async ref update), so check both unconditionally.
@@ -878,13 +1147,10 @@ export function useInterview(options: UseInterviewOptions) {
         setMicIntent('off');
         setMicStoppedManually(false);
         setSendCountdown(null);
-        setTtsError(false);
+        dispatchVoice({ type: 'SET_TTS_ERROR', value: false });
         stopListening();
-        setRoundCount(0);
-        setInterviewStartTime(null);
-        setIsLimitReached(false);
-        setLimitReason(null);
-        setVadFailed(false);
+        dispatchRound({ type: 'RESET' });
+        dispatchVoice({ type: 'SET_VAD_FAILED', value: false });
         // Clear smart pause timer
         if (smartPauseTimerRef.current) { clearTimeout(smartPauseTimerRef.current); smartPauseTimerRef.current = null; }
         smartPauseActiveRef.current = false;
@@ -910,6 +1176,9 @@ export function useInterview(options: UseInterviewOptions) {
 
     // ── Handle interruption: capture partial content ─────────────
     const handleInterruption = useCallback((spokenContent?: string) => {
+        // Cancel any in-flight SSE chat request so tokens stop streaming mid-response.
+        chatAbortRef.current?.abort();
+        chatAbortRef.current = null;
         // Immediately re-enable mic — user explicitly stopped Kai
         setMicStoppedManually(false);
         setMicIntent('auto-on');
@@ -976,6 +1245,9 @@ export function useInterview(options: UseInterviewOptions) {
 
     const endInterview = useCallback(() => {
         if (roundCount < 1 && !timeUpRef.current) return;
+        // Abort any in-flight SSE chat request
+        chatAbortRef.current?.abort();
+        chatAbortRef.current = null;
         setMicIntent('off');
         setMicStoppedManually(false);
         setSendCountdown(null);

@@ -2,29 +2,36 @@
  * @component SpeechBubble
  * @description A single speech turn bubble for ZoomTranscript.
  *              Kai's bubbles come from left, User's from right.
+ *              Uses CSS keyframe animations (see globals.css) instead of
+ *              framer-motion to keep the interview bundle lean.
  * @phase Phase 2P
  */
 'use client';
 
-import { motion } from 'framer-motion';
-
 interface SpeechBubbleProps {
   role: 'assistant' | 'user';
   text: string;
-  isLive?: boolean;     // true for live user transcript (streaming)
-  isFading?: boolean;   // true when being replaced by new message
+  isLive?: boolean;      // true for live user transcript (streaming STT)
+  isFading?: boolean;    // true when being replaced by new message
+  isStreaming?: boolean; // true while assistant response is still arriving from server (SSE)
 }
 
-export function SpeechBubble({ role, text, isLive = false, isFading = false }: SpeechBubbleProps) {
+export function SpeechBubble({ role, text, isLive = false, isFading = false, isStreaming = false }: SpeechBubbleProps) {
+  // Client-side defense: strip any think tags that survived server sanitization.
+  // generateResponse() strips these centrally, but this guards edge cases.
+  const safeText = text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+    .trim();
+
   const isKai = role === 'assistant';
+  const enterClass = isKai ? 'bubble-in-left' : 'bubble-in-right';
+  const animationClass = isFading ? 'bubble-fading' : enterClass;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: isKai ? -12 : 12, y: 8 }}
-      animate={{ opacity: isFading ? 0 : 1, x: 0, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: isFading ? 0.2 : 0.3, ease: 'easeOut' }}
-      className={`flex ${isKai ? 'justify-start' : 'justify-end'} w-full`}
+    <div
+      className={`flex ${isKai ? 'justify-start' : 'justify-end'} w-full ${animationClass}`}
       data-testid={isKai ? 'kai-message-bubble' : 'user-transcript-bubble'}
     >
       <div
@@ -39,27 +46,29 @@ export function SpeechBubble({ role, text, isLive = false, isFading = false }: S
         {/* Live indicator for streaming user transcript */}
         {isLive && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <motion.div
-              className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-            />
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot-pulse" />
             <span className="text-xs text-zinc-500 font-medium">You</span>
           </div>
         )}
 
         {/* Message text */}
         <p className={`text-sm leading-relaxed ${isLive ? 'text-zinc-400' : ''}`}>
-          {text}
+          {safeText}
           {isLive && (
-            <motion.span
-              className="inline-block w-0.5 h-4 bg-emerald-400 ml-0.5 align-middle"
-              animate={{ opacity: [1, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
+            <span
+              className="inline-block w-0.5 h-4 bg-emerald-400 ml-0.5 align-middle live-cursor-blink"
+              aria-hidden="true"
+            />
+          )}
+          {/* Server-stream cursor: shown while Kai's response is still arriving via SSE */}
+          {isStreaming && isKai && !isLive && (
+            <span
+              className="inline-block w-0.5 h-4 bg-indigo-300 ml-0.5 align-middle animate-pulse"
+              aria-hidden="true"
             />
           )}
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }

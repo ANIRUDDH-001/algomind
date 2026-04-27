@@ -77,6 +77,5 @@ schema details/
 type-check-output.txt
 type_check*.txt
 .agents/
-.claude/
 DIAGNOSTIC_MASTER.md
 MASTER_PLAN.md

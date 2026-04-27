@@ -107,67 +107,77 @@ function InterviewContent() {
                     }
                 }
 
-                // Wait for all data
+                // Wait for rate limit + problem first — everything else depends on fetchedProblem or userId.
                 const [rateLimitData, fetchedProblem] = await Promise.all([rateLimitPromise, problemPromise]);
 
-                // Fetch profile for authenticated users
+                // ── Parallelise the remaining fetches ────────────────────────────
+                // Profile / kaiMemory / co-owner status / RAG context have no
+                // cross-dependency (RAG needs fetchedProblem which is resolved here).
+                // Running them concurrently saves ~300–500ms vs. the previous
+                // sequential awaits.
                 const supabase = getSupabase();
-                let profile: { account_type: string; rate_limit_override: number | null } | null = null;
-                if (userId && !isGuest && supabase) {
-                    const { data: profileData } = await supabase
-                        .from('profiles')
-                        .select('account_type, rate_limit_override')
-                        .eq('id', userId)
-                        .single();
-                    profile = profileData;
-                }
 
-                // ── RAG: fetch ONCE for this problem ─────────────────────────────────────────
-                let ragContext = '';
-                if (fetchedProblem && !isGuest) {
-                    try {
-                        const query = `${fetchedProblem.title} ${fetchedProblem.description}`.slice(0, 500);
-                        const res = await fetch('/api/rag/context', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ query })
-                        });
+                const profileFetch: Promise<{ account_type: string; rate_limit_override: number | null } | null> =
+                    (userId && !isGuest && supabase)
+                        ? Promise.resolve(
+                            supabase
+                                .from('profiles')
+                                .select('account_type, rate_limit_override')
+                                .eq('id', userId)
+                                .single()
+                          ).then(({ data }) => (data as { account_type: string; rate_limit_override: number | null } | null) ?? null)
+                        : Promise.resolve(null);
 
-                        if (res.ok) {
+                const ragFetch: Promise<string> = (fetchedProblem && !isGuest)
+                    ? (async () => {
+                        try {
+                            const query = `${fetchedProblem.title} ${fetchedProblem.description}`.slice(0, 500);
+                            const res = await fetch('/api/rag/context', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query }),
+                            });
+                            if (!res.ok) return '';
                             const { chunks } = await res.json();
-                            if (Array.isArray(chunks) && chunks.length > 0) {
-                                ragContext = chunks
-                                    .map((r: any) => `### ${r.title ?? ''}\n${r.content ?? ''}`)
-                                    .join('\n\n---\n\n');
-                            }
+                            if (!Array.isArray(chunks) || chunks.length === 0) return '';
+                            return chunks
+                                .map((r: any) => `### ${r.title ?? ''}\n${r.content ?? ''}`)
+                                .join('\n\n---\n\n');
+                        } catch (e) {
+                            console.warn('[RAG] Failed to fetch context — proceeding without it:', e);
+                            return '';
                         }
-                    } catch (e) {
-                        console.warn('[RAG] Failed to fetch context — proceeding without it:', e);
-                    }
-                } else if (isGuest && fetchedProblem) {
-                    ragContext = (fetchedProblem as typeof fetchedProblem & { ragContext?: string }).ragContext ?? '';
-                }
+                    })()
+                    : Promise.resolve(
+                        (isGuest && fetchedProblem)
+                            ? ((fetchedProblem as typeof fetchedProblem & { ragContext?: string }).ragContext ?? '')
+                            : ''
+                    );
 
-                // ── Kai memory: fetch ONCE ────────────────────────────────────────────────────
-                let kaiMemory = '';
-                if (userId && !isGuest) {
-                    try {
-                        const memoryResult = await getKaiMemory(userId);
-                        if (memoryResult.success) {
-                            kaiMemory = memoryResult.data.memory;
-                        }
-                    } catch {
-                        // Non-fatal
-                    }
-                }
+                const kaiMemoryFetch: Promise<string> = (userId && !isGuest)
+                    ? getKaiMemory(userId)
+                        .then(r => (r.success ? r.data.memory : ''))
+                        .catch(() => '')
+                    : Promise.resolve('');
 
-                // ── Co-owner check (server action — bypasses RLS) ─────────────────────────
-                let isCoOwner = false;
-                if (userId && !isGuest && profile?.account_type === 'candidate') {
-                    // Only check for candidates — owners/admins already have unlimited access
-                    const coOwnerResult = await checkCoOwnerStatus(userId);
-                    isCoOwner = coOwnerResult.success ? coOwnerResult.data.isCoOwner : false;
-                }
+                // Co-owner check gated on being a candidate; we can't know that until profile resolves.
+                // Still parallelise: kick off co-owner speculatively whenever userId && !isGuest,
+                // then gate its value later against profile.account_type.
+                const coOwnerFetch: Promise<boolean> = (userId && !isGuest)
+                    ? checkCoOwnerStatus(userId)
+                        .then(r => (r.success ? r.data.isCoOwner : false))
+                        .catch(() => false)
+                    : Promise.resolve(false);
+
+                const [profileResult, ragContext, kaiMemory, coOwnerSpeculative] = await Promise.all([
+                    profileFetch,
+                    ragFetch,
+                    kaiMemoryFetch,
+                    coOwnerFetch,
+                ]);
+                const profile = profileResult;
+                // Only candidates actually use isCoOwner; owners/admins are unlimited.
+                const isCoOwner = profile?.account_type === 'candidate' ? coOwnerSpeculative : false;
 
                 // ── Sprint: fetch problem 2 if needed ────────────────────────────────────────
                 let sprintProblemIds: [string, string] | undefined;

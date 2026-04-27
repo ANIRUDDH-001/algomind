@@ -32,7 +32,7 @@ declare namespace NodeJS {
         AWS_SECRET_ACCESS_KEY?: string;
         AWS_S3_BUCKET?: string;
         AWS_REGION?: string;                    // Default: ap-south-1 (Polly, S3, Transcribe)
-        AWS_BEDROCK_REGION?: string;             // Default: us-east-1 (Claude model availability)
+        AWS_BEDROCK_REGION?: string;             // Default: us-east-1 (Bedrock model availability)
 
         // Feature Flags
         NEXT_PUBLIC_FF_ENABLE_RESPONSE_CACHE?: string;

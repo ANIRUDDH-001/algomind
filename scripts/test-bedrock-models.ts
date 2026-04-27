@@ -4,16 +4,39 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const MODELS = [
-    // Direct model IDs (as provided)
-    'anthropic.claude-sonnet-4-6',
-    'anthropic.claude-haiku-4-5-20251001-v1:0',
-    'anthropic.claude-sonnet-4-5-20250929-v1:0',
-    // Cross-region inference profile IDs
-    'us.anthropic.claude-sonnet-4-6',
-    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
-    'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-];
+const MODELS = (process.env.BEDROCK_TEST_MODELS || 'openai.gpt-oss-120b-1:0')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+
+function detectModelFamily(modelId: string): 'openai' | 'anthropic' {
+    if (modelId.startsWith('openai.')) return 'openai';
+    return 'anthropic';
+}
+
+function buildPayload(modelId: string): string {
+    const family = detectModelFamily(modelId);
+    if (family === 'openai') {
+        return JSON.stringify({
+            messages: [{ role: 'user', content: 'Say OK' }],
+            max_tokens: 20,
+        });
+    }
+
+    return JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 20,
+        messages: [{ role: 'user', content: 'Say OK' }],
+    });
+}
+
+function extractText(modelId: string, body: Record<string, any>): string {
+    const family = detectModelFamily(modelId);
+    if (family === 'openai') {
+        return body.choices?.[0]?.message?.content || '';
+    }
+    return body.content?.[0]?.text || '';
+}
 
 async function main() {
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
@@ -34,11 +57,7 @@ async function main() {
 
     for (const modelId of MODELS) {
         try {
-            const payload = JSON.stringify({
-                anthropic_version: 'bedrock-2023-05-31',
-                max_tokens: 20,
-                messages: [{ role: 'user', content: 'Say OK' }],
-            });
+            const payload = buildPayload(modelId);
 
             const res = await client.send(new InvokeModelCommand({
                 modelId,
@@ -48,7 +67,7 @@ async function main() {
             }));
 
             const body = JSON.parse(new TextDecoder().decode(res.body));
-            const text = body.content?.[0]?.text || JSON.stringify(body).slice(0, 60);
+            const text = extractText(modelId, body) || JSON.stringify(body).slice(0, 60);
             console.log(`✅ ${modelId} — "${text.trim().slice(0, 50)}"`);
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);

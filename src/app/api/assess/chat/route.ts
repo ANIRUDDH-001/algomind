@@ -190,6 +190,117 @@ export async function POST(req: NextRequest) {
         enhancedSystemPrompt += '\n\n## CANDIDATE INTERVIEW GUIDELINES\nYou are conducting a technical interview. Keep your answers concise, ask probing questions about space/time complexity, and do not write the code for the candidate.';
 
 
+        // Helper to persist transcript with retries (shared by both SSE + JSON paths)
+        const persistTranscript = async (cleanResponseText: string): Promise<void> => {
+            const newTranscript = [...messages, { role: 'assistant', content: cleanResponseText }];
+            const supabaseAdmin = getServiceClient();
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                const { error } = await supabaseAdmin
+                    .from('candidate_submissions')
+                    .update({ current_transcript: newTranscript })
+                    .eq('id', submissionId);
+                if (!error) return;
+                console.warn(`[Assess Chat] Transcript save attempt ${attempt}/3 failed:`, error.message);
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 200 * attempt));
+                } else {
+                    console.error('[Assess Chat] Transcript save failed after 3 retries — logging event');
+                    void logSystemEvent({
+                        type: 'transcript_save_failed',
+                        correlationId,
+                        metadata: { submissionId, attempts: 3, errorCode: error.code },
+                    });
+                }
+            }
+        };
+
+        // --- Real SSE Streaming branch ---
+        const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
+        const userIdFromJwt = typeof payload.sub === 'string' ? payload.sub : undefined;
+
+        if (acceptsStream) {
+            // Pick a streaming provider: Bedrock if configured+enabled, else Groq.
+            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID
+                && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
+            const streamProvider: 'bedrock' | 'groq' = bedrockEnabled ? 'bedrock' : 'groq';
+
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                async start(controller) {
+                    const enqueue = (payload: object) =>
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+
+                    let fullText = '';
+                    try {
+                        for await (const chunk of client.generateStream(messages, {
+                            systemPrompt: enhancedSystemPrompt,
+                            maxTokens: 4096,
+                            signal: req.signal,
+                            correlationId,
+                            userId: userIdFromJwt,
+                            sessionId: submissionId,
+                            preferredModel: streamProvider,
+                        })) {
+                            if (req.signal.aborted) break;
+                            fullText += chunk;
+                            enqueue({ delta: chunk });
+                        }
+
+                        const cleaned = fullText.trim();
+
+                        // Persist transcript (fire-and-forget to not block stream close)
+                        void persistTranscript(cleaned);
+
+                        enqueue({
+                            delta: '',
+                            done: true,
+                            modelUsed: streamProvider,
+                            provider: streamProvider,
+                            fullText: cleaned,
+                            messagesUsed: currentCount,
+                            messageLimit: sessionMessageLimit,
+                        });
+                    } catch (err) {
+                        if ((err as Error)?.name === 'AbortError') return;
+                        console.error('❌ [Assess Chat API] Stream error:', err);
+                        void logSystemEvent({
+                            type: 'model_error',
+                            correlationId,
+                            errorMessage: err instanceof Error ? err.message : String(err),
+                            metadata: { context: 'assess_chat.stream', submissionId },
+                        });
+                        enqueue({ error: String(err), done: true });
+                    } finally {
+                        try {
+                            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                        } catch {
+                            // already closed
+                        }
+                        try {
+                            controller.close();
+                        } catch {
+                            // already closed
+                        }
+                    }
+                },
+            });
+
+            const sseHeaders: Record<string, string> = {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no',
+                'x-correlation-id': correlationId,
+            };
+            if (currentCount > 0) {
+                sseHeaders['X-Messages-Used'] = String(currentCount);
+                sseHeaders['X-Messages-Limit'] = String(sessionMessageLimit);
+            }
+
+            return new Response(stream, { headers: sseHeaders });
+        }
+
+        // --- JSON fallback ---
         const result = await client.generateResponse(messages, {
             preferredModel: 'auto',
             category: 'speed',
@@ -197,7 +308,7 @@ export async function POST(req: NextRequest) {
             systemPrompt: enhancedSystemPrompt,
             estimatedTokens: 500,
             correlationId,
-            userId: typeof payload.sub === 'string' ? payload.sub : undefined,
+            userId: userIdFromJwt,
             sessionId: submissionId,
             promptVersion: PROMPT_VERSION_TAGS.assessmentChat,
             languageCode: 'english',
@@ -207,10 +318,7 @@ export async function POST(req: NextRequest) {
             throw new Error(result.error || 'Failed to generate response');
         }
 
-        const cleanResponse = (result.response || '')
-            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-            .trim();
+        const cleanResponse = (result.response || '').trim();
 
         const response = NextResponse.json({
             response: cleanResponse,
@@ -226,37 +334,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Fire-and-forget: Save transcript to DB so it persists on refresh
-        const newTranscript = [...messages, { role: 'assistant', content: cleanResponse }];
-        const supabaseAdmin = getServiceClient();
-
-        const saveTranscriptWithRetry = async (): Promise<void> => {
-            for (let attempt = 1; attempt <= 3; attempt++) {
-                const { error } = await supabaseAdmin
-                    .from('candidate_submissions')
-                    .update({ current_transcript: newTranscript })
-                    .eq('id', submissionId);
-
-                if (!error) return;
-
-                console.warn(
-                    `[Assess Chat] Transcript save attempt ${attempt}/3 failed:`,
-                    error.message
-                );
-
-                if (attempt < 3) {
-                    await new Promise(r => setTimeout(r, 200 * attempt));
-                } else {
-                    console.error('[Assess Chat] Transcript save failed after 3 retries — logging event');
-                    void logSystemEvent({
-                        type: 'transcript_save_failed',
-                        correlationId,
-                        metadata: { submissionId, attempts: 3, errorCode: error.code }
-                    });
-                }
-            }
-        };
-
-        void saveTranscriptWithRetry();
+        void persistTranscript(cleanResponse);
 
         return response;
 

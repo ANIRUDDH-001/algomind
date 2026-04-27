@@ -8,7 +8,7 @@
  * Gated by ENABLE_AWS_BEDROCK feature flag — costs $0 when OFF.
  *
  * Supported model families:
- *   - Anthropic (Claude): uses Messages API format
+ *   - Anthropic: uses Messages API format
  *   - OpenAI (gpt-oss):   uses OpenAI-compatible format
  *   - Amazon (Titan):      uses native Titan format
  *
@@ -136,12 +136,18 @@ export async function callBedrockModel(
     modelId: string,
     messages: Message[],
     systemPrompt?: string,
-    maxTokens = 4096
+    maxTokens = 4096,
+    signal?: AbortSignal
 ): Promise<string> {
     // Gate behind feature flag
     const enabled = await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
     if (!enabled) {
         throw new Error('AWS Bedrock is disabled via ENABLE_AWS_BEDROCK feature flag');
+    }
+
+    // Early abort — skip the network call entirely if already aborted
+    if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
     }
 
     const body = buildPayload(modelId, messages, systemPrompt, maxTokens);
@@ -153,7 +159,25 @@ export async function callBedrockModel(
         body,
     });
 
-    const response = await getBedrockClient().send(command);
+    // Race the Bedrock request against abort so user interruptions cancel in-flight calls.
+    const sendPromise = getBedrockClient().send(command);
+
+    let response;
+    if (signal) {
+        response = await Promise.race([
+            sendPromise,
+            new Promise<never>((_, reject) => {
+                signal.addEventListener(
+                    'abort',
+                    () => reject(new DOMException('Aborted', 'AbortError')),
+                    { once: true }
+                );
+            }),
+        ]);
+    } else {
+        response = await sendPromise;
+    }
+
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     return parseResponse(modelId, responseBody);
 }
@@ -163,7 +187,7 @@ export async function callBedrockModel(
  * Kept for backward compatibility with existing callModel() in client.ts.
  * Still gated by ENABLE_AWS_BEDROCK flag.
  */
-export async function callBedrockClaude(
+export async function callBedrockDefaultModel(
     messages: Message[],
     systemPrompt?: string,
     maxTokens = 4096

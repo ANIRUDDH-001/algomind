@@ -53,7 +53,7 @@ export function estimatePollyCost(charCount: number, isNeural = true): number {
 }
 
 /**
- * Bedrock cost estimate (Claude 3.5 Sonnet):
+ * Bedrock cost estimate (high-capability text model):
  * Input: $3.00/million tokens, Output: $15.00/million tokens.
  * Rough: ~4 chars per token.
  */

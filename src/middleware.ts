@@ -33,39 +33,48 @@ export default async function middleware(request: NextRequest) {
     // Cookie names are derived from the URL — mixing URLs breaks session sync.
     // Strip trailing slash to ensure consistent cookie name derivation.
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-    const supabase = createServerClient(
-        supabaseUrl,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll();
-                },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-                    } catch (error) {
-                        console.warn('[middleware] Failed to mirror auth cookies into request store:', error);
-                    }
-                    supabaseResponse = NextResponse.next({
-                        request: { headers: requestHeaders },
-                    });
-                    supabaseResponse.headers.set('x-correlation-id', correlationId);
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            supabaseResponse.cookies.set(name, value, options)
-                        );
-                    } catch (error) {
-                        console.warn('[middleware] Failed to persist auth cookies on response:', error);
-                    }
-                },
-            },
-        }
-    );
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    const canUseSupabase = supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
 
+    let supabase: ReturnType<typeof createServerClient> | null = null;
     let user: { id: string; email?: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> } | null = null;
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+
+    if (canUseSupabase) {
+        supabase = createServerClient(
+            supabaseUrl,
+            supabaseAnonKey,
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        try {
+                            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+                        } catch (error) {
+                            console.warn('[middleware] Failed to mirror auth cookies into request store:', error);
+                        }
+                        supabaseResponse = NextResponse.next({
+                            request: { headers: requestHeaders },
+                        });
+                        supabaseResponse.headers.set('x-correlation-id', correlationId);
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                supabaseResponse.cookies.set(name, value, options)
+                            );
+                        } catch (error) {
+                            console.warn('[middleware] Failed to persist auth cookies on response:', error);
+                        }
+                    },
+                },
+            }
+        );
+
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    } else if (process.env.NODE_ENV !== 'production') {
+        console.warn('[middleware] Missing NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY. Continuing without Supabase auth sync.');
+    }
 
     // Route Protection Logic
     const { searchParams } = request.nextUrl;
@@ -121,7 +130,7 @@ export default async function middleware(request: NextRequest) {
     }
 
     // Check if user needs to complete diagnostic before accessing learn features
-    if (user && isLearn && !pathname.startsWith('/learn/diagnostic')) {
+    if (user && supabase && isLearn && !pathname.startsWith('/learn/diagnostic')) {
         const diagnosticCookie = request.cookies.get(DIAGNOSTIC_COMPLETE_COOKIE);
 
         if (!diagnosticCookie?.value) {

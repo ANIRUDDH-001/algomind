@@ -81,6 +81,9 @@ describe('Chat API (/api/chat)', () => {
                 success: true,
                 response: 'AI response text',
             }),
+            generateStream: vi.fn(async function* () {
+                yield 'AI response text';
+            }),
         };
         vi.mocked(getAIClient).mockReturnValue(mockAIClient);
 
@@ -258,11 +261,17 @@ describe('Chat API (/api/chat)', () => {
         }
 
         // Should contain at least one data event and a done event
-        const events = fullBody.split('\n\n').filter(e => e.startsWith('data: '));
-        expect(events.length).toBeGreaterThanOrEqual(2); // at least 1 chunk + done
+        const events = fullBody
+            .split('\n\n')
+            .filter(e => e.startsWith('data: '))
+            .map(e => e.slice(6).trim())
+            .filter(payload => payload && payload !== '[DONE]')
+            .map(payload => JSON.parse(payload));
 
-        // Last event should have done: true and fullText
-        const lastEvent = JSON.parse(events[events.length - 1].slice(6));
+        expect(events.length).toBeGreaterThanOrEqual(2); // at least 1 chunk + terminal event
+
+        // Last JSON event should have done: true and fullText
+        const lastEvent = events[events.length - 1];
         expect(lastEvent.done).toBe(true);
         expect(lastEvent.fullText).toBe('AI response text');
     });

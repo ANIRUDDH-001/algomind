@@ -13,6 +13,40 @@ function percentile(arr, p) {
 }
 function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 
+function detectFamily(modelId) {
+    if (modelId.startsWith('openai.')) return 'openai';
+    if (modelId.startsWith('anthropic.') || modelId.startsWith('us.anthropic.')) return 'anthropic';
+    return 'anthropic';
+}
+
+function buildRequestBody(modelId, prompt) {
+    const family = detectFamily(modelId);
+    if (family === 'openai') {
+        return JSON.stringify({
+            messages: [
+                { role: 'system', content: 'You are Kai, an AI interview coach. 2-3 sentences max.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 256,
+        });
+    }
+
+    return JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 256,
+        system: 'You are Kai, an AI interview coach. 2-3 sentences max.',
+        messages: [{ role: 'user', content: prompt }],
+    });
+}
+
+function extractResponseText(modelId, result) {
+    const family = detectFamily(modelId);
+    if (family === 'openai') {
+        return result.choices?.[0]?.message?.content || '';
+    }
+    return result.content?.[0]?.text || '';
+}
+
 const prompts = [
     'What is Big O notation?',
     'Explain two-pointer technique for Two Sum.',
@@ -35,12 +69,7 @@ async function benchModel(client, modelId, label, iterations = 10) {
 
     for (let i = 0; i < iterations; i++) {
         const prompt = prompts[i % prompts.length];
-        const body = JSON.stringify({
-            anthropic_version: 'bedrock-2023-05-31',
-            max_tokens: 256,
-            system: 'You are Kai, an AI interview coach. 2-3 sentences max.',
-            messages: [{ role: 'user', content: prompt }],
-        });
+        const body = buildRequestBody(modelId, prompt);
 
         const start = performance.now();
         try {
@@ -52,7 +81,7 @@ async function benchModel(client, modelId, label, iterations = 10) {
             }));
             const lat = performance.now() - start;
             const result = JSON.parse(new TextDecoder().decode(res.body));
-            const text = result.content?.[0]?.text || '';
+            const text = extractResponseText(modelId, result);
             latencies.push(lat);
             console.log(`  [${i + 1}/${iterations}] ${Math.round(lat)}ms (${text.length} chars)`);
         } catch (err) {
@@ -158,19 +187,19 @@ async function main() {
             },
         });
 
-        // Claude Haiku 4.5 (cross-region)
+        // Bedrock model variant A
         results.bedrockHaiku = await benchModel(
             client,
-            'us.anthropic.claude-haiku-4-5-20251001-v1:0',
-            'Bedrock Claude Haiku 4.5 (cross-region)',
+            process.env.BEDROCK_BENCH_MODEL_A || 'openai.gpt-oss-120b-1:0',
+            'Bedrock Model A',
             10
         );
 
-        // Claude Sonnet 4.5 (cross-region) — fewer iterations since it's expensive
+        // Bedrock model variant B — fewer iterations since it's typically slower
         results.bedrockSonnet = await benchModel(
             client,
-            'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-            'Bedrock Claude Sonnet 4.5 (cross-region)',
+            process.env.BEDROCK_BENCH_MODEL_B || 'openai.gpt-oss-20b-1:0',
+            'Bedrock Model B',
             5
         );
     } else {

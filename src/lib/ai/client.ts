@@ -200,7 +200,8 @@ export class UnifiedAIClient {
                             modelId,
                             messages,
                             options.systemPrompt,
-                            options.maxTokens
+                            options.maxTokens,
+                            options.signal
                         );
                         const tokensUsed = Math.ceil(response.length / 4);
                         if (options.userId && options.sessionId && tokensUsed > 0) {
@@ -392,7 +393,7 @@ export class UnifiedAIClient {
                 return await this.callGemini(model.id, messages, options);
             } else if (model.provider === 'bedrock') {
                 const { callBedrockModel } = await import('./bedrock-client');
-                const response = await callBedrockModel(model.id, messages, options.systemPrompt, options.maxTokens);
+                const response = await callBedrockModel(model.id, messages, options.systemPrompt, options.maxTokens, options.signal);
                 return { success: true, response };
             }
             return { success: false, error: "Unsupported provider" };
@@ -585,6 +586,20 @@ export class UnifiedAIClient {
     }
 
     /**
+     * Strip internal reasoning tokens from AI output before returning to callers.
+     * Handles all known tag variants across providers.
+     * Operates on the complete response string — for streaming use the stateful
+     * buffer in generateStream() (Phase 2).
+     */
+    private stripThinkingTokens(raw: string): string {
+        return raw
+            .replace(/<think>[\s\S]*?<\/think>/gi, '')
+            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+            .trim();
+    }
+
+    /**
      * Generate a response with intelligent model routing.
      *
      * When `preferredModel` is `'auto'` (default when smart routing is enabled),
@@ -634,7 +649,7 @@ export class UnifiedAIClient {
                     `(hits: ${cached.hitCount}, saved ~${cached.avgLatency.toFixed(0)}ms)`
                 );
                 return {
-                    response: cached.response,
+                    response: this.stripThinkingTokens(cached.response),
                     success: true,
                     modelUsed: cached.model,
                     attemptedModels: [],
@@ -669,6 +684,10 @@ export class UnifiedAIClient {
                 userId: options.userId,
                 sessionId: options.sessionId,
             });
+
+            if (result.response) {
+                result.response = this.stripThinkingTokens(result.response);
+            }
 
             return {
                 ...result,
@@ -750,6 +769,10 @@ export class UnifiedAIClient {
             success: result.success,
         });
 
+        if (result.response) {
+            result.response = this.stripThinkingTokens(result.response);
+        }
+
         return {
             ...result,
             routing: {
@@ -760,6 +783,317 @@ export class UnifiedAIClient {
                 smartRoutingUsed: true,
             },
         };
+    }
+
+    // ─── Streaming (Phase 2) ────────────────────────────────────────────
+    //
+    // generateStream() yields AI response chunks as they arrive from the
+    // provider. Think/reasoning tags are filtered with a stateful buffer
+    // so tag boundaries split across chunks are handled correctly.
+    //
+    // Caller is responsible for assembling chunks into a full response.
+
+    /**
+     * Stream AI response tokens. Async generator — use `for await`.
+     * Strips <think>, <thinking>, <reasoning> across chunk boundaries.
+     */
+    async *generateStream(
+        messages: Message[],
+        options: Pick<GenerateResponseOptions,
+            | 'systemPrompt'
+            | 'maxTokens'
+            | 'temperature'
+            | 'signal'
+            | 'correlationId'
+            | 'userId'
+            | 'sessionId'
+        > & { preferredModel?: 'groq' | 'gemini' | 'bedrock' | 'auto' } = {}
+    ): AsyncGenerator<string> {
+        const preferredModel = options.preferredModel ?? 'groq';
+
+        let provider: 'groq' | 'gemini' | 'bedrock' = 'groq';
+        if (preferredModel === 'groq' || preferredModel === 'gemini' || preferredModel === 'bedrock') {
+            provider = preferredModel;
+        } else if (preferredModel === 'auto') {
+            // Auto mode: for streaming, skip classification overhead — go straight
+            // to Bedrock if available, else Groq. Gemini is used only when explicitly forced.
+            provider = process.env.AWS_ACCESS_KEY_ID ? 'bedrock' : 'groq';
+        }
+
+        if (provider === 'groq') {
+            yield* this.streamGroq(messages, options);
+        } else if (provider === 'gemini') {
+            yield* this.streamGemini(messages, options);
+        } else {
+            yield* this.streamBedrock(messages, options);
+        }
+    }
+
+    /**
+     * Stateful think-tag filter. Wraps any AsyncIterable<string> and strips
+     * <think|thinking|reasoning>...</...> regions even when tags span chunks.
+     *
+     * Maintains a small trailing buffer (20 chars) when not filtering, so a
+     * partial tag start at the very end of a chunk is not yielded prematurely.
+     */
+    private async *filterThinkTags(
+        source: AsyncIterable<string>,
+        signal?: AbortSignal
+    ): AsyncGenerator<string> {
+        const TAG_PAIRS: Array<{ open: RegExp; close: string }> = [
+            { open: /<think\b/i,     close: '</think>'     },
+            { open: /<thinking\b/i,  close: '</thinking>'  },
+            { open: /<reasoning\b/i, close: '</reasoning>' },
+        ];
+
+        let isFiltering = false;
+        let activeClose = '';
+        let buf = '';
+
+        for await (const raw of source) {
+            if (signal?.aborted) return;
+            buf += raw;
+
+            while (buf.length > 0) {
+                if (!isFiltering) {
+                    // Find earliest opening tag in buf
+                    let earliest = -1;
+                    let earliestClose = '';
+
+                    for (const { open, close } of TAG_PAIRS) {
+                        const m = open.exec(buf);
+                        if (m && (earliest === -1 || m.index < earliest)) {
+                            earliest = m.index;
+                            earliestClose = close;
+                        }
+                    }
+
+                    if (earliest === -1) {
+                        // No opening tag found — yield everything except a
+                        // trailing 20-char safety margin (protects partial tag starts)
+                        if (buf.length > 20) {
+                            yield buf.slice(0, buf.length - 20);
+                            buf = buf.slice(buf.length - 20);
+                        }
+                        break;
+                    }
+
+                    // Yield content before the tag
+                    if (earliest > 0) {
+                        yield buf.slice(0, earliest);
+                        buf = buf.slice(earliest);
+                    }
+
+                    // Find the end of the opening tag (the '>')
+                    const closeAngle = buf.indexOf('>');
+                    if (closeAngle === -1) {
+                        // Tag not yet complete — wait for more chunks
+                        break;
+                    }
+
+                    isFiltering = true;
+                    activeClose = earliestClose;
+                    buf = buf.slice(closeAngle + 1);
+                } else {
+                    // Inside a think tag — scan for closing tag
+                    const closeIdx = buf.toLowerCase().indexOf(activeClose.toLowerCase());
+                    if (closeIdx === -1) {
+                        // Closing tag not in buffer yet — discard all but last
+                        // activeClose.length chars (in case closer spans chunks)
+                        const safeDiscard = buf.length - activeClose.length;
+                        if (safeDiscard > 0) buf = buf.slice(safeDiscard);
+                        break;
+                    }
+
+                    // Found closing tag — discard up to and including it
+                    isFiltering = false;
+                    buf = buf.slice(closeIdx + activeClose.length);
+                    activeClose = '';
+                }
+            }
+        }
+
+        // Flush remaining buffer (only if not inside a tag)
+        if (!isFiltering && buf.trim().length > 0) {
+            yield buf;
+        }
+    }
+
+    /** Groq streaming provider — OpenAI-compatible SSE */
+    private async *streamGroq(
+        messages: Message[],
+        options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
+    ): AsyncGenerator<string> {
+        if (!process.env.GROQ_API_KEY) throw new Error('Missing GROQ_API_KEY');
+
+        const models = await getActiveModels();
+        const groqModels = models.filter(m => m.provider === 'groq');
+        const modelId = groqModels[0]?.id ?? 'llama-3.3-70b-versatile';
+
+        const apiMessages = [...messages];
+        if (options.systemPrompt && apiMessages[0]?.role !== 'system') {
+            apiMessages.unshift({ role: 'system', content: options.systemPrompt });
+        }
+
+        const response = await fetch(this.GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: modelId,
+                messages: apiMessages,
+                max_tokens: options.maxTokens ?? 4096,
+                temperature: options.temperature ?? 0.7,
+                stream: true,
+            }),
+            signal: options.signal ?? AbortSignal.timeout(30000),
+        });
+
+        if (!response.ok || !response.body) {
+            const errText = await response.text().catch(() => '');
+            throw new Error(`Groq stream error (${response.status}): ${errText.slice(0, 200)}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        const rawChunks = this.readOpenAIStreamChunks(reader, decoder, options.signal);
+        yield* this.filterThinkTags(rawChunks, options.signal);
+    }
+
+    /** Shared SSE reader for OpenAI-compatible streams (Groq). */
+    private async *readOpenAIStreamChunks(
+        reader: ReadableStreamDefaultReader<Uint8Array>,
+        decoder: TextDecoder,
+        signal?: AbortSignal
+    ): AsyncGenerator<string> {
+        let leftover = '';
+        while (true) {
+            if (signal?.aborted) return;
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = leftover + decoder.decode(value, { stream: true });
+            const lines = text.split('\n');
+            leftover = lines.pop() ?? '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') return;
+                try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content;
+                    if (typeof delta === 'string' && delta) yield delta;
+                } catch {
+                    // Malformed SSE line — skip
+                }
+            }
+        }
+    }
+
+    /** Gemini streaming provider — streamGenerateContent + alt=sse */
+    private async *streamGemini(
+        messages: Message[],
+        options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
+    ): AsyncGenerator<string> {
+        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        if (!apiKey) throw new Error('Missing GEMINI_API_KEY');
+
+        const models = await getActiveModels();
+        const geminiModels = models.filter(m => m.provider === 'gemini');
+        const modelId = geminiModels[0]?.id ?? 'gemini-2.0-flash';
+
+        const contents = messages
+            .filter(m => m.role !== 'system')
+            .map(m => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }],
+            }));
+
+        const systemInstruction = options.systemPrompt
+            ? { parts: [{ text: options.systemPrompt }] }
+            : undefined;
+
+        const url = `${this.GEMINI_API_BASE}/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents,
+                systemInstruction,
+                generationConfig: {
+                    maxOutputTokens: options.maxTokens ?? 4096,
+                    temperature: options.temperature ?? 0.7,
+                },
+            }),
+            signal: options.signal ?? AbortSignal.timeout(30000),
+        });
+
+        if (!response.ok || !response.body) {
+            const errText = await response.text().catch(() => '');
+            throw new Error(`Gemini stream error (${response.status}): ${errText.slice(0, 200)}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        const rawChunks = (async function* () {
+            let leftover = '';
+            while (true) {
+                if (options.signal?.aborted) return;
+                const { done, value } = await reader.read();
+                if (done) break;
+                const text = leftover + decoder.decode(value, { stream: true });
+                const lines = text.split('\n');
+                leftover = lines.pop() ?? '';
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') return;
+                    try {
+                        const parsed = JSON.parse(data);
+                        const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (typeof chunk === 'string' && chunk) yield chunk;
+                    } catch {
+                        // Skip malformed
+                    }
+                }
+            }
+        })();
+
+        yield* this.filterThinkTags(rawChunks, options.signal);
+    }
+
+    /**
+     * Bedrock streaming — single-chunk fallback for Phase 2.
+     * True `InvokeModelWithResponseStreamCommand` is deferred to a later phase;
+     * for now we call `callBedrockModel()` and yield the full response as one chunk.
+     * The AbortSignal is propagated so interruptions still cancel the Bedrock call.
+     */
+    private async *streamBedrock(
+        messages: Message[],
+        options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
+    ): AsyncGenerator<string> {
+        const { callBedrockModel } = await import('./bedrock-client');
+        const models = await getActiveModels();
+        const bedrockModels = models.filter(m => m.provider === 'bedrock');
+        const modelId = bedrockModels[0]?.id ?? 'openai.gpt-oss-120b-1:0';
+
+        const response = await callBedrockModel(
+            modelId,
+            messages,
+            options.systemPrompt,
+            options.maxTokens,
+            options.signal
+        );
+
+        yield* this.filterThinkTags(
+            (async function* () { yield response; })(),
+            options.signal
+        );
     }
 
     /**

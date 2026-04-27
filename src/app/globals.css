@@ -449,3 +449,36 @@ html {
 body {
   background: var(--surface-base);
 }
+
+/* SpeechBubble enter/exit animations — replaces framer-motion to keep
+   the interview bundle lean. Kept short to match the previous timings. */
+@keyframes bubble-in-left {
+  from { opacity: 0; transform: translate(-12px, 8px); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes bubble-in-right {
+  from { opacity: 0; transform: translate(12px, 8px); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes bubble-fading {
+  to { opacity: 0; }
+}
+@keyframes live-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+@keyframes live-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+.bubble-in-left  { animation: bubble-in-left 0.3s ease-out both; }
+.bubble-in-right { animation: bubble-in-right 0.3s ease-out both; }
+.bubble-fading   { animation: bubble-fading 0.2s ease-out forwards; }
+.live-dot-pulse  { animation: live-dot-pulse 0.8s ease-in-out infinite; }
+.live-cursor-blink { animation: live-cursor-blink 0.5s ease-in-out infinite; }
+
+@keyframes cognitive-badge-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cognitive-badge-in { animation: cognitive-badge-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }

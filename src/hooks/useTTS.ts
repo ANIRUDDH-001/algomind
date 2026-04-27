@@ -10,6 +10,49 @@ import { TTSEngine, type TTSProvider } from '@/lib/voice/tts-engine';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';
 import { getVoiceRuntimeFlags } from '@/lib/api/adapters/voice-adapter';
 
+/**
+ * Priority order for browser TTS fallback when Polly (Kajal) is unavailable.
+ * Named voices checked first; then lang-prefix matches; then any voice.
+ *
+ * Note: 'Google UK English Male' does not exist on iOS/Safari; 'Microsoft
+ * David Desktop' does not exist on macOS/iOS. That is intentional — the
+ * chain falls through gracefully to the next entry.
+ */
+const BROWSER_VOICE_PRIORITY = [
+    'Google UK English Male',
+    'Google UK English Female',
+    'Microsoft David Desktop - English (United States)',
+    'Microsoft Zira Desktop - English (United States)',
+    'Alex',       // macOS system voice
+    'Samantha',   // macOS/iOS system voice
+];
+
+function selectBrowserFallbackVoice(
+    voices: SpeechSynthesisVoice[],
+    preferredName: string | null | undefined,
+): SpeechSynthesisVoice | null {
+    if (!voices.length) return null;
+
+    // 1. Explicit user preference (from user_preferences settings)
+    if (preferredName) {
+        const match = voices.find(v => v.name === preferredName);
+        if (match) return match;
+    }
+
+    // 2. Named priority list
+    for (const name of BROWSER_VOICE_PRIORITY) {
+        const match = voices.find(v => v.name === name);
+        if (match) return match;
+    }
+
+    // 3. First en-GB → en-US → any en-* → anything
+    return voices.find(v => v.lang.startsWith('en-GB'))
+        ?? voices.find(v => v.lang.startsWith('en-US'))
+        ?? voices.find(v => v.lang.startsWith('en'))
+        ?? voices[0]
+        ?? null;
+}
+
 export interface UseTTSOptions {
     onSpeakStart?: () => void;
     onSpeakEnd?: () => void;
@@ -55,9 +98,7 @@ export function useTTS(opts: UseTTSOptions = {}) {
         const pick = () => {
             const voices = window.speechSynthesis.getVoices();
             const name = optsRef.current.voiceName;
-            const best = name
-                ? (voices.find(v => v.name === name) ?? voices.find(v => v.lang.startsWith('en')) ?? voices[0] ?? null)
-                : (voices.find(v => v.lang.startsWith('en-IN')) ?? voices.find(v => v.lang.startsWith('en')) ?? null);
+            const best = selectBrowserFallbackVoice(voices, name);
             setPrefVoice(best);
         };
         pick();

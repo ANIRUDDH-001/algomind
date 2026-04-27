@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { Message } from '@/hooks/useInterview';
 import { cn } from '@/lib/utils';
 import { Bot, User } from 'lucide-react';
@@ -28,12 +28,12 @@ interface ConversationViewProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ConversationView({
+const ConversationViewImpl = ({
     messages,
     isAISpeaking,
     isProcessing: _isProcessing,
     chunkProgress,
-}: ConversationViewProps) {
+}: ConversationViewProps) => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // ── Auto-scroll to bottom ────────────────────────────────────
@@ -58,10 +58,10 @@ export function ConversationView({
                 </div>
             )}
 
-            {messages.map((msg, index) => {
+            {messages.map((msg) => {
                 return (
                     <div
-                        key={msg.id || index}
+                        key={msg.id}
                         className={cn(
                             "flex gap-3 max-w-[85%]",
                             msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
@@ -149,4 +149,8 @@ export function ConversationView({
             )}
         </div>
     );
-}
+};
+
+// React.memo so ConversationView only re-renders when its own props change —
+// not when unrelated useInterview state (voice/round reducers) updates.
+export const ConversationView = memo(ConversationViewImpl);

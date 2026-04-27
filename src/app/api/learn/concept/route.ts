@@ -238,6 +238,112 @@ export async function POST(req: NextRequest) {
     }
 
     const aiClient = getAIClient();
+
+    // --- Real SSE Streaming branch ---
+    const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
+
+    if (acceptsStream) {
+      const encoder = new TextEncoder();
+      const capturedSessionId = activeSessionId;
+      const capturedConceptSlug = conceptSlug;
+      const capturedUserId = user.id;
+      const exchangeCount = Math.floor(messages.length / 2) + 1;
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          const enqueue = (payload: object) =>
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+
+          let fullText = '';
+          try {
+            for await (const chunk of aiClient.generateStream(
+              messages.map((message) => ({
+                role: message.role,
+                content: message.content,
+              })),
+              {
+                systemPrompt,
+                maxTokens: 4096,
+                temperature: 0.7,
+                signal: req.signal,
+                correlationId,
+                userId: capturedUserId,
+                sessionId: capturedSessionId ?? undefined,
+                preferredModel: 'groq',
+              }
+            )) {
+              if (req.signal.aborted) break;
+              fullText += chunk;
+              enqueue({ delta: chunk });
+            }
+
+            const cleaned = fullText.trim();
+
+            // Persist transcript after stream completes (same as JSON path)
+            if (capturedSessionId && cleaned) {
+              const newTranscript = [
+                ...messages,
+                { role: 'assistant' as const, content: cleaned, at: new Date().toISOString() },
+              ];
+              await getServiceClient()
+                .from('learn_sessions')
+                .update({
+                  transcript: newTranscript,
+                  exchange_count: exchangeCount,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', capturedSessionId)
+                .eq('user_id', capturedUserId);
+            }
+
+            enqueue({
+              delta: '',
+              done: true,
+              sessionId: capturedSessionId,
+              conceptSlug: capturedConceptSlug,
+              exchangeCount,
+              isFirstTurn,
+              proactiveNudgeApplied: Boolean(proactiveNudge),
+              fullText: cleaned,
+            });
+          } catch (err) {
+            if ((err as Error)?.name === 'AbortError') return;
+            console.error('❌ [learn/concept] Stream error:', err);
+            void logSystemEvent({
+              type: 'model_error',
+              userId: capturedUserId,
+              correlationId,
+              errorMessage: err instanceof Error ? err.message : String(err),
+              metadata: { context: 'learn_concept.stream', conceptSlug: capturedConceptSlug, sessionId: capturedSessionId },
+            });
+            enqueue({ error: String(err), done: true });
+          } finally {
+            try {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            } catch {
+              // already closed
+            }
+            try {
+              controller.close();
+            } catch {
+              // already closed
+            }
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no',
+          ...Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
+        },
+      });
+    }
+
+    // --- JSON fallback ---
     const aiResult = await aiClient.generateResponse(
       messages.map((message) => ({
         role: message.role,
@@ -265,11 +371,7 @@ export async function POST(req: NextRequest) {
       return jsonWithCorrelationId({ error: 'AI response failed' }, { status: 503 });
     }
 
-    // Sanitize response to remove reasoning tags and system prompt leaks
-    const cleanResponse = (aiResult.response || '')
-      .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-      .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-      .trim();
+    const cleanResponse = (aiResult.response || '').trim();
 
     const response = cleanResponse;
 

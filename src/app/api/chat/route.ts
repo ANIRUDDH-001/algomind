@@ -8,7 +8,6 @@ import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
 import type { InterviewState } from '@/lib/interview/state-machine';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
-import { chunkTextForSpeech } from '@/lib/voice/text-chunker';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
@@ -264,9 +263,98 @@ export async function POST(req: NextRequest) {
 
 
 
+        // --- Real SSE Streaming branch ---
+        // When the client sends `Accept: text/event-stream` we stream tokens from
+        // the provider directly. This bypasses the classification / smart-routing
+        // layer of generateResponse() in favour of first-token latency.
+        const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
+
+        if (acceptsStream) {
+            // Pick a streaming provider: Bedrock if configured+enabled, else Groq.
+            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID
+                && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
+            const streamProvider: 'bedrock' | 'groq' = bedrockEnabled ? 'bedrock' : 'groq';
+
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                async start(controller) {
+                    const enqueue = (payload: object) =>
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+
+                    let fullText = '';
+                    try {
+                        for await (const chunk of client.generateStream(messages, {
+                            systemPrompt: enhancedSystemPrompt,
+                            maxTokens: 4096,
+                            signal: req.signal,
+                            correlationId,
+                            userId: user?.id,
+                            sessionId: effectiveSessionId ?? undefined,
+                            preferredModel: streamProvider,
+                        })) {
+                            if (req.signal.aborted) break;
+                            fullText += chunk;
+                            enqueue({ delta: chunk });
+                        }
+
+                        enqueue({
+                            delta: '',
+                            done: true,
+                            modelUsed: streamProvider,
+                            provider: streamProvider,
+                            fullText: fullText.trim(),
+                        });
+                    } catch (err) {
+                        if ((err as Error)?.name === 'AbortError') {
+                            // client disconnect — silently close
+                            return;
+                        }
+                        console.error('❌ [Chat API] Stream error:', err);
+                        void logSystemEvent({
+                            type: 'model_error',
+                            errorMessage: err instanceof Error ? err.message : String(err),
+                            correlationId,
+                        });
+                        enqueue({ error: String(err), done: true });
+                    } finally {
+                        try {
+                            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                        } catch {
+                            // controller may already be closed on abort
+                        }
+                        try {
+                            controller.close();
+                        } catch {
+                            // already closed
+                        }
+
+                        // Track usage for authenticated users (fire-and-forget)
+                        if (user && !guestMode) {
+                            incrementUserUsage(user.id, supabase).catch(err =>
+                                console.error('❌ [Chat API] Failed to track usage:', err)
+                            );
+                        }
+                    }
+                },
+            });
+
+            return new Response(stream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no',
+                    ...Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
+                },
+            });
+        }
+
+        // --- JSON fallback (non-streaming clients) ---
         // Use the full model registry with proper fallback (same as assess/chat route)
         const result = await client.generateResponse(messages, {
-            preferredModel: 'gemini' as any, // Note: when ENABLE_AWS_BEDROCK=ON, Bedrock (Haiku 4.5) runs FIRST regardless of this field. This is the fallback priority if Bedrock is OFF.
+            // Note: when ENABLE_AWS_BEDROCK=ON, Bedrock (Haiku 4.5) runs FIRST regardless of this field.
+            // This is the fallback priority if Bedrock is OFF.
+            preferredModel: 'gemini',
             category: 'speed',
             maxTokens: 4096,
             systemPrompt: enhancedSystemPrompt,
@@ -298,55 +386,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const cleanResponse = (result.response || '')
-            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-            .trim();
+        const cleanResponse = (result.response || '').trim();
 
-        // --- SSE Streaming branch ---
-        const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
-
-        if (acceptsStream) {
-            const encoder = new TextEncoder();
-            const stream = new ReadableStream({
-                async start(controller) {
-                    try {
-                        const chunks = chunkTextForSpeech(cleanResponse);
-                        for (const chunk of chunks) {
-                            const payload = JSON.stringify({ chunk, done: false });
-                            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
-                            // Small delay so TTS can start processing chunk 1
-                            await new Promise(r => setTimeout(r, 10));
-                        }
-                        const donePayload = JSON.stringify({
-                            chunk: '',
-                            done: true,
-                            fullText: cleanResponse,
-                            modelUsed: result.modelUsed,
-                            provider: result.provider,
-                        });
-                        controller.enqueue(encoder.encode(`data: ${donePayload}\n\n`));
-                    } catch (err) {
-                        const errPayload = JSON.stringify({ error: String(err), done: true });
-                        controller.enqueue(encoder.encode(`data: ${errPayload}\n\n`));
-                    } finally {
-                        controller.close();
-                    }
-                },
-            });
-
-            return new Response(stream, {
-                headers: {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                    'X-Accel-Buffering': 'no',
-                    ...Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
-                },
-            });
-        }
-
-        // --- JSON fallback (non-streaming clients) ---
         return NextResponse.json({
             response: cleanResponse,
             modelUsed: result.modelUsed,

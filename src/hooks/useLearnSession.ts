@@ -63,6 +63,111 @@ export function useLearnSession(options: UseLearnSessionOptions) {
   []);
 
   /**
+   * Fetch /api/learn/concept with SSE streaming. If the server returns
+   * text/event-stream, incrementally update a placeholder transcript entry.
+   * Falls back to JSON parsing if server returns non-SSE.
+   *
+   * Returns the final response object (including sessionComplete / assessment).
+   */
+  const fetchWithSSE = useCallback(async (
+    body: Record<string, unknown>,
+    signal: AbortSignal,
+  ): Promise<{ response: string; sessionComplete?: boolean; assessment?: LearnSessionResults['assessment']; sessionId?: string }> => {
+    const res = await fetch('/api/learn/concept', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Turn failed: ${res.status}`);
+    }
+
+    const contentType = typeof res.headers?.get === 'function'
+      ? (res.headers.get('content-type') ?? '')
+      : '';
+
+    // JSON fallback
+    if (!contentType.includes('text/event-stream') || !res.body || typeof res.body.getReader !== 'function') {
+      const data = await res.json();
+      return data;
+    }
+
+    // SSE path: create placeholder entry and stream into it.
+    const placeholderId = `a-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const placeholder: LearnTranscriptEntry = {
+      id: placeholderId,
+      role: 'assistant',
+      content: '',
+      at: new Date().toISOString(),
+    };
+    setTranscript(prev => [...prev, placeholder]);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    let terminalPayload: { response: string; sessionComplete?: boolean; assessment?: LearnSessionResults['assessment']; sessionId?: string } = { response: '' };
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sepIdx: number;
+        while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, sepIdx);
+          buffer = buffer.slice(sepIdx + 2);
+          const dataLine = rawEvent.split('\n').find(l => l.startsWith('data:'));
+          if (!dataLine) continue;
+          const payload = dataLine.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          let parsed: { delta?: string; done?: boolean; error?: string; fullText?: string; sessionComplete?: boolean; assessment?: LearnSessionResults['assessment']; sessionId?: string };
+          try {
+            parsed = JSON.parse(payload);
+          } catch {
+            continue;
+          }
+          if (parsed.error) throw new Error(parsed.error);
+          if (typeof parsed.delta === 'string' && parsed.delta.length > 0) {
+            fullText += parsed.delta;
+            const snapshot = fullText;
+            setTranscript(prev => prev.map(e =>
+              e.id === placeholderId ? { ...e, content: snapshot } : e
+            ));
+          }
+          if (parsed.done) {
+            const finalText = typeof parsed.fullText === 'string' && parsed.fullText.length > 0
+              ? parsed.fullText
+              : fullText;
+            setTranscript(prev => prev.map(e =>
+              e.id === placeholderId ? { ...e, content: finalText } : e
+            ));
+            terminalPayload = {
+              response: finalText,
+              sessionComplete: parsed.sessionComplete,
+              assessment: parsed.assessment,
+              sessionId: parsed.sessionId,
+            };
+          }
+        }
+      }
+    } finally {
+      try { reader.releaseLock(); } catch { /* noop */ }
+    }
+
+    if (!terminalPayload.response) {
+      terminalPayload.response = fullText;
+    }
+    return terminalPayload;
+  }, []);
+
+  /**
    * Start the learn session — creates DB row and gets Kai's opening message.
    */
   const startSession = useCallback(async () => {
@@ -148,23 +253,34 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const res = await fetch('/api/learn/concept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await fetchWithSSE(
+        {
           conceptSlug,
           messages: buildMessages(updatedTranscript),
           sessionId,
           action: 'turn',
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!res.ok) throw new Error(`Turn failed: ${res.status}`);
-      const data = await res.json();
+        },
+        abortControllerRef.current.signal,
+      );
 
       if (data.response) {
-        addTranscriptEntry({ role: 'assistant', content: data.response, at: new Date().toISOString() });
+        // fetchWithSSE already appended + finalized the assistant entry when the
+        // response was streamed. For the JSON fallback path we append here.
+        setTranscript(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'assistant' && last.content === data.response) {
+            return prev; // SSE already added + finalized
+          }
+          return [
+            ...prev,
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              role: 'assistant',
+              content: data.response,
+              at: new Date().toISOString(),
+            },
+          ];
+        });
         await onSpeakMessage?.(data.response);
       }
 
@@ -182,7 +298,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     } finally {
       setKaiTyping(false);
     }
-  }, [state, sessionId, kaiTyping, transcript, conceptSlug, buildMessages, addTranscriptEntry, onSpeakMessage, handleSessionResults]);
+  }, [state, sessionId, kaiTyping, transcript, conceptSlug, buildMessages, fetchWithSSE, onSpeakMessage, handleSessionResults]);
 
   const retryLastMessage = useCallback(async () => {
     if (state !== 'active' || !sessionId || kaiTyping || !lastFailedMessage) return;
@@ -192,23 +308,32 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const res = await fetch('/api/learn/concept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await fetchWithSSE(
+        {
           conceptSlug,
           messages: buildMessages(transcript),
           sessionId,
           action: 'turn',
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!res.ok) throw new Error(`Turn failed: ${res.status}`);
-      const data = await res.json();
+        },
+        abortControllerRef.current.signal,
+      );
 
       if (data.response) {
-        addTranscriptEntry({ role: 'assistant', content: data.response, at: new Date().toISOString() });
+        setTranscript(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'assistant' && last.content === data.response) {
+            return prev; // SSE already added + finalized
+          }
+          return [
+            ...prev,
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              role: 'assistant',
+              content: data.response,
+              at: new Date().toISOString(),
+            },
+          ];
+        });
         await onSpeakMessage?.(data.response);
       }
 
@@ -224,7 +349,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
     } finally {
       setKaiTyping(false);
     }
-  }, [state, sessionId, kaiTyping, lastFailedMessage, conceptSlug, buildMessages, transcript, addTranscriptEntry, onSpeakMessage, handleSessionResults]);
+  }, [state, sessionId, kaiTyping, lastFailedMessage, conceptSlug, buildMessages, transcript, fetchWithSSE, onSpeakMessage, handleSessionResults]);
 
   /**
    * End the session explicitly.

@@ -27,8 +27,6 @@ export interface GenerateResponseOptions {
     estimatedTokens?: number;
     /** AbortSignal for cancellation */
     signal?: AbortSignal;
-    /** Streaming callback — called with each chunk of the response */
-    streamCallback?: (chunk: string) => void;
     /** Category hint (e.g. 'speed', 'reasoning') — forwarded to rate limiter */
     category?: string;
     /** Disables LLM intent classification pass when routing is smart */

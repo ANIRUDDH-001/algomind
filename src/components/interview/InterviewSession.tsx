@@ -27,7 +27,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from 'framer-motion';
+// framer-motion removed from interview chunk; the single badge animation
+// below is replaced by a CSS keyframe (see globals.css → cognitive-badge-in).
 
 // Assessment & Core
 import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
@@ -1020,23 +1021,18 @@ export function InterviewSession({
                                 <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderBottom: '1px solid var(--surface-edge)' }}>
                                     <div className="h-full rounded-xl border overflow-hidden relative" style={{ borderColor: 'var(--surface-edge)' }}>
                                         <div className="absolute top-3 right-3 z-30 pointer-events-none">
-                                            <AnimatePresence>
-                                                {showBadge && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, y: -10, scale: 0.96 }}
-                                                        transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-                                                        className="relative overflow-hidden rounded-xl border px-3 py-2.5 bg-white/10 backdrop-blur-3xl shadow-[0_16px_56px_rgba(0,0,0,0.45)] ring-1 ring-white/20"
-                                                        style={{ borderColor: 'rgba(255,255,255,0.28)' }}
-                                                    >
-                                                        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-300/16 via-white/4 to-violet-300/12" />
-                                                        <p className="text-[10px] uppercase tracking-wider text-indigo-200 font-bold">Cognitive signal</p>
-                                                        <p className="text-xs text-white font-semibold">{lastBadgeSkill}</p>
-                                                        <p className="text-[11px] text-zinc-100/90">{badgeTriggerPhrase}</p>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
+                                            {showBadge && (
+                                                <div
+                                                    key={lastBadgeSkill + badgeTriggerPhrase}
+                                                    className="cognitive-badge-in relative overflow-hidden rounded-xl border px-3 py-2.5 bg-white/10 backdrop-blur-3xl shadow-[0_16px_56px_rgba(0,0,0,0.45)] ring-1 ring-white/20"
+                                                    style={{ borderColor: 'rgba(255,255,255,0.28)' }}
+                                                >
+                                                    <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-300/16 via-white/4 to-violet-300/12" />
+                                                    <p className="text-[10px] uppercase tracking-wider text-indigo-200 font-bold">Cognitive signal</p>
+                                                    <p className="text-xs text-white font-semibold">{lastBadgeSkill}</p>
+                                                    <p className="text-[11px] text-zinc-100/90">{badgeTriggerPhrase}</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <CodeEditor
                                             onCodeChange={setUserCode}
