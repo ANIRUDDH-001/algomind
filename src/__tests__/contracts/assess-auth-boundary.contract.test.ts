@@ -19,6 +19,15 @@ describe('assessment auth boundary contract', () => {
         expect(res.headers.get('location')).toBeNull();
     });
 
+    it('returns 401 JSON for unauthenticated admin API requests', async () => {
+        const req = new NextRequest('http://localhost/api/admin/health');
+        const res = await middleware(req);
+
+        expect(res.status).toBe(401);
+        expect(res.headers.get('content-type')).toContain('application/json');
+        await expect(res.json()).resolves.toEqual({ error: 'Unauthorized' });
+    });
+
     it('still redirects unauthenticated protected dashboard routes', async () => {
         const req = new NextRequest('http://localhost/dashboard');
         const res = await middleware(req);

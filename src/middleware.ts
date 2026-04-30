@@ -84,6 +84,7 @@ export default async function middleware(request: NextRequest) {
     const isSettings = pathname.startsWith('/settings');
     const isInterview = pathname.startsWith('/interview');
     const isAdmin = pathname.startsWith('/admin');
+    const isAdminApi = pathname.startsWith('/api/admin') || pathname.startsWith('/api/owner');
     const isEmployer = pathname.startsWith('/employer');
     const isOwnerRoute = pathname.startsWith('/owner');
     const isLearn = pathname.startsWith('/learn');
@@ -94,6 +95,13 @@ export default async function middleware(request: NextRequest) {
     const isE2ETest = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
         request.cookies.get('playwright-e2e')?.value === 'true';
     if (!user && !isE2ETest) {
+        if (isAdminApi) {
+            return withCorrelationId(clearDiagnosticCookie(NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            )));
+        }
+
         // Guest mode check for interview (Query param or Cookie)
         const isGuestMode =
             searchParams.get('demo') === 'true' ||

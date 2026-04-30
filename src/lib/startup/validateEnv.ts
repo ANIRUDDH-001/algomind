@@ -1,19 +1,30 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 
 
+type CriticalEnvVar = {
+    key: keyof NodeJS.ProcessEnv;
+    use: string;
+    anyOf?: Array<keyof NodeJS.ProcessEnv>;
+};
+
 export function validateEnv(): void {
-    const criticalVars = [
+    const criticalVars: CriticalEnvVar[] = [
         { key: "NEXT_PUBLIC_SUPABASE_URL", use: "Supabase project URL" },
         { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", use: "Supabase anon key" },
         { key: "SUPABASE_SERVICE_ROLE_KEY", use: "Service role key (NEVER use as JWT secret)" },
         { key: "SUPABASE_JWT_SECRET", use: "JWT signing secret for candidate assessment sessions — must be separate from service role key" },
         { key: "INTERNAL_API_SECRET", use: "Authorization secret for invoking run-assessment edge function — missing means all candidate assessments complete with no analysis" },
         { key: "ASSESSMENT_JWT_SECRET", use: "Dedicated JWT signing secret for candidate assessment sessions — falls back to SUPABASE_JWT_SECRET if absent but should be set explicitly" },
+        { key: "RAZORPAY_KEY_SECRET", use: "Razorpay signature verification secret" },
+        { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
     ];
 
-    for (const { key, use } of criticalVars) {
-        if (!process.env[key]) {
-            throw new Error(`CRITICAL ENV VAR MISSING: ${key}. Used for: ${use}`);
+    for (const { key, use, anyOf } of criticalVars) {
+        const hasPrimary = Boolean(process.env[key]);
+        const hasAlias = anyOf?.some((alias) => Boolean(process.env[alias])) ?? false;
+        if (!hasPrimary && !hasAlias) {
+            const aliasSuffix = anyOf?.length ? ` (or ${anyOf.join(' / ')})` : '';
+            throw new Error(`CRITICAL ENV VAR MISSING: ${key}${aliasSuffix}. Used for: ${use}`);
         }
     }
 
@@ -66,6 +77,12 @@ export const env = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY as string,
+    SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
+    INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET,
+    ASSESSMENT_JWT_SECRET: process.env.ASSESSMENT_JWT_SECRET,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
+    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
 
     // AI providers
     GROQ_API_KEY: process.env.GROQ_API_KEY,
@@ -84,7 +101,6 @@ export const env = {
     // Auth
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     SUPABASE_DIRECT_URL: process.env.SUPABASE_DIRECT_URL,
-    SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
 
     // Operational
     CRON_SECRET: process.env.CRON_SECRET,

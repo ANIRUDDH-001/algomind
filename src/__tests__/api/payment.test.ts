@@ -52,8 +52,15 @@ const createRequest = (body: any, method = 'POST') => {
 describe('Payment API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+    process.env.SUPABASE_JWT_SECRET = 'test-jwt-secret';
+    process.env.INTERNAL_API_SECRET = 'test-internal-api-secret';
+    process.env.ASSESSMENT_JWT_SECRET = 'test-assessment-jwt-secret';
     process.env.RAZORPAY_KEY_ID = 'rzp_test_key';
     process.env.RAZORPAY_KEY_SECRET = 'test_secret';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID = 'rzp_test_key';
   });
 
@@ -144,12 +151,17 @@ describe('Payment API', () => {
         .digest('hex');
 
       const insert = vi.fn().mockResolvedValue({ error: null });
-      const update = vi.fn().mockResolvedValue({ error: null });
+      const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
 
       vi.mocked(getServiceClient).mockReturnValue({
         from: vi.fn((table: string) => {
           if (table === 'subscriptions') {
-            return { insert };
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              maybeSingle,
+              insert,
+            };
           }
           if (table === 'profiles') {
             return { update: () => ({ eq: () => ({ error: null }) }) };
@@ -175,7 +187,56 @@ describe('Payment API', () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
+      expect(insert).toHaveBeenCalledTimes(1);
       expect(invalidateStudentContext).toHaveBeenCalledWith('user-1');
+    });
+
+    it('returns success without inserting when subscription already exists', async () => {
+      const orderId = 'order_replay';
+      const paymentId = 'pay_replay';
+
+      const signature = crypto
+        .createHmac('sha256', 'test_secret')
+        .update(`${orderId}|${paymentId}`)
+        .digest('hex');
+
+      const insert = vi.fn();
+      const maybeSingle = vi.fn().mockResolvedValue({ data: { id: 'sub-existing' }, error: null });
+
+      vi.mocked(getServiceClient).mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'subscriptions') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              maybeSingle,
+              insert,
+            };
+          }
+          if (table === 'profiles') {
+            return { update: () => ({ eq: () => ({ error: null }) }) };
+          }
+          return {};
+        }),
+      } as any);
+
+      vi.mocked(createServerSupabase).mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+        },
+      } as any);
+
+      const res = await postVerify(createRequest({
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
+      }));
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(insert).not.toHaveBeenCalled();
+      expect(maybeSingle).toHaveBeenCalledTimes(1);
     });
 
     it('returns 401 for unauthenticated requests', async () => {

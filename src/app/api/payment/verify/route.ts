@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { invalidateStudentContext } from '@/lib/kai-context';
+import { validateEnv } from '@/lib/startup/validateEnv';
 import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
+    validateEnv();
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -40,11 +42,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    const serviceClient = getServiceClient();
+    const { data: existingSubscription, error: existingSubscriptionError } = await serviceClient
+      .from('subscriptions')
+      .select('id')
+      .eq('provider', 'razorpay')
+      .eq('provider_subscription_id', orderId)
+      .maybeSingle();
+
+    if (existingSubscriptionError) {
+      console.error('Failed to check existing subscription:', existingSubscriptionError);
+      return NextResponse.json(
+        { error: 'Failed to process subscription' },
+        { status: 500 }
+      );
+    }
+
+    if (existingSubscription) {
+      return NextResponse.json({ success: true });
+    }
+
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     // Insert into subscriptions table
-    const { error: subError } = await getServiceClient()
+    const { error: subError } = await serviceClient
       .from('subscriptions')
       .insert({
         user_id: user.id,

@@ -42,13 +42,22 @@ describe('saveInterviewSession Action', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
+        let currentTable = '';
         mockSupabase = {
             auth: {
                 getUser: vi.fn()
             },
-            from: vi.fn().mockReturnThis(),
+            from: vi.fn().mockImplementation((table: string) => {
+                currentTable = table;
+                return mockSupabase;
+            }),
             select: vi.fn().mockReturnThis(),
-            insert: vi.fn().mockReturnThis(),
+            insert: vi.fn().mockImplementation(() => {
+                if (currentTable === 'interview_sessions') {
+                    throw new Error('unexpected interview_sessions insert');
+                }
+                return mockSupabase;
+            }),
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockReturnThis(),
             maybeSingle: vi.fn().mockReturnThis(),

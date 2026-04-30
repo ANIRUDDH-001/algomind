@@ -115,35 +115,7 @@ export async function saveInterviewSession(
             ? skillValues.reduce((acc, s) => acc + (s as any).score, 0) / skillValues.length
             : 0;
 
-        // 3. Save Session (Requirement 5)
-        const { data: sessionData, error } = await supabase
-            .from('interview_sessions')
-            .insert({
-                user_id: userId,
-                problem_id: problemId,
-                problem_title: problemTitle,
-                transcript: transcript, // Requirement 3: handles empty transcript via db constraint or null
-                duration: finalDuration,
-                feedback: finalResult,
-                overall_score: overallScore,
-                raw_score: finalResult?.rawScore ?? null, // Added raw_score
-                adjusted_score: finalResult?.adjustedScore ?? null, // Added adjusted_score
-                created_at: new Date().toISOString(),
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                is_candidate_session: false,
-                difficulty_mode: options?.difficultyMode ?? 'practice',
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('❌ [ACTION] Failed to save session:', error);
-            void logSystemEvent({ type: 'db_error', errorMessage: error.message, metadata: { operation: 'save_session' } });
-            return err(error.message, 'db_error');
-        }
-
-        // 4. Save session + assessment atomically (Requirement 5/6)
+        // 3. Save session + assessment atomically (Requirement 5/6)
         const skills: Record<string, any> = (finalResult?.skills || {}) as Record<string, any>;
         const isWarmUp = options?.difficultyMode === 'warm-up';
         const hireDecision = isWarmUp ? null : (finalResult?.hireDecision ?? null);

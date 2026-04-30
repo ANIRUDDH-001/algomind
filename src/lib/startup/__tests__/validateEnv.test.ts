@@ -134,6 +134,8 @@ describe('validateEnv', () => {
         SUPABASE_JWT_SECRET: 'test-jwt-secret',
         INTERNAL_API_SECRET: 'test-internal-api-secret',
         ASSESSMENT_JWT_SECRET: 'test-assessment-jwt-secret',
+        RAZORPAY_KEY_SECRET: 'test-razorpay-secret',
+        GEMINI_API_KEY: 'test-gemini-key',
         UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
         UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
     };
@@ -164,7 +166,18 @@ describe('validateEnv', () => {
         expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: NEXT_PUBLIC_SUPABASE_URL');
     });
 
-    it('3. Missing CRON_SECRET (high var) → warns but does not throw', () => {
+    it('3. Missing RAZORPAY_KEY_SECRET → throws critical error', () => {
+        delete process.env.RAZORPAY_KEY_SECRET;
+        expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: RAZORPAY_KEY_SECRET');
+    });
+
+    it('4. GOOGLE_API_KEY alias satisfies Gemini validation when GEMINI_API_KEY is absent', () => {
+        delete process.env.GEMINI_API_KEY;
+        process.env.GOOGLE_API_KEY = 'test-google-key';
+        expect(() => validateEnv()).not.toThrow();
+    });
+
+    it('5. Missing CRON_SECRET (high var) → warns but does not throw', () => {
         delete process.env.CRON_SECRET;
         expect(() => validateEnv()).not.toThrow();
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -172,7 +185,7 @@ describe('validateEnv', () => {
         );
     });
 
-    it('4. Missing GROQ_API_KEY (high var) → warns but does not throw', () => {
+    it('6. Missing GROQ_API_KEY (high var) → warns but does not throw', () => {
         delete process.env.GROQ_API_KEY;
         expect(() => validateEnv()).not.toThrow();
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -180,7 +193,7 @@ describe('validateEnv', () => {
         );
     });
 
-    it('5. Missing AWS_ACCESS_KEY_ID (high var) → warns but does not throw', () => {
+    it('7. Missing AWS_ACCESS_KEY_ID (high var) → warns but does not throw', () => {
         delete process.env.AWS_ACCESS_KEY_ID;
         expect(() => validateEnv()).not.toThrow();
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -188,7 +201,7 @@ describe('validateEnv', () => {
         );
     });
 
-    it('6. Missing NEXT_PUBLIC_APP_URL (high var) → warns but does not throw', () => {
+    it('8. Missing NEXT_PUBLIC_APP_URL (high var) → warns but does not throw', () => {
         delete process.env.NEXT_PUBLIC_APP_URL;
         expect(() => validateEnv()).not.toThrow();
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -196,7 +209,7 @@ describe('validateEnv', () => {
         );
     });
 
-    it('7. All high vars missing → 15 warnings total, no throw', () => {
+    it('9. All high vars missing → 15 warnings total, no throw', () => {
         const highKeys = [
             'GROQ_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
             'AWS_S3_BUCKET', 'AWS_REGION', 'UPSTASH_REDIS_REST_URL',

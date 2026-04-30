@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
+import { validateEnv } from '@/lib/startup/validateEnv';
 
 export async function POST() {
   try {
+    validateEnv();
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
 
