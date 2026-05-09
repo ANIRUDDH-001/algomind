@@ -19,7 +19,14 @@ export function validateEnv(): void {
         { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
     ];
 
-    for (const { key, use, anyOf } of criticalVars) {
+    // If Razorpay is intentionally disabled (temporary emergency flag), skip requiring its secret.
+    // This allows builds/tests to run in environments where payment integration is turned off.
+    const disableRazor = String(process.env.DISABLE_RAZORPAY || '').toLowerCase() === 'true';
+    const effectiveCriticalVars = disableRazor
+        ? criticalVars.filter(v => v.key !== 'RAZORPAY_KEY_SECRET')
+        : criticalVars;
+
+    for (const { key, use, anyOf } of effectiveCriticalVars) {
         const hasPrimary = Boolean(process.env[key]);
         const hasAlias = anyOf?.some((alias) => Boolean(process.env[alias])) ?? false;
         if (!hasPrimary && !hasAlias) {
