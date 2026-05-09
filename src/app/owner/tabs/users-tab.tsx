@@ -8,8 +8,19 @@ import { Loader2, Search, Zap, ShieldAlert, Key, Pause, Play } from 'lucide-reac
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
-    const [users, setUsers] = useState<any[]>([]);
+type OwnerUserRow = {
+    id: string;
+    email: string;
+    account_type: 'owner' | 'admin' | 'employer' | 'candidate';
+    created_at: string | null;
+    updated_at?: string | null;
+    is_suspended?: boolean | null;
+    rate_limit_override?: number | null;
+    tts_provider?: string | null;
+};
+
+export function UsersTab() {
+    const [users, setUsers] = useState<OwnerUserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -94,7 +105,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                         placeholder="Search by email..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-[var(--surface-1)] border border-[var(--surface-edge)] rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/50"
+                        className="w-full bg-(--surface-1) border border-(--surface-edge) rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/50"
                     />
                 </div>
             </div>
@@ -108,9 +119,9 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                     {search ? 'No users found matching your search.' : 'No users found.'}
                 </Card>
             ) : (
-                <div className="bg-[var(--surface-0)] border border-[var(--surface-edge)] rounded-2xl overflow-x-auto">
+                <div className="bg-(--surface-0) border border-(--surface-edge) rounded-2xl overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-[var(--surface-1)] border-b border-[var(--surface-edge)] text-zinc-400">
+                        <thead className="bg-(--surface-1) border-b border-(--surface-edge) text-zinc-400">
                             <tr>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">User</th>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">Tier</th>
@@ -120,7 +131,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                 <th className="px-6 py-4 font-bold whitespace-nowrap text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[var(--surface-edge)]">
+                        <tbody className="divide-y divide-(--surface-edge)">
                             {users.map(user => (
                                 <tr key={user.id} className="hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4">
@@ -145,7 +156,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                         </Badge>
                                     </td>
                                     <td className="px-6 py-4 text-zinc-400 whitespace-nowrap">
-                                        {format(new Date(user.updated_at || user.id ? Date.now() : Date.now()), 'MMM d, yyyy')}
+                                        {user.created_at ? format(new Date(user.created_at), 'MMM d, yyyy') : 'No join date'}
                                         <div className="text-xs text-zinc-600 mt-0.5">ID: {user.id.substring(0, 8)}...</div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -174,7 +185,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                     toast.error('Failed to update TTS setting');
                                                 }
                                             }}
-                                            className="bg-[var(--surface-1)] border border-[var(--surface-edge)] rounded-lg px-2 py-1.5 text-xs text-zinc-300 w-[90px] focus:outline-none focus:border-indigo-500/50"
+                                            className="bg-(--surface-1) border border-(--surface-edge) rounded-lg px-2 py-1.5 text-xs text-zinc-300 w-24 focus:outline-none focus:border-indigo-500/50"
                                         >
                                             <option value="auto">Auto</option>
                                             <option value="polly">Polly</option>
@@ -185,7 +196,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                         <div className="flex items-center justify-end gap-2">
                                             {/* Account Type Demotion/Promotion */}
                                             {user.account_type !== 'owner' && (
-                                                <div className="flex items-center gap-1 bg-[var(--surface-1)] rounded-lg p-1 border border-[var(--surface-edge)]">
+                                                <div className="flex items-center gap-1 bg-(--surface-1) rounded-lg p-1 border border-(--surface-edge)">
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
@@ -225,7 +236,7 @@ export function UsersTab({ isPrimaryOwner }: { isPrimaryOwner: boolean }) {
                                                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                                                         : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
                                                         }`}
-                                                    onClick={() => handleSuspendToggle(user.id, user.is_suspended)}
+                                                    onClick={() => handleSuspendToggle(user.id, Boolean(user.is_suspended))}
                                                     disabled={updatingId === user.id}
                                                 >
                                                     {user.is_suspended ? <Play className="w-4 h-4 mr-2" /> : <Pause className="w-4 h-4 mr-2" />}

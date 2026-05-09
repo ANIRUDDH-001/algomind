@@ -156,6 +156,18 @@ export const EventTypes = {
     // Edge function domain
     'edge.review_reminders_queued': { severity: EventSeverity.INFO, domain: 'edge', canonical: true },
     'edge.review_reminders_failed': { severity: EventSeverity.ERROR, domain: 'edge', canonical: true },
+
+    // Payment domain
+    'payment.order_created': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.verify_success': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.verify_failed': { severity: EventSeverity.ERROR, domain: 'payment', canonical: true },
+    'payment.subscription_created': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.subscription_charged': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.subscription_cancelled': { severity: EventSeverity.WARN, domain: 'payment', canonical: true },
+    'payment.subscription_failed': { severity: EventSeverity.ERROR, domain: 'payment', canonical: true },
+    'payment.webhook_received': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.webhook_processed': { severity: EventSeverity.INFO, domain: 'payment', canonical: true },
+    'payment.webhook_failed': { severity: EventSeverity.ERROR, domain: 'payment', canonical: true },
 } as const;
 
 export type SystemEventType = keyof typeof EventTypes;

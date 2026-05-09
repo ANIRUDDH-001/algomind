@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
     const adminSupabase = await createServiceRoleSupabase();
     let dbQuery = adminSupabase
         .from('profiles')
-        .select('id, account_type, email, updated_at, rate_limit_override, is_suspended, suspended_reason, suspended_at')
-        .order('updated_at', { ascending: false })
+        .select('id, account_type, email, created_at, updated_at, rate_limit_override, is_suspended, suspended_reason, suspended_at')
+        .order('created_at', { ascending: false })
         .limit(100);
 
     if (query) {

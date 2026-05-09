@@ -113,7 +113,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                     {/* Main Content Area */}
                     <div className="flex-1 w-full relative min-h-[500px]">
                         {activeTab === 'overview' && <OverviewTab {...props} />}
-                        {activeTab === 'users' && <UsersTab {...props} />}
+                        {activeTab === 'users' && <UsersTab />}
                         {activeTab === 'flags' && <FlagsTab initialFlags={props.featureFlags} />}
                         {activeTab === 'aws-budget' && <AWSBudgetTab />}
                         {activeTab === 'co-owners' && props.isPrimaryOwner && <CoOwnersTab coOwners={props.coOwners} />}
