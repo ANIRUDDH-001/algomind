@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Copy, XCircle, RotateCcw, Play, Loader2, Plus, Edit2, Check, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Copy, RotateCcw, Play, Plus, Edit2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ModelStat {
@@ -103,7 +101,7 @@ export function ModelsTab() {
                 toast.error(data.error || 'Verification failed');
             }
             loadData(); // Refresh list to update status
-        } catch (e) {
+        } catch {
             toast.error('Network error during verification');
         } finally {
             setVerifyingModel(null);
@@ -125,7 +123,7 @@ export function ModelsTab() {
                 const data = await res.json();
                 toast.error(data.error || 'Failed to deprecate');
             }
-        } catch (e) {
+        } catch {
             toast.error('Network error');
         }
     };
@@ -145,7 +143,7 @@ export function ModelsTab() {
                 const data = await res.json();
                 toast.error(data.error || 'Failed to restore model');
             }
-        } catch (e) {
+        } catch {
             toast.error('Network error');
         }
     };
@@ -181,7 +179,7 @@ export function ModelsTab() {
             } else {
                 toast.error(data.error || 'Failed to add model');
             }
-        } catch (e) {
+        } catch {
             toast.error('Network error');
         } finally {
             setIsAdding(false);
@@ -217,7 +215,7 @@ export function ModelsTab() {
             } else {
                 toast.error('Failed to save changes');
             }
-        } catch (e) {
+        } catch {
             toast.error('Network error');
         } finally {
             setIsSavingEdit(false);

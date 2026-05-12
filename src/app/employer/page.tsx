@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { Zap, Brain, Share2, Briefcase, Loader2 } from 'lucide-react';
+import { Zap, Brain, Share2, Briefcase } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useGuardedRouter } from '@/hooks/useGuardedRouter';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';

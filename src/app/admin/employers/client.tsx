@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Trash2, Briefcase, Plus, Copy, Check, Mail, Search, UserMinus, UserPlus } from 'lucide-react';
+import { Trash2, Briefcase, Plus, Copy, Check, Mail, Search, UserMinus, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { EmployerAdminAdapter, type EmployerInviteDto, type EmployerProfileDto, type OwnerUserSearchResultDto } from '@/lib/api/adapters/employer-admin-adapter';
 

@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import type { CacheStats } from '@/lib/ai/response-cache';
 import { getFeatureFlag } from '@/lib/feature-flags';
 import { toast } from 'sonner';
