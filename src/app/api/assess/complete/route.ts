@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { invalidateStudentContext } from '@/lib/kai-context';
 import * as jose from 'jose';

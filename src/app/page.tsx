@@ -99,9 +99,7 @@ export default function HomePage() {
     // If user is logged in, never show onboarding
   }, [user, loading]);
 
-  // Handle Hydration mismatch safety early return if needed, but keeping main structure intact
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+
 
   const handleMainCTA = useCallback(async () => {
     if (user) {

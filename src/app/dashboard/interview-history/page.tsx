@@ -5,7 +5,6 @@ import { CandidateHistoryTable } from '@/components/dashboard/CandidateHistoryTa
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { EmptyState } from '@/components/assessment/EmptyState';
-import { getDashboardAveragesAction } from '@/app/actions/dashboard';
 
 export const dynamic = 'force-dynamic';
 

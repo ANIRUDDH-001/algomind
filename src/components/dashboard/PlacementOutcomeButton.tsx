@@ -6,12 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Trophy, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface PlacementOutcomeData {
-  companyName: string;
-  role?: string;
-  placedAt: string;
-}
-
 export function PlacementOutcomeButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [companyName, setCompanyName] = useState('');
