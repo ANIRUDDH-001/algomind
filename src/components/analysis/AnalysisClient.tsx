@@ -7,7 +7,7 @@ import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Clock, RotateCcw, BookOpen, ChevronRight, ChevronDown, AlertTriangle, Mic, Lightbulb, Calendar, TrendingUp, Plus, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
-import { COLORS, ANIM, TRANSITIONS } from '@/lib/design-tokens';
+import { ANIM, TRANSITIONS } from '@/lib/design-tokens';
 import { addProblemToReviewQueue } from '@/app/actions/spaced-repetition';
 import { retryAssessment } from '@/app/actions/save-session';
 import dynamic from 'next/dynamic';
@@ -160,32 +160,6 @@ function PendingRefreshButton({ sessionId }: { sessionId: string }) {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const MOMENT_ICONS: Record<string, string> = {
-    approach_identified: '💡',
-    optimization_transition: '⚡',
-    self_correction: '🔄',
-    complexity_explained: '📊',
-    impressive_statement: '⭐',
-    missed_opportunity: '⚠️',
-    stuck_point: '⏸',
-};
-
-const MOMENT_TYPE_LABELS: Record<string, string> = {
-    approach_identified: 'Approach Identified',
-    optimization_transition: 'Optimization Transition',
-    self_correction: 'Self Correction',
-    complexity_explained: 'Complexity Explained',
-    impressive_statement: 'Impressive Statement',
-    missed_opportunity: 'Missed Opportunity',
-    stuck_point: 'Stuck Point',
-};
-
-const MOMENT_COLORS: Record<string, string> = {
-    positive: '#10b981',
-    negative: '#ef4444',
-    neutral: '#6b7280',
-};
 
 const MOMENT_TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
     impressive: { icon: '⭐', label: 'Strong Moment', color: '#10b981' },
