@@ -164,7 +164,3 @@ export function getModelTelemetry(): ModelTelemetry {
     return instance;
 }
 
-/** Reset singleton (for tests) */
-export function resetModelTelemetry(): void {
-    instance = null;
-}
