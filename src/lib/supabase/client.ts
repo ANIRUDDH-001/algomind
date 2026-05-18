@@ -39,9 +39,3 @@ export function getSupabase(): SupabaseClient | null {
     }
     return _instance;
 }
-
-export function clearSupabaseClientCache(): void {
-    _instance = null;
-    _currentUrl = null;
-    _currentAnonKey = null;
-}

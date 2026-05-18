@@ -68,43 +68,4 @@ export async function retryWithBackoff<T>(
     throw lastError;
 }
 
-/**
- * Wrap an async function with automatic error handling
- */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
-    fn: T,
-    onError?: (error: Error) => void
-): T {
-    return (async (...args: Parameters<T>) => {
-        try {
-            return await fn(...args);
-        } catch (error: unknown) {
-            const handledError = error instanceof Error ? error : new Error(String(error));
-            onError?.(handledError);
-            throw handledError;
-        }
-    }) as T;
-}
 
-/**
- * Check if an error is transient and should be retried
- */
-export function isTransientError(error: unknown): boolean {
-    if (error instanceof APIError) {
-        return error.retryable;
-    }
-
-    if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        return (
-            message.includes('network') ||
-            message.includes('timeout') ||
-            message.includes('rate') ||
-            message.includes('503') ||
-            message.includes('502') ||
-            message.includes('504')
-        );
-    }
-
-    return false;
-}
