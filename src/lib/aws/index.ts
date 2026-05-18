@@ -5,8 +5,8 @@
  * ENABLE_AWS_S3_STORAGE all to false in /admin/features to disable all AWS.
  */
 
-export { synthesizeWithPolly, resetPollyClient, type PollyVoice, type PollyError } from './polly';
-export { uploadTranscript, downloadTranscript, deleteTranscript, resetS3Client, type S3Error } from './s3';
+export { synthesizeWithPolly, type PollyVoice, type PollyError } from './polly';
+export { uploadTranscript, downloadTranscript, deleteTranscript, type S3Error } from './s3';
 export { logAWSUsage, estimatePollyCost, estimateBedrockCost, estimateTranscribeCostFromDuration, estimateS3PutCost, type AWSService, type UsageLogEntry } from './usage-logger';
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';

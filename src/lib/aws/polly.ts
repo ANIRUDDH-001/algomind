@@ -93,7 +93,4 @@ export async function synthesizeWithPolly(
     }
 }
 
-/** Reset client (useful after credentials change) */
-export function resetPollyClient(): void {
-    pollyClient = null;
-}
+

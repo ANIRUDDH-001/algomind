@@ -142,17 +142,4 @@ export async function deleteTranscript(s3Key: string): Promise<void> {
     }
 }
 
-/**
- * Get the estimated cost in USD for an S3 PUT + GET.
- * S3 Standard: $0.023/GB stored, $0.005/1000 PUT, $0.0004/1000 GET
- */
-export function estimateS3Cost(bytesStored: number): number {
-    const gbStored = bytesStored / (1024 * 1024 * 1024);
-    // Storage cost per month + one PUT + one GET
-    return gbStored * 0.023 + 0.000005 + 0.0000004;
-}
 
-/** Reset client (useful after credentials change) */
-export function resetS3Client(): void {
-    s3Client = null;
-}
