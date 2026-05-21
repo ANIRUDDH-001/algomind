@@ -159,21 +159,34 @@ src/
 
 ---
 
-## 🧪 Testing
+## 🛡️ Security Architecture & Threat Model
+
+AlgoMind is engineered with a strict zero-trust security perimeter and robust defense-in-depth mechanisms:
+
+- **Strict API Boundaries**: Next.js Server Actions and Edge APIs validate all incoming payloads. Backend mocks are prohibited in our E2E testing to ensure true boundary validation.
+- **Zero-Trust Auth & RLS**: All Supabase interactions utilize strictly scoped Row-Level Security (RLS) policies. No E2E test or internal process is permitted to bypass these policies using service-role keys unless explicitly simulating an admin action.
+- **Circuit Breakers & Rate Limiting**: Redis-backed distributed rate limiters protect the LLM gateway (Groq/Gemini/Bedrock) against Denial-of-Wallet (DoW) and prompt-injection DDoS attacks.
+- **Cryptographic Test Integrity**: Test-specific backdoors and state-injection APIs are gated by cryptographically signed JWTs and strict `NODE_ENV === 'test'` execution environments to prevent supply chain leaks.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+Our CI/CD pipeline enforces an aggressive, zero-tolerance policy for brittle code. We target **95%+ True Code Coverage** across all core modules.
 
 ```bash
 npm run test                # 880 tests across 105 files
 npm run test:watch          # Watch mode
-npm run test:coverage       # Coverage report
-npm run test:voice          # Voice module tests only
-npm run test:ai             # AI module tests only
+npm run test:mutation       # AST Mutation Testing (Stryker)
+npm run test:fuzz           # Input Fuzzing & Chaos tests
+npm run test:e2e            # Playwright cross-browser (Chromium, Firefox, WebKit)
 ```
 
-**Coverage thresholds enforced by module:**
-- Assessment: 85% lines, 90% functions
-- Interview: 80% lines, 85% functions
-- Spaced Repetition: 85% lines, 90% functions
-- RAG: 75% lines, 80% functions
+**Quality Enforcement Thresholds:**
+- **Unit/Integration Coverage**: Enforced at **95%** (Statements/Branches/Functions/Lines) for core `lib` directories.
+- **AST Mutation Score**: Monitored via Stryker to eliminate tautological tests and fake mocks.
+- **Network Fidelity**: E2E and Unit tests utilize Mock Service Worker (MSW) for HTTP-level protocol interception, rejecting native `global.fetch` overwriting.
+- **Chaos Validation**: Routine execution of `tests/performance/k6/failure-injection.js` to simulate database exhaustion and LLM rate-limiting.
 
 ---
 

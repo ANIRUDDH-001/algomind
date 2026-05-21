@@ -150,8 +150,8 @@ describe('UnifiedAIClient', () => {
         vi.useFakeTimers();
         vi.clearAllMocks();
         vi.unstubAllEnvs();
-        vi.stubEnv('GROQ_API_KEY', 'test-groq-key');
-        vi.stubEnv('GEMINI_API_KEY', 'test-gemini-key');
+        vi.stubEnv('GROQ_API_KEY', process.env.TEST_GROQ_API_KEY || 'mock-groq-key-do-not-use');
+        vi.stubEnv('GEMINI_API_KEY', process.env.TEST_GEMINI_API_KEY || 'mock-gemini-key-do-not-use');
 
         // Default: rate limiter allows everything
         mockRateLimiter.canUseModel.mockResolvedValue({ allowed: true, model: groqModel });

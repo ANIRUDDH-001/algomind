@@ -13,10 +13,10 @@ const runAdminE2E = process.env.E2E_FULL_STACK === 'true';
 // ── Helpers ──
 
 /** Mock the admin check to return true (admin user) */
-async function mockAsAdmin(page: Page) {
+async function setupAdminSession(page: Page) {
     await setE2EAuthCookie(page.context());
 
-    // Inject mock auth token to localStorage so client-side useAuth doesn't panic
+    // Inject auth token to localStorage so client-side useAuth doesn't panic
     await page.addInitScript(() => {
         window.localStorage.setItem('sb-algomind-auth-token', JSON.stringify({
             access_token: 'mock-token',
@@ -29,15 +29,6 @@ async function mockAsAdmin(page: Page) {
         window.localStorage.setItem('algomind_tour_completed', 'true');
         window.localStorage.setItem('voice_onboarding_seen', 'true');
     });
-
-    // Mock the is-admin server check — return admin: true
-    await page.route('**/api/admin/check*', (route) =>
-        route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ isAdmin: true }),
-        }),
-    );
 
     // Mock the admin admins API to return a seed admin
     await page.route('**/api/admin/admins', async (route) => {
@@ -77,19 +68,20 @@ async function mockAsAdmin(page: Page) {
     });
 }
 
-/** Mock the admin check to return false (non-admin user) */
-async function mockAsNonAdmin(page: Page) {
-    await page.route('**/api/admin/check*', (route) =>
-        route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ isAdmin: false }),
-        }),
-    );
-    await page.route('**/api/admin/admins', (route) =>
-        route.fulfill({ status: 403, body: 'Forbidden' }),
-    );
 }
+
+/** Setup session for non-admin user */
+async function setupNonAdminSession(page: Page) {
+    await setE2EAuthCookie(page.context());
+    
+    // Inject auth token for non-admin
+    await page.addInitScript(() => {
+        window.localStorage.setItem('sb-algomind-auth-token', JSON.stringify({
+            access_token: 'mock-token-user',
+            refresh_token: 'mock-refresh-user',
+            user: { id: 'test-user-id-normal', email: 'user@algomind.dev' }
+        }));
+    });
 
 // ───────────────────────────────────────────────
 //  1. Admin Panel Auth
@@ -99,7 +91,7 @@ test.describe('Admin Panel Auth', () => {
     test.skip(!runAdminE2E, 'Set E2E_FULL_STACK=true to run admin E2E tests that depend on full app state.');
 
     test('non-admin is redirected or sees 403', async ({ page }) => {
-        await mockAsNonAdmin(page);
+        await setupNonAdminSession(page);
         await page.goto('/admin/admins');
         await page.waitForLoadState('networkidle');
 
@@ -117,7 +109,7 @@ test.describe('Admin Panel Auth', () => {
     });
 
     test('admin sees admins list', async ({ page }) => {
-        await mockAsAdmin(page);
+        await setupAdminSession(page);
         await page.goto('/admin/admins');
         await page.waitForLoadState('networkidle');
 
@@ -143,7 +135,7 @@ test.describe('Admin Models Page', () => {
     test('model registry table loads with at least 1 model', async ({
         page,
     }) => {
-        await mockAsAdmin(page);
+        await setupAdminSession(page);
 
         // Mock the models API
         await page.route('**/api/admin/models*', (route) =>
@@ -255,13 +247,6 @@ test.describe('Add/Remove Admin', () => {
             return route.continue();
         });
 
-        await page.route('**/api/admin/check*', (route) =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ isAdmin: true }),
-            }),
-        );
         await page.route('**/api/owner/users*', (route) => {
             if (route.request().method() === 'GET') {
                 return route.fulfill({
