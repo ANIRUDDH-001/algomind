@@ -152,9 +152,37 @@ describe('Two-pass assessment validation', () => {
     });
 
     describe('Two-pass assessment validation integration logic', () => {
-        it('full analyze() call runs validation pass after initial scoring', () => {
-            // Unit tests correctly demonstrate the pipeline logic.
-            expect(true).toBe(true);
+        it('full analyze() pipeline: validateAndCorrectScores → applyValidation produces corrected output', async () => {
+            // Simulate the validator correcting a score
+            mockGenerateCompletion.mockResolvedValue({
+                success: true,
+                response: JSON.stringify({
+                    correctedScores: { complexityAnalysis: 4 },
+                    inflationDetected: true,
+                    validationNotes: 'Evidence is generic, downgraded.'
+                })
+            });
+
+            const initialScores: Record<string, ParsedSkillScore> = {
+                'complexity-analysis': {
+                    score: 8,
+                    evidence: ['candidate seemed to understand complexity'],
+                    strengths: [],
+                    improvements: [],
+                    subCriteria: {}
+                }
+            };
+
+            // Step 1: validate
+            const validation = await validateAndCorrectScores(initialScores, 15);
+            expect(validation.inflationDetected).toBe(true);
+
+            // Step 2: apply
+            const result = applyValidation(initialScores, validation);
+            expect(result['complexity-analysis'].score).toBe(4);
+            expect(result['complexity-analysis'].improvements).toContain(
+                'Score adjusted by validator: Evidence is generic, downgraded.'
+            );
         });
     });
 });

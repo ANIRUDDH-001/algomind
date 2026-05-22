@@ -88,15 +88,20 @@ describe('Model Registry', () => {
     });
 
     describe('Rate Limiting & Cooldown Logic', () => {
-        it('3. markModelRateLimited() updates cache internally', () => {
+        it('3. markModelRateLimited() updates cache internally', async () => {
+            const dbRows = [
+                { model_id: 'test-model', provider: 'groq', tier: 1, rpm: 10, tpm: 0, rpd: 0, context_window: 0, notes: '' },
+            ];
+            mockSupabase.order.mockResolvedValue({ data: dbRows, error: null });
+
             const now = Date.now();
             vi.setSystemTime(now);
 
             markModelRateLimited('test-model');
 
-            // Since it's internal state, we verify it by checking the behaviour of getNextAvailableModel later
-            // But we can assert the map doesn't crash
-            expect(true).toBe(true);
+            // Verify the model is now skipped by getNextAvailableModel (internal state was updated)
+            const model = await getNextAvailableModel();
+            expect(model).toBeNull();
         });
 
         it('4. getNextAvailableModel() skips models rate-limited in last 60s', async () => {

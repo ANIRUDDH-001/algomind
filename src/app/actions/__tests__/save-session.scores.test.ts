@@ -90,14 +90,51 @@ describe('saveInterviewSession scores & profile wiring', () => {
         });
     });
 
-    it('correctly maps adjusted_score to the assessments table insert payload', () => {
-        // Placeholder for DB mock test preserved from original
-        expect(true).toBe(true);
+    it('correctly maps adjusted_score to the assessments table insert payload', async () => {
+        mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
+            if (name === 'ensure_learner_profile') {
+                return { data: null, error: null };
+            }
+            return { data: null, error: null };
+        });
+
+        await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [
+            { role: 'user', content: 'I will use a hashmap approach for this problem' },
+            { role: 'assistant', content: 'Good thinking, go ahead' },
+        ], 120);
+
+        // Verify the atomic save RPC was called with adjusted_score parameter
+        const atomicCall = mockRpc.mock.calls.find((c: any[]) => c[0] === 'save_interview_session_atomic');
+        expect(atomicCall).toBeDefined();
+        expect(atomicCall![1]).toHaveProperty('p_assessment_adjusted_score');
     });
 
-    it('correctly maps rawScore to the spaced_repetition queue payload', () => {
-        // Placeholder for DB mock test preserved from original
-        expect(true).toBe(true);
+    it('correctly maps rawScore to the spaced_repetition queue payload', async () => {
+        const { addToQueue } = await import('@/lib/spaced-repetition/queue');
+
+        mockRpc.mockImplementation(async (name: string) => {
+            if (name === 'save_interview_session_atomic') {
+                return { data: { session_id: 'session-id', assessment_id: null }, error: null };
+            }
+            if (name === 'ensure_learner_profile') {
+                return { data: null, error: null };
+            }
+            return { data: null, error: null };
+        });
+
+        await saveInterviewSession('user-id', 'problem-id', 'Two Sum', [
+            { role: 'user', content: 'I will use a hashmap approach for this problem' },
+            { role: 'assistant', content: 'Good thinking, go ahead' },
+        ], 120);
+
+        // Verify addToQueue was called with the overallScore from the result
+        expect(addToQueue).toHaveBeenCalled();
+        const queueCall = (addToQueue as any).mock.calls[0][0];
+        expect(queueCall).toHaveProperty('overallScore');
+        expect(typeof queueCall.overallScore).toBe('number');
     });
 
     it('calls ensure_learner_profile after session is saved', async () => {

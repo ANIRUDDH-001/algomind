@@ -1,5 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll, type Mock } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
 import { UnifiedAIClient, getAIClient } from '../client';
 import type { Message, CompletionOptions } from '../client';
 import type { ModelConfig } from '../providers';
@@ -110,35 +112,48 @@ const geminiModel: ModelConfig = {
 
 const userMessages: Message[] = [{ role: 'user', content: 'What is a binary tree?' }];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── MSW Server ───────────────────────────────────────────────────────────────
+
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+const server = setupServer();
+
+let capturedRequestBody: any = null;
+
+// ── MSW-based Helpers ────────────────────────────────────────────────────────
 
 function mockFetchGroqSuccess(content = 'Binary tree is a data structure.') {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-            choices: [{ message: { content } }],
-        }),
-        text: async () => '',
-    } as Response);
+    server.use(
+        http.post(GROQ_API_URL, async ({ request }) => {
+            capturedRequestBody = await request.clone().json().catch(() => null);
+            return HttpResponse.json({
+                choices: [{ message: { content } }],
+            });
+        })
+    );
 }
 
 function mockFetchGeminiSuccess(content = 'Binary tree explanation from Gemini.') {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-            candidates: [{ content: { parts: [{ text: content }] } }],
-        }),
-        text: async () => '',
-    } as Response);
+    server.use(
+        http.post(`${GEMINI_API_BASE}/*`, async ({ request }) => {
+            capturedRequestBody = await request.clone().json().catch(() => null);
+            return HttpResponse.json({
+                candidates: [{ content: { parts: [{ text: content }] } }],
+            });
+        })
+    );
 }
 
 function mockFetchFailure(status = 500, body = 'Internal Server Error') {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        status,
-        text: async () => body,
-        json: async () => ({}),
-    } as Response);
+    server.use(
+        http.post(GROQ_API_URL, () => {
+            return new HttpResponse(body, { status });
+        }),
+        http.post(`${GEMINI_API_BASE}/*`, () => {
+            return new HttpResponse(body, { status });
+        })
+    );
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -146,8 +161,10 @@ function mockFetchFailure(status = 500, body = 'Internal Server Error') {
 describe('UnifiedAIClient', () => {
     let client: UnifiedAIClient;
 
+    beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
+    afterAll(() => server.close());
+
     beforeEach(async () => {
-        vi.useFakeTimers();
         vi.clearAllMocks();
         vi.unstubAllEnvs();
         vi.stubEnv('GROQ_API_KEY', process.env.TEST_GROQ_API_KEY || 'mock-groq-key-do-not-use');
@@ -163,7 +180,8 @@ describe('UnifiedAIClient', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
+        server.resetHandlers();
+        capturedRequestBody = null;
         vi.unstubAllEnvs();
         mockCache.get.mockReset();
         mockClassifier.classify.mockReset();
@@ -225,11 +243,11 @@ describe('UnifiedAIClient', () => {
         });
 
         it('returns failure on empty content from Groq', async () => {
-            global.fetch = vi.fn().mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ choices: [{ message: { content: '' } }] }),
-                text: async () => '',
-            } as Response);
+            server.use(
+                http.post(GROQ_API_URL, () => {
+                    return HttpResponse.json({ choices: [{ message: { content: '' } }] });
+                })
+            );
             const result = await client.callModel(groqModel, userMessages, {});
             expect(result.success).toBe(false);
             expect(result.error).toMatch(/Empty response/);
@@ -239,10 +257,9 @@ describe('UnifiedAIClient', () => {
             mockFetchGroqSuccess();
             await client.callModel(groqModel, userMessages, { systemPrompt: 'Be concise.' });
 
-            const fetchCall = (global.fetch as Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body as string);
-            expect(body.messages[0].role).toBe('system');
-            expect(body.messages[0].content).toBe('Be concise.');
+            expect(capturedRequestBody).not.toBeNull();
+            expect(capturedRequestBody.messages[0].role).toBe('system');
+            expect(capturedRequestBody.messages[0].content).toBe('Be concise.');
         });
 
         it('does not double-prepend system prompt if already first message', async () => {
@@ -253,20 +270,33 @@ describe('UnifiedAIClient', () => {
             ];
             await client.callModel(groqModel, messagesWithSystem, { systemPrompt: 'Overriding system.' });
 
-            const fetchCall = (global.fetch as Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body as string);
+            expect(capturedRequestBody).not.toBeNull();
             // Should still have only ONE system message at index 0
-            const systemMessages = body.messages.filter((m: Message) => m.role === 'system');
+            const systemMessages = capturedRequestBody.messages.filter((m: Message) => m.role === 'system');
             expect(systemMessages.length).toBe(1);
+        });
+
+    });
+
+    // ── Event logging with fake timers ───────────────────────────────────────
+
+    describe('Event logging with fake timers', () => {
+        beforeEach(() => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+        });
+
+        afterEach(() => {
+            server.resetHandlers();
+            vi.useRealTimers();
         });
 
         it('logs model_429 event on 429 error', async () => {
             const { logSystemEvent } = await import('@/lib/monitoring/events');
-            global.fetch = vi.fn().mockResolvedValueOnce({
-                ok: false,
-                status: 429,
-                text: async () => 'Rate limited (429)',
-            } as Response);
+            server.use(
+                http.post(GROQ_API_URL, () => {
+                    return new HttpResponse('Rate limited (429)', { status: 429 });
+                })
+            );
             await client.callModel(groqModel, userMessages, {});
             await vi.runAllTimersAsync();
             expect(logSystemEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'model_429' }));
@@ -274,11 +304,11 @@ describe('UnifiedAIClient', () => {
 
         it('logs model_deprecated event on 404 error', async () => {
             const { logSystemEvent } = await import('@/lib/monitoring/events');
-            global.fetch = vi.fn().mockResolvedValueOnce({
-                ok: false,
-                status: 404,
-                text: async () => 'Not found (404)',
-            } as Response);
+            server.use(
+                http.post(GROQ_API_URL, () => {
+                    return new HttpResponse('Not found (404)', { status: 404 });
+                })
+            );
             await client.callModel(groqModel, userMessages, {});
             await vi.runAllTimersAsync();
             expect(logSystemEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'model_deprecated' }));
@@ -322,9 +352,8 @@ describe('UnifiedAIClient', () => {
                 { role: 'user', content: 'What is recursion?' },
             ];
             await client.callModel(geminiModel, conversation, {});
-            const fetchCall = (global.fetch as Mock).mock.calls[0];
-            const body = JSON.parse(fetchCall[1].body as string);
-            const roles = body.contents.map((c: { role: string }) => c.role);
+            expect(capturedRequestBody).not.toBeNull();
+            const roles = capturedRequestBody.contents.map((c: { role: string }) => c.role);
             expect(roles).toEqual(['user', 'model', 'user']);
         });
 
@@ -335,24 +364,24 @@ describe('UnifiedAIClient', () => {
                 { role: 'user', content: 'Hello' },
             ];
             await client.callModel(geminiModel, msgs, {});
-            const body = JSON.parse((global.fetch as Mock).mock.calls[0][1].body as string);
-            const hasSystem = body.contents.some((c: { role: string }) => c.role === 'system');
+            expect(capturedRequestBody).not.toBeNull();
+            const hasSystem = capturedRequestBody.contents.some((c: { role: string }) => c.role === 'system');
             expect(hasSystem).toBe(false);
         });
 
         it('sets systemInstruction when systemPrompt option is provided', async () => {
             mockFetchGeminiSuccess();
             await client.callModel(geminiModel, userMessages, { systemPrompt: 'You are Kai.' });
-            const body = JSON.parse((global.fetch as Mock).mock.calls[0][1].body as string);
-            expect(body.systemInstruction.parts[0].text).toBe('You are Kai.');
+            expect(capturedRequestBody).not.toBeNull();
+            expect(capturedRequestBody.systemInstruction.parts[0].text).toBe('You are Kai.');
         });
 
         it('returns failure on empty Gemini response', async () => {
-            global.fetch = vi.fn().mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ candidates: [] }),
-                text: async () => '',
-            } as Response);
+            server.use(
+                http.post(`${GEMINI_API_BASE}/*`, () => {
+                    return HttpResponse.json({ candidates: [] });
+                })
+            );
             const result = await client.callModel(geminiModel, userMessages, {});
             expect(result.success).toBe(false);
             expect(result.error).toMatch(/Empty response/);
@@ -529,7 +558,7 @@ describe('UnifiedAIClient', () => {
             const result = await client.generateResponse(userMessages, { preferredModel: 'groq' });
             expect(result.success).toBe(true);
             expect(result.response).toBe('Cached answer');
-            expect(global.fetch).not.toHaveBeenCalled?.();
+            expect(result.attemptedModels).toEqual([]);
         });
 
         it('records telemetry decision after smart routing', async () => {

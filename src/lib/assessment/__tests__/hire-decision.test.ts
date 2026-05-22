@@ -1,121 +1,72 @@
-import { describe, it, expect } from 'vitest';
-import type { HireDecision } from '../analyzer';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { CognitiveAnalyzer } from '../analyzer';
+import * as aiClientModule from '@/lib/ai/client';
+import { ConversationTurn } from '../prompts';
 
-describe('hire decision persistence', () => {
-    // Map of valid hire decisions
-    const HIRE_NUMERIC: Record<string, number> = {
-        'STRONG_HIRE': 5,
-        'HIRE': 4,
-        'BORDERLINE': 3,
-        'NO_HIRE': 2,
-        'STRONG_NO_HIRE': 1,
+describe('hire decision parsing in analyzer', () => {
+    const mockGenerateCompletion = vi.fn();
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+        vi.spyOn(aiClientModule, 'getAIClient').mockReturnValue({
+            generateCompletion: mockGenerateCompletion,
+        } as any);
+    });
+
+    const mockProblem = { title: 'Two Sum', description: 'Find two numbers that add up to target', difficulty: 'easy' };
+    const mockTranscript: ConversationTurn[] = [
+        { role: 'assistant', content: 'Hello, how would you solve this?' },
+        { role: 'user', content: 'I would use a hash map to achieve O(n) time complexity.' }
+    ];
+
+    const generateMockAIResponse = (hireDecisionValue: string | undefined) => {
+        return JSON.stringify({
+            skills: {
+                'problem-decomposition': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'pattern-recognition': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'algorithmic-thinking': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'complexity-analysis': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'communication-clarity': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'edge-case-awareness': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'optimization-mindset': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] },
+                'debugging-approach': { score: 8, subCriteria: {}, evidence: [], strengths: [], improvements: [] }
+            },
+            overallFeedback: 'Good job',
+            nextSteps: [],
+            hireDecision: hireDecisionValue
+        });
     };
 
-    it('hire_decision stored in assessments table after session', () => {
-        // Simulating the save-session logic for hire_decision persistence
-        const mockResult = {
-            hireDecision: 'HIRE' as HireDecision,
-            adjustedScore: 7.5,
-        };
+    it('extracts valid hireDecision from AI output', async () => {
+        mockGenerateCompletion.mockResolvedValue({
+            success: true,
+            response: generateMockAIResponse('STRONG_HIRE')
+        });
 
-        const difficultyMode: string = 'practice';
-        const isWarmUp = difficultyMode === 'warm-up';
-        const hireDecision = isWarmUp ? null : (mockResult.hireDecision ?? null);
-
-        const insertPayload = {
-            hire_decision: hireDecision,
-        };
-
-        expect(insertPayload.hire_decision).toBe('HIRE');
+        const analyzer = new CognitiveAnalyzer();
+        const result = await analyzer.analyze('sess-1', mockProblem, mockTranscript);
+        expect(result.hireDecision).toBe('STRONG_HIRE');
     });
 
-    it('hire_readiness_trend in learner_profiles is updated with new entry', () => {
-        const existingTrend = [
-            { sessionId: 'sess-1', hireDecision: 'NO_HIRE', score: 4.2, completedAt: '2026-01-01' },
-        ];
+    it('sets hireDecision to null when it is missing from AI output', async () => {
+        mockGenerateCompletion.mockResolvedValue({
+            success: true,
+            response: generateMockAIResponse(undefined)
+        });
 
-        const newEntry = {
-            sessionId: 'sess-2',
-            hireDecision: 'HIRE',
-            score: 7.5,
-            completedAt: '2026-02-01',
-            problemDifficulty: 'medium',
-        };
-
-        const trend = [...existingTrend, newEntry].slice(-20);
-        expect(trend).toHaveLength(2);
-        expect(trend[1].hireDecision).toBe('HIRE');
-        expect(trend[1].sessionId).toBe('sess-2');
+        const analyzer = new CognitiveAnalyzer();
+        const result = await analyzer.analyze('sess-2', mockProblem, mockTranscript);
+        expect(result.hireDecision).toBeNull();
     });
 
-    it('trend never exceeds 20 entries (oldest trimmed)', () => {
-        const existingTrend = Array.from({ length: 20 }, (_, i) => ({
-            sessionId: `sess-${i}`,
-            hireDecision: 'BORDERLINE',
-            score: 5.0,
-            completedAt: new Date(2026, 0, i + 1).toISOString(),
-        }));
+    it('sets hireDecision to null when AI outputs an invalid value', async () => {
+        mockGenerateCompletion.mockResolvedValue({
+            success: true,
+            response: generateMockAIResponse('MAYBE_HIRE')
+        });
 
-        const newEntry = {
-            sessionId: 'sess-new',
-            hireDecision: 'STRONG_HIRE',
-            score: 9.0,
-            completedAt: new Date().toISOString(),
-        };
-
-        const trend = [...existingTrend, newEntry].slice(-20);
-        expect(trend).toHaveLength(20);
-        expect(trend[0].sessionId).toBe('sess-1'); // sess-0 was trimmed
-        expect(trend[19].sessionId).toBe('sess-new'); // latest is last
-    });
-
-    it('warm-up sessions store NULL hire_decision', () => {
-        const mockResult = {
-            hireDecision: 'HIRE' as HireDecision,
-        };
-
-        const difficultyMode: string = 'warm-up';
-        const isWarmUp = difficultyMode === 'warm-up';
-        const hireDecision = isWarmUp ? null : (mockResult.hireDecision ?? null);
-
-        expect(hireDecision).toBeNull();
-    });
-
-    it('hire_numeric mapping covers all 5 decision values', () => {
-        const validDecisions: HireDecision[] = ['STRONG_HIRE', 'HIRE', 'BORDERLINE', 'NO_HIRE', 'STRONG_NO_HIRE'];
-
-        for (const decision of validDecisions) {
-            expect(HIRE_NUMERIC[decision]).toBeDefined();
-            expect(typeof HIRE_NUMERIC[decision]).toBe('number');
-        }
-
-        expect(Object.keys(HIRE_NUMERIC)).toHaveLength(5);
-
-        // Verify ordering
-        expect(HIRE_NUMERIC['STRONG_HIRE']).toBeGreaterThan(HIRE_NUMERIC['HIRE']);
-        expect(HIRE_NUMERIC['HIRE']).toBeGreaterThan(HIRE_NUMERIC['BORDERLINE']);
-        expect(HIRE_NUMERIC['BORDERLINE']).toBeGreaterThan(HIRE_NUMERIC['NO_HIRE']);
-        expect(HIRE_NUMERIC['NO_HIRE']).toBeGreaterThan(HIRE_NUMERIC['STRONG_NO_HIRE']);
-    });
-
-    it('hireDecision is null when not present in AI output', () => {
-        const mockResult = {
-            hireDecision: undefined as HireDecision | undefined,
-        };
-
-        const isWarmUp = false;
-        const hireDecision = isWarmUp ? null : (mockResult.hireDecision ?? null);
-        expect(hireDecision).toBeNull();
-    });
-
-    it('AssessmentResult hireDecision rejects invalid values in analyzer', () => {
-        const VALID_HIRE_DECISIONS = ['STRONG_HIRE', 'HIRE', 'BORDERLINE', 'NO_HIRE', 'STRONG_NO_HIRE'];
-
-        // Valid
-        expect(VALID_HIRE_DECISIONS.includes('HIRE')).toBe(true);
-
-        // Invalid
-        expect(VALID_HIRE_DECISIONS.includes('MAYBE')).toBe(false);
-        expect(VALID_HIRE_DECISIONS.includes('')).toBe(false);
+        const analyzer = new CognitiveAnalyzer();
+        const result = await analyzer.analyze('sess-3', mockProblem, mockTranscript);
+        expect(result.hireDecision).toBeNull();
     });
 });

@@ -177,13 +177,61 @@ Our CI/CD pipeline enforces an aggressive, zero-tolerance policy for brittle cod
 ```bash
 npm run test                # 880 tests across 105 files
 npm run test:watch          # Watch mode
+npm run test:coverage       # Run with coverage report
 npm run test:mutation       # AST Mutation Testing (Stryker)
 npm run test:fuzz           # Input Fuzzing & Chaos tests
 npm run test:e2e            # Playwright cross-browser (Chromium, Firefox, WebKit)
 ```
 
-**Quality Enforcement Thresholds:**
-- **Unit/Integration Coverage**: Enforced at **95%** (Statements/Branches/Functions/Lines) for core `lib` directories.
+### Coverage Thresholds
+
+**Global thresholds** (enforced on every PR):
+
+| Metric | Threshold |
+|--------|-----------|
+| Statements | 50% |
+| Branches | 40% |
+| Functions | 50% |
+| Lines | 50% |
+
+> *Target: 95% by end of Q3. Incrementally raised each phase.*
+
+**Per-module thresholds** (critical business logic):
+
+| Module | Lines | Functions |
+|--------|-------|-----------|
+| `src/lib/assessment/` | 85% | 90% |
+| `src/lib/interview/` | 80% | 85% |
+| `src/lib/spaced-repetition/` | 85% | 90% |
+| `src/lib/rag/` | 75% | 80% |
+| `src/lib/recommendations/` | 75% | 80% |
+| `src/lib/ai/memory-generator` | 80% | 85% |
+
+### Mutation Testing (Stryker)
+
+We use [Stryker Mutator](https://stryker-mutator.io/) to verify test effectiveness by injecting AST-level mutations into critical business logic:
+
+```bash
+npm run test:mutation       # Run mutation tests via Stryker
+```
+
+**Targeted files:**
+- `src/lib/assessment/analyzer.ts` — Cognitive scoring engine
+- `src/lib/assessment/score-validator.ts` — Score validation logic
+- `src/lib/assessment/confidence-calculator.ts` — Confidence intervals
+- `src/lib/ai/client.ts` — Unified AI client
+- `src/lib/ai/rate-limiter.ts` — Rate limiting logic
+- `src/lib/auth/requireAdminForApi.ts` — Admin auth guard
+
+**Mutation score thresholds:**
+| Level | Score | Effect |
+|-------|-------|--------|
+| 🟢 High | ≥ 80% | Passing |
+| 🟡 Low | ≥ 60% | Warning |
+| 🔴 Break | < 50% | CI fails |
+
+### Quality Enforcement
+
 - **AST Mutation Score**: Monitored via Stryker to eliminate tautological tests and fake mocks.
 - **Network Fidelity**: E2E and Unit tests utilize Mock Service Worker (MSW) for HTTP-level protocol interception, rejecting native `global.fetch` overwriting.
 - **Chaos Validation**: Routine execution of `tests/performance/k6/failure-injection.js` to simulate database exhaustion and LLM rate-limiting.

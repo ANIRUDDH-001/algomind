@@ -92,7 +92,7 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
         p_results: JSON.stringify([{ concept_slug: 'arrays-strings', confidence: 0.5 }]),
       });
 
-      const { data: problem } = await testSupabase
+      let { data: problem } = await testSupabase
         .from('problems')
         .select('id')
         .contains('tags', ['arrays-strings'])
@@ -100,9 +100,20 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
         .single();
 
       if (!problem) {
-        expect(true).toBe(true);
-        return;
+        const { data: newProblem } = await testSupabase
+          .from('problems')
+          .insert({
+            title: 'Test Arrays Strings Problem',
+            description: 'Test problem',
+            difficulty: 'easy',
+            tags: ['arrays-strings'],
+            created_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+        problem = newProblem;
       }
+
 
       const { data: session, error: insertError } = await testSupabase
         .from('interview_sessions')
@@ -139,7 +150,7 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
     it('increments user_weekly_usage on interview completion', async () => {
       testUser = await createTestUser('kg-weekly');
 
-      const { data: problem } = await testSupabase
+      let { data: problem } = await testSupabase
         .from('problems')
         .select('id')
         .contains('tags', ['arrays-strings'])
@@ -147,9 +158,20 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
         .single();
 
       if (!problem) {
-        expect(true).toBe(true);
-        return;
+        const { data: newProblem } = await testSupabase
+          .from('problems')
+          .insert({
+            title: 'Test Arrays Strings Problem 2',
+            description: 'Test problem 2',
+            difficulty: 'easy',
+            tags: ['arrays-strings'],
+            created_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+        problem = newProblem;
       }
+
 
       const { data: session } = await testSupabase
         .from('interview_sessions')

@@ -51,13 +51,12 @@ export default defineConfig({
                 'src/lib/ai/types.ts',
             ],
             // ── Thresholds ────────────────────────────────────────────
-            // Intentionally conservative first pass.
-            // Raise by 5% per quarter as coverage improves.
+            // Target: 95% by end of Q3. Incrementally raised each phase.
             thresholds: {
-                statements: 30,
-                branches: 20,
-                functions: 30,
-                lines: 30,
+                statements: 50,
+                branches: 40,
+                functions: 50,
+                lines: 50,
                 'src/lib/assessment/': { lines: 85, functions: 90 },
                 'src/lib/interview/': { lines: 80, functions: 85 },
                 'src/lib/spaced-repetition/': { lines: 85, functions: 90 },
