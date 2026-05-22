@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { signIn } from './helpers/auth';
+import { signIn } from '../helpers/auth';
 
 test.describe('Dashboard scrolling', () => {
   test.skip(
@@ -70,13 +70,13 @@ test.describe('Dashboard scrolling', () => {
     await expect(rightButton).toBeVisible();
 
     await rightButton.click();
-    await page.waitForTimeout(250);
 
-    const afterScroll = await timelineRegion.evaluate((element: HTMLElement) => ({
-      scrollLeft: element.scrollLeft,
-    }));
-
-    expect(afterScroll.scrollLeft).toBeGreaterThan(metrics.scrollLeft);
+    await expect(async () => {
+      const afterScroll = await timelineRegion.evaluate((element: HTMLElement) => ({
+        scrollLeft: element.scrollLeft,
+      }));
+      expect(afterScroll.scrollLeft).toBeGreaterThan(metrics.scrollLeft);
+    }).toPass();
   });
 
   test('session timeline starts near the latest sessions', async ({ page }) => {

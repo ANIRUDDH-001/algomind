@@ -68,8 +68,6 @@ async function setupAdminSession(page: Page) {
     });
 }
 
-}
-
 /** Setup session for non-admin user */
 async function setupNonAdminSession(page: Page) {
     await setE2EAuthCookie(page.context());
@@ -82,6 +80,7 @@ async function setupNonAdminSession(page: Page) {
             user: { id: 'test-user-id-normal', email: 'user@algomind.dev' }
         }));
     });
+}
 
 // ───────────────────────────────────────────────
 //  1. Admin Panel Auth
@@ -274,7 +273,6 @@ test.describe('Add/Remove Admin', () => {
         );
         await emailInput.fill('test-admin@example.com');
         await page.getByRole('button', { name: /add admin/i }).click();
-        await page.waitForTimeout(500);
 
         // New admin should appear after re-fetch
         await expect(
@@ -298,7 +296,6 @@ test.describe('Add/Remove Admin', () => {
         if (await confirmBtn.isVisible()) {
             await confirmBtn.click();
         }
-        await page.waitForTimeout(500);
 
         // Should disappear
         await expect(

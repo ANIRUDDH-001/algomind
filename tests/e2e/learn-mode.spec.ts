@@ -12,7 +12,6 @@ async function maybeCompleteDiagnostic(page: import('@playwright/test').Page) {
 
     await page.fill('[data-testid="text-input"]', `Diagnostic answer ${i + 1}`);
     await page.click('[data-testid="send-text-button"]');
-    await page.waitForTimeout(700);
   }
 
   const finishButton = page.locator('[data-testid="finish-diagnostic-button"]');

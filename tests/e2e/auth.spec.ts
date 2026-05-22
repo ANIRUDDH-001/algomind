@@ -43,3 +43,40 @@ test.describe('Authentication', () => {
     expect(await page.locator('[data-testid="sign-in-button"]').isVisible()).toBe(true);
   });
 });
+
+test.describe('Session Expiration', () => {
+  // Uses default storageState (authenticated)
+  test('expired session redirects to login', async ({ page }) => {
+    // 1. Go to dashboard to ensure we are logged in
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+
+    // 2. Manipulate localStorage to set an expired token
+    await page.evaluate(() => {
+      // Force real auth to avoid the test bypass in AuthProvider
+      localStorage.setItem('playwright-force-real-auth', 'true');
+      
+      const keys = Object.keys(localStorage);
+      const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (authKey) {
+        const tokenData = localStorage.getItem(authKey);
+        if (tokenData) {
+          const parsed = JSON.parse(tokenData);
+          // Set expiry to 1 hour in the past and invalidate refresh token
+          parsed.expires_at = Math.floor(Date.now() / 1000) - 3600;
+          parsed.refresh_token = 'invalid_refresh_token';
+          localStorage.setItem(authKey, JSON.stringify(parsed));
+        }
+      }
+    });
+
+    // Clear the E2E bypass cookie so Next.js proxy middleware performs a real check and redirects
+    await page.context().clearCookies({ name: 'playwright-e2e' });
+
+    // 3. Reload. Next.js middleware should detect expired/missing session and redirect to login
+    await page.reload();
+
+    // 4. Verify it redirects to login
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+  });
+});

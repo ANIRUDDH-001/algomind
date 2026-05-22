@@ -38,7 +38,6 @@ test.describe('BUG-V7-11 Regression Prevention: Interview Layout', () => {
         const panelGroup = page.locator('#interview_panels_v2');
         await expect(panelGroup).toBeVisible({ timeout: 15_000 });
         // Let layout computations settle
-        await page.waitForTimeout(1000);
 
         // A reusable helper to assert layout constraints
         async function assertNoOverflow() {
@@ -99,7 +98,7 @@ test.describe('BUG-V7-11 Regression Prevention: Interview Layout', () => {
             await page.mouse.up();
         }
 
-        await page.waitForTimeout(500);
+
 
         // 8. Drag right handle to resize code panel to minSize
         // The right handle will be right next to the interaction panel/code panel.
@@ -113,7 +112,7 @@ test.describe('BUG-V7-11 Regression Prevention: Interview Layout', () => {
             await page.mouse.up();
         }
 
-        await page.waitForTimeout(500);
+
 
         // 9. Assert: no overflow at min sizes either
         await assertNoOverflow();

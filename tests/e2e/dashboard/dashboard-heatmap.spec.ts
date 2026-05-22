@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signIn } from './helpers/auth';
+import { signIn } from '../helpers/auth';
 
 test.describe('Concept Heatmap', () => {
   test.skip(

@@ -95,7 +95,10 @@ test.describe('LeetCode Settings', () => {
         );
 
         // If the input isn't immediately visible (may need to scroll or settings may load)
-        if (!(await usernameInput.isVisible({ timeout: 5_000 }).catch(() => false))) {
+        try {
+            await usernameInput.waitFor({ state: 'visible', timeout: 5_000 });
+        } catch {}
+        if (!(await usernameInput.isVisible())) {
             // Settings page may redirect to login for unauthenticated users
             const body = await page.textContent('body');
             if (
@@ -116,7 +119,6 @@ test.describe('LeetCode Settings', () => {
         await connectBtn.click();
 
         // Step 6: Assert success — no "Database error" banner, username persists
-        await page.waitForTimeout(500);
         const body = await page.textContent('body');
         expect(body).not.toContain('Database error');
 
@@ -195,7 +197,10 @@ test.describe('LeetCode Error State', () => {
             'input[placeholder*="leetcode-username"]',
         );
 
-        if (!(await usernameInput.isVisible({ timeout: 5_000 }).catch(() => false))) {
+        try {
+            await usernameInput.waitFor({ state: 'visible', timeout: 5_000 });
+        } catch {}
+        if (!(await usernameInput.isVisible())) {
             if (page.url().includes('/login')) {
                 test.skip(true, 'Skipped: requires real auth session');
                 return;
@@ -208,7 +213,11 @@ test.describe('LeetCode Error State', () => {
         await connectBtn.click();
 
         // Wait for error to appear (toast or inline)
-        await page.waitForTimeout(1_000);
+        await expect(async () => {
+            const pageText = await page.textContent('body');
+            const hasError = pageText?.includes('Database error') || pageText?.includes('Connection failed') || pageText?.includes('error');
+            expect(hasError).toBe(true);
+        }).toPass({ timeout: 5_000 });
 
         // Page should NOT crash — should still be on settings
         expect(page.url()).toContain('/settings');

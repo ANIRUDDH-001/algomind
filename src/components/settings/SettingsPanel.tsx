@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 
 import { VoiceSettings } from './VoiceSettings';
+import { UpgradeButton } from '@/components/upgrade/UpgradeButton';
 
 export function SettingsPanel() {
     const [introEnabled, setIntroEnabled] = useState(false);
@@ -249,6 +250,25 @@ export function SettingsPanel() {
                 {!user && (
                     <p className="text-xs text-zinc-500">Sign in to manage notification preferences.</p>
                 )}
+            </div>
+
+            {/* Subscription Settings */}
+            <div className="space-y-2 mb-8">
+                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-600">
+                    Subscription
+                </h2>
+                <div className="rounded-2xl overflow-hidden px-5 py-4 flex flex-col gap-4"
+                    style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-zinc-200">
+                            Upgrade to Pro
+                        </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">
+                        Get unlimited practice sessions and access to all premium features.
+                    </p>
+                    <UpgradeButton />
+                </div>
             </div>
 
             {/* Storage Info */}

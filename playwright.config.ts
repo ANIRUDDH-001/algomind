@@ -7,7 +7,7 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 export default defineConfig({
-    testDir: './e2e',
+    testDir: './tests/e2e',
     fullyParallel: false,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
@@ -27,13 +27,17 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
         {
-            name: 'Mobile Chrome',
-            use: { ...devices['Pixel 5'] },
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+        },
+        {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
         },
     ],
 
-    globalSetup: './e2e/global-setup.ts',
-    globalTeardown: './e2e/global-teardown.ts',
+    globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
+    globalTeardown: require.resolve('./tests/e2e/global-teardown.ts'),
 
     webServer: {
         command: 'npm run dev',

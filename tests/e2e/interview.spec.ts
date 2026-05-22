@@ -73,9 +73,11 @@ test.describe('Full Guest Interview Flow', () => {
 
         // Guest selector can overlay tabs in guest mode; pick a problem first.
         const guestSelector = page.getByTestId('guest-selector-modal');
-        if (await guestSelector.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        try { await guestSelector.waitFor({ state: 'visible', timeout: 2_000 }); } catch {}
+        if (await guestSelector.isVisible()) {
             const randomProblemBtn = page.getByTestId('random-problem-button');
-            if (await randomProblemBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+            try { await randomProblemBtn.waitFor({ state: 'visible', timeout: 2_000 }); } catch {}
+            if (await randomProblemBtn.isVisible()) {
                 await randomProblemBtn.click();
             }
             await expect(guestSelector).toBeHidden({ timeout: 10_000 });
@@ -102,21 +104,22 @@ test.describe('Full Guest Interview Flow', () => {
 
         // ── Step 6: Mobile viewport (390×844) ──
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.waitForTimeout(500); // layout reflow
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
 
         // 6a: Click "Code" tab → editor appears, NO warning modal
         const codeTab = page.getByRole('tab', { name: /code/i });
         if (await codeTab.first().isVisible()) {
             const guestSelectorOverlay = page.getByTestId('guest-selector-modal');
-            if (await guestSelectorOverlay.isVisible({ timeout: 1_000 }).catch(() => false)) {
+            try { await guestSelectorOverlay.waitFor({ state: 'visible', timeout: 1_000 }); } catch {}
+            if (await guestSelectorOverlay.isVisible()) {
                 const randomProblemBtn = page.getByTestId('random-problem-button');
-                if (await randomProblemBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+                try { await randomProblemBtn.waitFor({ state: 'visible', timeout: 2_000 }); } catch {}
+                if (await randomProblemBtn.isVisible()) {
                     await randomProblemBtn.click();
                 }
                 await expect(guestSelectorOverlay).toBeHidden({ timeout: 10_000 });
             }
             await codeTab.first().click();
-            await page.waitForTimeout(300);
 
             // Code surface may show its toolbar before Monaco finishes mounting.
             const codeSurface = page
@@ -131,19 +134,22 @@ test.describe('Full Guest Interview Flow', () => {
             // 6b: Type code (in textarea if CodeEditor is mocked, or monaco)
             const plainTextarea = page.locator('textarea:not(.inputarea)');
             const monacoEditor = page.locator('.monaco-editor');
-            if (await monacoEditor.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+            try { await monacoEditor.first().waitFor({ state: 'visible', timeout: 2_000 }); } catch {}
+            if (await monacoEditor.first().isVisible()) {
                 // Monaco: click the editor area then type
                 await monacoEditor.first().click();
                 await page.keyboard.type('def two_sum(nums, target): pass');
-            } else if (await plainTextarea.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
-                await plainTextarea.first().fill('def two_sum(nums, target): pass');
+            } else {
+                try { await plainTextarea.first().waitFor({ state: 'visible', timeout: 2_000 }); } catch {}
+                if (await plainTextarea.first().isVisible()) {
+                    await plainTextarea.first().fill('def two_sum(nums, target): pass');
+                }
             }
 
             // 6c: Click Interview tab → interview view shown
             const interviewTab = page.getByRole('tab', { name: /interview/i });
             if (await interviewTab.first().isVisible()) {
                 await interviewTab.first().click();
-                await page.waitForTimeout(300);
 
                 // Conversation or mic button should be present in DOM
                 // (at mobile viewport it may not be visually visible due to layout)
@@ -158,7 +164,7 @@ test.describe('Full Guest Interview Flow', () => {
 
         // ── Step 7: Desktop viewport (1440×900) ──
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.waitForTimeout(500);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
 
         // 7a: Desktop layout exposes the problem/history drawer toggles and a main interview surface.
         const problemToggle = page.getByRole('button', { name: /^problem$/i }).last();
@@ -254,9 +260,9 @@ test.describe('Dashboard Empty State', () => {
 
         // At least one of these should be visible (page did not crash)
         const anyVisible =
-            (await emptyState.isVisible().catch(() => false)) ||
-            (await sessionList.first().isVisible().catch(() => false)) ||
-            (await loginRedirect.first().isVisible().catch(() => false));
+            (await emptyState.isVisible()) ||
+            (await sessionList.first().isVisible()) ||
+            (await loginRedirect.first().isVisible());
 
         // If none are visible, check we at least have a non-error page
         if (!anyVisible) {

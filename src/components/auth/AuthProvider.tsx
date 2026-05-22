@@ -59,7 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // E2E Test Bypass
             if (process.env.NODE_ENV !== 'production' &&
                 typeof document !== 'undefined' &&
-                document.cookie.includes('playwright-e2e=true')) {
+                document.cookie.includes('playwright-e2e=true') &&
+                !localStorage.getItem('playwright-force-real-auth')) {
                 if (mounted) {
                     // Provide a fake session so routing works
                     setSession({} as Session);
