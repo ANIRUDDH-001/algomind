@@ -19,6 +19,7 @@ export default defineConfig({
             'src/**/*.test.tsx',
             'tests/golden/**/*.test.ts',
             'tests/cost/**/*.test.ts',
+            'tests/fuzz/**/*.test.ts',
         ],
 
         // Exclude Playwright integration tests (they use Playwright's test.describe API)

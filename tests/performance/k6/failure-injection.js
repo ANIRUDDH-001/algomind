@@ -118,6 +118,10 @@ export default function (data) {
         r.status !== 0, // May be error, but not connection failure
       'fault-injection: faulted request not silent': (r) =>
         r.body && r.body.length > 0, // Body present (error message or partial)
+      'fault-injection: appropriate degraded/503 response': (r) => 
+        r.status === 503 || (r.status === 200 && r.body.includes('degraded')) || r.status === 429 || (r.body && r.body.includes('Service Unavailable')),
+      'fault-injection: avoids generic 500 silent failure': (r) => 
+        r.status !== 500,
     });
   } else {
     // Non-faulted requests: validate normal response
@@ -175,9 +179,9 @@ function getCurrentStage() {
   if (elapsed < 1 * 60) {
     return { stage: 'warmup', faultType: null };
   } else if (elapsed < 4 * 60) {
-    return { stage: 'window1', faultType: 'redis' };
+    return { stage: 'window1', faultType: 'redis_disconnect' };
   } else if (elapsed < 7 * 60) {
-    return { stage: 'window2', faultType: 'db' };
+    return { stage: 'window2', faultType: 'db_latency' };
   } else if (elapsed < 10 * 60) {
     return { stage: 'window3', faultType: 'provider' };
   } else {
