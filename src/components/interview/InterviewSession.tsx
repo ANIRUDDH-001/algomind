@@ -1205,6 +1205,7 @@ export function InterviewSession({
 
     return (
         <InterviewLayoutContext.Provider value={{
+            interviewConfig,
             activeProblem: activeProblem as Problem,
             limits,
             isAssessment,
