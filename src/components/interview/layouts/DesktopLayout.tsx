@@ -25,6 +25,7 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         voice,
         isProcessing,
         hasStarted,
+        activeProblem,
         handleStart,
         handleInterruption,
         setVoiceErrorDismissed,
@@ -90,13 +91,13 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                         <div className="flex-1 min-h-0 relative">
                             {hasStarted ? (
                                 <div className="absolute inset-0 pt-4 px-4 overflow-hidden">
-                                    <ConversationView messages={messages} />
+                                    <ConversationView messages={messages} isAISpeaking={voice.isSpeaking} isProcessing={isProcessing} />
                                 </div>
                             ) : (
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="text-center space-y-4 px-6 animate-in fade-in slide-in-from-bottom-4 zoom-in-95 duration-700">
                                         <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
-                                            <MicPulse isSpeaking={false} isProcessing={false} />
+                                            <MicPulse state="idle" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-white">Ready to begin?</h3>
                                         <p className="text-zinc-400 max-w-[280px] text-sm leading-relaxed mx-auto">
@@ -112,7 +113,16 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
 
                         <div className="h-[280px] shrink-0 border-t flex flex-col relative z-20" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
                             <div className="flex-1 min-h-0 p-4">
-                                <ZoomTranscript messages={messages} />
+                                <ZoomTranscript 
+                                    kaiMessage={messages.filter(m => m.role === 'assistant').pop()?.content || null}
+                                    userTranscript={voice.transcript}
+                                    isKaiSpeaking={voice.isSpeaking}
+                                    isUserSpeaking={voice.isListening}
+                                    isThinking={isProcessing}
+                                    conceptSlug={activeProblem.id}
+                                    conceptIcon="💻"
+                                    exchangeCount={messages.length}
+                                />
                             </div>
 
                             <div className="h-20 shrink-0 border-t flex items-center justify-center bg-black/40 px-6 backdrop-blur-xl" style={{ borderColor: 'var(--surface-edge)' }}>
@@ -129,11 +139,8 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                                 ) : (
                                     <MicrophoneButton
                                         isListening={voice.isListening}
-                                        isSpeaking={voice.isSpeaking}
-                                        isProcessing={isProcessing}
-                                        hasStarted={hasStarted}
                                         error={voice.error}
-                                        onToggle={() => {
+                                        onClick={() => {
                                             if (voice.isListening || isProcessing || voice.isSpeaking) {
                                                 handleInterruption();
                                             } else {

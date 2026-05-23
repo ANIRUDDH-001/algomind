@@ -94,6 +94,7 @@ vi.mock('lucide-react', () => ({
     Loader2: () => <svg />,
     Volume2: () => <svg />,
     Settings: () => <svg />,
+    Zap: () => <svg />,
 }));
 
 // ─── Mock Switch to a simple checkbox for easy interaction ───

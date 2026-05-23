@@ -61,6 +61,10 @@ export async function POST(req: NextRequest) {
             sessionToken,
         } = body;
 
+        if (!messages || !Array.isArray(messages)) {
+            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
+        }
+
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
         const userIdHeader = req.headers.get('x-user-id');
@@ -227,6 +231,7 @@ export async function POST(req: NextRequest) {
         // When the client sends `Accept: text/event-stream` we stream tokens from
         // the provider directly. This bypasses the classification / smart-routing
         // layer of generateResponse() in favour of first-token latency.
+        const client = getAIClient();
         const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
 
         if (acceptsStream) {

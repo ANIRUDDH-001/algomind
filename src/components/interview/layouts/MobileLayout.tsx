@@ -26,7 +26,7 @@ export function MobileLayout({
     const {
         activeTab,
         setActiveTab,
-        problem,
+        activeProblem,
         voice,
         isProcessing,
         hasStarted,
@@ -41,14 +41,9 @@ export function MobileLayout({
     } = useInterviewLayout();
 
     const { handlers: swipeHandlers } = useSwipeNavigation({
-        onSwipeLeft: () => {
-            const nextTab = MOBILE_TABS[Math.min(MOBILE_TABS.indexOf(activeTab as MobileTab) + 1, MOBILE_TABS.length - 1)];
-            if (nextTab) setActiveTab(nextTab as MobileTab);
-        },
-        onSwipeRight: () => {
-            const prevTab = MOBILE_TABS[Math.max(MOBILE_TABS.indexOf(activeTab as MobileTab) - 1, 0)];
-            if (prevTab) setActiveTab(prevTab as MobileTab);
-        }
+        tabs: MOBILE_TABS,
+        activeTab: activeTab as MobileTab,
+        onTabChange: (tab) => setActiveTab(tab),
     });
 
     return (
@@ -87,7 +82,7 @@ export function MobileLayout({
                                     onCodeChange={setUserCode}
                                     defaultLanguage={codeLanguage}
                                     initialCode={userCode}
-                                    problemTitle={problem?.title}
+                                    problemTitle={activeProblem?.title}
                                     onLanguageChange={setCodeLanguage}
                                     onExecutionStart={() => {
                                         setIsCodeRunning(true);

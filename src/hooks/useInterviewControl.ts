@@ -323,10 +323,12 @@ export function useInterviewControl({
             console.log(`[submitUserResponse] Speaking AI reply (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
 
-            voice.speak(responseText).catch((err: any) => {
+            try {
+                voice.speak(responseText);
+            } catch (err: any) {
                 voice.setTtsError(true);
                 console.error('[submitUserResponse] TTS failed', err);
-            });
+            }
 
             if (smartPauseTimerRef.current) {
                 clearTimeout(smartPauseTimerRef.current);
@@ -507,10 +509,12 @@ export function useInterviewControl({
             console.log(`[startInterview] Speaking intro (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
             
-            voice.speak(responseText).catch((err: any) => {
+            try {
+                voice.speak(responseText);
+            } catch (err: any) {
                 voice.setTtsError(true);
                 console.error('[startInterview] TTS failed', err);
-            });
+            }
 
             setIsProcessing(false);
 

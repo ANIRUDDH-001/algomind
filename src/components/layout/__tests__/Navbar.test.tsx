@@ -102,6 +102,7 @@ vi.mock('lucide-react', () => ({
     Brain: (props: any) => <span data-testid="icon-brain" className={props.className} />,
     LogIn: (props: any) => <span data-testid="icon-login" className={props.className} />,
     Sparkles: (props: any) => <span data-testid="icon-sparkles" className={props.className} />,
+    BookOpen: (props: any) => <span data-testid="icon-bookopen" className={props.className} />,
 }));
 
 // ─── Import mocks for direct access ───
@@ -180,8 +181,8 @@ describe('Navbar Component', () => {
             const bottomNavs = container.querySelectorAll('nav');
             const bottomNav = Array.from(bottomNavs).find(n => n.className.includes('bottom-0'));
             const links = bottomNav?.querySelectorAll('a');
-            // Candidate has: Home, Learn, Progress, Settings (Total 4)
-            expect(links?.length).toBe(4);
+            // Candidate has: Home, Practice, Learn, Progress, Settings (Total 5)
+            expect(links?.length).toBe(5);
         });
     });
 
