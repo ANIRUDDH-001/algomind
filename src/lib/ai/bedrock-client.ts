@@ -15,7 +15,7 @@
  * Region: AWS_BEDROCK_REGION env var (default: us-east-1)
  */
 
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, InvokeModelCommand, InvokeModelWithResponseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
 import type { Message } from './client';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 
@@ -180,6 +180,69 @@ export async function callBedrockModel(
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     return parseResponse(modelId, responseBody);
+}
+
+/**
+ * Stream a Bedrock model using InvokeModelWithResponseStreamCommand.
+ */
+export async function* streamBedrockModel(
+    modelId: string,
+    messages: Message[],
+    systemPrompt?: string,
+    maxTokens = 4096,
+    signal?: AbortSignal
+): AsyncGenerator<string> {
+    const enabled = await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
+    if (!enabled) throw new Error('AWS Bedrock is disabled');
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+    const body = buildPayload(modelId, messages, systemPrompt, maxTokens);
+    const command = new InvokeModelWithResponseStreamCommand({
+        modelId,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body,
+    });
+
+    const response = await getBedrockClient().send(command);
+    if (!response.body) throw new Error('Empty response body from Bedrock');
+
+    const decoder = new TextDecoder();
+    for await (const event of response.body) {
+        if (signal?.aborted) break;
+        if (event.chunk && event.chunk.bytes) {
+            const chunkText = decoder.decode(event.chunk.bytes, { stream: true });
+            // AWS can send multiple JSON objects in one chunk separated by newlines sometimes, though typically event.chunk is one JSON.
+            const lines = chunkText.split('\n').filter(l => l.trim() !== '');
+            for (const line of lines) {
+                try {
+                    const parsed = JSON.parse(line);
+                    const family = detectModelFamily(modelId);
+                    
+                    let text = '';
+                    if (family === 'anthropic') {
+                        if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                            text = parsed.delta.text;
+                        } else if (parsed.completion) {
+                            text = parsed.completion;
+                        }
+                    } else if (family === 'openai') {
+                        if (parsed.choices?.[0]?.delta?.content) {
+                            text = parsed.choices[0].delta.content;
+                        }
+                    } else if (parsed.content && Array.isArray(parsed.content)) {
+                        text = parsed.content[0]?.text || '';
+                    } else if (parsed.choices && Array.isArray(parsed.choices)) {
+                        text = parsed.choices[0]?.delta?.content || '';
+                    }
+
+                    if (text) yield text;
+                } catch (e) {
+                    console.warn('[Bedrock Stream] Parse error:', e);
+                }
+            }
+        }
+    }
 }
 
 /**

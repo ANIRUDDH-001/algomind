@@ -320,14 +320,13 @@ export function useInterviewControl({
                 return;
             }
 
-            console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
+            console.log(`[submitUserResponse] Speaking AI reply (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
 
-            const ttsOk = await voice.speakAndWait(responseText, 3);
-            if (!ttsOk) {
+            voice.speak(responseText).catch((err: any) => {
                 voice.setTtsError(true);
-                console.error('[submitUserResponse] TTS failed after 3 retries');
-            }
+                console.error('[submitUserResponse] TTS failed', err);
+            });
 
             if (smartPauseTimerRef.current) {
                 clearTimeout(smartPauseTimerRef.current);
@@ -505,13 +504,13 @@ export function useInterviewControl({
 
             msgs.addMessage(aiMsg);
 
-            console.log(`[startInterview] Speaking intro (serial), textLen=${responseText.length}`);
+            console.log(`[startInterview] Speaking intro (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
-            const ttsOk = await voice.speakAndWait(responseText, 3);
-            if (!ttsOk) {
+            
+            voice.speak(responseText).catch((err: any) => {
                 voice.setTtsError(true);
-                console.error('[startInterview] TTS failed after 3 retries');
-            }
+                console.error('[startInterview] TTS failed', err);
+            });
 
             setIsProcessing(false);
 

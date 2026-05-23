@@ -174,6 +174,8 @@ export function useInterview(options: UseInterviewOptions) {
     const transcriptRef = useRef('');
     useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
+    const vadLastUpdateRef = useRef<number>(0);
+
     // Interview limits — consolidated into a single reducer.
     const [roundState, dispatchRound] = useReducer(roundReducer, INITIAL_ROUND_STATE);
     const roundCount = roundState.count;
@@ -319,8 +321,11 @@ export function useInterview(options: UseInterviewOptions) {
             stt.transcribeAudio(audio);
         },
         onFrameProcessed: (prob: number) => {
-            // A7: Feed live probability to the visualizer bar.
-            dispatchVoice({ type: 'SET_VAD_PROBABILITY', value: prob });
+            const now = Date.now();
+            if (now - vadLastUpdateRef.current > 66) { // ~15 fps
+                dispatchVoice({ type: 'SET_VAD_PROBABILITY', value: prob });
+                vadLastUpdateRef.current = now;
+            }
         },
         onFallback: () => {
             console.warn('[useInterview] VAD failed, cascading to browser STT');
@@ -487,6 +492,7 @@ export function useInterview(options: UseInterviewOptions) {
                 const decoder = new TextDecoder();
                 let buffer = '';
                 let fullText = '';
+                let sseLastUpdate = 0;
 
                 try {
                     while (true) {
@@ -516,10 +522,14 @@ export function useInterview(options: UseInterviewOptions) {
                             if (typeof parsed.delta === 'string' && parsed.delta.length > 0) {
                                 fullText += parsed.delta;
                                 if (streamingMessageId) {
-                                    const snapshot = fullText;
-                                    setMessages(prev => prev.map(m =>
-                                        m.id === streamingMessageId ? { ...m, content: snapshot } : m
-                                    ));
+                                    const now = Date.now();
+                                    if (now - sseLastUpdate > 50) { // ~20fps max updates
+                                        const snapshot = fullText;
+                                        setMessages(prev => prev.map(m =>
+                                            m.id === streamingMessageId ? { ...m, content: snapshot } : m
+                                        ));
+                                        sseLastUpdate = now;
+                                    }
                                 }
                             }
                             if (parsed.done && typeof parsed.fullText === 'string' && parsed.fullText.length > 0) {
@@ -730,24 +740,23 @@ export function useInterview(options: UseInterviewOptions) {
             // Previously fired here before TTS, allowing auto-submit during playback
 
             // Serial TTS: await full speech completion, then activate mic
-            console.log(`[submitUserResponse] Speaking AI reply (serial), textLen=${responseText.length}`);
+            console.log(`[submitUserResponse] Speaking AI reply (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
-            const ttsOk = await speakAndWait(responseText, 3);
-            if (!ttsOk) {
+            
+            // Fire-and-forget TTS to unblock UI immediately
+            speak(responseText).catch(err => {
                 dispatchVoice({ type: 'SET_TTS_ERROR', value: true });
-                console.error('[submitUserResponse] TTS failed after 3 retries');
-            }
+                console.error('[submitUserResponse] TTS failed', err);
+            });
 
-            // A1 fix: Cancel smartPauseTimer after TTS completes
+            // Cancel smartPauseTimer since TTS is async now
             if (smartPauseTimerRef.current) {
                 clearTimeout(smartPauseTimerRef.current);
                 smartPauseTimerRef.current = null;
             }
 
-            // A1 fix: NOW set isProcessing false — after TTS is done
+            // Unlock UI immediately so user can respond or interrupt
             setIsProcessing(false);
-
-            // TTS done (or interrupted by smart pause) → activate mic
             setMicStoppedManually(false);
             setMicIntent('auto-on');
 
@@ -994,18 +1003,17 @@ export function useInterview(options: UseInterviewOptions) {
             // A1 fix: setIsProcessing(false) MOVED to after speakAndWait
 
             // Serial TTS: await full speech completion, then activate mic
-            console.log(`[startInterview] Speaking intro (serial), textLen=${responseText.length}`);
+            console.log(`[startInterview] Speaking intro (parallel), textLen=${responseText.length}`);
             currentAiTextRef.current = responseText;
-            const ttsOk = await speakAndWait(responseText, 3);
-            if (!ttsOk) {
+            
+            // Fire-and-forget TTS to unblock UI
+            speak(responseText).catch(err => {
                 dispatchVoice({ type: 'SET_TTS_ERROR', value: true });
-                console.error('[startInterview] TTS failed after 3 retries');
-            }
+                console.error('[startInterview] TTS failed', err);
+            });
 
-            // A1 fix: NOW set isProcessing false — after TTS is done
+            // Unlock UI immediately
             setIsProcessing(false);
-
-            // TTS done → activate mic and VAD
             setMicStoppedManually(false);
             setMicIntent('auto-on');
 

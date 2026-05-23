@@ -1068,21 +1068,18 @@ export class UnifiedAIClient {
     }
 
     /**
-     * Bedrock streaming — single-chunk fallback for Phase 2.
-     * True `InvokeModelWithResponseStreamCommand` is deferred to a later phase;
-     * for now we call `callBedrockModel()` and yield the full response as one chunk.
-     * The AbortSignal is propagated so interruptions still cancel the Bedrock call.
+     * Bedrock streaming — True streaming via InvokeModelWithResponseStreamCommand.
      */
     private async *streamBedrock(
         messages: Message[],
         options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
     ): AsyncGenerator<string> {
-        const { callBedrockModel } = await import('./bedrock-client');
+        const { streamBedrockModel } = await import('./bedrock-client');
         const models = await getActiveModels();
         const bedrockModels = models.filter(m => m.provider === 'bedrock');
         const modelId = bedrockModels[0]?.id ?? 'openai.gpt-oss-120b-1:0';
 
-        const response = await callBedrockModel(
+        const stream = streamBedrockModel(
             modelId,
             messages,
             options.systemPrompt,
@@ -1090,10 +1087,7 @@ export class UnifiedAIClient {
             options.signal
         );
 
-        yield* this.filterThinkTags(
-            (async function* () { yield response; })(),
-            options.signal
-        );
+        yield* this.filterThinkTags(stream, options.signal);
     }
 
     /**

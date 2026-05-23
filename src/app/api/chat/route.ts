@@ -70,116 +70,76 @@ export async function POST(req: NextRequest) {
             return withCorrelationIdResponse(ApiErrors.unauthorized('Unauthorized'));
         }
 
-        if (user) {
-            if (process.env.NODE_ENV === 'development') {
-                console.info(`👤 [Chat API] Authenticated user: ${user.id}`);
-            }
-            if (!guestMode) {
-                const rateLimit = await checkUserRateLimit(user.id);
-                if (!rateLimit.allowed) {
-                    return withCorrelationIdResponse(ApiErrors.rateLimited('Rate limit exceeded'));
-                }
-            }
-        } else if (guestMode) {
-            if (process.env.NODE_ENV === 'development') {
-                console.info('👀 [Chat API] Guest mode access');
-            }
-            const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-                ?? req.headers.get('x-real-ip')
-                ?? 'unknown';
-            const ipRateLimit = await checkIpRateLimit(ip, {
-                maxRequests: 100,
-                windowSeconds: 86400,
-                endpoint: 'chat',
-            });
-            if (!ipRateLimit.success) {
-                return withCorrelationIdResponse(ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.'));
-            }
-        }
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            ?? req.headers.get('x-real-ip')
+            ?? 'unknown';
 
-        if (!messages || !Array.isArray(messages)) {
-            return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
-        }
+        // ── Parallelize Pre-AI Data Fetching ──────────────────────────────
+        const rateLimitPromise = user && !guestMode
+            ? checkUserRateLimit(user.id)
+            : guestMode
+                ? checkIpRateLimit(ip, { maxRequests: 100, windowSeconds: 86400, endpoint: 'chat' })
+                : Promise.resolve({ allowed: true, success: true });
 
-        if (clientSessionId) {
-            const { data: session, error: sessionError } = await supabase
-                .from('interview_sessions')
-                .select('status')
-                .eq('id', clientSessionId)
-                .single();
+        const sessionStatusPromise = clientSessionId
+            ? supabase.from('interview_sessions').select('status').eq('id', clientSessionId).single()
+            : Promise.resolve(null);
 
-            if (!sessionError && session?.status === 'completed') {
-                return withCorrelationIdResponse(apiError(
-                    409,
-                    ErrorCodes.SESSION_NOT_ACTIVE,
-                    'This interview session has been completed.'
-                ));
-            }
-        }
-
-        // ── Phase-aware RAG ───────────────────────────────────────────────
         const STATE_TO_PHASE: Record<string, InterviewPhase> = {
-            'idle': 'intro',
-            'problem-intro': 'intro',
-            'user-thinking': 'approach',
-            'ai-clarifying': 'approach',
-            'user-solving': 'coding',
-            'user-coding': 'coding',
-            'ai-feedback': 'coding',
-            'solution-review': 'wrap-up',
-            'assessment': 'wrap-up',
-            'completed': 'wrap-up',
+            'idle': 'intro', 'problem-intro': 'intro', 'user-thinking': 'approach', 'ai-clarifying': 'approach',
+            'user-solving': 'coding', 'user-coding': 'coding', 'ai-feedback': 'coding',
+            'solution-review': 'wrap-up', 'assessment': 'wrap-up', 'completed': 'wrap-up',
         };
 
-        let ragContext = '';
-        if (!guestMode && interviewState && problemContext?.title) {
-            // Server-side phase-aware RAG
-            const phase = STATE_TO_PHASE[interviewState] ?? 'approach';
-            try {
-                const phaseRag = await getPhaseContext(
-                    supabase,
-                    clientSessionId || 'default',
-                    phase,
-                    problemContext.title,
-                    problemContext.tags ?? []
-                );
-                if (phaseRag && phaseRag !== 'No relevant context found.') {
-                    ragContext = phaseRag;
-                    if (process.env.NODE_ENV === 'development') {
-                        console.info(`📚 [RAG] Phase-aware context (${phase}): ${ragContext.length} chars`);
-                    }
-                }
-            } catch (err) {
-                console.warn('⚠️ [RAG] Phase-aware retrieval failed, falling back to static:', err);
-            }
-        }
-
-        // Fallback to static pre-embedded context
-        if (!ragContext && problemContext?.ragContext && problemContext.ragContext.length > 0) {
-            ragContext = problemContext.ragContext;
-            if (process.env.NODE_ENV === 'development') {
-                console.info(`📚 [RAG] Using pre-embedded context (${ragContext.length} chars) - fallback`);
-            }
-        }
-
-        const client = getAIClient();
+        const ragPromise = (!guestMode && interviewState && problemContext?.title)
+            ? getPhaseContext(
+                supabase,
+                clientSessionId || 'default',
+                STATE_TO_PHASE[interviewState] ?? 'approach',
+                problemContext.title,
+                problemContext.tags ?? []
+            ).catch(err => {
+                console.warn('⚠️ [RAG] Phase-aware retrieval failed:', err);
+                return null;
+            })
+            : Promise.resolve(null);
 
         const effectiveSessionId = clientSessionId || sessionToken || null;
-        const callerScope = user?.id || (guestMode ? (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'guest') : 'anon');
+        const callerScope = user?.id || (guestMode ? ip : 'anon');
         const promptCacheKey = effectiveSessionId
             ? `ai:chat:system-prompt:${callerScope}:${effectiveSessionId}`
             : null;
 
-        // Build and persist prompt server-side to avoid client-driven prompt overrides.
-        let baseSystemPrompt = '';
+        const promptCachePromise = promptCacheKey ? redisGet(promptCacheKey).catch(() => null) : Promise.resolve(null);
 
-        if (promptCacheKey) {
-            const cached = await redisGet(promptCacheKey);
-            if (cached) {
-                baseSystemPrompt = cached;
+        const [rateLimitResult, sessionStatusResult, ragResult, cachedPrompt] = await Promise.all([
+            rateLimitPromise,
+            sessionStatusPromise,
+            ragPromise,
+            promptCachePromise
+        ]);
+
+        // Evaluate results
+        if (user && !guestMode) {
+            if (!(rateLimitResult as { allowed: boolean }).allowed) {
+                return withCorrelationIdResponse(ApiErrors.rateLimited('Rate limit exceeded'));
+            }
+        } else if (guestMode) {
+            if (!(rateLimitResult as { success: boolean }).success) {
+                return withCorrelationIdResponse(ApiErrors.rateLimited('Guest rate limit exceeded. Please try again later.'));
             }
         }
 
+        if (sessionStatusResult?.data?.status === 'completed') {
+            return withCorrelationIdResponse(apiError(409, ErrorCodes.SESSION_NOT_ACTIVE, 'This interview session has been completed.'));
+        }
+
+        let ragContext = ragResult && ragResult !== 'No relevant context found.' ? ragResult : '';
+        if (!ragContext && problemContext?.ragContext) {
+            ragContext = problemContext.ragContext;
+        }
+
+        let baseSystemPrompt = cachedPrompt || '';
         if (!baseSystemPrompt && problemContext?.title && problemContext?.content) {
             baseSystemPrompt = generateSystemPromptLegacy(
                 {
@@ -193,37 +153,36 @@ export async function POST(req: NextRequest) {
                 'practice'
             );
         }
-
         if (!baseSystemPrompt) {
             baseSystemPrompt = generateSystemPromptLegacy(undefined, ragContext, 'practice');
         }
 
-        if (promptCacheKey) {
-            await redisSet(promptCacheKey, baseSystemPrompt, 7200);
+        if (promptCacheKey && !cachedPrompt) {
+            redisSet(promptCacheKey, baseSystemPrompt, 7200).catch(() => {});
         }
 
         let enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${baseSystemPrompt}`;
         if (typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) {
             enhancedSystemPrompt = `${buildPromptVersionHeader(PROMPT_VERSION_TAGS.interviewChat)}\n${systemPrompt.trim()}`;
         }
-    const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
+        const hasStudentContextBlock = /<student_context>[\s\S]*?<\/student_context>/i.test(enhancedSystemPrompt);
 
         const isFirstTurn = (messages?.filter((message) => message.role === 'user').length ?? 0) <= 1;
-        const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer')
-            || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
-
+        const looksLikeInterviewerPrompt = enhancedSystemPrompt.includes('ROLE: Kai - Technical Interviewer') || enhancedSystemPrompt.includes('ROLE: Kai — Technical Interviewer');
         const isNewInterviewSession = !guestMode && Boolean(user?.id) && isFirstTurn && looksLikeInterviewerPrompt;
 
+        let studentContext: StudentContext | undefined;
         if (isNewInterviewSession && user?.id) {
-            const limitResult = await checkWeeklySessionLimit(user.id, 'interview');
+            const [limitResult, scResult] = await Promise.all([
+                checkWeeklySessionLimit(user.id, 'interview'),
+                buildStudentContext(user.id).catch(() => undefined)
+            ]);
+
             if (!limitResult.allowed) {
                 return withCorrelationIdResponse(apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
                     retryable: true,
                     user_action: 'upgrade',
-                    headers: {
-                        'X-Sessions-Used': String(limitResult.sessionsUsed),
-                        'X-Sessions-Limit': String(limitResult.limit),
-                    },
+                    headers: { 'X-Sessions-Used': String(limitResult.sessionsUsed), 'X-Sessions-Limit': String(limitResult.limit) },
                 }));
             }
 
@@ -234,15 +193,7 @@ export async function POST(req: NextRequest) {
                     user_action: 'upgrade',
                 }));
             }
-        }
-
-        let studentContext: StudentContext | undefined;
-        if (!guestMode && user?.id && isFirstTurn && looksLikeInterviewerPrompt) {
-            try {
-                studentContext = await buildStudentContext(user.id);
-            } catch {
-                // Student context build is non-fatal.
-            }
+            studentContext = scResult;
         }
 
         if (studentContext && !hasStudentContextBlock) {
