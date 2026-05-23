@@ -10,6 +10,9 @@ import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
+import { DesktopLayout } from './layouts/DesktopLayout';
+import { MobileLayout } from './layouts/MobileLayout';
+import { InterviewLayoutContext } from './InterviewLayoutContext';
 import { InterviewLimitBar } from './InterviewLimitBar';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 // Voice & Layout
@@ -879,221 +882,7 @@ export function InterviewSession({
         );
     };
 
-    const renderDesktopLayout = () => {
-        const leetcodeUrl = activeProblem.external_url || `https://leetcode.com/problemset/all/?search=${encodeURIComponent(activeProblem.title)}`;
 
-        return (
-            <div className="hidden lg:flex flex-1 min-h-0 w-full">
-                <ResizablePanelGroup direction="horizontal" className="h-full w-full">
-                    <ResizablePanel defaultSize={50} minSize={35}>
-                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
-                            <ResizablePanel defaultSize={48} minSize={32}>
-                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)', borderBottom: '1px solid var(--surface-edge)' }}>
-                                    <div className="h-full rounded-xl border p-3 flex flex-col" style={{ borderColor: 'var(--surface-edge)' }}>
-                                        <div className="flex items-center justify-between gap-3 border-b pb-2" style={{ borderColor: 'var(--surface-edge)' }}>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-semibold text-zinc-100 truncate">{activeProblem.title}</p>
-                                                <div className="mt-1 flex items-center gap-2 min-w-0">
-                                                <Badge variant="outline" className="uppercase border-indigo-500/40 bg-indigo-500/10 text-indigo-300">{activeProblem.difficulty}</Badge>
-                                                <div className={cn(
-                                                    'text-xs font-mono px-2 py-1 rounded border',
-                                                    limits.timeRemaining <= 60 ? 'text-red-400 border-red-500/40 bg-red-500/10' :
-                                                        limits.timeRemaining <= 300 ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' :
-                                                            'text-zinc-300 border-zinc-700 bg-zinc-900/40'
-                                                )}>
-                                                    {limits.formattedElapsed}
-                                                </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {!isAssessment && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={handleBackNavigation}
-                                                        className="h-8 px-2.5 text-[11px] font-bold text-zinc-300 border-zinc-700 hover:text-white hover:bg-zinc-800"
-                                                    >
-                                                        <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-                                                        Back
-                                                    </Button>
-                                                )}
-                                                <a
-                                                    href={leetcodeUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-200"
-                                                >
-                                                    <BookOpen className="w-3.5 h-3.5" />
-                                                    LeetCode
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                                            {renderProblemCardContent(true, false)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </ResizablePanel>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={52} minSize={30}>
-                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderRight: '1px solid var(--surface-edge)' }}>
-                                    <div className="h-full rounded-xl border relative overflow-hidden" style={{ borderColor: 'var(--surface-edge)' }}>
-                                        <div className="absolute inset-0 flex flex-col">
-                                            <div className="px-3 py-2 border-b text-xs uppercase tracking-wider text-zinc-500 font-bold" style={{ borderColor: 'var(--surface-edge)' }}>AI Interaction Hub</div>
-                                            <div className="flex-1 min-h-0 relative">
-                                                <ConversationView
-                                                    messages={messages}
-                                                    isAISpeaking={voice.isSpeaking}
-                                                    isProcessing={isProcessing}
-                                                />
-                                                {(voice.isListening || voice.isSpeaking) && (
-                                                    <div className="absolute inset-x-3 bottom-3 pointer-events-none rounded-xl border bg-black/25 p-3" style={{ borderColor: 'var(--surface-edge)' }}>
-                                                        <ZoomTranscript
-                                                            kaiMessage={[...messages].reverse().find(m => m.role === 'assistant')?.content ?? null}
-                                                            userTranscript={voice.transcript || voice.interimTranscript}
-                                                            isKaiSpeaking={voice.isSpeaking}
-                                                            isUserSpeaking={voice.isListening}
-                                                            isThinking={isProcessing}
-                                                            conceptSlug="interview"
-                                                            conceptIcon=""
-                                                            exchangeCount={messages.filter(m => m.role === 'user').length}
-                                                            className="gap-2"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="px-3 py-4 border-t" style={{ borderColor: 'var(--surface-edge)' }}>
-                                                {!hasStarted ? (
-                                                    <Button
-                                                        size="lg"
-                                                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-12 rounded-xl"
-                                                        onClick={handleStart}
-                                                        data-tour="begin-button"
-                                                        data-testid="begin-interview-btn"
-                                                    >
-                                                        Begin Interview Experience
-                                                    </Button>
-                                                ) : (
-                                                    <div className="relative flex items-center justify-center">
-                                                        <div className="absolute">
-                                                            <MicPulse
-                                                                size="full"
-                                                                state={voice.isListening ? 'listening' : isProcessing ? 'processing' : voice.isSpeaking ? 'speaking' : 'idle'}
-                                                                className="scale-125"
-                                                            />
-                                                        </div>
-                                                        <div className="relative z-10">
-                                                            <MicrophoneButton
-                                                                isListening={voice.isListening}
-                                                                error={voice.error?.message}
-                                                                onClick={() => {
-                                                                    if (voice.isSpeaking) {
-                                                                        voice.stopSpeaking();
-                                                                        handleInterruption();
-                                                                        return;
-                                                                    }
-                                                                    if (voice.isListening) {
-                                                                        voice.stopListening();
-                                                                    } else if (!isProcessing) {
-                                                                        voice.startListening();
-                                                                    }
-                                                                }}
-                                                                onRetry={() => {
-                                                                    setVoiceErrorDismissed(false);
-                                                                    voice.startListening();
-                                                                }}
-                                                                disabled={isProcessing || isLimitLocked}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </ResizablePanel>
-                        </ResizablePanelGroup>
-                    </ResizablePanel>
-                    <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={50} minSize={35}>
-                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
-                            <ResizablePanel defaultSize={62} minSize={36}>
-                                <div className="h-full p-3" style={{ background: 'var(--surface-1)', borderBottom: '1px solid var(--surface-edge)' }}>
-                                    <div className="h-full rounded-xl border overflow-hidden relative" style={{ borderColor: 'var(--surface-edge)' }}>
-                                        <div className="absolute top-3 right-3 z-30 pointer-events-none">
-                                            {showBadge && (
-                                                <div
-                                                    key={lastBadgeSkill + badgeTriggerPhrase}
-                                                    className="cognitive-badge-in relative overflow-hidden rounded-xl border px-3 py-2.5 bg-white/10 backdrop-blur-3xl shadow-[0_16px_56px_rgba(0,0,0,0.45)] ring-1 ring-white/20"
-                                                    style={{ borderColor: 'rgba(255,255,255,0.28)' }}
-                                                >
-                                                    <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-300/16 via-white/4 to-violet-300/12" />
-                                                    <p className="text-[10px] uppercase tracking-wider text-indigo-200 font-bold">Cognitive signal</p>
-                                                    <p className="text-xs text-white font-semibold">{lastBadgeSkill}</p>
-                                                    <p className="text-[11px] text-zinc-100/90">{badgeTriggerPhrase}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <CodeEditor
-                                            onCodeChange={setUserCode}
-                                            defaultLanguage={codeLanguage}
-                                            initialCode={userCode}
-                                            problemTitle={problem?.title}
-                                            onLanguageChange={setCodeLanguage}
-                                            onExecutionStart={() => {
-                                                setIsCodeRunning(true);
-                                                setExecutionResult(null);
-                                            }}
-                                            onExecutionResult={(result) => {
-                                                setExecutionResult(result);
-                                                setIsCodeRunning(false);
-                                            }}
-                                            readOnly={readOnly}
-                                            runDisabled={isLimitLocked || !hasStarted}
-                                        />
-                                    </div>
-                                </div>
-                            </ResizablePanel>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={38} minSize={26}>
-                                <div className="h-full p-3" style={{ background: 'var(--surface-1)' }}>
-                                    <div className="h-full rounded-xl border overflow-hidden" style={{ borderColor: 'var(--surface-edge)' }}>
-                                        <ResizablePanelGroup direction="vertical" className="h-full w-full">
-                                            <ResizablePanel defaultSize={74} minSize={40}>
-                                                <div className="h-full p-3 flex flex-col gap-3">
-                                                    <div className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Console & Control</div>
-                                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                                                        <TestCasePanel
-                                                            testCases={derivedTestCases}
-                                                            executionResult={executionResult}
-                                                            isRunning={isCodeRunning}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </ResizablePanel>
-                                            <ResizableHandle withHandle />
-                                            <ResizablePanel defaultSize={26} minSize={16}>
-                                                <div className="h-full p-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--surface-edge)' }}>
-                                                    <Button
-                                                        onClick={() => shareCodeWithAI(userCode)}
-                                                        disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked || !hasStarted}
-                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 rounded-lg"
-                                                    >
-                                                        <Send className="w-4 h-4 mr-2" />
-                                                        Submit to Kai
-                                                    </Button>
-                                                </div>
-                                            </ResizablePanel>
-                                        </ResizablePanelGroup>
-                                    </div>
-                                </div>
-                            </ResizablePanel>
-                        </ResizablePanelGroup>
-                    </ResizablePanel>
-                </ResizablePanelGroup>
-            </div>
-        );
-    };
 
     const renderInteractionArea = (isMobile: boolean) => (
         <div className="flex-1 h-full min-h-0 container mx-auto relative flex flex-col items-center justify-center px-4" style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.05) 0%, transparent 70%)' }}>
@@ -1415,7 +1204,57 @@ export function InterviewSession({
     // --- MAIN RETURN --- //
 
     return (
-        <div className="h-full flex flex-col w-full overflow-y-auto overflow-x-hidden" style={{ background: 'var(--surface-base)' }} data-tour="interview-container">
+        <InterviewLayoutContext.Provider value={{
+            activeProblem: activeProblem as Problem,
+            limits,
+            isAssessment,
+            handleBackNavigation,
+            messages,
+            voice,
+            isProcessing,
+            hasStarted,
+            handleStart,
+            handleInterruption,
+            setVoiceErrorDismissed,
+            isLimitLocked,
+            showBadge,
+            lastBadgeSkill,
+            badgeTriggerPhrase,
+            readOnly,
+            derivedTestCases,
+            executionResult,
+            isCodeRunning,
+            userCode,
+            setUserCode,
+            codeLanguage,
+            setCodeLanguage,
+            setIsCodeRunning,
+            setExecutionResult,
+            shareCodeWithAI,
+            activeTab,
+            setActiveTab,
+            showCodeEditor,
+            setShowCodeEditor,
+            endInterview,
+            handleFinish,
+            roundCount,
+            isAnalyzing,
+            sendCountdown,
+            ttsError,
+            micStoppedManually,
+            submitUserResponse,
+            interviewStartTime,
+            isLimitReached,
+            limitReason,
+            weeklyLimitStatus,
+            openUpgradeModal,
+            isGuest,
+            guestSession,
+            showLoginModal,
+            isPushToTalk,
+            isReviewMode
+        }}>
+            <div className="h-full flex flex-col w-full overflow-y-auto overflow-x-hidden" style={{ background: 'var(--surface-base)' }} data-tour="interview-container">
             {isAnalyzing && <AssessmentLoader />}
             {error && (
                 error.includes('VAD Initialization Failed') || error.includes('Voice Activity Detection') || error.includes('AudioWorklet') ? (
@@ -1475,114 +1314,17 @@ export function InterviewSession({
             {hasStarted && <VoiceOnboarding />}
 
             {/* NEW DESKTOP LAYOUT */}
-            {renderDesktopLayout()}
+            <div className="hidden lg:flex flex-1 min-h-0 w-full">
+                <DesktopLayout renderProblemCardContent={renderProblemCardContent} />
+            </div>
 
             {/* MOBILE LAYOUT w/ Swipe Tabs */}
-            <div
-                className="lg:hidden flex-1 w-full h-full relative"
-                {...swipeHandlers}
-                style={{ touchAction: 'pan-y' }}
-            >
-                <div className="absolute inset-0 flex flex-col overflow-hidden pb-14">
-                    {activeTab === 'problem' && (
-                        <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-left-4">
-                            <div className="flex-1">{renderProblemCardContent()}</div>
-                            <div className="mt-4 shrink-0">{renderControlsCard()}</div>
-                        </div>
-                    )}
-
-                    {activeTab === 'interview' && (
-                        <div className="flex-1 w-full h-full animate-in fade-in zoom-in-95">
-                            {renderInteractionArea(true)}
-                        </div>
-                    )}
-
-                    {activeTab === 'code' && (
-                        <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-bottom-4">
-                            <Card className="h-full flex flex-col shadow-xl rounded-2xl overflow-hidden border" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
-                                <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: 'var(--surface-edge)' }}>
-                                    <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-[12px]">
-                                        <Code className="w-3.5 h-3.5" /> Code
-                                    </div>
-                                    <button onClick={() => setActiveTab('interview')} className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
-                                        ×
-                                    </button>
-                                </div>
-                                <div className="flex-1 flex flex-col gap-2 p-2">
-                                    <CodeEditor
-                                        onCodeChange={setUserCode}
-                                        defaultLanguage={codeLanguage}
-                                        initialCode={userCode}
-                                        problemTitle={problem?.title}
-                                        onLanguageChange={setCodeLanguage}
-                                        onExecutionStart={() => {
-                                            setIsCodeRunning(true);
-                                            setExecutionResult(null);
-                                        }}
-                                        onExecutionResult={(result) => {
-                                            setExecutionResult(result);
-                                            setIsCodeRunning(false);
-                                        }}
-                                        runDisabled={isLimitLocked || !hasStarted}
-                                    />
-                                    <Button onClick={() => shareCodeWithAI(userCode)} disabled={!userCode.trim() || isProcessing || voice.isSpeaking || isLimitLocked} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 shadow-lg shrink-0 rounded-xl">
-                                        <Send className="w-3.5 h-3.5 mr-1.5" /> Share
-                                    </Button>
-                                </div>
-                            </Card>
-                        </div>
-                    )}
-
-                    {activeTab === 'history' && (
-                        <div className="flex-1 w-full h-full overflow-y-auto p-4 custom-scrollbar flex flex-col animate-in fade-in slide-in-from-right-4">
-                            {renderHistoryArea()}
-                        </div>
-                    )}
-
-                    {/* ✅ FIXED: Visible clickable tab bar (replaces useless swipe dots) */}
-                    <div
-                        role="tablist"
-                        aria-label="Interview mobile panels"
-                        className="absolute bottom-0 left-0 right-0 z-50 flex border-t"
-                        style={{
-                            background: 'var(--surface-1)',
-                            borderColor: 'var(--surface-edge)',
-                            paddingBottom: 'env(safe-area-inset-bottom, 0px)'  // iPhone home bar
-                        }}
-                    >
-                        {([
-                            { id: 'problem', label: 'Problem', icon: BookOpen },
-                            { id: 'interview', label: 'Voice', icon: Mic },
-                            { id: 'code', label: 'Code', icon: Code },
-                            { id: 'history', label: 'Chat', icon: MessageSquare },
-                        ] as const).map(({ id, label, icon: Icon }) => (
-                            <button
-                                key={id}
-                                onClick={() => setActiveTab(id as MobileTab)}
-                                role="tab"
-                                aria-label={`${label} tab`}
-                                aria-selected={activeTab === id}
-                                className={cn(
-                                    "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all text-[10px] font-bold uppercase tracking-wider",
-                                    activeTab === id
-                                        ? "text-indigo-400"
-                                        : "text-zinc-500 hover:text-zinc-300"
-                                )}
-                            >
-                                <Icon className={cn(
-                                    "w-5 h-5 transition-all",
-                                    activeTab === id ? "text-indigo-400" : "text-zinc-500"
-                                )} />
-                                <span>{label}</span>
-                                {/* Active indicator dot */}
-                                {activeTab === id && (
-                                    <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+            <MobileLayout
+                renderProblemCardContent={renderProblemCardContent}
+                renderControlsCard={renderControlsCard}
+                renderInteractionArea={renderInteractionArea}
+                renderHistoryArea={renderHistoryArea}
+            />
 
             {/* Guest Problem Selector — shown before interview starts */}
             {isGuest && (
@@ -1603,5 +1345,6 @@ export function InterviewSession({
                 </div>
             )}
         </div>
+        </InterviewLayoutContext.Provider>
     );
 }
