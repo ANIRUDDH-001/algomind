@@ -129,6 +129,7 @@ export function Navbar() {
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
                                     ...(user ? [
+                                        { href: '/practice', label: 'Practice', authOnly: true },
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
                                         ...(accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
@@ -330,6 +331,7 @@ export function Navbar() {
                                     ]
                                     : [
                                         { href: '/', label: 'Home', icon: Home },
+                                        { href: '/practice', label: 'Practice', icon: BookOpen },
                                         { href: '/learn', label: 'Learn', icon: Brain },
                                         { href: '/dashboard', label: 'Progress', icon: BarChart },
                                         { href: '/settings', label: 'Settings', icon: Settings },

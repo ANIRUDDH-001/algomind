@@ -119,7 +119,7 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
         .from('interview_sessions')
         .insert({
           user_id: testUser.userId,
-          problem_id: problem.id,
+          problem_id: problem!.id,
           status: 'in_progress',
           difficulty_mode: 'practice',
         })
@@ -177,7 +177,7 @@ describeIfIntegration('Knowledge Graph Feedback Loop (Integration)', () => {
         .from('interview_sessions')
         .insert({
           user_id: testUser.userId,
-          problem_id: problem.id,
+          problem_id: problem!.id,
           status: 'in_progress',
           difficulty_mode: 'practice',
         })

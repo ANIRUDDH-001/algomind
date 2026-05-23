@@ -140,7 +140,7 @@ vi.mock('../CodeEditor', () => ({
 }));
 
 const mockProblem = { id: 'p1', title: 'Test Problem', description: 'Test', difficulty: 'easy', tags: [], examples: [], constraints: '' };
-const mockConfig: InterviewConfig = { mode: 'practice', difficultyMode: 'practice', ragContext: '' };
+const mockConfig = { mode: 'practice', difficultyMode: 'practice', ragContext: '' } as unknown as InterviewConfig;
 
 describe('InterviewSession Integrity Flags', () => {
     beforeEach(() => {
@@ -159,7 +159,7 @@ describe('InterviewSession Integrity Flags', () => {
             turnsRemaining: 0,
             timeRemaining: 0,
             formattedElapsed: '01:00'
-        });
+        } as any);
 
         mockMessages = [
             { role: 'assistant', content: 'Hello' },
@@ -205,7 +205,7 @@ describe('InterviewSession Integrity Flags', () => {
                 turnsRemaining: 0,
                 timeRemaining: 0,
                 formattedElapsed: '05:00'
-            };
+            } as any;
         });
 
         mockMessages = [
