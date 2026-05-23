@@ -817,7 +817,9 @@ export class UnifiedAIClient {
         } else if (preferredModel === 'auto') {
             // Auto mode: for streaming, skip classification overhead — go straight
             // to Bedrock if available, else Groq. Gemini is used only when explicitly forced.
-            provider = process.env.AWS_ACCESS_KEY_ID ? 'bedrock' : 'groq';
+            const { getGlobalFeatureFlag } = await import('@/lib/feature-flags-server');
+            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
+            provider = bedrockEnabled ? 'bedrock' : 'groq';
         }
 
         if (provider === 'groq') {

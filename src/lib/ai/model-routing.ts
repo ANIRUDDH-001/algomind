@@ -103,6 +103,19 @@ export function buildRoutingStagePlan(
  * Default: true (enabled).
  */
 export async function isCrossTierFallbackEnabled(): Promise<boolean> {
+    const cacheKey = 'system_config:cross_tier_fallback_enabled';
+    
+    // 1. Check Redis cache
+    try {
+        const cached = await redisGet(cacheKey);
+        if (cached !== null) {
+            return cached === 'true';
+        }
+    } catch {
+        // Redis unavailable — fall through to DB
+    }
+
+    // 2. Query DB
     try {
         const { getServiceClient } = await import('@/lib/supabase/service');
         const supabase = getServiceClient();
@@ -114,7 +127,11 @@ export async function isCrossTierFallbackEnabled(): Promise<boolean> {
             .maybeSingle();
 
         if (data?.value !== undefined) {
-            return data.value === true || data.value === 'true';
+            const isEnabled = data.value === true || data.value === 'true';
+            
+            // Cache in Redis for 5 minutes
+            await redisSet(cacheKey, String(isEnabled), 300).catch(() => {});
+            return isEnabled;
         }
     } catch {
         // DB unavailable — default to enabled

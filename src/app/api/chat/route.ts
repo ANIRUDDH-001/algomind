@@ -63,7 +63,16 @@ export async function POST(req: NextRequest) {
 
         // 🔒 Auth Check
         const supabase = await createServerSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
+        const userIdHeader = req.headers.get('x-user-id');
+        let user: { id: string } | null = null;
+        
+        if (userIdHeader) {
+            user = { id: userIdHeader };
+        } else if (!guestMode) {
+            // Fallback just in case middleware was bypassed
+            const { data } = await supabase.auth.getUser();
+            user = data.user;
+        }
 
         if (!guestMode && !user) {
             console.warn('⛔ [Chat API] Unauthorized access attempt');
@@ -221,11 +230,6 @@ export async function POST(req: NextRequest) {
         const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
 
         if (acceptsStream) {
-            // Pick a streaming provider: Bedrock if configured+enabled, else Groq.
-            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID
-                && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
-            const streamProvider: 'bedrock' | 'groq' = bedrockEnabled ? 'bedrock' : 'groq';
-
             const encoder = new TextEncoder();
             const stream = new ReadableStream({
                 async start(controller) {
@@ -233,6 +237,7 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
 
                     let fullText = '';
+                    let finalProvider = 'auto';
                     try {
                         for await (const chunk of client.generateStream(messages, {
                             systemPrompt: enhancedSystemPrompt,
@@ -241,18 +246,20 @@ export async function POST(req: NextRequest) {
                             correlationId,
                             userId: user?.id,
                             sessionId: effectiveSessionId ?? undefined,
-                            preferredModel: streamProvider,
+                            preferredModel: 'auto',
                         })) {
                             if (req.signal.aborted) break;
                             fullText += chunk;
                             enqueue({ delta: chunk });
                         }
 
+                        // NOTE: the client stream does not expose which provider was actually used in chunk mode
+                        // We will set modelUsed to 'auto' for now.
                         enqueue({
                             delta: '',
                             done: true,
-                            modelUsed: streamProvider,
-                            provider: streamProvider,
+                            modelUsed: 'auto',
+                            provider: 'auto',
                             fullText: fullText.trim(),
                         });
                     } catch (err) {
