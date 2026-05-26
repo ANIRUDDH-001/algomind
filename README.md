@@ -132,7 +132,7 @@ This diagram breaks down the separation of concerns across the Frontend, Backend
 
 ```mermaid
 graph TD
-    subgraph Frontend "Frontend (React 19 / Tailwind / Radix)"
+    subgraph Frontend [Frontend React 19 / Tailwind / Radix]
         AppRouter[Next.js App Router]
         Pages[Pages: Dashboard, Interview, Learn, Auth]
         Hooks[Custom Hooks: useInterview, useSTT, useVAD, useProgress]
@@ -142,7 +142,7 @@ graph TD
         Hooks --> State
     end
     
-    subgraph Backend "Backend (Next.js Edge / Node)"
+    subgraph Backend [Backend Next.js Edge / Node]
         ServerActions[Server Actions: saveSession, getDashboardAverages, etc.]
         APIRoutes[API Routes: /api/chat, /api/assess, /api/admin]
         Lib[Lib: Assessment Engine, Knowledge Graph, Caching]
@@ -150,7 +150,7 @@ graph TD
         ServerActions --> Lib
     end
     
-    subgraph Infrastructure "Infrastructure & DB"
+    subgraph Infrastructure [Infrastructure & DB]
         Supabase[(Supabase DB & RPCs)]
         Redis[(Upstash Redis)]
         AWS[AWS Polly]
@@ -171,7 +171,7 @@ This highlights how the highly interactive `Dashboard` and `Interview` component
 
 ```mermaid
 graph TD
-    subgraph Dashboard "Dashboard Component (`app/dashboard`)"
+    subgraph Dashboard [Dashboard Component app/dashboard]
         DBController[Dashboard Controller]
         RQ[React Query Provider]
         DBController --> RQ
@@ -184,7 +184,7 @@ graph TD
         RecommendationEngine --> RadarChart
     end
     
-    subgraph Interview "Interview Component (`app/interview`)"
+    subgraph Interview [Interview Component app/interview]
         IntController[InterviewSession & useInterview.ts]
         SM[InterviewStateMachine]
         IntController --> SM
@@ -203,7 +203,7 @@ This details the critical API endpoints and Database persistence logic handling 
 
 ```mermaid
 graph TD
-    subgraph API_Chat "API: /api/chat & Interview Loop"
+    subgraph API_Chat [API chat and Interview Loop]
         ChatRoute[POST /api/chat]
         VoiceAPI[POST /api/voice/transcribe]
         ContextBuilder[Build User Context]
@@ -215,7 +215,7 @@ graph TD
         LLM --> TTS
     end
     
-    subgraph DB_Interaction "Data Persistence via Server Actions"
+    subgraph DB_Interaction [Data Persistence via Server Actions]
         Action[saveInterviewSession Action]
         AuthCheck[Verify Auth / RLS]
         AssessEngine[AI Assessment Engine]
