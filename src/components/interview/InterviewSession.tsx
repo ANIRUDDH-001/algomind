@@ -995,6 +995,7 @@ export function InterviewSession({
                                             <div className="flex items-center justify-center gap-4 relative">
                                                 <MicrophoneButton
                                                     isListening={voice.isListening}
+                                                    isReady={voice.isReady}
                                                     error={voice.error?.message}
                                                     onClick={() => {
                                                         if (voice.isSpeaking) {

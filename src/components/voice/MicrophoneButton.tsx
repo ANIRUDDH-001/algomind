@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Mic, MicOff, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MicrophoneButtonProps {
@@ -14,6 +14,8 @@ interface MicrophoneButtonProps {
     audioLevel?: number;
     /** Phase 5e: Called when user taps the button while in error state */
     onRetry?: () => void;
+    /** Whether the underlying VAD engine is initialized */
+    isReady?: boolean;
 }
 
 export function MicrophoneButton({
@@ -24,6 +26,7 @@ export function MicrophoneButton({
     error,
     audioLevel = 0,
     onRetry,
+    isReady = true,
 }: MicrophoneButtonProps) {
     return (
         <div className="flex flex-col items-center gap-3">
@@ -68,18 +71,22 @@ export function MicrophoneButton({
                         "border focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                         error
                             ? "bg-red-500/15 border-red-500/40"
-                            : isListening
-                                ? "bg-indigo-600 border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.4)]"
-                                : "bg-zinc-900 border-zinc-700 hover:border-zinc-500",
-                        disabled && "opacity-40 cursor-not-allowed",
+                            : !isReady
+                                ? "bg-zinc-800 border-zinc-700"
+                                : isListening
+                                    ? "bg-indigo-600 border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+                                    : "bg-zinc-900 border-zinc-700 hover:border-zinc-500",
+                        (disabled || !isReady) && "opacity-40 cursor-not-allowed",
                         className
                     )}
                 >
                     {error
                         ? <AlertCircle className="w-6 h-6 text-red-400" />
-                        : isListening
-                            ? <Mic className="w-6 h-6 text-white" />
-                            : <MicOff className="w-6 h-6 text-zinc-400" />
+                        : !isReady
+                            ? <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
+                            : isListening
+                                ? <Mic className="w-6 h-6 text-white" />
+                                : <MicOff className="w-6 h-6 text-zinc-400" />
                     }
                 </motion.button>
             </div>
@@ -98,9 +105,11 @@ export function MicrophoneButton({
             >
                 {error
                     ? (onRetry ? "Tap to retry" : "Mic error")
-                    : isListening
-                        ? "Listening..."
-                        : "Click to speak"}
+                    : !isReady
+                        ? "Initializing..."
+                        : isListening
+                            ? "Listening..."
+                            : "Click to speak"}
             </motion.span>
         </div>
     );

@@ -45,6 +45,44 @@ describe('InterviewStateMachine', () => {
         expect(machine.getState()).toBe('user-solving');
     });
 
+    it('transitions to complexity analysis from solution review', () => {
+        machine.transition('START');
+        machine.transition('AI_FINISHED_SPEAKING');
+        machine.transition('MOVE_TO_SOLVING');
+        machine.transition('SUBMIT_SOLUTION'); // solution-review
+        machine.transition('MOVE_TO_COMPLEXITY');
+        expect(machine.getState()).toBe('complexity-analysis');
+        
+        machine.transition('USER_FINISHED_SPEAKING');
+        expect(machine.getState()).toBe('ai-feedback');
+    });
+
+    it('handles network disconnects and reconnects gracefully', () => {
+        machine.transition('START');
+        expect(machine.getState()).toBe('problem-intro');
+        
+        machine.transition('NETWORK_DISCONNECT');
+        expect(machine.getState()).toBe('network-error');
+        expect(machine.getSavedState()).toBe('problem-intro');
+
+        machine.transition('NETWORK_RECONNECT');
+        expect(machine.getState()).toBe('problem-intro');
+        expect(machine.getSavedState()).toBeNull();
+    });
+
+    it('handles pause and resume gracefully', () => {
+        machine.transition('START');
+        machine.transition('AI_FINISHED_SPEAKING'); // user-thinking
+        
+        machine.transition('PAUSE_INTERVIEW');
+        expect(machine.getState()).toBe('paused');
+        expect(machine.getSavedState()).toBe('user-thinking');
+
+        machine.transition('RESUME_INTERVIEW');
+        expect(machine.getState()).toBe('user-thinking');
+        expect(machine.getSavedState()).toBeNull();
+    });
+
     it('ignores invalid transitions', () => {
         machine.transition('SUBMIT_SOLUTION'); // no-op from idle
         expect(machine.getState()).toBe('idle');

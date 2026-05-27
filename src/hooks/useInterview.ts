@@ -1312,6 +1312,7 @@ export function useInterview(options: UseInterviewOptions) {
         },
         voice: {
             isListening,
+            isReady: vad.isReady,
             transcript,
             interimTranscript,
             isTranscribing: stt.isTranscribing,
