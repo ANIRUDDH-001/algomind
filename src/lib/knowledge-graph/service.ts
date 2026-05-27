@@ -366,7 +366,10 @@ export class KnowledgeGraphService {
       return [];
     }
 
-    const tags = (data ?? []) as ConceptTag[];
+    const tags = (data ?? []).map(row => ({
+      ...row,
+      prerequisites: row.prerequisites || []
+    })) as ConceptTag[];
 
     try {
       const redis = getRedis();

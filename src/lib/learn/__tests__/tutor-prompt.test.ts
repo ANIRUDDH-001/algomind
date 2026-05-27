@@ -10,6 +10,7 @@ const mockConceptTag: ConceptTag = {
   icon: 'list',
   sort_order: 1,
   is_active: true,
+  prerequisites: [],
   created_at: '2026-01-01',
   updated_at: '2026-01-01',
 };

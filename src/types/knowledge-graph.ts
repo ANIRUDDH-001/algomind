@@ -12,6 +12,7 @@ export interface ConceptTag {
   icon: string | null;
   sort_order: number;
   is_active: boolean;
+  prerequisites: string[];
   created_at: string;
   updated_at: string;
 }

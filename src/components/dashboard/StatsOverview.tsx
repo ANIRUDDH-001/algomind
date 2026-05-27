@@ -90,11 +90,20 @@ export function StatsOverview({ progress }: StatsOverviewProps) {
                             <span className="text-xl">🔥</span>
                             <span>{streakData.current} Session Streak</span>
                         </div>
-                        {streakData.current > Math.max(0, streakData.longest - 2) && (
-                            <span className="text-[10px] uppercase tracking-widest text-amber-500/80 font-black px-2 py-0.5 bg-amber-500/10 rounded-full">
-                                Personal best incoming!
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-widest font-black px-2 py-0.5 rounded-full"
+                                style={{
+                                    backgroundColor: streakData.current >= 30 ? 'rgba(168, 85, 247, 0.1)' : streakData.current >= 14 ? 'rgba(239, 68, 68, 0.1)' : streakData.current >= 7 ? 'rgba(249, 115, 22, 0.1)' : streakData.current >= 3 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(161, 161, 170, 0.1)',
+                                    color: streakData.current >= 30 ? '#a855f7' : streakData.current >= 14 ? '#ef4444' : streakData.current >= 7 ? '#f97316' : streakData.current >= 3 ? '#f59e0b' : '#a1a1aa'
+                                }}>
+                                {streakData.current >= 30 ? 'Legendary' : streakData.current >= 14 ? 'Elite' : streakData.current >= 7 ? 'Pro' : streakData.current >= 3 ? 'Consistent' : 'Starter'}
                             </span>
-                        )}
+                            {streakData.current > Math.max(0, streakData.longest - 2) && (
+                                <span className="text-[10px] uppercase tracking-widest text-amber-500/80 font-black px-2 py-0.5 bg-amber-500/10 rounded-full">
+                                    Personal best incoming!
+                                </span>
+                            )}
+                        </div>
                     </div>
                 )}
                 <StatItem

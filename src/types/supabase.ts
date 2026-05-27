@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -537,6 +537,7 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean
+          prerequisites: string[] | null
           sort_order: number
           subject: string
           updated_at: string | null
@@ -548,6 +549,7 @@ export type Database = {
           icon?: string | null
           id: string
           is_active?: boolean
+          prerequisites?: string[] | null
           sort_order?: number
           subject?: string
           updated_at?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean
+          prerequisites?: string[] | null
           sort_order?: number
           subject?: string
           updated_at?: string | null
