@@ -9,8 +9,7 @@ import { addToQueue, updateSkillRepetition } from "@/lib/spaced-repetition/queue
 import { getKnowledgeGraphService } from "@/lib/knowledge-graph";
 
 export const assessInterviewFunction = inngest.createFunction(
-  { id: "assess-interview", retries: 3 },
-  { event: "interview/assess" },
+  { id: "assess-interview", retries: 3, triggers: [{ event: "interview/assess" }] },
   async ({ event, step }) => {
     const { sessionId, userId } = event.data;
     const supabase = getServiceClient(); // Service role client
@@ -184,3 +183,85 @@ export const assessInterviewFunction = inngest.createFunction(
     return { success: true };
   }
 );
+
+
+
+export const chatAssistantFunction = inngest.createFunction(
+    { id: "chat-assistant", triggers: [{ event: "interview/chat" }] },
+    async ({ event, step }) => {
+        const { sessionId, messages, systemPrompt, userId, correlationId, guestMode } = event.data;
+
+        await step.run("stream-chat-response", async () => {
+            const { getAIClient } = await import("@/lib/ai/client");
+            const { getServiceClient } = await import("@/lib/supabase/service");
+            const { incrementUserUsage } = await import("@/lib/rate-limit/user-rate-limiter");
+            
+            const supabase = getServiceClient();
+            const client = getAIClient();
+            
+            // Note: Since we are in an Inngest background job, we must use the REST/WebSocket 
+            // client to send the broadcast.
+            const channel = supabase.channel(`interview_${sessionId}`);
+            
+            // Wait for subscription to be established
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error("Timeout waiting for Supabase Realtime")), 5000);
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        clearTimeout(timeout);
+                        resolve();
+                    }
+                });
+            });
+
+            let fullText = '';
+            try {
+                for await (const chunk of client.generateStream(messages, {
+                    systemPrompt: systemPrompt,
+                    maxTokens: 4096,
+                    correlationId,
+                    userId,
+                    sessionId,
+                    preferredModel: 'auto',
+                })) {
+                    fullText += chunk;
+                    await channel.send({
+                        type: 'broadcast',
+                        event: 'chat_chunk',
+                        payload: { delta: chunk }
+                    });
+                }
+            } catch (err) {
+                console.error('❌ [Chat Inngest] Stream error:', err);
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'chat_chunk',
+                    payload: { error: String(err), done: true }
+                });
+            } finally {
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'chat_done',
+                    payload: { 
+                        done: true,
+                        fullText: fullText.trim(),
+                        modelUsed: 'auto',
+                        provider: 'auto'
+                    }
+                });
+                await supabase.removeChannel(channel);
+
+                // Track usage for authenticated users (fire-and-forget)
+                if (userId && !guestMode) {
+                    incrementUserUsage(userId, supabase).catch(err =>
+                        console.error('❌ [Chat Inngest] Failed to track usage:', err)
+                    );
+                }
+            }
+        });
+
+        return { success: true };
+    }
+);
+
+

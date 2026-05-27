@@ -19,7 +19,7 @@ export function AIStatusTab() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/admin/ai-status')
+        fetch('/api/admin/ai-status', { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 setModels(data.models || []);

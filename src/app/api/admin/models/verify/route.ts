@@ -3,6 +3,7 @@ import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { markModelDeprecated } from '@/lib/ai/model-registry';
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 export const dynamic = 'force-dynamic';
 
@@ -133,6 +134,54 @@ export async function POST(request: Request) {
                 } else {
                     status = 'error';
                     message = `Gemini error: ${geminiRes.statusText}`;
+                }
+            } else if (model.provider === 'bedrock') {
+                const bedrock = new BedrockRuntimeClient({
+                    region: process.env.AWS_REGION || 'us-east-1',
+                    credentials: {
+                        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+                    }
+                });
+                
+                try {
+                    // Test payload for Claude 3 or generic anthropic models on Bedrock
+                    const command = new InvokeModelCommand({
+                        modelId: modelId,
+                        contentType: 'application/json',
+                        accept: 'application/json',
+                        body: JSON.stringify({
+                            anthropic_version: "bedrock-2023-05-31",
+                            max_tokens: 1,
+                            messages: [{ role: "user", content: [{ type: "text", text: "ping" }] }]
+                        })
+                    });
+                    
+                    const bedrockRes = await bedrock.send(command);
+                    if (bedrockRes.$metadata.httpStatusCode === 200) {
+                        isSuccess = true;
+                        status = 'verified';
+                        message = 'Bedrock ping successful';
+                    } else {
+                        status = 'error';
+                        message = `Bedrock error: ${bedrockRes.$metadata.httpStatusCode}`;
+                    }
+                } catch (bedrockError: any) {
+                    if (bedrockError.name === 'ResourceNotFoundException' || bedrockError.name === 'ValidationException' && bedrockError.message.includes('model')) {
+                        status = 'deprecated';
+                        message = 'Model not found on Bedrock (404)';
+                        await markModelDeprecated(modelId, 'Failed live verification (404)');
+                    } else if (bedrockError.name === 'ThrottlingException') {
+                        status = 'rate_limited';
+                        message = 'Bedrock Rate Limited (429)';
+                        const { error: tsError } = await supabase
+                            .from('model_registry')
+                            .update({ last_verified: new Date().toISOString() })
+                            .eq('model_id', modelId);
+                        if (tsError) console.error('Failed to update 429 timestamp:', tsError);
+                    } else {
+                        throw bedrockError;
+                    }
                 }
             } else {
                 status = 'error';

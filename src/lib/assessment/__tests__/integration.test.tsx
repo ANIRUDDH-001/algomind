@@ -65,6 +65,9 @@ vi.mock('@/lib/spaced-repetition/queue', () => ({
     updateSkillRepetition: vi.fn(),
 }));
 vi.mock('@/lib/cache/dashboardCache', () => ({ invalidateDashboardCache: vi.fn() }));
+vi.mock('@/lib/inngest/client', () => ({
+    inngest: { send: vi.fn().mockResolvedValue({ id: 'mock-job-id' }) }
+}));
 
 import { createServerSupabase } from '@/lib/supabase/server';
 import { createClient, getSupabase } from '@/lib/supabase/client';

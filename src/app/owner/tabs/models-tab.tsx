@@ -62,8 +62,8 @@ export function ModelsTab() {
         try {
             setIsLoading(true);
             const [modelsRes, eventsRes] = await Promise.all([
-                fetch('/api/admin/models'),
-                fetch('/api/admin/events?type=model_deprecated&days=1&limit=50')
+                fetch('/api/admin/models', { cache: 'no-store' }),
+                fetch('/api/admin/events?type=model_deprecated&days=1&limit=50', { cache: 'no-store' })
             ]);
 
             const modelsData = await modelsRes.json();

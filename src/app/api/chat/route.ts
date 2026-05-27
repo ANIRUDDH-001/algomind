@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
@@ -12,7 +13,7 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 import { buildPromptVersionHeader, generateSystemPromptLegacy, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
-import { createHash } from 'crypto';
+import { inngest } from '@/lib/inngest/client';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
@@ -228,89 +229,32 @@ export async function POST(req: NextRequest) {
 
 
         // --- Real SSE Streaming branch ---
-        // When the client sends `Accept: text/event-stream` we stream tokens from
-        // the provider directly. This bypasses the classification / smart-routing
-        // layer of generateResponse() in favour of first-token latency.
-        const client = getAIClient();
+        // When the client sends `Accept: text/event-stream` we fire the Inngest background job
+        // which will stream the AI response to the Supabase Realtime channel.
         const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
 
         if (acceptsStream) {
-            const encoder = new TextEncoder();
-            const stream = new ReadableStream({
-                async start(controller) {
-                    const enqueue = (payload: object) =>
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-
-                    let fullText = '';
-                    let finalProvider = 'auto';
-                    try {
-                        for await (const chunk of client.generateStream(messages, {
-                            systemPrompt: enhancedSystemPrompt,
-                            maxTokens: 4096,
-                            signal: req.signal,
-                            correlationId,
-                            userId: user?.id,
-                            sessionId: effectiveSessionId ?? undefined,
-                            preferredModel: 'auto',
-                        })) {
-                            if (req.signal.aborted) break;
-                            fullText += chunk;
-                            enqueue({ delta: chunk });
-                        }
-
-                        // NOTE: the client stream does not expose which provider was actually used in chunk mode
-                        // We will set modelUsed to 'auto' for now.
-                        enqueue({
-                            delta: '',
-                            done: true,
-                            modelUsed: 'auto',
-                            provider: 'auto',
-                            fullText: fullText.trim(),
-                        });
-                    } catch (err) {
-                        if ((err as Error)?.name === 'AbortError') {
-                            // client disconnect — silently close
-                            return;
-                        }
-                        console.error('❌ [Chat API] Stream error:', err);
-                        void logSystemEvent({
-                            type: 'model_error',
-                            errorMessage: err instanceof Error ? err.message : String(err),
-                            correlationId,
-                        });
-                        enqueue({ error: String(err), done: true });
-                    } finally {
-                        try {
-                            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                        } catch {
-                            // controller may already be closed on abort
-                        }
-                        try {
-                            controller.close();
-                        } catch {
-                            // already closed
-                        }
-
-                        // Track usage for authenticated users (fire-and-forget)
-                        if (user && !guestMode) {
-                            incrementUserUsage(user.id, supabase).catch(err =>
-                                console.error('❌ [Chat API] Failed to track usage:', err)
-                            );
-                        }
-                    }
-                },
+            await inngest.send({
+                name: 'interview/chat',
+                data: {
+                    sessionId: effectiveSessionId ?? 'default-session',
+                    messages,
+                    systemPrompt: enhancedSystemPrompt,
+                    userId: user?.id,
+                    correlationId,
+                    guestMode: guestMode ?? false
+                }
             });
 
-            return new Response(stream, {
-                headers: {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                    'X-Accel-Buffering': 'no',
-                    ...Object.fromEntries(withCorrelationIdHeaders(undefined, correlationId).entries()),
-                },
+            return NextResponse.json({ success: true, message: 'Event dispatched to background job' }, {
+                headers: withCorrelationIdHeaders(undefined, correlationId),
             });
         }
+
+        // --- JSON fallback (non-streaming clients) ---
+        // Note: For non-streaming, we just call the client synchronously since it's typically for small, fast replies
+        const client = getAIClient();
+
 
         // --- JSON fallback (non-streaming clients) ---
         // Use the full model registry with proper fallback (same as assess/chat route)

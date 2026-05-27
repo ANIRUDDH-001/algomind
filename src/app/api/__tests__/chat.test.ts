@@ -22,6 +22,9 @@ vi.mock('@/lib/feature-flags-server');
 vi.mock('@/lib/voice/text-chunker', () => ({
     chunkTextForSpeech: vi.fn((text: string) => [text]),
 }));
+vi.mock('@/lib/inngest/client', () => ({
+    inngest: { send: vi.fn().mockResolvedValue({ id: 'mock-job-id' }) }
+}));
 
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 
@@ -235,7 +238,10 @@ describe('Chat API (/api/chat)', () => {
         }));
     });
 
-    it('11. Returns SSE stream when Accept: text/event-stream header set', async () => {
+    it('11. Dispatches Inngest event and returns JSON when Accept: text/event-stream header set', async () => {
+        const { inngest } = await import('@/lib/inngest/client');
+        vi.mocked(inngest.send).mockClear();
+
         const req = new NextRequest('http://localhost:3000/api/chat', {
             method: 'POST',
             headers: {
@@ -247,33 +253,19 @@ describe('Chat API (/api/chat)', () => {
 
         const res = await POST(req);
 
-        expect(res.headers.get('Content-Type')).toBe('text/event-stream');
-        expect(res.headers.get('Cache-Control')).toBe('no-cache');
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        expect(data.success).toBe(true);
 
-        // Read the full stream
-        const reader = res.body!.getReader();
-        const decoder = new TextDecoder();
-        let fullBody = '';
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            fullBody += decoder.decode(value, { stream: true });
-        }
-
-        // Should contain at least one data event and a done event
-        const events = fullBody
-            .split('\n\n')
-            .filter(e => e.startsWith('data: '))
-            .map(e => e.slice(6).trim())
-            .filter(payload => payload && payload !== '[DONE]')
-            .map(payload => JSON.parse(payload));
-
-        expect(events.length).toBeGreaterThanOrEqual(2); // at least 1 chunk + terminal event
-
-        // Last JSON event should have done: true and fullText
-        const lastEvent = events[events.length - 1];
-        expect(lastEvent.done).toBe(true);
-        expect(lastEvent.fullText).toBe('AI response text');
+        expect(inngest.send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'interview/chat',
+                data: expect.objectContaining({
+                    messages: expect.any(Array),
+                    sessionId: 'default-session'
+                })
+            })
+        );
     });
 
     it('14. Returns JSON when no stream Accept header', async () => {

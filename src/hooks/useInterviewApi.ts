@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
+import { getSupabase } from '@/lib/supabase/client';
 import type { Message, ProblemContext, UseInterviewOptions } from './useInterview';
 import type { InterviewStateMachine } from '@/lib/interview/state-machine';
 import { generateMessageId } from './useInterviewMessages';
@@ -76,7 +77,6 @@ export function useInterviewApi({
         return runFetch(retries, backoff);
     }, []);
 
-
     const callChatApiStreaming = useCallback(async (
         endpoint: string,
         body: string
@@ -84,33 +84,9 @@ export function useInterviewApi({
         if (streamAbortRef.current) streamAbortRef.current.abort();
         streamAbortRef.current = new AbortController();
 
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'text/event-stream',
-            },
-            body,
-            signal: streamAbortRef.current.signal,
-        });
-
-        if (!res.ok || !res.body) {
-            // Fallback: server doesn't support streaming for this endpoint
-            const data = await res.json();
-            return data.response ?? '';
-        }
-
-        const contentType = res.headers.get('Content-Type') ?? '';
-        if (!contentType.includes('text/event-stream')) {
-            // Server returned JSON despite Accept header (e.g. error path)
-            const data = await res.json();
-            return data.response ?? '';
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let fullText = '';
-        let buffer = '';
+        const parsedBody = JSON.parse(body);
+        const sessionId = parsedBody.sessionId || 'default-session';
+        const supabase = getSupabase();
 
         // Add a placeholder AI message that we'll update progressively
         const streamMsgId = generateMessageId();
@@ -119,7 +95,7 @@ export function useInterviewApi({
         const placeholderMsg: Message = {
             id: streamMsgId,
             role: 'assistant',
-            content: '…',
+            content: '...',
             timestamp: new Date(),
             status: 'streaming',
         };
@@ -128,68 +104,101 @@ export function useInterviewApi({
             addMessageRef.current(placeholderMsg);
         }
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        return new Promise<string>((resolve, reject) => {
+            let fullText = '';
+            let isResolved = false;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop() ?? '';
+            if (!supabase) {
+                reject(new Error("Supabase client not initialized"));
+                return;
+            }
 
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    try {
-                        const parsed = JSON.parse(line.slice(6));
+            // 1. Subscribe to the Supabase channel for this session
+            const channel = supabase.channel(`interview_${sessionId}`);
 
-                        if (parsed.error) {
-                            throw new Error(parsed.error);
-                        }
+            channel.on('broadcast', { event: 'chat_chunk' }, (payload) => {
+                if (payload.payload.error) {
+                    supabase.removeChannel(channel);
+                    reject(new Error(payload.payload.error));
+                    return;
+                }
 
-                        if (parsed.done && parsed.fullText) {
-                            fullText = parsed.fullText;
-                            // Update the streaming message to complete
-                            if (setMessagesRef.current) {
-                                setMessagesRef.current(prev => prev.map(m =>
-                                    m.id === streamMsgId
-                                        ? { ...m, content: fullText, status: 'complete' as const }
-                                        : m
-                                ));
-                            }
-                            // Also update conversationHistoryRef
-                            const histIdx = conversationHistoryRef.current.findLastIndex(m => m.id === streamMsgId);
-                            if (histIdx >= 0) {
-                                conversationHistoryRef.current[histIdx] = {
-                                    ...conversationHistoryRef.current[histIdx],
-                                    content: fullText,
-                                    status: 'complete',
-                                };
-                            }
-                        } else if (!parsed.done && parsed.chunk) {
-                            fullText += parsed.chunk;
+                if (payload.payload.delta) {
+                    fullText += payload.payload.delta;
 
-                            // Update the streaming message in real-time
-                            if (setMessagesRef.current) {
-                                setMessagesRef.current(prev => prev.map(m =>
-                                    m.id === streamMsgId
-                                        ? { ...m, content: fullText }
-                                        : m
-                                ));
-                            }
-
-                            // Real-time text appending done, defer TTS to control hook speakAndWait
-                        }
-                    } catch (parseErr) {
-                        console.warn('[SSE] Parse error:', parseErr);
+                    // Update the streaming message in real-time
+                    if (setMessagesRef.current) {
+                        setMessagesRef.current(prev => prev.map(m =>
+                            m.id === streamMsgId
+                                ? { ...m, content: fullText }
+                                : m
+                        ));
                     }
                 }
-            }
-        } finally {
-            reader.cancel();
-            currentStreamMsgIdRef.current = null;
-        }
+            });
 
-        return fullText;
+            channel.on('broadcast', { event: 'chat_done' }, (payload) => {
+                // Ensure we get the final text if passed, or fallback to accumulated
+                if (payload.payload.fullText) {
+                    fullText = payload.payload.fullText;
+                }
+
+                // Update the streaming message to complete
+                if (setMessagesRef.current) {
+                    setMessagesRef.current(prev => prev.map(m =>
+                        m.id === streamMsgId
+                            ? { ...m, content: fullText, status: 'complete' as const }
+                            : m
+                    ));
+                }
+                
+                // Also update conversationHistoryRef
+                const histIdx = conversationHistoryRef.current.findLastIndex(m => m.id === streamMsgId);
+                if (histIdx >= 0) {
+                    conversationHistoryRef.current[histIdx] = {
+                        ...conversationHistoryRef.current[histIdx],
+                        content: fullText,
+                        status: 'complete',
+                    };
+                }
+
+                currentStreamMsgIdRef.current = null;
+                supabase.removeChannel(channel);
+                if (!isResolved) {
+                    isResolved = true;
+                    resolve(fullText);
+                }
+            });
+
+            // 2. Wait for subscription to be established
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    try {
+                        // 3. Dispatch the API request to trigger the Inngest job
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'text/event-stream', // Signals the backend to use Inngest
+                            },
+                            body,
+                            signal: streamAbortRef.current?.signal,
+                        });
+
+                        if (!res.ok) {
+                            throw new Error(`API error: ${res.status}`);
+                        }
+                    } catch (error) {
+                        supabase.removeChannel(channel);
+                        currentStreamMsgIdRef.current = null;
+                        if (!isResolved) {
+                            isResolved = true;
+                            reject(error);
+                        }
+                    }
+                }
+            });
+        });
     }, [conversationHistoryRef]);
 
 

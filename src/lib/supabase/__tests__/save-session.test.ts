@@ -15,6 +15,10 @@ vi.mock('@/lib/assessment/analyzer', () => ({
     }
 }));
 
+vi.mock('@/lib/inngest/client', () => ({
+    inngest: { send: vi.fn().mockResolvedValue({ id: 'mock-job-id' }) }
+}));
+
 // Mock monitoring/events
 vi.mock('@/lib/monitoring/events', () => ({
     logSystemEvent: vi.fn()
@@ -294,7 +298,8 @@ describe('saveInterviewSession Action', () => {
             'Two Sum',
             [
                 { role: 'user', content: 'I would use a hashmap', timestamp: new Date() },
-                { role: 'assistant', content: 'Good approach', timestamp: new Date() }
+                { role: 'assistant', content: 'Good approach', timestamp: new Date() },
+                { role: 'user', content: 'Here is the code', timestamp: new Date() }
             ] as any,
             120
         );
@@ -302,7 +307,7 @@ describe('saveInterviewSession Action', () => {
         expect(result.success).toBe(true);
         if (result.success) {
             expect(result.data.sessionId).toBe('session-abc');
-            expect(result.data.assessmentPending).toBeUndefined();
+            expect(result.data.assessmentPending).toBe(true);
         }
     });
 
@@ -395,14 +400,15 @@ describe('saveInterviewSession Action', () => {
             'Two Sum',
             [
                 { role: 'user', content: 'hashmap', timestamp: new Date() },
-                { role: 'assistant', content: 'correct', timestamp: new Date() }
+                { role: 'assistant', content: 'correct', timestamp: new Date() },
+                { role: 'user', content: 'code', timestamp: new Date() }
             ] as any,
             120
         );
 
         expect(result.success).toBe(true);
         if (result.success) {
-            expect(result.data.assessmentPending).toBeUndefined();
+            expect(result.data.assessmentPending).toBe(true);
         }
     });
 });

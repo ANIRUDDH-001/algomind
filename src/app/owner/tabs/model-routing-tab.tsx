@@ -42,7 +42,7 @@ export function ModelRoutingTab() {
     const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const res = await fetch('/api/owner/model-routing');
+            const res = await fetch('/api/owner/model-routing', { cache: 'no-store' });
             if (!res.ok) throw new Error('Failed to load');
             const data = await res.json();
             setChatModels(data.chat ?? []);
