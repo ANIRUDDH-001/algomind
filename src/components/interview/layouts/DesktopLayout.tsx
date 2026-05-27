@@ -10,6 +10,7 @@ import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
 import { CodeEditor } from '../CodeEditor';
 import { TestCasePanel } from '../TestCasePanel';
 import { useInterviewLayout } from '../InterviewLayoutContext';
+import { InterviewLimitBar } from '../InterviewLimitBar';
 
 export interface DesktopLayoutProps {
     renderProblemCardContent: (showExamples?: boolean, showHeader?: boolean) => React.ReactNode;
@@ -44,6 +45,13 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         setIsCodeRunning,
         setExecutionResult,
         shareCodeWithAI,
+        interviewStartTime,
+        interviewConfig,
+        roundCount,
+        isLimitReached,
+        limitReason,
+        weeklyLimitStatus,
+        openUpgradeModal,
     } = useInterviewLayout();
 
     return (
@@ -89,8 +97,32 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                 <ResizablePanel defaultSize={35} minSize={30}>
                     <div className="h-full flex flex-col relative border-x" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.08) 0%, transparent 60%), var(--surface-0)', borderColor: 'var(--surface-edge)' }}>
                         <div className="flex-1 min-h-0 relative">
+                            {/* Desktop Timer / Limit Bar */}
+                            {hasStarted && !isAssessment && interviewStartTime && (
+                                <div className="absolute top-2 right-2 z-30">
+                                    <InterviewLimitBar
+                                        startTime={interviewStartTime}
+                                        maxMs={interviewConfig.maxDurationMs}
+                                        roundCount={roundCount}
+                                        maxRounds={interviewConfig.maxTurnsPerProblem}
+                                        isLimitReached={isLimitReached}
+                                        limitReason={limitReason as 'rounds' | 'time' | null}
+                                        weeklyUsage={weeklyLimitStatus && typeof weeklyLimitStatus.limit === 'number' && weeklyLimitStatus.limit > 0 ? {
+                                            sessionsUsed: weeklyLimitStatus.sessionsUsed,
+                                            limit: weeklyLimitStatus.limit,
+                                            allowed: weeklyLimitStatus.allowed,
+                                        } : undefined}
+                                        onUpgrade={() => openUpgradeModal({
+                                            reason: 'Upgrade to keep practicing with unlimited sessions.',
+                                            sessionsUsed: weeklyLimitStatus?.sessionsUsed,
+                                            limit: weeklyLimitStatus?.limit ?? undefined,
+                                        })}
+                                    />
+                                </div>
+                            )}
+
                             {hasStarted ? (
-                                <div className="absolute inset-0 pt-4 px-4 overflow-hidden">
+                                <div className="absolute inset-0 pt-12 px-4 overflow-hidden">
                                     <ConversationView messages={messages} isAISpeaking={voice.isSpeaking} isProcessing={isProcessing} />
                                 </div>
                             ) : (

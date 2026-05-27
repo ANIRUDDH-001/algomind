@@ -218,6 +218,9 @@ export function generateTurnPrompt(context: PromptContext): string {
         'user-coding':      'coding',
         'solution-review':  'testing',    // FG-04 fix
         'assessment':       'complexity', // FG-04 fix
+        'complexity-analysis': 'complexity',
+        'network-error':    'wrap-up',
+        'paused':           'approach',
         'completed':        'wrap-up',
     };
 

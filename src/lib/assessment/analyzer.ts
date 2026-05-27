@@ -42,6 +42,8 @@ export interface AssessmentResult {
     validationPassDone?: boolean;
     hireDecision?: HireDecision | null;
     isLimitedEvidence?: boolean;
+    keyMoments?: any[];
+    improvementExamples?: any[];
 }
 
 function computeWeightedScore(
@@ -99,6 +101,8 @@ interface ParsedAssessmentResponse {
     nextSteps: string[];
     knowledgeGaps?: string[];
     hireDecision?: string;
+    keyMoments?: any[];
+    improvementExamples?: any[];
 }
 
 export class CognitiveAnalyzer {
@@ -224,6 +228,8 @@ export class CognitiveAnalyzer {
                     validationPassDone: true,
                     hireDecision,
                     isLimitedEvidence,
+                    keyMoments: parsedData.keyMoments || [],
+                    improvementExamples: parsedData.improvementExamples || [],
                 };
 
             } catch (error: unknown) {
@@ -321,7 +327,9 @@ export class CognitiveAnalyzer {
                 ? ["Engage more comprehensively in the next interview to receive an assessment."]
                 : ["Scores are based on keyword analysis. Full AI re-analysis may provide more accurate results."],
             knowledgeGaps: [],
-            analysisFailure: failureType
+            analysisFailure: failureType,
+            keyMoments: [],
+            improvementExamples: []
         };
     }
 

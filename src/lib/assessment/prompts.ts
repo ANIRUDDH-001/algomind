@@ -179,7 +179,27 @@ ${skillsShape}
   "codeQuality": null,
   "overallFeedback": "2–3 sentence summary citing specific moments from this session",
   "nextSteps": ["Concrete recommendation naming a specific technique or concept", "..."],
-  "knowledgeGaps": ["Specific concept missed — e.g. Loop invariants in sliding window", "..."]
+  "knowledgeGaps": ["Specific concept missed — e.g. Loop invariants in sliding window", "..."],
+  "keyMoments": [
+    {
+      "timestampIndex": 0,
+      "momentType": "impressive",
+      "quote": "<exact quote from user>",
+      "significance": "<why this matters>",
+      "dimension": "problem-decomposition",
+      "sentiment": "positive"
+    }
+  ],
+  "improvementExamples": [
+    {
+      "skill": "communication-clarity",
+      "subCriterionLabel": "<the sub-criterion they failed>",
+      "score": 4,
+      "whatWasSaid": "<verbatim quote from user showing the gap>",
+      "level6Response": "<example of what a passing/good answer would have been>",
+      "level9Response": "<example of what a great/expert answer would have been>"
+    }
+  ]
 }
 
 For codeQuality: if [FINAL CODE SUBMITTED] block present in transcript, replace null with:
