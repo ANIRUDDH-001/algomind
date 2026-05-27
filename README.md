@@ -80,15 +80,19 @@ This diagram outlines the complete end-to-end architecture of Algomind, mapping 
 graph TD
     Client[Client Browser / Next.js Frontend]
     NextAPI[Next.js API Routes & Server Actions]
-    Supabase[(Supabase PostgreSQL)]
+    Supabase[(Supabase PostgreSQL & Realtime)]
     Upstash[(Upstash Redis Cache)]
+    Inngest[Inngest Background Jobs]
     External[External Services: AWS Polly, Groq Whisper, LLMs, Piston]
     
     Client -- "Fetch / Mutations" --> NextAPI
-    Client -- "Realtime SSE" --> NextAPI
+    Client -- "Listen to Channels" --> Supabase
     NextAPI -- "RPCs, Queries, RLS" --> Supabase
     NextAPI -- "Caching & Rate Limiting" --> Upstash
-    NextAPI -- "Voice / AI / Execution" --> External
+    NextAPI -- "Dispatch Events" --> Inngest
+    Inngest -- "Broadcast Streams" --> Supabase
+    Inngest -- "Voice / AI / Execution" --> External
+    NextAPI -- "Voice / Quick LLM" --> External
 ```
 
 ### Use Case Diagram
@@ -194,7 +198,8 @@ graph TD
         DesktopLayout --> CodeUI[CodeEditor]
         VoiceUI --> useVAD
         VoiceUI --> useSTT
-        IntController --> SSE[SSE Stream to /api/chat]
+        IntController --> API[POST /api/chat Fire & Forget]
+        IntController --> SupabaseRT[Supabase Realtime Listener]
     end
 ```
 
@@ -206,24 +211,32 @@ graph TD
     subgraph API_Chat [API chat and Interview Loop]
         ChatRoute[POST /api/chat]
         VoiceAPI[POST /api/voice/transcribe]
+        InngestChat[Inngest: interview/chat Job]
         ContextBuilder[Build User Context]
         LLM[LLM / Groq API]
         TTS[Voice Synthesize]
-        ChatRoute --> ContextBuilder
+        SupabaseRT[Supabase Realtime Channel]
+        
         VoiceAPI --> ChatRoute
+        ChatRoute -- "Dispatch Event" --> InngestChat
+        InngestChat --> ContextBuilder
         ContextBuilder --> LLM
         LLM --> TTS
+        LLM -- "Broadcast Stream" --> SupabaseRT
     end
     
     subgraph DB_Interaction [Data Persistence via Server Actions]
         Action[saveInterviewSession Action]
         AuthCheck[Verify Auth / RLS]
+        InngestAssess[Inngest: interview/assess Job]
         AssessEngine[AI Assessment Engine]
         SpacedRep[Spaced Repetition Updater]
         SupabaseRPC[RPC: save_interview_session_atomic]
         
         Action --> AuthCheck
-        Action --> AssessEngine
+        Action -- "Dispatch Event" --> InngestAssess
+        Action --> SupabaseRPC
+        InngestAssess --> AssessEngine
         AssessEngine --> SpacedRep
         AssessEngine --> SupabaseRPC
     end
