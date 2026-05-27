@@ -30,7 +30,7 @@ export interface EmbeddingModelConfig {
 
 const GROQ_GPT_OSS_MODEL_ID = process.env.GROQ_GPT_OSS_MODEL_ID || "openai/gpt-oss-120b";
 const GROQ_GPT_OSS_20B_MODEL_ID = process.env.GROQ_GPT_OSS_20B_MODEL_ID || "openai/gpt-oss-20b";
-const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-3-flash-preview";
+const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemini-3.5-flash";
 
 // EMERGENCY FALLBACK: Static model list used only when model_routing DB table
 // and Redis cache are both unavailable. Production routing uses model_routing table
@@ -61,17 +61,6 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq Llama 3.1 8B"
     },
     {
-        id: "moonshotai/kimi-k2-instruct",
-        provider: 'groq',
-        tier: 2,
-        rpm: 60,
-        tpm: 10000,
-        rpd: 1000,
-        contextWindow: 131072,
-        supportsEmbeddings: false,
-        description: "Kimi K2 — 60 RPM, best for concurrent sessions"
-    },
-    {
         id: "qwen/qwen3-32b",
         provider: 'groq',
         tier: 3,
@@ -96,6 +85,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Groq Llama 4 Scout"
     },
     // llama-4-maverick removed — deprecated by Groq March 9 2026, replaced by openai/gpt-oss-120b
+    // Replaced moonshotai/kimi-k2-instruct and kimi-k2-instruct-0905 (both deprecated 2025–2026)
     {
         id: GROQ_GPT_OSS_MODEL_ID,
         provider: 'groq',
@@ -129,21 +119,11 @@ export const CHAT_MODELS: ModelConfig[] = [
         supportsEmbeddings: false,
         description: "Safety GPT OSS 20B"
     },
-    {
-        id: "moonshotai/kimi-k2-instruct-0905",
-        provider: 'groq',
-        tier: 5,
-        rpm: 25.5,
-        rpd: 850,
-        tpm: 5000,
-        contextWindow: 200000, // Assuming large context for Kimi
-        supportsEmbeddings: false,
-        description: "Kimi K2 Instruct"
-    },
 
     // --- GEMINI MODELS ---
+    // gemini-3.1-flash-lite-preview shutdown May 25, 2026 → migrated to stable
     {
-        id: "gemini-3.1-flash-lite-preview",
+        id: "gemini-3.1-flash-lite",
         provider: 'gemini',
         tier: 10,
         rpm: 15,
@@ -151,10 +131,11 @@ export const CHAT_MODELS: ModelConfig[] = [
         tpm: 250000,
         contextWindow: 1048576,
         supportsEmbeddings: false,
-        description: "Gemini 3.1 Flash Lite"
+        description: "Gemini 3.1 Flash Lite (Stable)"
     },
+    // gemini-3-flash-preview → gemini-3.5-flash (stable release May 19, 2026)
     {
-        id: GEMINI_FREE_TIER_MODEL_ID, // gemini-3-flash-preview
+        id: GEMINI_FREE_TIER_MODEL_ID,
         provider: 'gemini',
         tier: 11,
         rpm: 5,
@@ -162,7 +143,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         tpm: 250000,
         contextWindow: 1048576,
         supportsEmbeddings: true,
-        description: "Gemini 3 Flash"
+        description: "Gemini 3.5 Flash (Stable)"
     },
     {
         id: "gemini-2.5-flash",
@@ -200,16 +181,17 @@ export const CHAT_MODELS: ModelConfig[] = [
 ];
 
 // Embedding Models
+// gemini-embedding-001 shutdown July 14, 2026 → migrated to gemini-embedding-2
 export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
     {
-        id: "gemini-embedding-001",
+        id: "gemini-embedding-2",
         provider: 'gemini',
         tier: 1,
         rpm: 100,
         tpm: 30000,
         rpd: 1000,
-        dimensions: 768,
-        description: "Gemini Embedding 1 - primary embeddings provider"
+        dimensions: 3072,        // gemini-embedding-2 supports up to 3072 dims; default recommended
+        description: "Gemini Embedding 2 — primary embeddings provider (replaces gemini-embedding-001, shutdown July 14 2026)"
     }
     // Xenova/all-MiniLM-L6-v2 removed as local huggingface fallback is defunct
 ];

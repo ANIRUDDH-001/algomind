@@ -1332,8 +1332,8 @@ export class UnifiedAIClient {
                 const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, geminiKey)));
                 return {
                     embeddings: results,
-                    modelUsed: 'gemini-embedding-001',
-                    dimensions: results[0]?.length ?? 768,
+                    modelUsed: 'gemini-embedding-2',
+                    dimensions: results[0]?.length ?? 3072,
                 };
             } catch (e) {
                 console.warn('⚠️ Gemini embedding failed:', e instanceof Error ? e.message : e);
@@ -1365,8 +1365,8 @@ export class UnifiedAIClient {
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-        // Use v1beta for gemini-embedding-001
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
+        // Use v1beta for gemini-embedding-2
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

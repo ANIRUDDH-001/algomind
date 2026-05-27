@@ -184,7 +184,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                     </div>
                     <p className="text-[11px] text-zinc-500">
                         {isGroq
-                            ? 'Active voice: Aaliya (Indian English) — Groq PlayAI Neural TTS'
+                            ? 'Active voice: Aaliya (Indian English) — Groq Orpheus Neural TTS'
                             : `Active voice: ${selectedVoice || 'Default browser voice'}`
                         }
                     </p>
