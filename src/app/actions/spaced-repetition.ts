@@ -15,6 +15,10 @@ export async function upsertSpacedRepetition(params: {
     overallScore: number;
 }): Promise<{ nextReview: string; intervalDays: number; reviewCount: number } | null> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== params.userId) return null;
+
         // addToQueue handles fetch-existing → computeNextReview → upsert
         await addToQueue({
             userId: params.userId,
@@ -57,6 +61,10 @@ export async function getReviewQueue(userId: string): Promise<{
     lastQuality: number | null;
 }[]> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== userId) return [];
+
         const supabase = getServiceClient();
         const tomorrow = formatNextReviewDate(1);
 
@@ -100,6 +108,10 @@ export async function getSpacedReviewForProblem(
     fsrsLapses: number | null;
 } | null> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== userId) return null;
+
         const supabase = getServiceClient();
 
         const { data, error } = await supabase

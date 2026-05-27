@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { redisIncr } from '@/lib/upstash/client';
+import { redisIncr, redisGet, redisSet } from '@/lib/upstash/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
+import crypto from 'crypto';
 
 export const maxDuration = 10;
 
@@ -47,8 +48,8 @@ const LANGUAGE_MAP: Record<SupportedLanguage, { language: string; version: strin
     cpp: { language: 'c++', version: '10.2.0' }
 };
 
-const EXEC_RATE_LIMIT = 10;
-const EXEC_RATE_WINDOW_SECONDS = 60;
+const EXEC_RATE_LIMIT = 1;
+const EXEC_RATE_WINDOW_SECONDS = 3;
 
 export async function POST(req: NextRequest) {
     try {
@@ -89,10 +90,23 @@ export async function POST(req: NextRequest) {
         // redisIncr returns 0 if Redis is unavailable — we fail open intentionally.
         // The rate limit is advisory; code execution is not a security-critical resource.
         if (currentUsage > EXEC_RATE_LIMIT) {
-            return NextResponse.json({ error: 'Rate limit exceeded. Try again in a minute.' }, { status: 429 });
+            return NextResponse.json({ error: 'Rate limit exceeded. Wait 3 seconds.' }, { status: 429 });
         }
 
-        // 4. Prepare Piston Request
+        // 4. Cache Check (identical code snippets shouldn't burn Piston limits)
+        const payloadHash = crypto.createHash('sha256').update(language + code + (stdin || '')).digest('hex');
+        const cacheKey = `exec_cache:${payloadHash}`;
+        const cachedResult = await redisGet(cacheKey);
+        
+        if (cachedResult) {
+            try {
+                return NextResponse.json(JSON.parse(cachedResult));
+            } catch (e) {
+                // Ignore parse error and proceed
+            }
+        }
+
+        // 5. Prepare Piston Request
         // PISTON_URL should be the full execute endpoint (e.g. https://emkc.org/api/v2/piston/execute)
         const pistonExecuteUrl = process.env.PISTON_URL || 'https://emkc.org/api/v2/piston/execute';
         const config = LANGUAGE_MAP[language];
@@ -182,6 +196,9 @@ export async function POST(req: NextRequest) {
             exit_code: exitCode ?? 1, // Fallback if somehow missing
             runtime_ms: runtime
         };
+
+        // Cache for 10 minutes
+        await redisSet(cacheKey, JSON.stringify(outResponse), 600);
 
         return NextResponse.json(outResponse);
 

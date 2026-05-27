@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { upsertSpacedRepetition, getReviewQueue, getSpacedReviewForProblem } from '../spaced-repetition';
 import { addToQueue } from '@/lib/spaced-repetition/queue';
 import { getServiceClient } from '@/lib/supabase/service';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { formatNextReviewDate } from '@/lib/spaced-repetition/types';
 
 // Mock dependencies
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: vi.fn(),
 }));
 
 vi.mock('@/lib/spaced-repetition/queue', () => ({
@@ -42,6 +47,10 @@ describe('Spaced Repetition Server Actions', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         vi.setSystemTime(MockDate);
+
+        (createServerSupabase as any).mockResolvedValue({
+            auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }) }
+        });
     });
 
     afterEach(() => {

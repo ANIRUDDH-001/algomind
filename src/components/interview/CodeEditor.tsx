@@ -127,6 +127,7 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
     // Ref to hold the current values for the shortcut handler
     const codeRef = useRef(code);
     const languageRef = useRef(language);
+    const isRunningRef = useRef(isRunning);
 
     useEffect(() => {
         codeRef.current = code;
@@ -136,11 +137,15 @@ export function CodeEditor({ onCodeChange, defaultLanguage = 'python', initialCo
         languageRef.current = language;
     }, [language]);
 
+    useEffect(() => {
+        isRunningRef.current = isRunning;
+    }, [isRunning]);
+
     const handleRunCode = async () => {
         const currentCode = codeRef.current;
         const currentLang = languageRef.current;
 
-        if (!currentCode.trim() || runDisabled) return;
+        if (!currentCode.trim() || runDisabled || isRunningRef.current) return;
 
         setIsRunning(true);
         setExecutionResult(null);

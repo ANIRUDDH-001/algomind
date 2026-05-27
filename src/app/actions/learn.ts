@@ -1,10 +1,15 @@
 'use server';
 
 import { getServiceClient } from '@/lib/supabase/service';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { err, ok, type Result } from '@/lib/api/result';
 
 export async function updateKaiMemory(userId: string, sessionSummary: string): Promise<Result<null>> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== userId) return err('Unauthorized', 'unauthorized');
+
         const supabase = getServiceClient();
 
         // 1. Get current Profile
@@ -46,6 +51,10 @@ export async function updateKaiMemory(userId: string, sessionSummary: string): P
 
 export async function getKaiMemory(userId: string): Promise<Result<{ memory: string }>> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== userId) return err('Unauthorized', 'unauthorized');
+
         const supabase = getServiceClient();
         const { data: profile } = await supabase
             .from('learner_profiles')
@@ -77,6 +86,10 @@ export async function recordLearnSession(params: {
     duration: number;
 }): Promise<Result<null>> {
     try {
+        const serverSupabase = await createServerSupabase();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || user.id !== params.userId) return err('Unauthorized', 'unauthorized');
+
         const supabase = getServiceClient();
 
         // Log to system_events directly

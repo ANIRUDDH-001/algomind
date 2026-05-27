@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getKaiMemory, updateKaiMemory, recordLearnSession } from '../learn';
 import { getServiceClient } from '@/lib/supabase/service';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 vi.mock('@/lib/supabase/service', () => ({
     getServiceClient: vi.fn()
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: vi.fn()
 }));
 
 const mockSupabase = {
@@ -24,6 +29,10 @@ describe('Learn Actions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (getServiceClient as any).mockReturnValue(mockSupabase);
+        
+        (createServerSupabase as any).mockResolvedValue({
+            auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null }) }
+        });
 
         // Reset mock implementations
         mockSupabase.maybeSingle.mockReset();

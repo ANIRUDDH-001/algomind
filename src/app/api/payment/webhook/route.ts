@@ -205,7 +205,6 @@ export async function POST(req: Request) {
       case 'subscription.halted':
       case 'subscription.completed': {
         // Log other subscription lifecycle events without taking action
-        console.log(`Received subscription event: ${webhookEvent}`, { subscription });
         
         void logSystemEvent({
           type: 'payment.webhook_processed',
@@ -219,7 +218,6 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log(`Received unhandled webhook event: ${webhookEvent}`);
         break;
     }
 
