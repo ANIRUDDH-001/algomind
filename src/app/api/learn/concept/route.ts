@@ -278,22 +278,33 @@ export async function POST(req: NextRequest) {
             }
 
             const cleaned = fullText.trim();
+            let sessionCompleteData = {};
 
-            // Persist transcript after stream completes (same as JSON path)
             if (capturedSessionId && cleaned) {
               const newTranscript = [
                 ...messages,
                 { role: 'assistant' as const, content: cleaned, at: new Date().toISOString() },
               ];
-              await getServiceClient()
-                .from('learn_sessions')
-                .update({
-                  transcript: newTranscript,
-                  exchange_count: exchangeCount,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', capturedSessionId)
-                .eq('user_id', capturedUserId);
+
+              // Check if we should auto-end or if AI gave a mastery signal (in a future iteration, we can parse `cleaned` for a specific closing string)
+              const shouldAutoEnd = exchangeCount >= LEARN_SESSION_MAX_TURNS || cleaned.toLowerCase().includes("you can end the session whenever you're ready");
+
+              if (shouldAutoEnd) {
+                const { assessment, conceptProgress } = await processSessionEnd(
+                  capturedSessionId, capturedUserId, newTranscript, capturedConceptSlug, correlationId
+                );
+                sessionCompleteData = { sessionComplete: true, assessment, conceptProgress };
+              } else {
+                await getServiceClient()
+                  .from('learn_sessions')
+                  .update({
+                    transcript: newTranscript,
+                    exchange_count: exchangeCount,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', capturedSessionId)
+                  .eq('user_id', capturedUserId);
+              }
             }
 
             enqueue({
@@ -305,6 +316,7 @@ export async function POST(req: NextRequest) {
               isFirstTurn,
               proactiveNudgeApplied: Boolean(proactiveNudge),
               fullText: cleaned,
+              ...sessionCompleteData,
             });
           } catch (err) {
             if ((err as Error)?.name === 'AbortError') return;
@@ -412,6 +424,46 @@ export async function POST(req: NextRequest) {
   }
 }
 
+async function processSessionEnd(
+  sessionId: string,
+  userId: string,
+  messages: { role: string; content: string }[],
+  conceptSlug: string,
+  correlationId: string
+) {
+  const assessment = await generateSessionAssessment(messages, conceptSlug, correlationId);
+
+  const startTime = await getSessionStartTime(sessionId, userId);
+  const durationSeconds = startTime
+    ? Math.round((Date.now() - new Date(startTime).getTime()) / 1000)
+    : null;
+
+  await getServiceClient()
+    .from('learn_sessions')
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      transcript: messages,
+      duration_seconds: durationSeconds,
+      exchange_count: Math.floor(messages.length / 2),
+      kai_assessment: {
+        notes: assessment.notes,
+        confidence_delta: assessment.confidenceDelta,
+      },
+      concepts_understood: assessment.understood,
+      concepts_struggled: assessment.struggled,
+    })
+    .eq('id', sessionId)
+    .eq('user_id', userId);
+
+  await getKnowledgeGraphService().onLearnSessionCompleted(sessionId, assessment);
+  void invalidateStudentContext(userId);
+
+  const progress = await getConceptProgressSnapshot(userId, conceptSlug, assessment.confidenceDelta);
+
+  return { assessment, conceptProgress: progress };
+}
+
 async function handleSessionEnd(
   sessionId: string,
   userId: string,
@@ -420,35 +472,9 @@ async function handleSessionEnd(
   correlationId: string
 ): Promise<NextResponse> {
   try {
-    const assessment = await generateSessionAssessment(messages, conceptSlug, correlationId);
-
-    const startTime = await getSessionStartTime(sessionId, userId);
-    const durationSeconds = startTime
-      ? Math.round((Date.now() - new Date(startTime).getTime()) / 1000)
-      : null;
-
-    await getServiceClient()
-      .from('learn_sessions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        transcript: messages,
-        duration_seconds: durationSeconds,
-        exchange_count: Math.floor(messages.length / 2),
-        kai_assessment: {
-          notes: assessment.notes,
-          confidence_delta: assessment.confidenceDelta,
-        },
-        concepts_understood: assessment.understood,
-        concepts_struggled: assessment.struggled,
-      })
-      .eq('id', sessionId)
-      .eq('user_id', userId);
-
-    await getKnowledgeGraphService().onLearnSessionCompleted(sessionId, assessment);
-    void invalidateStudentContext(userId);
-
-    const progress = await getConceptProgressSnapshot(userId, conceptSlug, assessment.confidenceDelta);
+    const { assessment, conceptProgress } = await processSessionEnd(
+      sessionId, userId, messages, conceptSlug, correlationId
+    );
 
     return NextResponse.json({
       sessionComplete: true,

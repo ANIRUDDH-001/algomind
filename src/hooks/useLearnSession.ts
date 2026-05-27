@@ -49,6 +49,11 @@ export function useLearnSession(options: UseLearnSessionOptions) {
 
   const startTimeRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const transcriptRef = useRef(transcript);
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   const addTranscriptEntry = useCallback((entry: Omit<LearnTranscriptEntry, 'id'>) => {
     setTranscript(prev => [
@@ -117,6 +122,9 @@ export function useLearnSession(options: UseLearnSessionOptions) {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
+        if (signal?.aborted) return terminalPayload;
+
         buffer += decoder.decode(value, { stream: true });
 
         let sepIdx: number;
@@ -245,7 +253,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
       content: userMessage,
       at: new Date().toISOString(),
     };
-    const updatedTranscript = [...transcript, { ...userEntry, id: `u-${Date.now()}` }];
+    const updatedTranscript = [...transcriptRef.current, { ...userEntry, id: `u-${Date.now()}` }];
     setTranscript(updatedTranscript);
     setKaiTyping(true);
     setError(null);
@@ -288,8 +296,12 @@ export function useLearnSession(options: UseLearnSessionOptions) {
       setLastFailedMessage(null);
 
       // Auto-end if session limit reached
+      const currentExchangeCount = Math.floor(updatedTranscript.length / 2);
       if (data.sessionComplete) {
         await handleSessionResults(data);
+      } else if (currentExchangeCount >= 18) {
+        // Fallback: approaching hard limit — end proactively
+        await endSession();
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;

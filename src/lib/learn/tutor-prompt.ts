@@ -19,6 +19,7 @@ export interface KaiTutorPromptOptions {
   exchangeCount: number;
 
   proactiveNudge?: string | null;
+  masterySignal?: boolean;
 }
 
 /**
@@ -32,6 +33,7 @@ export function buildKaiTutorSystemPrompt(options: KaiTutorPromptOptions): strin
     currentConfidence,
     exchangeCount,
     proactiveNudge,
+    masterySignal,
   } = options;
 
   const confidenceLevel = currentConfidence !== undefined
@@ -46,7 +48,7 @@ export function buildKaiTutorSystemPrompt(options: KaiTutorPromptOptions): strin
     ? buildStudentContextPromptBlock(studentContext)
     : '<student_context>No prior data available.</student_context>';
 
-  const sessionPhase = getSessionPhase(exchangeCount);
+  const sessionPhase = getSessionPhase(exchangeCount, masterySignal);
   const languageHint = '';
   const nudgeHint = proactiveNudge
     ? `<nudge_hint>${proactiveNudge}</nudge_hint>`
@@ -85,7 +87,8 @@ ${KAI_TUTOR_BEHAVIORAL_CONTRACT}
 - No markdown. No bullet points. No code blocks.
 - Maximum 100 words per response.
 - End every response with exactly ONE question (never zero, never two).
-- If this is the closing phase (turn 16+), ask student to summarize back to you.
+- In Closing phase: Do NOT ask a question. Instead, summarize the session and say goodbye.
+- If the student says they want to end, stop asking questions immediately.
 </output_rules>`;
 }
 
@@ -94,11 +97,17 @@ interface SessionPhase {
   instruction: string;
 }
 
-function getSessionPhase(exchangeCount: number): SessionPhase {
+function getSessionPhase(exchangeCount: number, masterySignal?: boolean): SessionPhase {
   if (exchangeCount === 0) {
     return {
       name: 'Opening',
       instruction: 'Warm greeting + probe existing knowledge. Ask what they already know.',
+    };
+  }
+  if (masterySignal && exchangeCount >= 3) {
+    return {
+      name: 'Accelerated Consolidation',
+      instruction: 'Student shows strong understanding. Push for edge cases, optimization, and complexity analysis. If they handle these well, proceed to closing.',
     };
   }
   if (exchangeCount <= 2) {
@@ -107,13 +116,13 @@ function getSessionPhase(exchangeCount: number): SessionPhase {
       instruction: 'Assess baseline. Identify gaps. Do not teach yet - only listen and probe.',
     };
   }
-  if (exchangeCount <= 12) {
+  if (exchangeCount <= 10) {
     return {
       name: 'Core Teaching',
       instruction: 'Socratic dialogue. One concept at a time. Build from their answers.',
     };
   }
-  if (exchangeCount <= 16) {
+  if (exchangeCount <= 14) {
     return {
       name: 'Consolidation',
       instruction: 'Push for edge cases and complexity analysis. Challenge their understanding.',
@@ -121,7 +130,7 @@ function getSessionPhase(exchangeCount: number): SessionPhase {
   }
   return {
     name: 'Closing',
-    instruction: 'Ask student to summarize back. This is the final test of understanding.',
+    instruction: 'Wrap up the session. Give a brief summary of what was covered. Tell the student what they did well and what to review. Do NOT ask another teaching question — just summarize and say goodbye.',
   };
 }
 
