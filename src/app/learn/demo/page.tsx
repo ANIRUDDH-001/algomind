@@ -18,6 +18,27 @@ import {
 export default function MainSelectorPage() {
   const options = [
     {
+      id: 'option4',
+      title: 'Option 4: Socratic Interactive Canvas',
+      tagline: 'Recommended Redesign',
+      path: '/learn/demo/option4',
+      description: 'A premium, highly interactive single-column feed. Features dynamic inline concept highlighting with definitions on hover, premium thought cards, beautiful syntax-highlighted code, and an elegant floating bottom toolbar capsule.',
+      highlights: [
+        'Floating bottom toolbar capsule',
+        'Breathing inline microphone pill with wave',
+        'Gold/violet Socratic Thought Cards',
+        'Soft inline concept definitions on hover'
+      ],
+      metrics: {
+        immersion: 'Very High',
+        distraction: 'None',
+        density: 'Optimized',
+        layout: 'Unified Column'
+      },
+      gradient: 'from-amber-400 via-indigo-500 to-emerald-500',
+      icon: Sparkles
+    },
+    {
       id: 'option1',
       title: 'Option 1: Voice-First Console',
       tagline: 'Immersive Dark Cinematic',
@@ -88,7 +109,7 @@ export default function MainSelectorPage() {
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-900/10 blur-[120px] pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto px-6 py-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -101,12 +122,12 @@ export default function MainSelectorPage() {
           </h1>
           
           <p className="text-zinc-400 text-base md:text-lg leading-relaxed">
-            Welcome to the AlgoMind interactive design lab. Explore three distinct user experience paradigms crafted for voice-first DSA learning. Pick a direction to test the high-fidelity mockups.
+            Welcome to the AlgoMind interactive design lab. Explore four distinct user experience paradigms crafted for voice-first DSA learning. Pick a direction to test the high-fidelity mockups.
           </p>
         </div>
 
         {/* Console Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {options.map((opt) => {
             const Icon = opt.icon;
             return (
