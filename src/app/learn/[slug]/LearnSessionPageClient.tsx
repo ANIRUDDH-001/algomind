@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Layers, Play, BookOpen, Code2, Send, Mic, Cpu, Clock, Award,
-  ChevronDown, ChevronUp, Lightbulb, AlertCircle, Loader2, Volume2, MicOff
+  ChevronDown, ChevronUp, Lightbulb, AlertCircle, Loader2, Volume2, MicOff, MessageSquare
 } from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { useUnifiedVoice } from '@/hooks/useUnifiedVoice';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+import { cn } from '@/lib/utils';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
@@ -44,6 +47,14 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'cognitive'>('details');
   const [codeExpanded, setCodeExpanded] = useState(true);
+
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [mobileTab, setMobileTab] = useState<'problem' | 'chat'>('chat');
+  const { handlers: swipeHandlers } = useSwipeNavigation({
+      tabs: ['problem', 'chat'],
+      activeTab: mobileTab,
+      onTabChange: (tab) => setMobileTab(tab as 'problem' | 'chat'),
+  });
 
   // Double-mount protection for React StrictMode
   const hasStartedRef = useRef(false);
@@ -199,58 +210,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     return { parsedText, extractedCode };
   };
 
-  if (!mounted) return null;
-
-  return (
-    <div className="min-h-screen bg-[#09090d] text-zinc-100 flex flex-col justify-between overflow-hidden relative noise-overlay">
-      
-      {/* Header (Option 3) */}
-      <header className="glass border-b border-zinc-900 sticky top-0 z-30 px-6 py-4 shrink-0">
-        <div className="mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/learn" 
-              className="p-2 rounded-lg bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white tracking-wide capitalize">{slug.replace(/-/g, ' ')}</span>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400">
-                  Dual Layout
-                </span>
-              </div>
-              <span className="text-xs text-zinc-500">Socratic Interactive Canvas</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {session.state === 'active' && (
-              <>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-900 text-xs text-zinc-400">
-                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Exchange: <strong>{Math.floor(session.transcript.length / 2)} / 20</strong></span>
-                </div>
-                <button
-                  data-testid="finish-button"
-                  onClick={session.endSession}
-                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all font-semibold"
-                >
-                  End Session
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Sandbox split grid */}
-      <main className="w-full flex-1 flex flex-col p-4 relative z-10 overflow-hidden h-full">
-          <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-4">
-              
-              {/* Left Column: Sidebar Problem Metadata & Code Workspace (Option 3 style) */}
-              <ResizablePanel defaultSize={33} minSize={20}>
+  const renderProblemArea = () => (
                   <section className="h-full flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1 relative">
                     
                     {/* Metadata Selector Tabs */}
@@ -346,12 +306,9 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                     </div>
 
                   </section>
-              </ResizablePanel>
+  );
 
-              <ResizableHandle className="bg-transparent w-2" />
-
-              {/* Right Column: Dialogue Feed & Interactive Input (Option 4 Chat Bubbles Style) */}
-              <ResizablePanel defaultSize={67} minSize={40}>
+  const renderChatArea = () => (
                 <section className="h-full flex flex-col justify-between bg-zinc-950/40 border border-zinc-900 rounded-3xl p-6 relative overflow-hidden">
                     
                     {/* Conversational log */}
@@ -576,8 +533,114 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                     </form>
 
                 </section>
+  );
+
+  if (!mounted) return null;
+
+  return (
+    <div className="min-h-screen bg-[#09090d] text-zinc-100 flex flex-col justify-between overflow-hidden relative noise-overlay">
+      
+      {/* Header (Option 3) */}
+      <header className="glass border-b border-zinc-900 sticky top-0 z-30 px-6 py-4 shrink-0">
+        <div className="mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/learn" 
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white tracking-wide capitalize">{slug.replace(/-/g, ' ')}</span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400">
+                  Dual Layout
+                </span>
+              </div>
+              <span className="text-xs text-zinc-500">Socratic Interactive Canvas</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {session.state === 'active' && (
+              <>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-900 text-xs text-zinc-400">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Exchange: <strong>{Math.floor(session.transcript.length / 2)} / 20</strong></span>
+                </div>
+                <button
+                  data-testid="finish-button"
+                  onClick={session.endSession}
+                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all font-semibold"
+                >
+                  End Session
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Sandbox split grid */}
+      <main className={cn("w-full flex-1 flex flex-col relative z-10 overflow-hidden", isDesktop ? "p-4 h-full" : "h-full")}>
+        {isDesktop ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-4">
+              <ResizablePanel defaultSize={33} minSize={20}>
+                  {renderProblemArea()}
+              </ResizablePanel>
+              <ResizableHandle className="bg-transparent w-2" />
+              <ResizablePanel defaultSize={67} minSize={40}>
+                  {renderChatArea()}
               </ResizablePanel>
           </ResizablePanelGroup>
+        ) : (
+          <div 
+            className="flex-1 w-full h-full relative" 
+            {...swipeHandlers} 
+            style={{ touchAction: 'pan-y' }}
+          >
+            <div className="absolute inset-0 flex flex-col overflow-hidden pb-14">
+              {mobileTab === 'problem' && (
+                <div className="flex-1 w-full h-full overflow-y-auto p-4 animate-in fade-in slide-in-from-left-4">
+                  {renderProblemArea()}
+                </div>
+              )}
+              {mobileTab === 'chat' && (
+                <div className="flex-1 w-full h-full p-2 animate-in fade-in slide-in-from-right-4">
+                  {renderChatArea()}
+                </div>
+              )}
+            </div>
+            
+            <div
+              role="tablist"
+              className="absolute bottom-0 left-0 right-0 z-50 flex border-t"
+              style={{
+                background: 'var(--surface-1, #09090d)',
+                borderColor: 'var(--surface-edge, #27272a)',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+              }}
+            >
+              {[
+                { id: 'problem', label: 'Problem', icon: BookOpen },
+                { id: 'chat', label: 'Chat', icon: MessageSquare },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setMobileTab(id as 'problem' | 'chat')}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all text-[10px] font-bold uppercase tracking-wider",
+                    mobileTab === id ? "text-indigo-400" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  <Icon className={cn("w-5 h-5 transition-all", mobileTab === id ? "text-indigo-400" : "text-zinc-500")} />
+                  <span>{label}</span>
+                  {mobileTab === id && <div className="w-1 h-1 rounded-full bg-indigo-400 mt-0.5" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Floating Concept Tooltip Box */}
