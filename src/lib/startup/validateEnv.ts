@@ -15,7 +15,7 @@ export function validateEnv(): void {
         { key: "SUPABASE_JWT_SECRET", use: "JWT signing secret for candidate assessment sessions — must be separate from service role key" },
         { key: "INTERNAL_API_SECRET", use: "Authorization secret for invoking run-assessment edge function — missing means all candidate assessments complete with no analysis" },
         { key: "ASSESSMENT_JWT_SECRET", use: "Dedicated JWT signing secret for candidate assessment sessions — falls back to SUPABASE_JWT_SECRET if absent but should be set explicitly" },
-        { key: "RAZORPAY_KEY_SECRET", use: "Razorpay signature verification secret" },
+        // { key: "RAZORPAY_KEY_SECRET", use: "Razorpay signature verification secret" },
         { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
     ];
 
