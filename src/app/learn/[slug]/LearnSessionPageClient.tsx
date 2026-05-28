@@ -8,6 +8,7 @@ import {
   ArrowLeft, Layers, Play, BookOpen, Code2, Send, Mic, Cpu, Clock, Award,
   ChevronDown, ChevronUp, Lightbulb, AlertCircle, Loader2, Volume2, MicOff, MessageSquare
 } from 'lucide-react';
+
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { useUnifiedVoice } from '@/hooks/useUnifiedVoice';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -15,6 +16,7 @@ import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { cn } from '@/lib/utils';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { TOPIC_DATA } from './topic-data';
 
 interface LearnSessionPageClientProps {
   slug: string;
@@ -247,7 +249,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                             <div>
                                 <h3 className="text-base font-bold text-white mb-1.5 capitalize">{slug.replace(/-/g, ' ')}</h3>
                                 <p className="text-xs text-zinc-400 leading-relaxed">
-                                    Master the core principles of this concept through an interactive Socratic dialogue. Kai will guide you step-by-step.
+                                    {TOPIC_DATA[slug]?.description || "Master the core principles of this concept through an interactive Socratic dialogue. Kai will guide you step-by-step."}
                                 </p>
                             </div>
                         </div>
@@ -285,7 +287,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
 
                         {codeExpanded && (
                         <div className="p-4 bg-zinc-950 border-t border-zinc-900 text-[11px] font-mono text-zinc-300 overflow-x-auto leading-relaxed">
-                            <pre>{`def reference_implementation():\n    # Reference implementation\n    pass`}</pre>
+                            <pre>{TOPIC_DATA[slug]?.referenceCode || `// Reference implementation\nvoid referenceImplementation() {\n}`}</pre>
                         </div>
                         )}
                     </div>
@@ -538,7 +540,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#09090d] text-zinc-100 flex flex-col justify-between overflow-hidden relative noise-overlay">
+    <div className="h-[100dvh] bg-[#09090d] text-zinc-100 flex flex-col justify-between overflow-hidden relative noise-overlay">
       
       {/* Header (Option 3) */}
       <header className="glass border-b border-zinc-900 sticky top-0 z-30 px-6 py-4 shrink-0">
@@ -662,17 +664,6 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
           </motion.div>
           )}
       </AnimatePresence>
-
-      {/* Footer System Specs (Option 3) */}
-      <footer className="bg-zinc-950 border-t border-zinc-900 px-6 py-3.5 text-xs text-zinc-500 shrink-0">
-        <div className="mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
-          <span className="font-mono text-[10px]">AlgoMind Console - Hybrid Sidebar Split-Pane</span>
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5 text-zinc-400" /> Split Panel Sync</span>
-            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-indigo-400" /> Audio Node Calibration</span>
-          </div>
-        </div>
-      </footer>
 
       <UpgradeModal
         open={showUpgrade}
