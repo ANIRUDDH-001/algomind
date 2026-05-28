@@ -99,10 +99,10 @@ export default function Option4Demo() {
 
   const getHighlightClass = (color: string) => {
     switch (color) {
-      case 'indigo': return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20';
-      case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20';
-      case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20';
-      default: return 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/20';
+      case 'indigo': return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20';
+      case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20';
+      case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20';
+      default: return 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20';
     }
   };
 
@@ -110,10 +110,6 @@ export default function Option4Demo() {
     if (!msg.highlights) return <span>{msg.content}</span>;
 
     let text = msg.content;
-    const elements: React.ReactNode[] = [];
-    let keyIndex = 0;
-
-    // Simple parser to extract and wrap matching highlight words
     const words = msg.highlights.map(h => h.word);
     const regex = new RegExp(`(${words.map(w => w.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')})`, 'g');
     const parts = text.split(regex);
@@ -124,7 +120,7 @@ export default function Option4Demo() {
         return (
           <span
             key={i}
-            onMouseEnter={(e) => {
+            onMouseEnter={() => {
               setHoveredConcept(highlight.word);
               setTooltipContent(highlight.definition);
             }}
@@ -145,13 +141,13 @@ export default function Option4Demo() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#07070B] flex flex-col relative noise-overlay">
+    <div className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay">
       {/* Soft Ambient Radial Glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] rounded-full bg-violet-600/5 blur-[160px] pointer-events-none" />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#07070B]/80 backdrop-blur-md border-b border-[#1E1E2E] px-6 py-4 flex items-center justify-between">
+      <header className="flex-shrink-0 bg-[#07070B]/85 backdrop-blur-md border-b border-[#1E1E2E]/40 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/learn/demo" className="p-2 rounded-lg bg-zinc-900/50 border border-white/5 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all">
             <ArrowLeft size={16} />
@@ -163,7 +159,7 @@ export default function Option4Demo() {
               <span className="text-zinc-300">Option 4</span>
             </div>
             <h1 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-400" />
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
               Socratic Interactive Canvas
             </h1>
           </div>
@@ -202,116 +198,118 @@ export default function Option4Demo() {
         </div>
       </header>
 
-      {/* Main Centered Content Feed */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8 space-y-6 overflow-y-auto pb-32">
-        <AnimatePresence initial={false}>
-          {messages.map((msg) => {
-            const isKai = msg.role === 'assistant';
-            const isThought = msg.type === 'thought';
+      {/* Main Centered Content Feed (Wider Layout, fills horizontal space) */}
+      <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
+        <div className="max-w-5xl mx-auto w-full space-y-6 pb-24">
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => {
+              const isKai = msg.role === 'assistant';
+              const isThought = msg.type === 'thought';
 
-            return (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-              >
-                {/* Custom Avatar Badge */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative ${
-                  isKai
-                    ? 'bg-indigo-950 border border-indigo-500/30 text-indigo-400 shadow-md shadow-indigo-500/10'
-                    : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
-                }`}>
-                  {isKai ? 'K' : 'U'}
-                  {isKai && isPlayingAudio && (
-                    <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-70" />
-                  )}
-                </div>
-
-                {/* Socratic Thought Card or Standard Bubble */}
-                <div className="flex-1 space-y-3 max-w-[85%]">
-                  <div
-                    className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all ${
-                      isThought
-                        ? 'bg-gradient-to-r from-amber-950/10 to-indigo-950/10 border-amber-500/20 text-zinc-200 shadow-lg shadow-amber-950/5 relative overflow-hidden'
-                        : isKai
-                          ? 'bg-[#12121A] border-[#1E1E2E] text-zinc-200'
-                          : 'bg-indigo-600/10 border-indigo-500/20 text-zinc-200 ml-auto'
-                    }`}
-                  >
-                    {isThought && (
-                      <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-2">
-                        <Lightbulb size={12} className="shrink-0" />
-                        Socratic Guidance
-                      </div>
-                    )}
-                    
-                    <p>{renderContentWithHighlights(msg)}</p>
-
-                    {isKai && (
-                      <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
-                        <button 
-                          onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 px-2.5 py-1 rounded-md border border-indigo-500/15"
-                        >
-                          <Volume2 size={12} />
-                          {isPlayingAudio ? 'Pause Speech' : 'Listen'}
-                        </button>
-                      </div>
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                >
+                  {/* Custom Avatar Badge */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative ${
+                    isKai
+                      ? 'bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md'
+                      : 'bg-zinc-800 border border-zinc-700/50 text-zinc-300'
+                  }`}>
+                    {isKai ? 'K' : 'U'}
+                    {isKai && isPlayingAudio && (
+                      <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
                     )}
                   </div>
 
-                  {/* Code Card Rendering (if code is included) */}
-                  {msg.code && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40"
+                  {/* Socratic Thought Card or Standard Bubble with Softer Borders */}
+                  <div className="flex-1 space-y-3 max-w-[85%]">
+                    <div
+                      className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all ${
+                        isThought
+                          ? 'bg-gradient-to-r from-amber-950/5 to-indigo-950/5 border-amber-500/10 text-zinc-200 shadow-md relative overflow-hidden'
+                          : isKai
+                            ? 'bg-[#12121A] border-[#1E1E2E]/20 text-zinc-200'
+                            : 'bg-indigo-600/10 border-indigo-500/10 text-zinc-200 ml-auto'
+                      }`}
                     >
-                      <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
-                        <span className="text-zinc-500 flex items-center gap-1.5">
-                          <Code2 size={12} /> Python Optimal Solution
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                          O(N) Sweep
-                        </span>
-                      </div>
-                      <div className="p-4 overflow-x-auto leading-relaxed relative">
-                        {msg.code.split('\n').map((line, idx) => {
-                          const isCritical = line.includes('>>>');
-                          const cleanLine = line.replace('# >>> ', '');
-                          return (
-                            <div 
-                              key={idx} 
-                              className={`flex px-2 py-0.5 rounded ${
-                                isCritical 
-                                  ? 'bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-300 font-semibold my-1' 
-                                  : ''
-                              }`}
-                            >
-                              <span className="w-6 text-zinc-600 select-none text-right mr-4">{idx + 1}</span>
-                              <span>{cleanLine}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                      {isThought && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-2">
+                          <Lightbulb size={12} className="shrink-0" />
+                          Socratic Guidance
+                        </div>
+                      )}
+                      
+                      <p>{renderContentWithHighlights(msg)}</p>
+
+                      {isKai && (
+                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
+                          <button 
+                            onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 px-2.5 py-1 rounded-md border border-indigo-500/10"
+                          >
+                            <Volume2 size={12} />
+                            {isPlayingAudio ? 'Pause Speech' : 'Listen'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Code Card Rendering */}
+                    {msg.code && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.99 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40"
+                      >
+                        <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
+                          <span className="text-zinc-500 flex items-center gap-1.5">
+                            <Code2 size={12} /> Python Optimal Solution
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                            O(N) Sweep
+                          </span>
+                        </div>
+                        <div className="p-4 overflow-x-auto leading-relaxed relative">
+                          {msg.code.split('\n').map((line, idx) => {
+                            const isCritical = line.includes('>>>');
+                            const cleanLine = line.replace('# >>> ', '');
+                            return (
+                              <div 
+                                key={idx} 
+                                className={`flex px-2 py-0.5 rounded ${
+                                  isCritical 
+                                    ? 'bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-300 font-semibold my-1' 
+                                    : ''
+                                }`}
+                              >
+                                <span className="w-6 text-zinc-600 select-none text-right mr-4">{idx + 1}</span>
+                                <span>{cleanLine}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </main>
 
-      {/* Concept Tooltip Box (Floating overlay based on hover state) */}
+      {/* Floating Concept Tooltip Box */}
       <AnimatePresence>
         {tooltipContent && (
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full bg-[#161622] border border-white/15 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full bg-[#161622] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
           >
             <div className="flex gap-2 items-start">
               <BookOpen size={16} className="text-indigo-400 shrink-0 mt-0.5" />
@@ -324,19 +322,25 @@ export default function Option4Demo() {
         )}
       </AnimatePresence>
 
-      {/* Floating Bottom Toolbar Capsule */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 px-6">
-        <div className="max-w-2xl mx-auto w-full">
-          <div className="glass border border-white/10 rounded-full py-2.5 px-4 shadow-2xl flex items-center justify-between gap-3">
-            
-            {/* Inline Microphone Pill */}
-            {isVoiceMode ? (
+      {/* Bottom Sticky Footer Console (Exactly like standard chat screens) */}
+      <footer className="flex-shrink-0 bg-[#07070B]/95 backdrop-blur-md border-t border-[#1E1E2E]/40 px-6 py-4 safe-area-bottom z-30">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 w-full">
+          
+          {isVoiceMode ? (
+            <div className="flex items-center gap-3 w-full justify-between">
+              {/* Voice Status pill */}
+              <div className="flex items-center gap-2 text-zinc-500 text-xs">
+                <span className="text-[10px] uppercase font-bold tracking-wider select-none">Kai is Listening</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+
+              {/* Centered breathing Mic Pill */}
               <button
                 onClick={() => setIsListening(!isListening)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-all relative overflow-hidden shrink-0 ${
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-xs transition-all relative overflow-hidden shrink-0 mx-auto ${
                   isListening
                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5'
                 }`}
               >
                 {isListening && (
@@ -347,7 +351,7 @@ export default function Option4Demo() {
                   />
                 )}
                 {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
-                <span>{isListening ? 'Listening...' : 'Tap to Speak'}</span>
+                <span>{isListening ? 'Listening... Tap to Stop' : 'Tap to Speak'}</span>
                 
                 {isListening && (
                   <div className="flex gap-0.5 items-center justify-center shrink-0 ml-1">
@@ -362,33 +366,36 @@ export default function Option4Demo() {
                   </div>
                 )}
               </button>
-            ) : (
-              <div className="flex-1 flex items-center gap-2">
+
+              <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider select-none shrink-0">
+                Voice Mode Active
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 w-full">
+              {/* Text Input area at the bottom */}
+              <div className="flex-1 bg-[#12121A] border border-white/5 rounded-xl flex items-center px-4 py-1.5 focus-within:border-indigo-500/30 transition-colors">
                 <input
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Type your DSA answer here..."
-                  className="w-full bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1 px-2"
+                  className="flex-1 bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1"
                 />
                 <button
                   onClick={handleSend}
-                  className="p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                  disabled={!textInput.trim()}
+                  className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white transition-colors ml-2 shrink-0"
                 >
                   <Send size={12} />
                 </button>
               </div>
-            )}
-
-            {/* Socratic Helper / Quick Advice trigger */}
-            <div className="flex items-center gap-1 text-zinc-500 shrink-0">
-              <span className="text-[10px] uppercase font-bold tracking-wider mr-1 select-none">AI Active</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
+          )}
 
-          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
