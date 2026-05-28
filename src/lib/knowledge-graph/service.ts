@@ -137,8 +137,17 @@ export class KnowledgeGraphService {
       return unlearned[0] ?? null;
     }
 
-    const weakest = await this.getWeakestConcepts(userId, 1);
-    return weakest[0]?.conceptSlug ?? null;
+    const stateMap = new Map(states.map(s => [s.conceptSlug, s.confidence]));
+    const weakestTags = [...tags]
+      .filter(tag => stateMap.has(tag.id))
+      .sort((a, b) => {
+        const confA = stateMap.get(a.id) ?? 0.5;
+        const confB = stateMap.get(b.id) ?? 0.5;
+        if (confA !== confB) return confA - confB;
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      });
+      
+    return weakestTags[0]?.id ?? null;
   }
 
   // Write operations

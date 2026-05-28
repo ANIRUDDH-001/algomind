@@ -200,7 +200,13 @@ export async function POST(req: NextRequest) {
                 }));
             }
 
-            const incremented = await incrementWeeklyUsage(user.id, 'interview');
+            let incremented = false;
+            if (['admin', 'premium', 'gating_disabled'].includes(limitResult.reason)) {
+                incremented = true;
+            } else {
+                incremented = await incrementWeeklyUsage(user.id, 'interview');
+            }
+            
             if (!incremented) {
                 return withCorrelationIdResponse(apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
                     retryable: true,

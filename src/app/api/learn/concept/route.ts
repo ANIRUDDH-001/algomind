@@ -146,7 +146,11 @@ export async function POST(req: NextRequest) {
       activeSessionId = newSession.id;
       let incremented = false;
       try {
-        incremented = await incrementWeeklyUsage(user.id, 'learn');
+        if (['admin', 'premium', 'gating_disabled'].includes(limitResult.reason)) {
+          incremented = true;
+        } else {
+          incremented = await incrementWeeklyUsage(user.id, 'learn');
+        }
       } catch (incrementError: unknown) {
         const errorMessage = incrementError instanceof Error ? incrementError.message : String(incrementError);
         await logSystemEvent({
