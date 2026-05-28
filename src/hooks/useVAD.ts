@@ -176,23 +176,33 @@ export function useVAD(opts: UseVADOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [opts.enabled, mode, initAttempted, registerCallback]);
 
-    const stopListening = useCallback(async () => {
+    const stopListening = useCallback(async (force = false) => {
         setIsListening(false);
         if (!managerRef.current) return;
+
+        if (force) {
+            pendingStopRef.current = false;
+            if (stopFallbackTimerRef.current) {
+                clearTimeout(stopFallbackTimerRef.current);
+                stopFallbackTimerRef.current = null;
+            }
+            try { await managerRef.current.stop(); } catch { /* ignore */ }
+            return;
+        }
 
         // If VAD is actively listening, defer the hardware stop until the
         // current speech segment ends so onSpeechEnd can fire and Whisper
         // can transcribe the captured audio (fixes the mid-utterance discard bug).
         if (managerRef.current.state === VADState.LISTENING) {
             pendingStopRef.current = true;
-            // Safety fallback: force-stop after 2s if onSpeechEnd never fires
+            // Safety fallback: force-stop after 1s if onSpeechEnd never fires
             if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
             stopFallbackTimerRef.current = setTimeout(async () => {
                 if (pendingStopRef.current) {
                     pendingStopRef.current = false;
                     try { await managerRef.current?.stop(); } catch { /* ignore */ }
                 }
-            }, 2000);
+            }, 1000);
         } else {
             try { await managerRef.current.stop(); } catch { /* ignore */ }
         }

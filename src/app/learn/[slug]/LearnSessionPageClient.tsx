@@ -117,19 +117,29 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.state, session.startSession]);
 
-  // Start VAD when session becomes active
+  // Start VAD when session becomes active, and force-stop all audio/mic activity when it is not active
   useEffect(() => {
-    if (session.state === 'active' && !vadStarted.current) {
-      vadStarted.current = true;
-      vadHook.startListening();
+    if (session.state === 'active') {
+      if (!vadStarted.current) {
+        vadStarted.current = true;
+        vadHook.startListening();
+      }
+    } else {
+      if (vadStarted.current) {
+        vadHook.stopListening(true);
+        stt.stopListening();
+        stopSpeaking();
+        vadStarted.current = false;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.state]);
 
-  // Stop VAD on unmount
+  // Stop VAD, STT, and TTS on unmount
   useEffect(() => {
     return () => {
-      vadHook.stopListening();
+      vadHook.stopListening(true);
+      stt.stopListening();
       stopSpeaking();
       vadStarted.current = false;
     };

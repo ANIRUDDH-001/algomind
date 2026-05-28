@@ -480,7 +480,7 @@ async function handleSessionEnd(
       sessionComplete: true,
       sessionId,
       assessment,
-      conceptProgress: progress,
+      conceptProgress,
     }, {
       headers: withCorrelationIdHeaders(undefined, correlationId),
     });

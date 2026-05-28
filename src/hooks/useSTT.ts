@@ -118,6 +118,7 @@ export function useSTT(opts: UseSTTOptions) {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
             });
+            mediaStreamRef.current = stream; // FIX: store stream in mediaStreamRef!
             const mimeType = getSupportedMimeType();
             const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
             const chunks: Blob[] = [];
@@ -172,6 +173,11 @@ export function useSTT(opts: UseSTTOptions) {
         if (resolvedProvider === 'recorder' && recorderRef.current) {
             try { recorderRef.current.stop(); } catch { /* ignore */ }
             recorderRef.current = null;
+        }
+        // Explicitly release microphone tracks on stop to turn off mic hardware instantly
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(t => t.stop());
+            mediaStreamRef.current = null;
         }
     }, [resolvedProvider, clearTimer]);
 

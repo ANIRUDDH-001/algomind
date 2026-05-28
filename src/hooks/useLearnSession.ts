@@ -6,7 +6,7 @@
  */
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export type LearnSessionState = 'idle' | 'starting' | 'active' | 'ending' | 'complete' | 'error';
 

@@ -114,6 +114,18 @@ export class TTSEngine {
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
             audio.volume = 1.0;
+
+            // Mobile speaker routing fixes: playsinline prevents call routing/full-screening
+            audio.setAttribute('playsinline', '');
+            (audio as any).playsInline = true;
+
+            // Attempt to force default media output speaker device (especially on Chrome Android/Windows)
+            if ('setSinkId' in audio && typeof (audio as any).setSinkId === 'function') {
+                (audio as any).setSinkId('default').catch((err: any) => {
+                    console.warn('[TTS] Failed to set sink ID to default:', err);
+                });
+            }
+
             this.audioEl = audio;
             audio.onended = () => {
                 URL.revokeObjectURL(url);
