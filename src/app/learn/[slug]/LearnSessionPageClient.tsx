@@ -4,34 +4,56 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Mic, MicOff, Square, Volume2, Send, Loader2 } from 'lucide-react';
+import { 
+  Sparkles, ArrowLeft, Volume2, Mic, MicOff, Send, 
+  Code2, BookOpen, Lightbulb, Square, AlertCircle, Loader2 
+} from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { useVAD } from '@/hooks/useVAD';
 import { useSTT } from '@/hooks/useSTT';
 import { useTTS } from '@/hooks/useTTS';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
-import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
-import { VoiceModeToggle } from '@/components/voice/VoiceModeToggle';
 
 interface LearnSessionPageClientProps {
   slug: string;
 }
+
+const CONCEPT_HIGHLIGHTS = [
+  { word: 'Two-Sum', definition: 'Find two numbers in an array that add up to a specific target sum.', color: 'indigo' },
+  { word: 'Time Complexity', definition: 'How the execution time of an algorithm scales as the input size grows.', color: 'amber' },
+  { word: 'brute force', definition: 'A straightforward approach that solves a problem by searching all possibilities.', color: 'blue' },
+  { word: 'O(N^2)', definition: 'Quadratic time. Operations scale quadratically. Very slow for large inputs.', color: 'amber' },
+  { word: 'O(N)', definition: 'Linear time. Operations scale 1:1 with input size. Highly optimal.', color: 'emerald' },
+  { word: 'O(1)', definition: 'Constant time. Lookup takes the same time regardless of data structure size.', color: 'emerald' },
+  { word: 'Hash Map', definition: 'A key-value lookup data structure that resolves keys in O(1) average time.', color: 'indigo' },
+  { word: 'complement', definition: 'The value needed to reach target sum, calculated as target - current_value.', color: 'blue' },
+  { word: 'Arrays & Strings', definition: 'Core sequential data structures in computer science.', color: 'indigo' },
+  { word: 'space complexity', definition: 'The amount of memory an algorithm needs to run relative to input size.', color: 'amber' },
+  { word: 'recursion', definition: 'A programming technique where a function calls itself.', color: 'indigo' },
+  { word: 'pointer', definition: 'A reference to a memory address or index in an array.', color: 'blue' }
+] as const;
 
 export default function LearnSessionPageClient({ slug }: LearnSessionPageClientProps) {
   const router = useRouter();
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   // UI state
-  const [isVoiceMode, setIsVoiceMode] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [userTranscript, setUserTranscript] = useState('');
   const [upgradeDismissed, setUpgradeDismissed] = useState(false);
+  const [hoveredConcept, setHoveredConcept] = useState<string | null>(null);
+  const [tooltipContent, setTooltipContent] = useState<string | null>(null);
 
   // VAD mode state
   const [vadMode, setVadMode] = useState<'onnx' | 'push-to-talk'>('push-to-talk');
 
   // VAD lifecycle ref
   const vadStarted = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Session hook
   const session = useLearnSession({
@@ -169,19 +191,11 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     setTextInput('');
   }, [textInput, session]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleTextSend();
-    }
-  }, [handleTextSend]);
-
   // Push-to-talk: tap to start/stop
   const handleMicToggle = useCallback(() => {
     if (session.state !== 'active' || session.kaiTyping) return;
 
     if (vadMode === 'push-to-talk') {
-      // Push-to-talk: first tap = start recording, second tap = send
       if (!stt.isListening) {
         stt.resetTranscript();
         setUserTranscript('');
@@ -195,260 +209,385 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
         }
       }
     }
-    // In ONNX mode the VAD auto-manages start/stop: tap has no effect
   }, [vadMode, stt, session.state, session.kaiTyping, handleVoiceSend]);
 
   const isListening = vadHook.isListening || stt.isListening;
   const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
 
-  // Render
+  // Dynamic Keyword Highlighter
+  const renderContentWithHighlights = (content: string) => {
+    let text = content;
+    
+    // Extract any python/js code blocks first to render them cleanly outside text highlights
+    const codeRegex = /```(python|javascript|js)?\n([\s\S]+?)\n```/;
+    const codeMatch = text.match(codeRegex);
+    let cleanText = text;
+    let extractedCode: string | null = null;
+    
+    if (codeMatch) {
+      cleanText = text.replace(codeRegex, '').trim();
+      extractedCode = codeMatch[2];
+    }
+
+    const words = CONCEPT_HIGHLIGHTS.map(h => h.word);
+    const regex = new RegExp(`(${words.map(w => w.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')})`, 'g');
+    const parts = cleanText.split(regex);
+
+    const getHighlightClass = (color: string) => {
+      switch (color) {
+        case 'indigo': return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20';
+        case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20';
+        case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20';
+        default: return 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20';
+      }
+    };
+
+    const parsedText = parts.map((part, i) => {
+      const highlight = CONCEPT_HIGHLIGHTS.find(h => h.word.toLowerCase() === part.toLowerCase());
+      if (highlight) {
+        return (
+          <span
+            key={i}
+            onMouseEnter={() => {
+              setHoveredConcept(highlight.word);
+              setTooltipContent(highlight.definition);
+            }}
+            onMouseLeave={() => {
+              setHoveredConcept(null);
+              setTooltipContent(null);
+            }}
+            className={`cursor-help px-2 py-0.5 rounded-md border text-xs font-semibold inline-block transition-all ${getHighlightClass(highlight.color)}`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+
+    return { parsedText, extractedCode };
+  };
+
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col">
+    <div 
+      className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
+      style={{
+        backgroundImage: `
+          radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.07) 0px, transparent 35%),
+          radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.07) 0px, transparent 35%),
+          linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px)
+        `,
+        backgroundSize: '100% 100%, 100% 100%, 36px 36px, 36px 36px'
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E1E2E]">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-              <Link href="/learn" className="hover:text-zinc-300 transition-colors shrink-0">Learn</Link>
+      <header className="flex-shrink-0 bg-[#07070B]/85 backdrop-blur-md border-b border-[#1E1E2E]/45 px-6 py-4 flex items-center justify-between z-20">
+        <div className="flex items-center gap-3">
+          <button
+            data-testid="back-button"
+            onClick={() => router.push('/learn')}
+            className="p-2 rounded-lg bg-zinc-900/50 border border-white/5 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <Link href="/learn" className="hover:text-zinc-300 transition-colors">Learn</Link>
               <span>/</span>
               <span className="text-zinc-300 capitalize truncate">{slug.replace(/-/g, ' ')}</span>
             </div>
-            <button
-              data-testid="back-button"
-              onClick={() => router.push('/learn')}
-              className="text-zinc-500 hover:text-zinc-300 text-sm"
-            >
-              ← Back to map
-            </button>
+            <h1 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              Socratic Interactive Canvas
+            </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+
+        <div className="flex items-center gap-4">
           {session.state === 'active' && (
-            <VoiceModeToggle isVoiceMode={isVoiceMode} onToggle={setIsVoiceMode} />
+            <div className="flex items-center gap-2.5 bg-zinc-900/40 border border-white/5 px-3.5 py-1.5 rounded-full">
+              <span className="text-xs font-semibold text-zinc-400">
+                Exchange {Math.floor(session.transcript.length / 2)} / 20
+              </span>
+              <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (session.transcript.length / 40) * 100)}%` }}
+                />
+              </div>
+            </div>
           )}
-          {session.state === 'active' && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
-          )}
+
           {session.state === 'active' && (
             <button
               data-testid="finish-button"
               onClick={session.endSession}
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all font-semibold"
             >
               <Square size={12} />
               End Session
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Conversation area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-2xl mx-auto w-full space-y-4">
-        {session.state === 'starting' && (
-          <div className="flex items-center gap-2 text-zinc-500">
-            <motion.div
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="flex gap-1"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            </motion.div>
-            <span className="text-sm">Kai is preparing...</span>
-          </div>
-        )}
+      {/* Main Centered Content Feed (Clean centered S-curve layout) */}
+      <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6 z-10">
+        <div className="max-w-2xl mx-auto w-full space-y-8 pb-24">
+          
+          {session.state === 'starting' && (
+            <div className="flex items-center justify-center py-12 gap-3 text-zinc-500">
+              <Loader2 size={16} className="animate-spin text-indigo-400" />
+              <span className="text-sm font-semibold">Kai is preparing your personalized canvas...</span>
+            </div>
+          )}
 
-        {isVoiceMode ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 min-h-[400px]">
-            <ZoomTranscript
-              kaiMessage={session.transcript.filter(m => m.role === 'assistant').at(-1)?.content ?? null}
-              userTranscript={userTranscript || stt.interimTranscript}
-              isKaiSpeaking={isSpeaking}
-              isUserSpeaking={isListening}
-              isThinking={session.kaiTyping}
-              conceptSlug={slug}
-              conceptIcon="📚"
-              exchangeCount={Math.floor(session.transcript.length / 2)}
-              sessionHistoryCount={Math.max(0, session.transcript.length - 2)}
-              className="w-full max-w-lg"
-            />
-          </div>
-        ) : (
           <AnimatePresence initial={false}>
-            {session.transcript.map((entry) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className={`flex gap-3 ${entry.role === 'user' ? 'flex-row-reverse' : ''}`}
-              >
-                <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  entry.role === 'assistant' ? 'bg-indigo-600 text-white' : 'bg-zinc-700 text-zinc-300'
-                }`}>
-                  {entry.role === 'assistant' ? 'K' : 'U'}
-                </div>
-                <div
-                  data-testid={entry.role === 'assistant' ? 'message-assistant' : 'message-user'}
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    entry.role === 'assistant'
-                      ? 'bg-[#111118] border border-[#1E1E2E] text-zinc-200 rounded-tl-sm'
-                      : 'bg-indigo-600/20 border border-indigo-500/20 text-zinc-200 rounded-tr-sm'
-                  }`}
+            {session.transcript.map((entry) => {
+              const isKai = entry.role === 'assistant';
+              const { parsedText, extractedCode } = renderContentWithHighlights(entry.content);
+
+              return (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex gap-3 w-full ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {entry.content}
-                  {entry.role === 'assistant' && (
-                    <button
-                      onClick={() => speak(entry.content)}
-                      className="ml-2 text-zinc-600 hover:text-indigo-400 inline-flex items-center"
-                      title="Replay audio"
-                      aria-label="Replay Kai's message"
-                    >
-                      <Volume2 size={12} />
-                    </button>
+                  {/* Kai Avatar on Left */}
+                  {isKai && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md mt-1">
+                      K
+                      {isSpeaking && (
+                        <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
+                      )}
+                    </div>
                   )}
-                </div>
-              </motion.div>
-            ))}
+
+                  {/* Socratic Thought Card or Standard Bubble with 80% limit inside centered column */}
+                  <div className={`space-y-3 max-w-[82%] ${entry.role === 'user' ? 'text-right' : ''}`}>
+                    <div
+                      className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all text-left ${
+                        isKai
+                          ? 'bg-[#12121A] border-[#1E1E2E]/20 text-zinc-200 shadow-sm relative overflow-hidden'
+                          : 'bg-indigo-600/10 border-indigo-500/15 text-zinc-200 ml-auto'
+                      }`}
+                    >
+                      {isKai && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-2">
+                          <Lightbulb size={12} className="shrink-0" />
+                          Socratic Guidance
+                        </div>
+                      )}
+                      
+                      <p>{parsedText}</p>
+
+                      {isKai && (
+                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
+                          <button 
+                            onClick={() => speak(entry.content)}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 px-2.5 py-1 rounded-md border border-indigo-500/10"
+                            title="Replay speech"
+                          >
+                            <Volume2 size={12} />
+                            Listen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Code Card Rendering (if code is detected) */}
+                    {extractedCode && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.99 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40 text-left"
+                      >
+                        <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
+                          <span className="text-zinc-500 flex items-center gap-1.5">
+                            <Code2 size={12} /> Python Optimal Solution
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                            O(N) Sweep
+                          </span>
+                        </div>
+                        <div className="p-4 overflow-x-auto leading-relaxed relative">
+                          {extractedCode.split('\n').map((line, idx) => {
+                            const isCritical = line.includes('>>>') || line.includes('constant O(1)');
+                            const cleanLine = line.replace('# >>> ', '');
+                            return (
+                              <div 
+                                key={idx} 
+                                className={`flex px-2 py-0.5 rounded ${
+                                  isCritical 
+                                    ? 'bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-300 font-semibold my-1' 
+                                    : ''
+                                }`}
+                              >
+                                <span className="w-6 text-zinc-600 select-none text-right mr-4">{idx + 1}</span>
+                                <span>{cleanLine}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* User Avatar on Right */}
+                  {!isKai && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300 mt-1">
+                      U
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
-        )}
 
-        {session.kaiTyping && !isVoiceMode && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">K</div>
-            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl rounded-tl-sm px-4 py-3">
-              <motion.div className="flex gap-1.5">
-                {[0, 0.2, 0.4].map((delay, i) => (
-                  <motion.span
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-zinc-500"
-                    animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
-                    transition={{ duration: 1, delay, repeat: Infinity }}
-                  />
-                ))}
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
+          {session.kaiTyping && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-950 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">K</div>
+              <div className="bg-[#12121A] border border-[#1E1E2E]/20 rounded-2xl rounded-tl-sm px-4 py-3">
+                <motion.div className="flex gap-1.5">
+                  {[0, 0.2, 0.4].map((delay, i) => (
+                    <motion.span
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-zinc-500"
+                      animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
+                      transition={{ duration: 1, delay, repeat: Infinity }}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
 
-        {session.error && session.error !== 'LIMIT_REACHED' && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mx-4 my-2 p-4 rounded-xl flex items-start gap-3"
-            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-          >
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-bold text-red-300 mb-1">Connection lost</p>
-              <p className="text-xs text-zinc-400">
-                Kai couldn&apos;t respond. Your session progress is saved.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                if (session.retryLastMessage) {
-                  void session.retryLastMessage();
-                  return;
-                }
-                window.location.reload();
-              }}
-              className="shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg"
-              style={{ background: 'var(--surface-3)' }}
+          {session.error && session.error !== 'LIMIT_REACHED' && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl flex items-start gap-3 bg-red-950/20 border border-red-500/10"
             >
-              Retry
-            </button>
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-red-300 mb-1">Connection lost</p>
+                <p className="text-xs text-zinc-400">
+                  Kai couldn&apos;t respond. Your session progress is saved.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (session.retryLastMessage) {
+                    void session.retryLastMessage();
+                    return;
+                  }
+                  window.location.reload();
+                }}
+                className="shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5"
+              >
+                Retry
+              </button>
+            </motion.div>
+          )}
+          <div ref={transcriptEndRef} />
+        </div>
+      </main>
+
+      {/* Floating Concept Tooltip Box */}
+      <AnimatePresence>
+        {tooltipContent && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full bg-[#161622] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
+          >
+            <div className="flex gap-2 items-start">
+              <BookOpen size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-bold text-white mb-1">Concept: {hoveredConcept}</h4>
+                <p className="text-xs text-zinc-400 leading-normal">{tooltipContent}</p>
+              </div>
+            </div>
           </motion.div>
         )}
-        <div ref={transcriptEndRef} />
-      </div>
+      </AnimatePresence>
 
-      {/* Input area: mic button (right) + text input */}
-      <div className="border-t border-[#1E1E2E] px-4 py-4 safe-area-bottom">
-        <div className="max-w-2xl mx-auto flex items-end gap-3">
-
-          {/* Text input */}
-          <div className={`flex-1 bg-[#111118] border rounded-xl overflow-hidden transition-colors ${
-            session.state !== 'active' || session.kaiTyping
-              ? 'border-zinc-800/40 opacity-50'
-              : 'border-[#1E1E2E] focus-within:border-indigo-500/40'
-          }`}>
-            <textarea
+      {/* Sticky Bottom Footer Input Bar (Integrated Text Box + Mic Button) */}
+      <footer className="flex-shrink-0 bg-[#07070B]/95 backdrop-blur-md border-t border-[#1E1E2E]/40 px-6 py-4 safe-area-bottom z-30">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 w-full">
+          
+          <div className="flex-1 bg-[#12121A] border border-white/5 rounded-2xl flex items-center px-4 py-2 focus-within:border-indigo-500/30 transition-all shadow-inner">
+            <input
               data-testid="text-input"
+              type="text"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                session.state === 'starting' ? 'Starting session...'
-                  : session.kaiTyping ? 'Kai is thinking...'
-                    : 'Type your answer, or tap the mic to speak'
-              }
-              rows={2}
-              disabled={session.state !== 'active' || session.kaiTyping}
-              className="w-full bg-transparent px-4 py-3 text-base text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none"
-              style={{ fontSize: '16px' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && textInput.trim()) {
+                  handleTextSend();
+                }
+              }}
+              placeholder={isListening ? "Listening... speak now" : "Type your DSA answer here, or tap the mic..."}
+              className="flex-1 bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1"
+              disabled={session.state !== 'active' || session.kaiTyping || isListening}
             />
+
+            {/* Live voice visualizer in input bar */}
+            {isListening && (
+              <div className="flex gap-0.5 items-center justify-center shrink-0 mr-3">
+                {[0.3, 0.6, 0.4, 0.8, 0.3].map((height, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-0.5 bg-emerald-400 rounded-full"
+                    animate={{ height: ['4px', `${12 * height}px`, '4px'] }}
+                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Integrated Mic Button on the Right */}
+            <button
+              data-testid="send-button"
+              onClick={handleMicToggle}
+              disabled={session.state !== 'active' || session.kaiTyping}
+              className={`p-2 rounded-xl transition-all shrink-0 mr-2 relative ${
+                isListening
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5'
+              }`}
+              title={isListening ? "Stop listening" : "Start speaking"}
+            >
+              {isListening && (
+                <motion.span
+                  className="absolute inset-0 bg-emerald-500/30 rounded-xl"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                />
+              )}
+              {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
+            </button>
+
+            {/* Send Message Button */}
+            <button
+              data-testid="send-text-button"
+              onClick={handleTextSend}
+              disabled={!textInput.trim() || session.state !== 'active' || session.kaiTyping || isListening}
+              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-600 text-white transition-colors shrink-0"
+              title="Send message"
+            >
+              <Send size={14} />
+            </button>
+
           </div>
 
-          {/* Send button (text) */}
-          <button
-            data-testid="send-text-button"
-            onClick={handleTextSend}
-            disabled={!textInput.trim() || session.state !== 'active' || session.kaiTyping}
-            className="flex-shrink-0 p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white transition-colors"
-            aria-label="Send text message"
-          >
-            {session.kaiTyping
-              ? <Loader2 size={18} className="animate-spin" />
-              : <Send size={18} />}
-          </button>
-
-          {/* Mic button */}
-          <motion.button
-            data-testid="send-button"
-            whileHover={{ scale: session.state === 'active' && !session.kaiTyping ? 1.05 : 1 }}
-            whileTap={{ scale: session.state === 'active' && !session.kaiTyping ? 0.95 : 1 }}
-            onClick={handleMicToggle}
-            disabled={session.state !== 'active' || session.kaiTyping}
-            className={
-              `
-              relative flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0A0A0F]
-              ${session.state !== 'active' || session.kaiTyping
-                ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
-                : isListening
-                  ? 'bg-emerald-600 text-white focus:ring-emerald-500 shadow-lg shadow-emerald-900/50'
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 focus:ring-indigo-500'
-              }
-            `}
-            aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-          >
-            {isListening && (
-              <motion.div
-                className="absolute inset-0 rounded-full bg-emerald-500/30"
-                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-            )}
-            {isListening ? <Mic size={18} /> : <MicOff size={18} />}
-          </motion.button>
         </div>
-
-        {/* Status line */}
-        <p className="text-xs text-zinc-600 text-center mt-2">
-          {session.state === 'starting' && 'Starting session...'}
-          {session.state === 'active' && !session.kaiTyping && !isListening && vadMode === 'onnx' && 'Listening automatically • or type below'}
-          {session.state === 'active' && !session.kaiTyping && !isListening && vadMode === 'push-to-talk' && 'Tap mic to speak • or type below'}
-          {session.state === 'active' && !session.kaiTyping && isListening && 'Listening... tap mic to stop and send'}
-          {session.state === 'active' && session.kaiTyping && 'Kai is thinking...'}
-          {session.state === 'ending' && 'Saving session...'}
-          {stt.isTranscribing && ' • Transcribing...'}
-        </p>
-      </div>
+      </footer>
 
       <UpgradeModal
         open={showUpgrade}
