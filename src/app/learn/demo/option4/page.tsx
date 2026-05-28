@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, ArrowLeft, Play, RefreshCw, Volume2, Mic, MicOff, 
-  Send, Keyboard, HelpCircle, Code2, BookOpen, Clock, Lightbulb, CheckCircle2, ChevronRight
+  Sparkles, ArrowLeft, Volume2, Mic, MicOff, 
+  Send, Code2, BookOpen, Lightbulb
 } from 'lucide-react';
 
 interface Message {
@@ -23,7 +23,6 @@ export default function Option4Demo() {
     setMounted(true);
   }, []);
 
-  const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [hoveredConcept, setHoveredConcept] = useState<string | null>(null);
@@ -144,10 +143,10 @@ export default function Option4Demo() {
     <div className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
       style={{
         backgroundImage: `
-          radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.06) 0px, transparent 35%),
-          radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.06) 0px, transparent 35%),
-          linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px)
+          radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.07) 0px, transparent 35%),
+          radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.07) 0px, transparent 35%),
+          linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px)
         `,
         backgroundSize: '100% 100%, 100% 100%, 36px 36px, 36px 36px'
       }}
@@ -171,42 +170,18 @@ export default function Option4Demo() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Turn Progress bar */}
-          <div className="flex items-center gap-2.5 bg-zinc-900/40 border border-white/5 px-3.5 py-1.5 rounded-full">
-            <span className="text-xs font-semibold text-zinc-400">Exchange 5 / 20</span>
-            <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-1/4 rounded-full" />
-            </div>
-          </div>
-          {/* Mode Toggle */}
-          <div className="flex bg-zinc-950/80 border border-white/10 rounded-lg p-1">
-            <button
-              onClick={() => setIsVoiceMode(true)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
-                isVoiceMode ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              <Mic size={12} /> Voice
-            </button>
-            <button
-              onClick={() => {
-                setIsVoiceMode(false);
-                setIsListening(false);
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
-                !isVoiceMode ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              <Keyboard size={12} /> Text
-            </button>
+        {/* Turn Progress bar */}
+        <div className="flex items-center gap-2.5 bg-zinc-900/40 border border-white/5 px-3.5 py-1.5 rounded-full">
+          <span className="text-xs font-semibold text-zinc-400">Exchange 5 / 20</span>
+          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-1/4 rounded-full" />
           </div>
         </div>
       </header>
 
-      {/* Main Centered Content Feed (S-Curve Conversation Layout, clean widths, responsive grids) */}
+      {/* Main Centered Content Feed (Clean centered column, no scattered stretching) */}
       <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6 z-10">
-        <div className="max-w-6xl mx-auto w-full space-y-8 pb-24">
+        <div className="max-w-2xl mx-auto w-full space-y-8 pb-24">
           <AnimatePresence initial={false}>
             {messages.map((msg) => {
               const isKai = msg.role === 'assistant';
@@ -217,11 +192,11 @@ export default function Option4Demo() {
                   key={msg.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-4 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex gap-3 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {/* Kai Avatar on Left */}
                   {isKai && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md mt-1">
                       K
                       {isPlayingAudio && (
                         <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
@@ -229,8 +204,8 @@ export default function Option4Demo() {
                     </div>
                   )}
 
-                  {/* Socratic Thought Card or Standard Bubble with 70% Max Width Limit */}
-                  <div className={`space-y-3 max-w-[70%] ${msg.role === 'user' ? 'text-right' : ''}`}>
+                  {/* Socratic Thought Card or Standard Bubble with 80% limit inside the narrow centered column */}
+                  <div className={`space-y-3 max-w-[82%] ${msg.role === 'user' ? 'text-right' : ''}`}>
                     <div
                       className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all text-left ${
                         isThought
@@ -262,7 +237,7 @@ export default function Option4Demo() {
                       )}
                     </div>
 
-                    {/* Code Card Rendering (Left aligned inside bubble context) */}
+                    {/* Code Card Rendering */}
                     {msg.code && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.99 }}
@@ -302,7 +277,7 @@ export default function Option4Demo() {
 
                   {/* User Avatar on Right */}
                   {!isKai && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300 mt-1">
                       U
                     </div>
                   )}
@@ -333,77 +308,66 @@ export default function Option4Demo() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Sticky Footer Console */}
+      {/* Sticky Bottom Footer Input Bar (Integrated Text Box + Mic Button) */}
       <footer className="flex-shrink-0 bg-[#07070B]/95 backdrop-blur-md border-t border-[#1E1E2E]/40 px-6 py-4 safe-area-bottom z-30">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 w-full">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 w-full">
           
-          {isVoiceMode ? (
-            <div className="flex items-center gap-3 w-full justify-between">
-              {/* Voice Status pill */}
-              <div className="flex items-center gap-2 text-zinc-500 text-xs">
-                <span className="text-[10px] uppercase font-bold tracking-wider select-none">Kai is Listening</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
+          <div className="flex-1 bg-[#12121A] border border-white/5 rounded-2xl flex items-center px-4 py-2 focus-within:border-indigo-500/30 transition-all shadow-inner">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder={isListening ? "Listening... speak now" : "Type your DSA answer here, or tap the mic..."}
+              className="flex-1 bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1"
+              disabled={isListening}
+            />
 
-              {/* Centered breathing Mic Pill */}
-              <button
-                onClick={() => setIsListening(!isListening)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-xs transition-all relative overflow-hidden shrink-0 mx-auto ${
-                  isListening
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5'
-                }`}
-              >
-                {isListening && (
-                  <motion.span
-                    className="absolute inset-0 bg-emerald-500/30 rounded-full"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
+            {/* Live voice visualizer in input bar */}
+            {isListening && (
+              <div className="flex gap-0.5 items-center justify-center shrink-0 mr-3">
+                {[0.3, 0.6, 0.4, 0.8, 0.3].map((height, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-0.5 bg-emerald-400 rounded-full"
+                    animate={{ height: ['4px', `${12 * height}px`, '4px'] }}
+                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
                   />
-                )}
-                {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
-                <span>{isListening ? 'Listening... Tap to Stop' : 'Tap to Speak'}</span>
-                
-                {isListening && (
-                  <div className="flex gap-0.5 items-center justify-center shrink-0 ml-1">
-                    {[0.3, 0.6, 0.4, 0.8, 0.3].map((height, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-0.5 bg-white rounded-full"
-                        animate={{ height: ['4px', `${12 * height}px`, '4px'] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </button>
+                ))}
+              </div>
+            )}
 
-              <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider select-none shrink-0">
-                Voice Mode Active
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 w-full">
-              {/* Text Input area at the bottom */}
-              <div className="flex-1 bg-[#12121A] border border-white/5 rounded-xl flex items-center px-4 py-1.5 focus-within:border-indigo-500/30 transition-colors">
-                <input
-                  type="text"
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your DSA answer here..."
-                  className="flex-1 bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1"
+            {/* Integrated Mic Button on the Right */}
+            <button
+              onClick={() => setIsListening(!isListening)}
+              className={`p-2 rounded-xl transition-all shrink-0 mr-2 relative ${
+                isListening
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5'
+              }`}
+              title={isListening ? "Stop listening" : "Start speaking"}
+            >
+              {isListening && (
+                <motion.span
+                  className="absolute inset-0 bg-emerald-500/30 rounded-xl"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
                 />
-                <button
-                  onClick={handleSend}
-                  disabled={!textInput.trim()}
-                  className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white transition-colors ml-2 shrink-0"
-                >
-                  <Send size={12} />
-                </button>
-              </div>
-            </div>
-          )}
+              )}
+              {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
+            </button>
+
+            {/* Send Message Button */}
+            <button
+              onClick={handleSend}
+              disabled={!textInput.trim() || isListening}
+              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-600 text-white transition-colors shrink-0"
+              title="Send message"
+            >
+              <Send size={14} />
+            </button>
+
+          </div>
 
         </div>
       </footer>
