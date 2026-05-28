@@ -1,7 +1,7 @@
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BookOpen, Send } from 'lucide-react';
+import { ArrowLeft, BookOpen, Send, Laptop } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { ConversationView } from '../ConversationView';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
@@ -58,9 +58,10 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         <div className="h-full w-full p-2 animate-in fade-in zoom-in-95 duration-500">
             <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-2xl overflow-hidden shadow-2xl border" style={{ borderColor: 'var(--surface-edge)' }}>
                 {/* Left Panel: Problem Details */}
-                <ResizablePanel defaultSize={28} minSize={20} maxSize={40}>
-                    <div className="h-full overflow-y-auto custom-scrollbar flex flex-col relative" style={{ background: 'var(--surface-1)' }}>
-                        <div className="sticky top-0 z-10 p-3 pb-0" style={{ background: 'var(--surface-1)' }}>
+                <ResizablePanel defaultSize={25} minSize={15}>
+                    <div className="h-full w-full min-w-0 overflow-hidden flex flex-col relative" style={{ background: 'var(--surface-1)' }}>
+                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar relative">
+                            <div className="sticky top-0 z-10 p-3 pb-0" style={{ background: 'var(--surface-1)' }}>
                             <div className="flex items-center justify-between mb-4">
                                 <Button
                                     variant="ghost"
@@ -88,14 +89,15 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                             {/* @ts-ignore - renderProblemCardContent is currently passed from parent */}
                             {renderProblemCardContent?.()}
                         </div>
+                        </div>
                     </div>
                 </ResizablePanel>
 
                 <ResizableHandle withHandle />
 
                 {/* Middle Panel: AI Interaction & Voice */}
-                <ResizablePanel defaultSize={35} minSize={30}>
-                    <div className="h-full flex flex-col relative border-x" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.08) 0%, transparent 60%), var(--surface-0)', borderColor: 'var(--surface-edge)' }}>
+                <ResizablePanel defaultSize={40} minSize={20}>
+                    <div className="h-full w-full min-w-0 overflow-hidden flex flex-col relative border-x" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.08) 0%, transparent 60%), var(--surface-0)', borderColor: 'var(--surface-edge)' }}>
                         <div className="flex-1 min-h-0 relative">
                             {/* Desktop Timer / Limit Bar */}
                             {hasStarted && !isAssessment && interviewStartTime && (
@@ -152,7 +154,7 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                                     isUserSpeaking={voice.isListening}
                                     isThinking={isProcessing}
                                     conceptSlug={activeProblem.id}
-                                    conceptIcon="💻"
+                                    conceptIcon={<Laptop className="w-5 h-5 text-indigo-400" />}
                                     exchangeCount={messages.length}
                                 />
                             </div>
@@ -194,8 +196,8 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                 <ResizableHandle withHandle />
 
                 {/* Right Panel: Code & Output */}
-                <ResizablePanel defaultSize={37} minSize={30}>
-                    <ResizablePanelGroup direction="vertical" className="h-full w-full">
+                <ResizablePanel defaultSize={35} minSize={20}>
+                    <ResizablePanelGroup direction="vertical" className="h-full w-full min-w-0 overflow-hidden">
                         <ResizablePanel defaultSize={65} minSize={40}>
                             <div className="h-full p-2 pb-1" style={{ background: 'var(--surface-1)' }}>
                                 <div className="h-full rounded-xl border overflow-hidden relative shadow-inner" style={{ borderColor: 'var(--surface-edge)', background: 'var(--surface-0)' }}>

@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
         });
 
         if (error) {
-            console.error('[RAG API] DB Match Error:', error);
-            return jsonWithCorrelationId({ error: 'Failed to retrieve context', ...buildRagResponse(query, []) }, { status: 500 });
+            console.error('⚠️ [RAG API] DB Match Error (falling back to no context):', error);
+            return jsonWithCorrelationId(buildRagResponse(query, []));
         }
 
         const chunks = Array.isArray(data)
@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
 
         return jsonWithCorrelationId(buildRagResponse(query, chunks));
     } catch (error) {
-        console.error('[RAG API] Processing Error:', error);
+        console.error('⚠️ [RAG API] Processing Error (falling back to no context):', error);
         // Fail open - return empty array
-        return jsonWithCorrelationId({ error: 'Failed to retrieve context', ...buildRagResponse('', []) }, { status: 500 });
+        return jsonWithCorrelationId(buildRagResponse('', []));
     }
 }

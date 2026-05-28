@@ -69,7 +69,7 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
             isCoOwner = coOwnerResult.success ? coOwnerResult.data.isCoOwner : false;
         }
 
-        if (profile?.account_type === 'owner' || isCoOwner) {
+        if (profile?.account_type === 'owner' || profile?.account_type === 'admin' || isCoOwner || profile?.rate_limit_override === 0) {
             return { allowed: true, remaining: 999, isAdmin: true };
         }
 

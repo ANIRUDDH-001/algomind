@@ -10,7 +10,7 @@ import { getRedis } from '@/lib/upstash/client';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import type { Tables } from '@/types/supabase';
 import type { ConceptTag } from '@/types/knowledge-graph';
-import { getConfidenceLevel } from '@/types/knowledge-graph';
+import { getConfidenceLevel, ALL_DSA_CONCEPT_SLUGS } from '@/types/knowledge-graph';
 import { tagsToConceptSlugs } from '@/lib/knowledge-graph/tag-concept-map';
 import type {
   KGConceptState,
@@ -131,6 +131,16 @@ export class KnowledgeGraphService {
 
     const unlearned = tags
       .filter((tag) => !learnedSlugs.has(tag.id))
+      .sort((a, b) => {
+        if (a.sort_order !== b.sort_order) {
+            return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        }
+        const idxA = ALL_DSA_CONCEPT_SLUGS.indexOf(a.id as any);
+        const idxB = ALL_DSA_CONCEPT_SLUGS.indexOf(b.id as any);
+        const validIdxA = idxA >= 0 ? idxA : 999;
+        const validIdxB = idxB >= 0 ? idxB : 999;
+        return validIdxA - validIdxB;
+      })
       .map((tag) => tag.id);
 
     if (unlearned.length > 0) {
@@ -144,7 +154,20 @@ export class KnowledgeGraphService {
         const confA = stateMap.get(a.id) ?? 0.5;
         const confB = stateMap.get(b.id) ?? 0.5;
         if (confA !== confB) return confA - confB;
-        return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        if (a.sort_order !== b.sort_order) {
+            return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        }
+        
+        // Ultimate tiebreaker based on DSA fundamental progression
+        const idxA = ALL_DSA_CONCEPT_SLUGS.indexOf(a.id as any);
+        const idxB = ALL_DSA_CONCEPT_SLUGS.indexOf(b.id as any);
+        
+        // If one is not in the list, prioritize the one in the list.
+        // Otherwise use index (lower index = more fundamental = higher priority)
+        const validIdxA = idxA >= 0 ? idxA : 999;
+        const validIdxB = idxB >= 0 ? idxB : 999;
+        
+        return validIdxA - validIdxB;
       });
       
     return weakestTags[0]?.id ?? null;

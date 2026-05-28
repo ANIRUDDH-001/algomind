@@ -55,7 +55,7 @@ export function LiveTranscript({ entries, interimTranscript, isVisible = true, c
             {/* Previous messages (sliding window) */}
             {displayEntries.map((entry, i) => (
               <motion.div
-                key={`${entry.role}-${i}-${entry.content.slice(0, 20)}`}
+                key={`${entry.role}-${i}-${(entry.content || '').slice(0, 20)}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: i === displayEntries.length - 1 ? 1 : 0.4 }}
                 className={`text-sm leading-relaxed ${

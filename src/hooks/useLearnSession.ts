@@ -211,8 +211,14 @@ export function useLearnSession(options: UseLearnSessionOptions) {
 
       // Add Kai's opening message to transcript
       if (data.response) {
-        addTranscriptEntry({ role: 'assistant', content: data.response, at: new Date().toISOString() });
-        await onSpeakMessage?.(data.response);
+        setTranscript(prev => {
+          if (prev.some(m => m.content === data.response)) return prev;
+          return [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, role: 'assistant', content: data.response, at: new Date().toISOString() }];
+        });
+        // We also want to prevent speaking it twice if the state somehow duplicated
+        if (!transcriptRef.current.some(m => m.content === data.response)) {
+            await onSpeakMessage?.(data.response);
+        }
       }
 
       setState('active');

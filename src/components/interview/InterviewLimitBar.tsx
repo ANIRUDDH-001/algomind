@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Timer, MessageSquare, ClockAlert } from 'lucide-react';
 
 interface InterviewLimitBarProps {
     startTime: number;
@@ -50,7 +51,7 @@ export function InterviewLimitBar({
     if (isLimitReached) {
         return (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-900/30 border border-amber-700/50 rounded-lg text-xs text-amber-400">
-                ⏰ {limitReason === 'time' ? 'Time limit reached' : 'Round limit reached'} — wrapping up...
+                <ClockAlert className="w-4 h-4" /> {limitReason === 'time' ? 'Time limit reached' : 'Round limit reached'} — wrapping up...
             </div>
         );
     }
@@ -60,8 +61,8 @@ export function InterviewLimitBar({
             <div className="flex items-center gap-4">
                 {/* Time: elapsed / total */}
                 <div className="flex items-center gap-1.5">
-                    <span className={isWarning ? 'text-amber-400' : ''}>
-                        ⏱ {formatMs(elapsed)}
+                    <span className={`flex items-center gap-1.5 ${isWarning ? 'text-amber-400' : ''}`}>
+                        <Timer className="w-3.5 h-3.5" /> {formatMs(elapsed)}
                     </span>
                     <span className="text-zinc-600">/</span>
                     <span className="text-zinc-500">{formatMs(maxMs)}</span>
@@ -74,8 +75,8 @@ export function InterviewLimitBar({
                 </div>
                 {/* Rounds */}
                 <div className="flex items-center gap-1.5">
-                    <span className={roundCount >= maxRounds - 3 ? 'text-amber-400' : ''}>
-                        💬 {roundCount}/{maxRounds}
+                    <span className={`flex items-center gap-1.5 ${roundCount >= maxRounds - 3 ? 'text-amber-400' : ''}`}>
+                        <MessageSquare className="w-3.5 h-3.5" /> {roundCount}/{maxRounds}
                     </span>
                 </div>
             </div>

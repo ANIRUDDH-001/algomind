@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, ArrowLeft, Volume2, Mic, MicOff, Send, 
-  Code2, BookOpen, Lightbulb, Square, AlertCircle, Loader2 
+  ArrowLeft, Layers, Play, BookOpen, Code2, Send, Mic, Cpu, Clock, Award,
+  ChevronDown, ChevronUp, Lightbulb, AlertCircle, Loader2, Volume2, MicOff
 } from 'lucide-react';
 import { useLearnSession } from '@/hooks/useLearnSession';
-import { useVAD } from '@/hooks/useVAD';
-import { useSTT } from '@/hooks/useSTT';
-import { useTTS } from '@/hooks/useTTS';
+import { useUnifiedVoice } from '@/hooks/useUnifiedVoice';
 import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 interface LearnSessionPageClientProps {
   slug: string;
@@ -40,132 +39,68 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   // UI state
   const [mounted, setMounted] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [userTranscript, setUserTranscript] = useState('');
   const [upgradeDismissed, setUpgradeDismissed] = useState(false);
   const [hoveredConcept, setHoveredConcept] = useState<string | null>(null);
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'cognitive'>('details');
+  const [codeExpanded, setCodeExpanded] = useState(true);
 
-  // VAD mode state
-  const [vadMode, setVadMode] = useState<'onnx' | 'push-to-talk'>('push-to-talk');
-
-  // VAD lifecycle ref
-  const vadStarted = useRef(false);
+  // Double-mount protection for React StrictMode
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Voice Hook
+  const voice = useUnifiedVoice({
+    sttProvider: 'whisper',
+    language: 'en-IN',
+    enabled: true,
+    onTranscript: (text, isFinal) => {
+        if (isFinal && text.trim() && voice.vadMode === 'onnx') {
+            if (session.state !== 'active' || session.kaiTyping) return;
+            session.sendMessage(text);
+            voice.resetTranscript();
+        }
+    }
+  });
+
   // Session hook
   const session = useLearnSession({
     conceptSlug: slug,
     onSpeakMessage: async (text: string) => {
-      await speak(text);
+      await voice.speak(text);
     },
     onSessionEnd: (results) => {
       router.push(`/learn/${slug}/results?sessionId=${results.sessionId}`);
     },
   });
 
-  // TTS
-  const { speak, isSpeaking, stop: stopSpeaking } = useTTS({
-    onSpeakStart: () => {
-      // Gate mic while Kai is speaking to prevent echo
-      if (vadStarted.current) {
-        vadHook.stopListening();
-      }
-    },
-    onSpeakEnd: () => {
-      // Re-enable mic after Kai finishes
-      if (vadStarted.current && session.state === 'active') {
-        vadHook.startListening();
-      }
-    },
-  });
-
-  // STT
-  const stt = useSTT({
-    provider: 'whisper',
-    language: 'en-IN',
-    onTranscript: (text: string, isFinal: boolean) => {
-      setUserTranscript(text);
-      if (isFinal && text.trim()) {
-        // Auto-send on final transcript from VAD
-        if (vadMode === 'onnx') {
-          if (session.state !== 'active' || session.kaiTyping) return;
-          session.sendMessage(text);
-          stt.resetTranscript();
-          setUserTranscript('');
-        }
-      }
-    },
-  });
-
-  // Voice send (from VAD transcript)
-  const handleVoiceSend = useCallback((text: string) => {
-    if (!text.trim() || session.state !== 'active' || session.kaiTyping) return;
-    session.sendMessage(text);
-    stt.resetTranscript();
-    setUserTranscript('');
-  }, [session.state, session.kaiTyping, session.sendMessage, stt.resetTranscript]);
-
-  // VAD
-  const vadHook = useVAD({
-    enabled: true,
-    onSpeechStart: () => {
-      // Visual feedback: user started speaking
-    },
-    onSpeechEnd: async (audio: Float32Array) => {
-      await stt.transcribeAudio(audio);
-    },
-    onError: (err) => {
-      console.warn('[LearnVoice] VAD error:', err.message);
-    },
-    onFallback: () => {
-      // VAD not available: stay in push-to-talk mode
-      setVadMode('push-to-talk');
-    },
-  });
-
-  // Update vadMode from hook
+  // Fix StrictMode double-start bug
   useEffect(() => {
-    setVadMode(vadHook.mode);
-  }, [vadHook.mode]);
-
-  // FIX: Correct dependency array: was [session] causing double-start
-  useEffect(() => {
-    if (session.state === 'idle') {
+    if (session.state === 'idle' && !hasStartedRef.current) {
+      hasStartedRef.current = true;
       session.startSession();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.state, session.startSession]);
-
-  // Start VAD when session becomes active, and force-stop all audio/mic activity when it is not active
-  useEffect(() => {
-    if (session.state === 'active') {
-      if (!vadStarted.current) {
-        vadStarted.current = true;
-        vadHook.startListening();
-      }
-    } else {
-      if (vadStarted.current) {
-        vadHook.stopListening(true);
-        stt.stopListening();
-        stopSpeaking();
-        vadStarted.current = false;
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.state]);
 
-  // Stop VAD, STT, and TTS on unmount
+  // Sync Voice State
   useEffect(() => {
-    return () => {
-      vadHook.stopListening(true);
-      stt.stopListening();
-      stopSpeaking();
-      vadStarted.current = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (session.state === 'active' && !session.kaiTyping) {
+          voice.start();
+      } else {
+          voice.stop(true);
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.state, session.kaiTyping]);
+
+  useEffect(() => {
+      return () => {
+          voice.stop(true);
+      };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Scroll transcript
@@ -184,51 +119,37 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   }, [router]);
 
   // Text input send
-  const handleTextSend = useCallback(() => {
+  const handleTextSend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const text = textInput.trim();
     if (!text || session.state !== 'active' || session.kaiTyping) return;
     session.sendMessage(text);
     setTextInput('');
-  }, [textInput, session]);
+  };
 
-  const isListening = vadHook.isListening || stt.isListening;
+  const isListening = voice.state === 'listening';
 
-  // Manual Mic toggle to start/stop listening state explicitly
   const handleMicToggle = useCallback(() => {
     if (session.state !== 'active' || session.kaiTyping) return;
 
     if (isListening) {
-      // Force stop all mic hardware & VAD
-      vadHook.stopListening(true);
-      stt.stopListening();
-      vadStarted.current = false; // Turn off auto VAD restart logic
-
-      // Retrieve any captured text in push-to-talk mode
-      const captured = stt.transcript + stt.interimTranscript;
+      voice.stop(true);
+      const captured = voice.transcript + voice.interimTranscript;
       if (captured.trim()) {
-        handleVoiceSend(captured.trim());
+        session.sendMessage(captured.trim());
+        voice.resetTranscript();
       }
     } else {
-      // Reset and trigger recording manually
-      stt.resetTranscript();
-      setUserTranscript('');
-      
-      if (vadMode === 'onnx') {
-        vadStarted.current = true;
-        vadHook.startListening();
-      } else {
-        stt.startListening();
-      }
+      voice.start();
     }
-  }, [isListening, vadMode, vadHook, stt, session.state, session.kaiTyping, handleVoiceSend]);
+  }, [isListening, voice, session]);
 
   const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
 
-  // Dynamic Keyword Highlighter
   const renderContentWithHighlights = (content: string) => {
     let text = content;
     
-    // Extract any python/js code blocks first to render them cleanly outside text highlights
+    // Extract any python/js code blocks first
     const codeRegex = /```(python|javascript|js)?\n([\s\S]+?)\n```/;
     const codeMatch = text.match(codeRegex);
     let cleanText = text;
@@ -281,321 +202,412 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   if (!mounted) return null;
 
   return (
-    <div 
-      className="h-full bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
-      style={{
-        backgroundImage: `
-          radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.07) 0px, transparent 35%),
-          radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.07) 0px, transparent 35%),
-          linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px)
-        `,
-        backgroundSize: '100% 100%, 100% 100%, 36px 36px, 36px 36px'
-      }}
-    >
-      {/* Header */}
-      <header className="flex-shrink-0 bg-[#07070B]/85 backdrop-blur-md border-b border-[#1E1E2E]/45 px-6 py-4 flex items-center justify-between z-20">
-        <div className="flex items-center gap-3">
-          <button
-            data-testid="back-button"
-            onClick={() => router.push('/learn')}
-            className="p-2 rounded-lg bg-zinc-900/50 border border-white/5 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all"
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Link href="/learn" className="hover:text-zinc-300 transition-colors">Learn</Link>
-              <span>/</span>
-              <span className="text-zinc-300 capitalize truncate">{slug.replace(/-/g, ' ')}</span>
-            </div>
-            <h1 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-400 shrink-0" />
-              Socratic Interactive Canvas
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {session.state === 'active' && (
-            <div className="flex items-center gap-2.5 bg-zinc-900/40 border border-white/5 px-3.5 py-1.5 rounded-full">
-              <span className="text-xs font-semibold text-zinc-400">
-                Exchange {Math.floor(session.transcript.length / 2)} / 20
-              </span>
-              <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all" 
-                  style={{ width: `${Math.min(100, (session.transcript.length / 40) * 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {session.state === 'active' && (
-            <button
-              data-testid="finish-button"
-              onClick={session.endSession}
-              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all font-semibold"
+    <div className="min-h-screen bg-[#09090d] text-zinc-100 flex flex-col justify-between overflow-hidden relative noise-overlay">
+      
+      {/* Header (Option 3) */}
+      <header className="glass border-b border-zinc-900 sticky top-0 z-30 px-6 py-4 shrink-0">
+        <div className="mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/learn" 
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all"
             >
-              <Square size={12} />
-              End Session
-            </button>
-          )}
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white tracking-wide capitalize">{slug.replace(/-/g, ' ')}</span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400">
+                  Dual Layout
+                </span>
+              </div>
+              <span className="text-xs text-zinc-500">Socratic Interactive Canvas</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {session.state === 'active' && (
+              <>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-900 text-xs text-zinc-400">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Exchange: <strong>{Math.floor(session.transcript.length / 2)} / 20</strong></span>
+                </div>
+                <button
+                  data-testid="finish-button"
+                  onClick={session.endSession}
+                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-950/20 border border-transparent hover:border-red-500/20 transition-all font-semibold"
+                >
+                  End Session
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Centered Content Feed (Clean centered S-curve layout) */}
-      <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6 z-10">
-        <div className="max-w-2xl mx-auto w-full space-y-8 pb-24">
-          
-          {session.state === 'starting' && (
-            <div className="flex items-center justify-center py-12 gap-3 text-zinc-500">
-              <Loader2 size={16} className="animate-spin text-indigo-400" />
-              <span className="text-sm font-semibold">Kai is preparing your personalized canvas...</span>
-            </div>
-          )}
-
-          <AnimatePresence initial={false}>
-            {session.transcript.map((entry) => {
-              const isKai = entry.role === 'assistant';
-              const { parsedText, extractedCode } = renderContentWithHighlights(entry.content);
-
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 w-full ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {/* Kai Avatar on Left */}
-                  {isKai && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md mt-1">
-                      K
-                      {isSpeaking && (
-                        <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Socratic Thought Card or Standard Bubble with 80% limit inside centered column */}
-                  <div className={`space-y-3 max-w-[82%] ${entry.role === 'user' ? 'text-right' : ''}`}>
-                    <div
-                      className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all text-left ${
-                        isKai
-                          ? 'bg-[#12121A] border-[#1E1E2E]/20 text-zinc-200 shadow-sm relative overflow-hidden'
-                          : 'bg-indigo-600/10 border-indigo-500/15 text-zinc-200 ml-auto'
-                      }`}
-                    >
-                      {isKai && (
-                        <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-2">
-                          <Lightbulb size={12} className="shrink-0" />
-                          Socratic Guidance
-                        </div>
-                      )}
-                      
-                      <p>{parsedText}</p>
-
-                      {isKai && (
-                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
-                          <button 
-                            onClick={() => speak(entry.content)}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 px-2.5 py-1 rounded-md border border-indigo-500/10"
-                            title="Replay speech"
-                          >
-                            <Volume2 size={12} />
-                            Listen
-                          </button>
-                        </div>
-                      )}
+      {/* Main Sandbox split grid */}
+      <main className="w-full flex-1 flex flex-col p-4 relative z-10 overflow-hidden h-full">
+          <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-4">
+              
+              {/* Left Column: Sidebar Problem Metadata & Code Workspace (Option 3 style) */}
+              <ResizablePanel defaultSize={33} minSize={20}>
+                  <section className="h-full flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1 relative">
+                    
+                    {/* Metadata Selector Tabs */}
+                    <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-2.5 flex gap-2 shrink-0">
+                        <button
+                            onClick={() => setActiveTab('details')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                                activeTab === 'details'
+                                ? 'bg-zinc-900 text-white border border-zinc-800'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                        >
+                            Problem Info
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('cognitive')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                                activeTab === 'cognitive'
+                                ? 'bg-zinc-900 text-white border border-zinc-800'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                        >
+                            Cognitive Focus
+                        </button>
                     </div>
 
-                    {/* Code Card Rendering (if code is detected) */}
-                    {extractedCode && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.99 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40 text-left"
-                      >
-                        <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
-                          <span className="text-zinc-500 flex items-center gap-1.5">
-                            <Code2 size={12} /> Python Optimal Solution
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                            O(N) Sweep
-                          </span>
+                    {activeTab === 'details' ? (
+                        <div className="bg-zinc-950/60 border border-zinc-900 rounded-2xl p-5 space-y-4 shrink-0">
+                            <div className="flex justify-between items-start">
+                                <span className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase">Concept Focus</span>
+                                <span className="text-[11px] text-zinc-500 font-mono">ID: {slug}</span>
+                            </div>
+
+                            <div>
+                                <h3 className="text-base font-bold text-white mb-1.5 capitalize">{slug.replace(/-/g, ' ')}</h3>
+                                <p className="text-xs text-zinc-400 leading-relaxed">
+                                    Master the core principles of this concept through an interactive Socratic dialogue. Kai will guide you step-by-step.
+                                </p>
+                            </div>
                         </div>
-                        <div className="p-4 overflow-x-auto leading-relaxed relative">
-                          {extractedCode.split('\n').map((line, idx) => {
-                            const isCritical = line.includes('>>>') || line.includes('constant O(1)');
-                            const cleanLine = line.replace('# >>> ', '');
-                            return (
-                              <div 
-                                key={idx} 
-                                className={`flex px-2 py-0.5 rounded ${
-                                  isCritical 
-                                    ? 'bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-300 font-semibold my-1' 
-                                    : ''
-                                }`}
-                              >
-                                <span className="w-6 text-zinc-600 select-none text-right mr-4">{idx + 1}</span>
-                                <span>{cleanLine}</span>
-                              </div>
-                            );
-                          })}
+                    ) : (
+                        <div className="bg-zinc-950/60 border border-zinc-900 rounded-2xl p-5 space-y-4 shrink-0">
+                            <span className="text-xs font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                                <Cpu className="w-4 h-4 text-indigo-400" /> Skill Calibration
+                            </span>
+                            <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-zinc-400">Understanding:</span>
+                                        <span className="text-indigo-400 font-bold">{Math.floor((session.transcript.length / 40) * 100)}%</span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                                        <div className="h-full bg-indigo-500 transition-all" style={{ width: `${Math.min(100, (session.transcript.length / 40) * 100)}%` }} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                      </motion.div>
                     )}
-                  </div>
 
-                  {/* User Avatar on Right */}
-                  {!isKai && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300 mt-1">
-                      U
+                    {/* Collapsible DSA reference implementation workspace */}
+                    <div className="bg-zinc-950/60 border border-zinc-900 rounded-2xl overflow-hidden flex flex-col shrink-0">
+                        <button 
+                        onClick={() => setCodeExpanded(!codeExpanded)}
+                        className="px-5 py-4 flex items-center justify-between text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                        >
+                        <span className="flex items-center gap-2">
+                            <Code2 className="w-4 h-4 text-indigo-400" />
+                            Algorithm Reference Snippet
+                        </span>
+                        {codeExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+
+                        {codeExpanded && (
+                        <div className="p-4 bg-zinc-950 border-t border-zinc-900 text-[11px] font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+                            <pre>{`def reference_implementation():\n    # Reference implementation\n    pass`}</pre>
+                        </div>
+                        )}
                     </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
 
-          {session.kaiTyping && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-950 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">K</div>
-              <div className="bg-[#12121A] border border-[#1E1E2E]/20 rounded-2xl rounded-tl-sm px-4 py-3">
-                <motion.div className="flex gap-1.5">
-                  {[0, 0.2, 0.4].map((delay, i) => (
-                    <motion.span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-zinc-500"
-                      animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
-                      transition={{ duration: 1, delay, repeat: Infinity }}
-                    />
-                  ))}
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
+                    <div className="mt-auto p-4 rounded-xl bg-zinc-950 border border-zinc-900 flex items-center justify-between text-xs shrink-0 sticky bottom-0">
+                        <span className="text-zinc-500">Need a hint? Ask Kai for one.</span>
+                        <button 
+                            onClick={() => {
+                                if (session.state === 'active' && !session.kaiTyping) {
+                                    session.sendMessage("Can you give me a hint about what to do next?");
+                                }
+                            }}
+                            disabled={session.state !== 'active' || session.kaiTyping}
+                            className="text-indigo-400 hover:text-indigo-300 font-bold disabled:opacity-50"
+                        >
+                            Get Hint
+                        </button>
+                    </div>
 
-          {session.error && session.error !== 'LIMIT_REACHED' && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-xl flex items-start gap-3 bg-red-950/20 border border-red-500/10"
-            >
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-red-300 mb-1">Connection lost</p>
-                <p className="text-xs text-zinc-400">
-                  Kai couldn&apos;t respond. Your session progress is saved.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  if (session.retryLastMessage) {
-                    void session.retryLastMessage();
-                    return;
-                  }
-                  window.location.reload();
-                }}
-                className="shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5"
-              >
-                Retry
-              </button>
-            </motion.div>
-          )}
-          <div ref={transcriptEndRef} />
-        </div>
+                  </section>
+              </ResizablePanel>
+
+              <ResizableHandle className="bg-transparent w-2" />
+
+              {/* Right Column: Dialogue Feed & Interactive Input (Option 4 Chat Bubbles Style) */}
+              <ResizablePanel defaultSize={67} minSize={40}>
+                <section className="h-full flex flex-col justify-between bg-zinc-950/40 border border-zinc-900 rounded-3xl p-6 relative overflow-hidden">
+                    
+                    {/* Conversational log */}
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar mb-4 relative">
+                        {session.state === 'starting' && (
+                            <div className="flex items-center justify-center py-12 gap-3 text-zinc-500">
+                            <Loader2 size={16} className="animate-spin text-indigo-400" />
+                            <span className="text-sm font-semibold">Kai is preparing your personalized canvas...</span>
+                            </div>
+                        )}
+
+                        <AnimatePresence initial={false}>
+                            {session.transcript.map((entry) => {
+                            const isKai = entry.role === 'assistant';
+                            const isThought = isKai && entry.content.includes('Socratic');
+                            const { parsedText, extractedCode } = renderContentWithHighlights(entry.content);
+
+                            return (
+                                <motion.div
+                                key={entry.id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`flex gap-3 w-full ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                {/* Kai Avatar on Left */}
+                                {isKai && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md mt-1">
+                                    K
+                                    {voice.state === 'speaking' && (
+                                        <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
+                                    )}
+                                    </div>
+                                )}
+
+                                {/* Socratic Thought Card or Standard Bubble */}
+                                <div className={`space-y-3 max-w-[82%] ${entry.role === 'user' ? 'text-right' : ''}`}>
+                                    <div
+                                    className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all text-left ${
+                                        isThought
+                                        ? 'bg-[#12121D]/90 border-amber-500/10 text-zinc-200 shadow-md relative overflow-hidden'
+                                        : isKai
+                                            ? 'bg-[#12121A] border-[#1E1E2E]/20 text-zinc-200 shadow-sm relative overflow-hidden'
+                                            : 'bg-indigo-600/10 border-indigo-500/15 text-zinc-200 ml-auto'
+                                    }`}
+                                    >
+                                    {isKai && (
+                                        <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-2">
+                                        <Lightbulb size={12} className="shrink-0" />
+                                        Socratic Guidance
+                                        </div>
+                                    )}
+                                    
+                                    <p>{parsedText}</p>
+
+                                    {isKai && (
+                                        <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-2.5">
+                                        <button 
+                                            onClick={() => voice.speak(entry.content)}
+                                            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 px-2.5 py-1 rounded-md border border-indigo-500/10"
+                                            title="Replay speech"
+                                        >
+                                            <Volume2 size={12} />
+                                            Listen
+                                        </button>
+                                        </div>
+                                    )}
+                                    </div>
+
+                                    {/* Code Card Rendering */}
+                                    {extractedCode && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.99 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40 text-left"
+                                    >
+                                        <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
+                                        <span className="text-zinc-500 flex items-center gap-1.5">
+                                            <Code2 size={12} /> Optimal Solution
+                                        </span>
+                                        </div>
+                                        <div className="p-4 overflow-x-auto leading-relaxed relative">
+                                        {extractedCode.split('\n').map((line, idx) => {
+                                            const isCritical = line.includes('>>>') || line.includes('constant O(1)');
+                                            const cleanLine = line.replace('# >>> ', '');
+                                            return (
+                                            <div 
+                                                key={idx} 
+                                                className={`flex px-2 py-0.5 rounded ${
+                                                isCritical 
+                                                    ? 'bg-emerald-500/10 border-l-2 border-emerald-500 text-emerald-300 font-semibold my-1' 
+                                                    : ''
+                                                }`}
+                                            >
+                                                <span className="w-6 text-zinc-600 select-none text-right mr-4">{idx + 1}</span>
+                                                <span>{cleanLine}</span>
+                                            </div>
+                                            );
+                                        })}
+                                        </div>
+                                    </motion.div>
+                                    )}
+                                </div>
+
+                                {/* User Avatar on Right */}
+                                {!isKai && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300 mt-1">
+                                    U
+                                    </div>
+                                )}
+                                </motion.div>
+                            );
+                            })}
+                        </AnimatePresence>
+
+                        {session.kaiTyping && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-indigo-950 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">K</div>
+                            <div className="bg-[#12121A] border border-[#1E1E2E]/20 rounded-2xl rounded-tl-sm px-4 py-3">
+                                <motion.div className="flex gap-1.5">
+                                {[0, 0.2, 0.4].map((delay, i) => (
+                                    <motion.span
+                                    key={i}
+                                    className="w-1.5 h-1.5 rounded-full bg-zinc-500"
+                                    animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
+                                    transition={{ duration: 1, delay, repeat: Infinity }}
+                                    />
+                                ))}
+                                </motion.div>
+                            </div>
+                            </motion.div>
+                        )}
+
+                        {session.error && session.error !== 'LIMIT_REACHED' && (
+                            <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-xl flex items-start gap-3 bg-red-950/20 border border-red-500/10"
+                            >
+                            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-red-300 mb-1">Connection lost</p>
+                                <p className="text-xs text-zinc-400">
+                                Kai couldn&apos;t respond. Your session progress is saved.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                if (session.retryLastMessage) {
+                                    void session.retryLastMessage();
+                                    return;
+                                }
+                                window.location.reload();
+                                }}
+                                className="shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5"
+                            >
+                                Retry
+                            </button>
+                            </motion.div>
+                        )}
+                        <div ref={transcriptEndRef} />
+                    </div>
+
+                    {/* Interactive Chat Input Area (Option 4 / Option 3 hybrid) */}
+                    <form onSubmit={handleTextSend} className="space-y-4 border-t border-zinc-900 pt-4 shrink-0">
+                        {isListening && (
+                        <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5">
+                            <div className="flex items-center gap-2 text-emerald-400 text-xs">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span>Recording voice input... speak clearly.</span>
+                            </div>
+                            <button
+                            type="button"
+                            onClick={() => voice.stop(true)}
+                            className="text-[10px] uppercase font-bold text-red-400 hover:text-red-300"
+                            >
+                            Cancel
+                            </button>
+                        </div>
+                        )}
+
+                        <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={handleMicToggle}
+                            disabled={session.state !== 'active' || session.kaiTyping}
+                            className={`p-3.5 rounded-xl border transition-all shrink-0 ${
+                            isListening 
+                                ? 'bg-emerald-600 border-emerald-500 text-white animate-pulse'
+                                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                            title="Mock Mic Input"
+                        >
+                            {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                        </button>
+
+                        <input
+                            type="text"
+                            value={textInput}
+                            onChange={(e) => setTextInput(e.target.value)}
+                            placeholder={isListening ? 'Listening for speech...' : 'Type answer here or click mic to dictate...'}
+                            disabled={isListening || session.state !== 'active' || session.kaiTyping}
+                            className="flex-1 px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-900 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={!textInput.trim() || session.state !== 'active' || session.kaiTyping}
+                            className={`p-3.5 rounded-xl text-white transition-all shrink-0 ${
+                            textInput.trim()
+                                ? 'bg-indigo-600 hover:bg-indigo-500 hover:translate-y-[-1px]'
+                                : 'bg-zinc-900 border border-zinc-800 text-zinc-600 cursor-not-allowed'
+                            }`}
+                        >
+                            <Send className="w-5 h-5" />
+                        </button>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                        <span>Tip: Hit Send or press Enter to trigger Kai.</span>
+                        <span>Input Mode: Audio Dictation + Text Hybrid</span>
+                        </div>
+                    </form>
+
+                </section>
+              </ResizablePanel>
+          </ResizablePanelGroup>
       </main>
 
       {/* Floating Concept Tooltip Box */}
       <AnimatePresence>
-        {tooltipContent && (
+          {tooltipContent && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full bg-[#161622] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full bg-[#161622] border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
           >
-            <div className="flex gap-2 items-start">
+              <div className="flex gap-2 items-start">
               <BookOpen size={16} className="text-indigo-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-xs font-bold text-white mb-1">Concept: {hoveredConcept}</h4>
-                <p className="text-xs text-zinc-400 leading-normal">{tooltipContent}</p>
+                  <h4 className="text-xs font-bold text-white mb-1">Concept: {hoveredConcept}</h4>
+                  <p className="text-xs text-zinc-400 leading-normal">{tooltipContent}</p>
               </div>
-            </div>
+              </div>
           </motion.div>
-        )}
+          )}
       </AnimatePresence>
 
-      {/* Sticky Bottom Footer Input Bar (Integrated Text Box + Mic Button) */}
-      <footer className="flex-shrink-0 bg-[#07070B]/95 backdrop-blur-md border-t border-[#1E1E2E]/40 px-6 py-4 safe-area-bottom z-30">
-        <div className="max-w-2xl mx-auto flex items-center gap-3 w-full">
-          
-          <div className="flex-1 bg-[#12121A] border border-white/5 rounded-2xl flex items-center px-4 py-2 focus-within:border-indigo-500/30 transition-all shadow-inner">
-            <input
-              data-testid="text-input"
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && textInput.trim()) {
-                  handleTextSend();
-                }
-              }}
-              placeholder={isListening ? "Listening... speak now" : "Type your DSA answer here, or tap the mic..."}
-              className="flex-1 bg-transparent border-0 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-0 py-1"
-              disabled={session.state !== 'active' || session.kaiTyping || isListening}
-            />
-
-            {/* Live voice visualizer in input bar */}
-            {isListening && (
-              <div className="flex gap-0.5 items-center justify-center shrink-0 mr-3">
-                {[0.3, 0.6, 0.4, 0.8, 0.3].map((height, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-0.5 bg-emerald-400 rounded-full"
-                    animate={{ height: ['4px', `${12 * height}px`, '4px'] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Integrated Mic Button on the Right */}
-            <button
-              data-testid="send-button"
-              onClick={handleMicToggle}
-              disabled={session.state !== 'active' || session.kaiTyping}
-              className={`p-2 rounded-xl transition-all shrink-0 mr-2 relative ${
-                isListening
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5'
-              }`}
-              title={isListening ? "Stop listening" : "Start speaking"}
-            >
-              {isListening && (
-                <motion.span
-                  className="absolute inset-0 bg-emerald-500/30 rounded-xl"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                />
-              )}
-              {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
-            </button>
-
-            {/* Send Message Button */}
-            <button
-              data-testid="send-text-button"
-              onClick={handleTextSend}
-              disabled={!textInput.trim() || session.state !== 'active' || session.kaiTyping || isListening}
-              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-900 disabled:text-zinc-600 text-white transition-colors shrink-0"
-              title="Send message"
-            >
-              <Send size={14} />
-            </button>
-
+      {/* Footer System Specs (Option 3) */}
+      <footer className="bg-zinc-950 border-t border-zinc-900 px-6 py-3.5 text-xs text-zinc-500 shrink-0">
+        <div className="mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+          <span className="font-mono text-[10px]">AlgoMind Console - Hybrid Sidebar Split-Pane</span>
+          <div className="flex gap-4">
+            <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5 text-zinc-400" /> Split Panel Sync</span>
+            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-indigo-400" /> Audio Node Calibration</span>
           </div>
-
         </div>
       </footer>
 

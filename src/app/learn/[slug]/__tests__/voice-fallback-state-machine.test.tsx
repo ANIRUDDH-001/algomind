@@ -89,6 +89,12 @@ vi.mock('@/components/voice/VoiceModeToggle', () => ({
   VoiceModeToggle: () => <div data-testid="voice-toggle" />,
 }));
 
+vi.mock('react-resizable-panels', () => ({
+  Group: ({ children }: any) => <div>{children}</div>,
+  Panel: ({ children }: any) => <div>{children}</div>,
+  Separator: () => <div />,
+}));
+
 describe('Learn voice fallback state machine', () => {
   beforeEach(() => {
     vi.clearAllMocks();

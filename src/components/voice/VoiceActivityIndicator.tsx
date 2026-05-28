@@ -13,7 +13,7 @@ type VoiceState = 'idle' | 'kai-speaking' | 'user-speaking' | 'thinking';
 
 interface VoiceActivityIndicatorProps {
   state: VoiceState;
-  conceptIcon?: string;
+  conceptIcon?: React.ReactNode;
   className?: string;
 }
 
@@ -70,7 +70,7 @@ export function VoiceActivityIndicator({ state, conceptIcon, className = '' }: V
           <div className="w-5 h-5 border-2 border-amber-500/60 border-t-amber-400 rounded-full animate-spin" />
         ) : (
           conceptIcon
-            ? <span className="text-2xl">{conceptIcon}</span>
+            ? conceptIcon
             : <Mic className="w-5 h-5 text-zinc-300" />
         )}
       </motion.div>

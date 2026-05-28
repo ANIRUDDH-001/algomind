@@ -240,17 +240,64 @@ export async function POST(req: NextRequest) {
         const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
 
         if (acceptsStream) {
-            await inngest.send({
-                name: 'interview/chat',
-                data: {
-                    sessionId: effectiveSessionId ?? 'default-session',
-                    messages,
-                    systemPrompt: enhancedSystemPrompt,
-                    userId: user?.id,
-                    correlationId,
-                    guestMode: guestMode ?? false
-                }
-            });
+            try {
+                await inngest.send({
+                    name: 'interview/chat',
+                    data: {
+                        sessionId: effectiveSessionId ?? 'default-session',
+                        messages,
+                        systemPrompt: enhancedSystemPrompt,
+                        userId: user?.id,
+                        correlationId,
+                        guestMode: guestMode ?? false
+                    }
+                });
+            } catch (err) {
+                console.error('❌ [Chat API] Inngest send failed, falling back to local background execution:', err);
+                // Fallback: Run the streaming logic locally if Inngest is down
+                const fallbackStream = async () => {
+                    const { getAIClient } = await import('@/lib/ai/client');
+                    const { getServiceClient } = await import('@/lib/supabase/service');
+                    const { incrementUserUsage } = await import('@/lib/rate-limit/user-rate-limiter');
+                    const supabase = getServiceClient();
+                    const client = getAIClient();
+                    const channel = supabase.channel(`interview_${effectiveSessionId ?? 'default-session'}`);
+                    
+                    try {
+                        await new Promise<void>((resolve, reject) => {
+                            const timeout = setTimeout(() => reject(new Error("Timeout waiting for Supabase Realtime")), 5000);
+                            channel.subscribe((status) => {
+                                if (status === 'SUBSCRIBED') {
+                                    clearTimeout(timeout);
+                                    resolve();
+                                }
+                            });
+                        });
+                        let fullText = '';
+                        for await (const chunk of client.generateStream(messages, {
+                            systemPrompt: enhancedSystemPrompt,
+                            maxTokens: 4096,
+                            correlationId,
+                            userId: user?.id,
+                            sessionId: effectiveSessionId ?? undefined,
+                            preferredModel: 'gemini',
+                        })) {
+                            fullText += chunk;
+                            await channel.send({ type: 'broadcast', event: 'chat_chunk', payload: { delta: chunk } });
+                        }
+                        await channel.send({ type: 'broadcast', event: 'chat_done', payload: { done: true, fullText: fullText.trim(), modelUsed: 'auto', provider: 'auto' } });
+                        if (user?.id && !guestMode) {
+                            await incrementUserUsage(user.id, supabase);
+                        }
+                    } catch (streamErr) {
+                        console.error('❌ [Chat API] Fallback stream error:', streamErr);
+                        await channel.send({ type: 'broadcast', event: 'chat_chunk', payload: { error: String(streamErr), done: true } });
+                    } finally {
+                        await supabase.removeChannel(channel);
+                    }
+                };
+                fallbackStream().catch(e => console.error('Unhandled in fallback stream:', e));
+            }
 
             return NextResponse.json({ success: true, message: 'Event dispatched to background job' }, {
                 headers: withCorrelationIdHeaders(undefined, correlationId),

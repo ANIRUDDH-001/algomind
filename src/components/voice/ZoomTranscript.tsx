@@ -9,6 +9,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VoiceActivityIndicator } from './VoiceActivityIndicator';
 import { SpeechBubble } from './SpeechBubble';
@@ -27,7 +28,7 @@ interface ZoomTranscriptProps {
   isThinking: boolean;
   /** Concept being learned */
   conceptSlug: string;
-  conceptIcon: string;
+  conceptIcon: React.ReactNode;
   /** Total exchanges so far */
   exchangeCount: number;
   /** Optional: show previous exchanges count */
@@ -157,6 +158,6 @@ ZoomTranscript.__defaultProps = {
   isUserSpeaking: false,
   isThinking: false,
   conceptSlug: 'arrays-strings',
-  conceptIcon: '📋',
+  conceptIcon: <ClipboardList className="w-5 h-5 text-indigo-400" />,
   exchangeCount: 0,
 };

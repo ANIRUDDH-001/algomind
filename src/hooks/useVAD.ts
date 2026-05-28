@@ -15,7 +15,7 @@
  *      preventing duplicate subscriptions. VAD failure triggers onFallback callback
  *      so useInterview can cascade to browser SpeechRecognition.
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import { VADState } from '@/lib/voice/types';
 
@@ -224,5 +224,5 @@ export function useVAD(opts: UseVADOptions) {
         }
     }, []);
 
-    return { mode, isListening, isReady, startListening, stopListening };
+    return useMemo(() => ({ mode, isListening, isReady, startListening, stopListening }), [mode, isListening, isReady, startListening, stopListening]);
 }
