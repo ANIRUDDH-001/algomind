@@ -48,6 +48,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
   const [kaiTyping, setKaiTyping] = useState(false);
 
   const startTimeRef = useRef<number | null>(null);
+  const startingRef = useRef(false); // FIX: lock to prevent double-start greetings
   const abortControllerRef = useRef<AbortController | null>(null);
   const transcriptRef = useRef(transcript);
 
@@ -179,7 +180,8 @@ export function useLearnSession(options: UseLearnSessionOptions) {
    * Start the learn session — creates DB row and gets Kai's opening message.
    */
   const startSession = useCallback(async () => {
-    if (state !== 'idle') return;
+    if (state !== 'idle' || startingRef.current) return;
+    startingRef.current = true;
     setState('starting');
     startTimeRef.current = Date.now();
 
@@ -393,6 +395,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
 
   const reset = useCallback(() => {
     abortControllerRef.current?.abort();
+    startingRef.current = false;
     setState('idle');
     setTranscript([]);
     setSessionId(null);

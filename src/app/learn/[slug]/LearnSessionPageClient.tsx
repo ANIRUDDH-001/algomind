@@ -191,27 +191,37 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     setTextInput('');
   }, [textInput, session]);
 
-  // Push-to-talk: tap to start/stop
+  const isListening = vadHook.isListening || stt.isListening;
+
+  // Manual Mic toggle to start/stop listening state explicitly
   const handleMicToggle = useCallback(() => {
     if (session.state !== 'active' || session.kaiTyping) return;
 
-    if (vadMode === 'push-to-talk') {
-      if (!stt.isListening) {
-        stt.resetTranscript();
-        setUserTranscript('');
-        stt.startListening();
+    if (isListening) {
+      // Force stop all mic hardware & VAD
+      vadHook.stopListening(true);
+      stt.stopListening();
+      vadStarted.current = false; // Turn off auto VAD restart logic
+
+      // Retrieve any captured text in push-to-talk mode
+      const captured = stt.transcript + stt.interimTranscript;
+      if (captured.trim()) {
+        handleVoiceSend(captured.trim());
+      }
+    } else {
+      // Reset and trigger recording manually
+      stt.resetTranscript();
+      setUserTranscript('');
+      
+      if (vadMode === 'onnx') {
+        vadStarted.current = true;
+        vadHook.startListening();
       } else {
-        stt.stopListening();
-        // Send whatever was captured
-        const captured = stt.transcript + stt.interimTranscript;
-        if (captured.trim()) {
-          handleVoiceSend(captured.trim());
-        }
+        stt.startListening();
       }
     }
-  }, [vadMode, stt, session.state, session.kaiTyping, handleVoiceSend]);
+  }, [isListening, vadMode, vadHook, stt, session.state, session.kaiTyping, handleVoiceSend]);
 
-  const isListening = vadHook.isListening || stt.isListening;
   const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
 
   // Dynamic Keyword Highlighter
@@ -272,7 +282,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
 
   return (
     <div 
-      className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
+      className="h-[calc(100vh-var(--navbar-h,64px))] bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
       style={{
         backgroundImage: `
           radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.07) 0px, transparent 35%),
