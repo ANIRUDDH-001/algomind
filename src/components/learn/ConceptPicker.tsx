@@ -44,6 +44,7 @@ const LEVEL_LABEL: Record<string, string> = {
 export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) {
   const router = useRouter();
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
+  const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
   const { hasCompletedDiagnostic, nextRecommendedConcept, weakestConcepts, subscription } = studentContext;
 
   const ICON_BY_KEY = {
@@ -71,6 +72,46 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
 
   // Show diagnostic prompt for new users
   if (!hasCompletedDiagnostic) {
+    if (showSkipConfirmation) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg mx-auto text-center"
+        >
+          <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-8 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-amber-950/60 border border-amber-500/30 flex items-center justify-center mx-auto">
+              <Sparkles size={28} className="text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Skip Baseline Diagnostic?</h2>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                By skipping the baseline assessment, Kai will start teaching you <strong>Arrays & Strings</strong> using a default baseline. We highly recommend the 5-minute diagnostic to set a personalized baseline first.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => router.push('/learn/arrays-strings')}
+                className="w-full py-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+              >
+                Yes, Start Arrays & Strings <ArrowRight size={16} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowSkipConfirmation(false)}
+                className="w-full py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-sm flex items-center justify-center gap-2 transition-colors border border-[#1E1E2E]"
+              >
+                No, Go Back to Diagnostic (Recommended)
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -105,7 +146,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
             Start Diagnostic <ArrowRight size={16} />
           </motion.button>
           <button
-            onClick={() => router.push('/learn/arrays-strings')}
+            onClick={() => setShowSkipConfirmation(true)}
             className="text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
           >
             Skip and start with Arrays & Strings

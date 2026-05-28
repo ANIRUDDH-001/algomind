@@ -85,6 +85,36 @@ describe('ConceptPicker', () => {
     expect(pushMock).toHaveBeenCalledWith('/learn/diagnostic');
   });
 
+  it('does require confirmation when trying to skip diagnostic', async () => {
+    render(
+      <ConceptPicker
+        concepts={mockConcepts}
+        studentContext={{
+          hasCompletedDiagnostic: false,
+          nextRecommendedConcept: null,
+          weakestConcepts: [],
+          subscription: { sessionsUsedThisWeek: 0, sessionsRemaining: 5, weeklyLimit: 5 },
+        }}
+      />
+    );
+
+    // 1. Click the skip button
+    fireEvent.click(screen.getByRole('button', { name: /skip and start with arrays & strings/i }));
+    
+    // 2. Check confirmation state is shown
+    expect(screen.getByText(/skip baseline diagnostic\?/i)).toBeDefined();
+    expect(pushMock).not.toHaveBeenCalled();
+
+    // 3. Revert back to original diagnostic prompt
+    fireEvent.click(screen.getByRole('button', { name: /go back to diagnostic/i }));
+    expect(screen.getByText(/set your baseline first/i)).toBeDefined();
+
+    // 4. Skip again and confirm
+    fireEvent.click(screen.getByRole('button', { name: /skip and start with arrays & strings/i }));
+    fireEvent.click(screen.getByRole('button', { name: /yes, start arrays & strings/i }));
+    expect(pushMock).toHaveBeenCalledWith('/learn/arrays-strings');
+  });
+
   it('does show recommendation and navigate on concept click for returning users', async () => {
     render(
       <ConceptPicker
