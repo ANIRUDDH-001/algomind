@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,6 +18,11 @@ interface Message {
 }
 
 export default function Option4Demo() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [isVoiceMode, setIsVoiceMode] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -136,6 +141,8 @@ export default function Option4Demo() {
       return <span key={i}>{part}</span>;
     });
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#07070B] flex flex-col relative noise-overlay">

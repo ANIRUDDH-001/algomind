@@ -16,6 +16,11 @@ import {
 } from 'lucide-react';
 
 export default function MainSelectorPage() {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const options = [
     {
       id: 'option4',
@@ -102,6 +107,8 @@ export default function MainSelectorPage() {
       icon: Layers
     }
   ];
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white overflow-hidden relative noise-overlay">
