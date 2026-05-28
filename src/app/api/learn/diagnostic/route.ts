@@ -197,7 +197,8 @@ async function markDiagnosticCompletedProfile(
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authResult = await supabase.auth.getUser().catch(() => ({ data: null, error: new Error('Auth fetch failed') }));
+    const user = authResult?.data?.user ?? null;
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -318,7 +319,8 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authResult = await supabase.auth.getUser().catch(() => ({ data: null, error: new Error('Auth fetch failed') }));
+    const user = authResult?.data?.user ?? null;
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

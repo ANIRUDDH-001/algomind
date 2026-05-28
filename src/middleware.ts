@@ -72,18 +72,8 @@ export default async function middleware(request: NextRequest) {
 
         const { data } = await supabase.auth.getUser();
         user = data.user;
-
-        // Pass user ID downstream to avoid duplicate Auth checks in API routes
-        if (user) {
-            requestHeaders.set('x-user-id', user.id);
-        } else {
-            requestHeaders.delete('x-user-id');
-        }
-    } else {
-        requestHeaders.delete('x-user-id');
-        if (process.env.NODE_ENV !== 'production') {
-            console.warn('[middleware] Missing NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY. Continuing without Supabase auth sync.');
-        }
+    } else if (process.env.NODE_ENV !== 'production') {
+        console.warn('[middleware] Missing NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY. Continuing without Supabase auth sync.');
     }
 
     // Route Protection Logic

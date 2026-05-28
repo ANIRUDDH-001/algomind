@@ -22,7 +22,7 @@ export default function LearnError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+    <div className="flex-1 bg-[#0A0A0F] flex items-center justify-center px-4">
       <div className="text-center max-w-sm">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-950/40 border border-red-500/25 mb-4">
           <AlertCircle size={24} className="text-red-400" />

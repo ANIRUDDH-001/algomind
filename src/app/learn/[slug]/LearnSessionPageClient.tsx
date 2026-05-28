@@ -282,7 +282,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
 
   return (
     <div 
-      className="h-[calc(100vh-var(--navbar-h,64px))] bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
+      className="h-full bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
       style={{
         backgroundImage: `
           radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.07) 0px, transparent 35%),

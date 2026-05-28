@@ -150,7 +150,7 @@ export default function DiagnosticPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#0A0A0F] to-[#1A1A2E] flex flex-col">
+    <main className="flex-1 bg-gradient-to-br from-[#0A0A0F] to-[#1A1A2E] flex flex-col overflow-y-auto">
       {/* Header */}
       <div className="shrink-0 max-w-2xl mx-auto px-4 py-8 w-full">
         <h1 className="text-3xl font-bold text-white">Technical Assessment</h1>

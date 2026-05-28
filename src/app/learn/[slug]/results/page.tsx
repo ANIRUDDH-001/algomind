@@ -92,7 +92,7 @@ export default function LearnResultsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+      <div className="flex-1 bg-[#0A0A0F] flex items-center justify-center px-4">
         <div className="flex items-center gap-3 text-zinc-300 text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading your session results...
@@ -103,7 +103,7 @@ export default function LearnResultsPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+      <div className="flex-1 bg-[#0A0A0F] flex items-center justify-center px-4">
         <div className="max-w-md w-full space-y-5 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-950/40 border border-red-500/25">
             <AlertCircle className="w-5 h-5 text-red-400" />
@@ -130,7 +130,7 @@ export default function LearnResultsPage() {
   }
 
   return (
-    <div data-testid="results-container" className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+    <div data-testid="results-container" className="flex-1 bg-[#0A0A0F] flex items-center justify-center px-4 py-8">
       <div className="max-w-md w-full space-y-6">
         {/* Trophy header */}
         <motion.div

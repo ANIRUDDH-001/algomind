@@ -46,14 +46,14 @@ function LoginContent() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--surface-base)' }}>
+            <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--surface-base)' }}>
                 <div className="w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--surface-base)' }}>
+        <div className="flex-1 flex items-center justify-center p-4" style={{ background: 'var(--surface-base)' }}>
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
@@ -161,7 +161,7 @@ function LoginContent() {
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--surface-base)' }}><div className="w-10 h-10 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" /></div>}>
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center" style={{ background: 'var(--surface-base)' }}><div className="w-10 h-10 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin" /></div>}>
             <LoginContent />
         </Suspense>
     );

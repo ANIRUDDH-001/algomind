@@ -1,6 +1,6 @@
 export default function LearnLoading() {
     return (
-        <div className="min-h-screen bg-[#0A0A0F] px-4 py-8">
+        <div className="flex-1 bg-[#0A0A0F] px-4 py-8">
             <div className="max-w-5xl mx-auto">
                 <div className="mb-8 space-y-2">
                     <div className="h-8 w-52 bg-zinc-800 rounded animate-pulse" />

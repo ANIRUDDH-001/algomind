@@ -167,7 +167,6 @@ describe('validateEnv', () => {
     });
 
     it('3. Missing RAZORPAY_KEY_SECRET → throws critical error', () => {
-        process.env.ENABLE_RAZORPAY = 'true';
         delete process.env.RAZORPAY_KEY_SECRET;
         expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: RAZORPAY_KEY_SECRET');
     });

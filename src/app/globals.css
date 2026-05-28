@@ -98,7 +98,8 @@
   html,
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden;
+    overflow: hidden;
+    height: 100%;
     max-width: 100vw;
   }
 }

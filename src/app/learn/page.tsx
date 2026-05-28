@@ -33,7 +33,7 @@ export default async function LearnPage() {
   } catch (err) {
     console.error('[LearnPage] KG service failed:', err);
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center pb-20 md:pb-4">
+      <div className="flex-1 bg-[#0A0A0F] flex items-center justify-center pb-20 md:pb-4">
         <div className="text-center max-w-md px-4">
           <h2 className="text-xl font-semibold text-white mb-2">Couldn&apos;t load concepts</h2>
           <p className="text-zinc-400 text-sm mb-6">
@@ -51,7 +51,7 @@ export default async function LearnPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
+    <div className="flex-1 bg-[#0A0A0F]">
       <div className="max-w-5xl mx-auto px-4 py-8 pb-20 md:pb-4">
         {/* Header */}
         <div className="mb-8">

@@ -7,7 +7,7 @@ export default function ConceptNotFound() {
   const router = useRouter();
 
   return (
-    <div data-testid="not-found-page" className="min-h-screen bg-[#0A0A0F] flex items-center justify-center px-4">
+    <div data-testid="not-found-page" className="flex-1 bg-[#0A0A0F] flex items-center justify-center px-4">
       <div className="text-center max-w-sm">
         <div className="text-5xl mb-4">📚</div>
         <h2 className="text-lg font-bold text-white mb-2">Concept not found</h2>

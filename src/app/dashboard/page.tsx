@@ -152,7 +152,7 @@ function DashboardContent() {
     });
 
     return (
-        <div {...handlers} className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden">
+        <div {...handlers} className="flex-1 text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden">
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader
                     progress={progress}
@@ -444,7 +444,7 @@ function DashboardContent() {
 export default function DashboardPage() {
     return (
         <React.Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin shadow-[0_0_15px_rgba(79,70,229,0.5)]"></div>
             </div>
         }>
