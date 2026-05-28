@@ -141,13 +141,19 @@ export default function Option4Demo() {
   if (!mounted) return null;
 
   return (
-    <div className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay">
-      {/* Soft Ambient Radial Glows */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] rounded-full bg-violet-600/5 blur-[160px] pointer-events-none" />
-
+    <div className="h-screen bg-[#07070B] flex flex-col relative overflow-hidden noise-overlay"
+      style={{
+        backgroundImage: `
+          radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.06) 0px, transparent 35%),
+          radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.06) 0px, transparent 35%),
+          linear-gradient(rgba(255, 255, 255, 0.007) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.007) 1px, transparent 1px)
+        `,
+        backgroundSize: '100% 100%, 100% 100%, 36px 36px, 36px 36px'
+      }}
+    >
       {/* Header */}
-      <header className="flex-shrink-0 bg-[#07070B]/85 backdrop-blur-md border-b border-[#1E1E2E]/40 px-6 py-4 flex items-center justify-between">
+      <header className="flex-shrink-0 bg-[#07070B]/85 backdrop-blur-md border-b border-[#1E1E2E]/40 px-6 py-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
           <Link href="/learn/demo" className="p-2 rounded-lg bg-zinc-900/50 border border-white/5 hover:border-zinc-700 text-zinc-400 hover:text-white transition-all">
             <ArrowLeft size={16} />
@@ -198,9 +204,9 @@ export default function Option4Demo() {
         </div>
       </header>
 
-      {/* Main Centered Content Feed (Wider Layout, fills horizontal space) */}
-      <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
-        <div className="max-w-5xl mx-auto w-full space-y-6 pb-24">
+      {/* Main Centered Content Feed (S-Curve Conversation Layout, clean widths, responsive grids) */}
+      <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6 z-10">
+        <div className="max-w-6xl mx-auto w-full space-y-8 pb-24">
           <AnimatePresence initial={false}>
             {messages.map((msg) => {
               const isKai = msg.role === 'assistant';
@@ -211,29 +217,27 @@ export default function Option4Demo() {
                   key={msg.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                  className={`flex gap-4 w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {/* Custom Avatar Badge */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative ${
-                    isKai
-                      ? 'bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md'
-                      : 'bg-zinc-800 border border-zinc-700/50 text-zinc-300'
-                  }`}>
-                    {isKai ? 'K' : 'U'}
-                    {isKai && isPlayingAudio && (
-                      <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
-                    )}
-                  </div>
+                  {/* Kai Avatar on Left */}
+                  {isKai && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative bg-indigo-950 border border-indigo-500/20 text-indigo-400 shadow-md">
+                      K
+                      {isPlayingAudio && (
+                        <span className="absolute inset-0 rounded-full border border-indigo-400 animate-ping opacity-60" />
+                      )}
+                    </div>
+                  )}
 
-                  {/* Socratic Thought Card or Standard Bubble with Softer Borders */}
-                  <div className="flex-1 space-y-3 max-w-[85%]">
+                  {/* Socratic Thought Card or Standard Bubble with 70% Max Width Limit */}
+                  <div className={`space-y-3 max-w-[70%] ${msg.role === 'user' ? 'text-right' : ''}`}>
                     <div
-                      className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all ${
+                      className={`rounded-2xl px-5 py-4 text-sm leading-relaxed border transition-all text-left ${
                         isThought
-                          ? 'bg-gradient-to-r from-amber-950/5 to-indigo-950/5 border-amber-500/10 text-zinc-200 shadow-md relative overflow-hidden'
+                          ? 'bg-[#12121D]/90 border-amber-500/10 text-zinc-200 shadow-md relative overflow-hidden'
                           : isKai
                             ? 'bg-[#12121A] border-[#1E1E2E]/20 text-zinc-200'
-                            : 'bg-indigo-600/10 border-indigo-500/10 text-zinc-200 ml-auto'
+                            : 'bg-indigo-600/10 border-indigo-500/15 text-zinc-200 ml-auto'
                       }`}
                     >
                       {isThought && (
@@ -258,12 +262,12 @@ export default function Option4Demo() {
                       )}
                     </div>
 
-                    {/* Code Card Rendering */}
+                    {/* Code Card Rendering (Left aligned inside bubble context) */}
                     {msg.code && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.99 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40"
+                        className="rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0E0E14] font-mono text-xs text-zinc-300 shadow-black/40 text-left"
                       >
                         <div className="bg-zinc-950/60 px-4 py-2 border-b border-white/5 flex items-center justify-between">
                           <span className="text-zinc-500 flex items-center gap-1.5">
@@ -295,6 +299,13 @@ export default function Option4Demo() {
                       </motion.div>
                     )}
                   </div>
+
+                  {/* User Avatar on Right */}
+                  {!isKai && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-zinc-800 border border-zinc-700/50 text-zinc-300">
+                      U
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
@@ -322,9 +333,9 @@ export default function Option4Demo() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Sticky Footer Console (Exactly like standard chat screens) */}
+      {/* Bottom Sticky Footer Console */}
       <footer className="flex-shrink-0 bg-[#07070B]/95 backdrop-blur-md border-t border-[#1E1E2E]/40 px-6 py-4 safe-area-bottom z-30">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 w-full">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 w-full">
           
           {isVoiceMode ? (
             <div className="flex items-center gap-3 w-full justify-between">
