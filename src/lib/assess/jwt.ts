@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/assess/jwt.ts
+ * @purpose   Retrieves and encodes the JWT secret for secure assessment session tokens
+ * @tech      None
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       ASSESSMENT_JWT_SECRET, SUPABASE_JWT_SECRET
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * Assessment JWT secret helper.
  * Uses ASSESSMENT_JWT_SECRET (dedicated) with SUPABASE_JWT_SECRET as fallback.
  * Backward compatible: sessions signed with SUPABASE_JWT_SECRET still verify.

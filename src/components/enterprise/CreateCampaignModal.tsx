@@ -1,3 +1,20 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/CreateCampaignModal.tsx
+ * @purpose   Provides a modal interface for employers to create a new campaign.
+ * @tech      React, Tailwind CSS, Lucide, sonner
+ * @connects  @/lib/api/adapters/assessment-adapter
+ * @apis      AssessmentAdapter.createCampaign
+ * @db        None
+ * @state     useState
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * 
+ * Summary:
+ * This component manages a multi-step wizard for campaign creation, allowing
+ * users to select problems, configure timing, and generate assessment links.
+ */
 'use client';
 
 import React, { useState, useEffect } from 'react';

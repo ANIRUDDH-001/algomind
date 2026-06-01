@@ -1,3 +1,10 @@
+/**
+ * @codesage
+ * @description Utility functions for voice management, including voice selection and text duration calculation.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
 
 /**
  * Utility functions for voice management

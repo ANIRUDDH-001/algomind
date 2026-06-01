@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/health/__tests__/health-slo-contract.test.ts
+ * @purpose   Tests health endpoint SLO contract logic.
+ * @tech      Vitest
+ * @connects  ../route, @/lib/supabase/service, @/lib/upstash/client
+ * @apis      None
+ * @db        Mocked global_feature_flags, candidate_submissions
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../route';
 import { getServiceClient } from '@/lib/supabase/service';

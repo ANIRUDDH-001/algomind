@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/adapters/assessment-adapter.ts
+ * @purpose   API adapter for handling candidate assessments and employer campaign creation
+ * @tech      fetch
+ * @connects  imports requestJson, requestVoid from '@/lib/api/client'
+ * @apis      POST /api/assess/verify-code, POST /api/assess/start, POST /api/assess/complete, POST /api/assess/save-progress, POST /api/employer/campaigns
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { requestJson, requestVoid } from '@/lib/api/client';
 
 export interface VerifyCodeRequest {

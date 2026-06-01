@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/co-owners-tab.tsx
+ * @purpose   Allows primary owner to grant and revoke co-owner access.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/owner/co-owners
+ * @apis      POST /api/owner/co-owners, DELETE /api/owner/co-owners
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

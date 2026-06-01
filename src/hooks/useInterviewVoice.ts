@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterviewVoice.ts
+ * @purpose   React hook coordinating Text-to-Speech (TTS), Speech-to-Text (STT), Voice Activity Detection (VAD), and mic intents for the interview.
+ * @tech      React
+ * @connects  Composes useTTS, useSTT, useVAD; Used by useInterviewControl or InterviewSession
+ * @apis      none
+ * @db        none
+ * @state     React component state for mic intent, VAD status, TTS status, and timers
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTTS } from '@/hooks/useTTS';
 import { useSTT } from '@/hooks/useSTT';

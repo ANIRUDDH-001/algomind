@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/tour/KaiModal.tsx
+ * @purpose   3D animated 'Kai' avatar used in modal tour steps.
+ * @tech      React, Framer Motion
+ * @connects  framer-motion, @/lib/tour/index
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { motion } from 'framer-motion';

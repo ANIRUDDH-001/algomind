@@ -1,16 +1,17 @@
-'use client';
 /**
- * useSTT — Groq Whisper → Browser SpeechRecognition → MediaRecorder cascade.
- *
- * Three-tier provider resolution:
- *   1. 'whisper'  — VAD owns mic, sends audio via transcribeAudio(Float32Array).
- *   2. 'browser'  — Chrome/Edge SpeechRecognition with auto-restart loop.
- *   3. 'recorder' — MediaRecorder + Whisper API fallback (Firefox/Safari/Brave).
- *   4. 'none'     — no STT available.
- *
- * Phase 0 fixes: listeningIntentRef auto-restart, no-speech handling.
- * Phase 1 fixes: MediaRecorder fallback, three-tier cascade, permission state.
+ * @codesage
+ * @file      src/hooks/useSTT.ts
+ * @purpose   React hook providing Speech-to-Text capabilities with a 3-tier cascade (Whisper API -> Browser SR -> MediaRecorder).
+ * @tech      React, Web Speech API, MediaRecorder
+ * @connects  Calls transcribeVoiceAudio adapter; Used by voice and interview hooks
+ * @apis      Whisper API (via adapter)
+ * @db        none
+ * @state     React component state for listening status, transcript strings, and hardware permission state
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
+'use client';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { transcribeVoiceAudio } from '@/lib/api/adapters/voice-adapter';
 

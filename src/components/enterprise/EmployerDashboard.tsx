@@ -1,3 +1,21 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/EmployerDashboard.tsx
+ * @purpose   Main dashboard for employers to view campaigns and candidate submissions.
+ * @tech      React, Tailwind CSS, Lucide, sonner
+ * @connects  @/lib/api/adapters/employer-dashboard-adapter, @/components/enterprise/CohortStatsPanel
+ * @apis      EmployerDashboardAdapter methods (getSubmissions, getSubmissionReport, etc.)
+ * @db        None
+ * @state     useState, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * 
+ * Summary:
+ * This large component handles the primary employer view, switching between
+ * campaign management and candidate submission reviews. It includes complex
+ * sorting, filtering, and data export functionalities.
+ */
 'use client';
 
 import React, { useState, useEffect } from 'react';

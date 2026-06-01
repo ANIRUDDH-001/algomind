@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/CandidateTranscriptViewer.tsx
+ * @purpose   Displays the full transcript of a candidate's interview session.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/components/ui/card
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React from 'react';

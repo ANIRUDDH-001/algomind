@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/__tests__/session-limit.test.ts
+ * @purpose   Tests checking user's weekly session limits for interviews and learning.
+ * @tech      Vitest
+ * @connects  @/app/api/knowledge/session-limit/route, @/lib/supabase/server, @/lib/rate-limit/weekly-session-limiter, @/lib/supabase/user-preferences, @/lib/config/system-config
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/knowledge/session-limit/route';

@@ -1,3 +1,10 @@
+/**
+ * @codesage
+ * @description Defines the core state machine mapping interview phases (idle, problem-intro, user-solving, etc).
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
 export type InterviewState =
     | 'idle'
     | 'problem-intro'      // AI introduces problem

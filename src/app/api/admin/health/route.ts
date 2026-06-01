@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/health/route.ts
+ * @purpose   Aggregates system health metrics including model statuses, errors, and cron execution.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/tracing/correlation
+ * @apis      none
+ * @db        model_registry, system_events, RPC get_model_rate_stats
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error in GET catch block.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
@@ -149,7 +162,6 @@ export async function GET(request?: Request) {
         }));
 
     } catch (error) {
-        console.error('[Admin Health API] Error:', error);
         return withCorrelationIdResponse(NextResponse.json({ error: 'Internal Server Error' }, { status: 500 }));
     }
 }

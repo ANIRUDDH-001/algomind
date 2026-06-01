@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Type definitions for the Voice Activity Detection (VAD) subsystem and InterruptionManager.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * Type definitions for Voice Activity Detection (VAD) subsystem.
  *
  * These types define the public contract for the VADManager class

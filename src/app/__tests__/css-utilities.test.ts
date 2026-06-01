@@ -1,6 +1,10 @@
 /**
- * CSS Utilities Regression Tests
+ * @codesage
+ * @file      src/app/__tests__/css-utilities.test.ts
+ * @audit     CODESAGE-v1
+ * @skip      test-file
  *
+ * CSS Utilities Regression Tests
  * Verifies that all CSS utility classes referenced in TSX files are actually
  * defined in globals.css — catches the silent-failure bug where classes like
  * `glass-morphism` were referenced in components but never defined.

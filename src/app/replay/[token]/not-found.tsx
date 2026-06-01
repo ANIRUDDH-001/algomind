@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/replay/[token]/not-found.tsx
+ * @purpose   Not Found page for invalid or expired replay tokens.
+ * @tech      React, Next.js
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import Link from 'next/link';
 
 export default function NotFound() {

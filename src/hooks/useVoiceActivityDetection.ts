@@ -1,10 +1,17 @@
-'use client';
 /**
- * useVoiceActivityDetection — Phase 4a hook.
- *
- * Wraps the VADManager singleton from vad-manager.ts for use in
- * ConversationView and other components that need speech detection events.
+ * @codesage
+ * @file      src/hooks/useVoiceActivityDetection.ts
+ * @purpose   Alternative lightweight hook wrapping VADManager for components needing basic speech events.
+ * @tech      React
+ * @connects  Imports VADManager; Used by ConversationView and similar components
+ * @apis      none
+ * @db        none
+ * @state     React component state for listening/error
+ * @env       none
+ * @issues    Duplicates some functionality of useVAD; check for consolidation.
+ * @audit     CODESAGE-v1
  */
+'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getVADManager } from '@/lib/voice/vad-manager';
 import { VADState } from '@/lib/voice/types';

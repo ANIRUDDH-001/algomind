@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/not-found.tsx
+ * @purpose   Displays a 404 error page when a requested concept slug is not found.
+ * @tech      Next.js, React, Lucide React
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useRouter } from 'next/navigation';

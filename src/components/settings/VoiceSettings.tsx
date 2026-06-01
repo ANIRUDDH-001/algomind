@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/settings/VoiceSettings.tsx
+ * @purpose   Controls TTS engine selection and voice preferences for AI Interviewer.
+ * @tech      React, TailwindCSS, Web Speech API
+ * @connects  @/components/auth/AuthProvider, @/lib/supabase/user-preferences, lucide-react
+ * @apis      None
+ * @db        Supabase user_preferences (read/write)
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 

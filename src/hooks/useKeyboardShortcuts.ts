@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useKeyboardShortcuts.ts
+ * @purpose   React hook to handle global keyboard shortcuts (e.g. Cmd+K to navigate to /learn).
+ * @tech      React, Next.js App Router
+ * @connects  Exported for global layout/app components
+ * @apis      none
+ * @db        none
+ * @state     None (event listeners only)
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

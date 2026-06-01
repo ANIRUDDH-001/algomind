@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/button.tsx
+ * @purpose   Provides a highly customizable Button component with multiple variants, sizes, and states.
+ * @tech      React, Radix UI, class-variance-authority, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for use across the application.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"

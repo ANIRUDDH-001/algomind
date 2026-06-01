@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/users-tab.tsx
+ * @purpose   Platform users management tab allowing role changes, suspension, and TTS preferences.
+ * @tech      React, Lucide React, date-fns, Tailwind
+ * @connects  /api/owner/users
+ * @apis      GET, PATCH /api/owner/users
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

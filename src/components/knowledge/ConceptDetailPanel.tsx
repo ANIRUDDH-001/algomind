@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/ConceptDetailPanel.tsx
+ * @purpose   Slide-in panel showing concept details and quick actions.
+ * @tech      React, Framer Motion, TailwindCSS, Next.js App Router
+ * @connects  React, framer-motion, lucide-react, next/navigation, KGConceptSummary
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
+/**
  * @component ConceptDetailPanel
  * @description Slide-in panel showing concept details + quick actions.
  *              Appears when a ConceptTile is clicked.

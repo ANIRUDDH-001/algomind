@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/voice/__tests__/ZoomTranscript.test.tsx
+ * @purpose   Tests for ZoomTranscript component.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ZoomTranscript
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';

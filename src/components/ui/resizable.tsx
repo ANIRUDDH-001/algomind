@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/resizable.tsx
+ * @purpose   Provides resizable layout panels and draggable handles using react-resizable-panels.
+ * @tech      React, react-resizable-panels, Lucide React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { GripVertical } from "lucide-react"
 import {

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/ai-status-tab.tsx
+ * @purpose   Displays the current status of all AI models.
+ * @tech      React, Lucide React
+ * @connects  /api/admin/ai-status
+ * @apis      GET /api/admin/ai-status
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';

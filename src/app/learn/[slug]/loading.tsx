@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/loading.tsx
+ * @purpose   Provides a loading skeleton for the learning session page.
+ * @tech      React, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function LearnSessionLoading() {
   return (
     <div className="h-full bg-[#0A0A0F] flex flex-col">

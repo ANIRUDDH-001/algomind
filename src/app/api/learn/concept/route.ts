@@ -1,8 +1,15 @@
 /**
- * @module api/learn/concept
- * @description Kai-Tutor concept-scoped teaching session API.
- *              Replaces the old /api/learn/chat route.
- * @phase Phase 2C
+ * @codesage
+ * @file      src/app/api/learn/concept/route.ts
+ * @purpose   Kai-Tutor concept-scoped teaching session API (Phase 2C).
+ * @tech      Next.js, Supabase, AI Client
+ * @connects  @/lib/supabase/server, @/lib/supabase/service, @/lib/ai/client, @/lib/learn/tutor-prompt, @/lib/kai-context, @/lib/knowledge-graph, @/lib/rate-limit/weekly-session-limiter, @/lib/rate-limit/ip-rate-limiter, @/lib/monitoring/events, @/lib/tracing/correlation
+ * @apis      AI Providers via @/lib/ai/client
+ * @db        learn_sessions, concept_tags
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
  */
 
 import { NextRequest, NextResponse } from 'next/server';

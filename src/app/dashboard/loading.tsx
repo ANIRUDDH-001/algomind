@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/dashboard/loading.tsx
+ * @purpose   Displays a skeleton loading state for the dashboard.
+ * @tech      React, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="min-h-screen text-zinc-100 p-4 sm:p-6 lg:p-8 overflow-x-hidden">

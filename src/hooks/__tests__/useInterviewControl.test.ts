@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterviewControl.test.ts
+ * @purpose   Unit tests for the useInterviewControl React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterviewControl
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * @vitest-environment jsdom
  */
 import { renderHook, act } from '@testing-library/react';

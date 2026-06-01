@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/owner/co-owners/route.ts
+ * @purpose   Allows the primary owner to grant or revoke co-owner access.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/monitoring/events, @/lib/auth/account-type
+ * @apis      None
+ * @db        co_owners
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { logSystemEvent } from '@/lib/monitoring/events';

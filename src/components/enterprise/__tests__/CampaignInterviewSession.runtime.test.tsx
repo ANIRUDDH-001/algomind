@@ -1,4 +1,18 @@
 /**
+ * @codesage
+ * @file      src/components/enterprise/__tests__/CampaignInterviewSession.runtime.test.tsx
+ * @purpose   Runtime flow tests for CampaignInterviewSession.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../CampaignInterviewSession
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import React from 'react';

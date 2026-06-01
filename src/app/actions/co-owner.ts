@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/co-owner.ts
+ * @purpose   Server action to check co-owner status bypassing RLS
+ * @tech      Next.js Server Actions, Supabase
+ * @connects  @/lib/supabase/server
+ * @apis      None
+ * @db        co_owners
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use server';
 
 import { createServiceRoleSupabase } from '@/lib/supabase/server';

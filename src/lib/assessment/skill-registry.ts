@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/skill-registry.ts
+ * @purpose   Defines the authoritative cognitive skills taxonomy, weights, and scoring rubrics
+ * @tech      None
+ * @connects  imports CognitiveSkill, SkillDefinition, COLORS
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { CognitiveSkill, SkillDefinition } from '@/types/assessment';
 import { COLORS } from '@/lib/design-tokens';
 export const SKILL_DEFINITIONS: Record<CognitiveSkill, SkillDefinition> = {

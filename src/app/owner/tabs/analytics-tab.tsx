@@ -1,3 +1,24 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/analytics-tab.tsx
+ * @purpose   Displays system analytics, model rate limits, DB errors, user rate limits, and cron job status.
+ * @tech      React, Recharts, Lucide React, Tailwind
+ * @connects  /api/admin/events, /api/admin/models, /api/admin/trigger-cron
+ * @apis      GET /api/admin/events, GET /api/admin/models, POST /api/admin/trigger-cron
+ * @db        Reads events, analytics, and stats from API
+ * @state     React local state, interval polling for real-time updates
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ * 
+ * @section   Imports & Interfaces (Lines 1-46): Dependencies and TypeScript definitions.
+ * @section   State & Data Loading (Lines 47-147): State hooks, `loadData`, `handleTriggerCron`, and interval polling.
+ * @section   Data Transformation (Lines 148-276): Processing events and analytics into chart and table formats.
+ * @section   UI Render: Header & Overview (Lines 277-349): Loading state, header, and top-level stats.
+ * @section   UI Render: Error Chart & Model Limits (Lines 350-433): Bar chart and rate limit table.
+ * @section   UI Render: DB & User Rate Limits (Lines 434-542): Event feeds and user limits chart.
+ * @section   UI Render: Cron Health (Lines 543-636): Nightly batch status and triggers.
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

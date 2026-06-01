@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/health-aggregation.contract.test.ts
+ * @purpose   Contract test ensuring the admin health API maintains stable event taxonomy and response shapes.
+ * @tech      Vitest, Node.js (fs, path)
+ * @connects  src/app/api/admin/health/route.ts
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterviewApi.ts
+ * @purpose   React hook handling backend API communication for the interview chat, including SSE and Supabase Realtime fallback.
+ * @tech      React, Fetch API, Supabase Realtime
+ * @connects  Used by useInterviewControl / Interview Session components
+ * @apis      POST /api/chat (and other dynamic endpoints)
+ * @db        Supabase Realtime: interview_<sessionId>
+ * @state     Refs for stream cancellation and current stream message ID
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { useCallback, useRef, useEffect } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Message, ProblemContext, UseInterviewOptions } from './useInterview';

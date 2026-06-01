@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Snapshot tests for the interviewer system prompt generation across different modes.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { generateInterviewerSystemPrompt, generateFeedbackPrompt } from '../interviewer-prompt';
 import { MOCK_PROBLEM } from '@/test-utils/assessment-fixtures';

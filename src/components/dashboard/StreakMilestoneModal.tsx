@@ -1,3 +1,6 @@
+/**
+ * @codesage
+ */
 import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 

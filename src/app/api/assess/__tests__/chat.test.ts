@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/chat.test.ts
+ * @purpose   Tests the candidate assessment chat API, including stream handling, limits, and authentication.
+ * @tech      Vitest, Next.js, jose, TypeScript
+ * @connects  ../chat/route, @/lib/ai/client, @/lib/upstash/client, @/lib/supabase/service
+ * @apis      none
+ * @db        candidate_submissions, assessment_campaigns (mocked)
+ * @state     Redis (mocked)
+ * @env       SUPABASE_JWT_SECRET (mocked)
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../chat/route';
 import { getAIClient } from '@/lib/ai/client';

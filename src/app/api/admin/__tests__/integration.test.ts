@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/integration.test.ts
+ * @purpose   Integration tests verifying the interaction between admin API endpoints, auth, and the database.
+ * @tech      Vitest, TypeScript
+ * @connects  ../admins/route, ../models/route, ../health/route, @/lib/supabase/server
+ * @apis      none
+ * @db        Supabase (mocked rpc and from chains)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * Integration Test: Admin Panel Routes
  * Exercises requireAdminForApi -> admin routes -> DB queries.
  */

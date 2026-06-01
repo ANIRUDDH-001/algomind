@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/replay/[token]/page.tsx
+ * @purpose   Displays a public interview session replay with transcript and AI annotations.
+ * @tech      React, Next.js, Lucide React
+ * @connects  /lib/supabase/server
+ * @apis      None
+ * @db        Reads session_replays, interview_sessions, executes increment_view_count RPC
+ * @state     Server component
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';

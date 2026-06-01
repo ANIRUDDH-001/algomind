@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/CodeEditor.height.test.tsx
+ * @purpose   Tests for CodeEditor height responsiveness across devices.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../CodeEditor
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 /**
  * CODE-C fix regression: CodeEditor wrapper must use pixel-based height

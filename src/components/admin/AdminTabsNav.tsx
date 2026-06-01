@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/admin/AdminTabsNav.tsx
+ * @purpose   Provides tab-based navigation for the admin dashboard area.
+ * @tech      React, Next.js (next/navigation), TailwindCSS, lucide-react
+ * @connects  Imports cn from @/lib/utils, used within admin pages
+ * @apis      none
+ * @db        none
+ * @state     Relies on usePathname from next/navigation for active state
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ShieldAlert, Briefcase } from 'lucide-react';

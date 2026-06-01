@@ -1,8 +1,15 @@
 /**
- * @component VoiceModeToggle
- * @description Toggle between voice mode (ZoomTranscript) and text mode (chat log).
- *              Voice mode is the default on mobile, text mode on desktop.
- * @phase Phase 2P
+ * @codesage
+ * @file      src/components/voice/VoiceModeToggle.tsx
+ * @purpose   Toggle between voice mode and text mode in interview view.
+ * @tech      React, TailwindCSS
+ * @connects  framer-motion, lucide-react
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

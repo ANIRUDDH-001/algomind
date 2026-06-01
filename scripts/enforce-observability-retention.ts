@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/enforce-observability-retention.ts
+ * @purpose   Purges old observability events from the database to maintain data retention policies
+ * @tech      Supabase, Node.js, dotenv
+ * @connects  Imports getServiceClient from src/lib/supabase/service and logs events via src/lib/monitoring/events
+ * @apis      none
+ * @db        Accesses system_events table
+ * @state     none
+ * @env       Loads env variables via dotenv
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import 'dotenv/config';
 import { getServiceClient } from '../src/lib/supabase/service';
 import { logSystemLifecycle } from '../src/lib/monitoring/events';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/analyzer.ts
+ * @purpose   Core LLM-based analysis engine to score and evaluate a candidate's interview transcript
+ * @tech      AI Client (Gemini)
+ * @connects  imports SKILL_DEFINITIONS, generateAssessmentPrompt, calculateConfidence, validateAndCorrectScores, MODE_ASSESSMENT_CONFIGS, getAIClient
+ * @apis      None directly (uses getAIClient)
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { CognitiveSkill } from '@/types/assessment';
 import type { DifficultyMode } from '../interview/interview-config';
 import { SKILL_DEFINITIONS } from './skill-registry';

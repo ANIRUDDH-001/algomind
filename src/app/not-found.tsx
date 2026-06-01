@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/not-found.tsx
+ * @purpose   Custom 404 error page for unmatched routes
+ * @tech      Next.js, React, Tailwind CSS
+ * @connects  next/link, next/image, lucide-react
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Brain } from 'lucide-react';

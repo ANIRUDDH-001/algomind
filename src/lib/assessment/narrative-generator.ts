@@ -1,7 +1,19 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/narrative-generator.ts
+ * @purpose   Generates a personalized cognitive profile/narrative based on user's session history
+ * @tech      Supabase, AI Client
+ * @connects  imports getAIClient, Supabase client; writes to learner_profiles DB
+ * @apis      None directly
+ * @db        score_benchmarks, learner_profiles, interview_sessions
+ * @state     None
+ * @env       None
+ * @issues    removed unused SessionData import
+ * @audit     CODESAGE-v1
+ */
 import { getAIClient } from '@/lib/ai/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase/client';
-import { SessionData } from '@/lib/ai/memory-generator'; // Reuse the type from memory-generator, or assessment
 import { SessionHistory, CognitiveSkill } from '@/types/assessment';
 import { ALL_COGNITIVE_SKILLS } from '@/lib/supabase/type-mapping';
 import { logSystemEvent } from '@/lib/monitoring/events';

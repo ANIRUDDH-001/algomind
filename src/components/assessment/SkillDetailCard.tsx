@@ -1,3 +1,6 @@
+/**
+ * @codesage
+ */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, CheckCircle2, Lightbulb, Quote, HelpCircle } from 'lucide-react';

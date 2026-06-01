@@ -1,3 +1,25 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterview.ts
+ * @purpose   Monolithic React hook handling the entire AI interview session logic, state machine, and audio coordination.
+ * @tech      React, Fetch API
+ * @connects  Imports TTS, STT, VAD hooks and state machine; Used by InterviewSession
+ * @apis      POST /api/chat
+ * @db        none
+ * @state     Complex state: round limits, voice recording intents, message history, SSE stream accumulation
+ * @env       NODE_ENV, ENABLE_WHISPER_STT
+ * @issues    Very large file (1300+ lines); appears to duplicate logic with useInterviewControl / useInterviewApi / etc.
+ * @audit     CODESAGE-v1
+ * 
+ * @section   Reducers
+ * Handles round and voice states via useReducer.
+ * 
+ * @section   Audio Pipeline
+ * Orchestrates useSTT, useTTS, and useVAD hooks.
+ * 
+ * @section   Chat API & Message Management
+ * Manages streaming response (SSE) and conversation history tracking.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect, useCallback, useReducer } from 'react';
 

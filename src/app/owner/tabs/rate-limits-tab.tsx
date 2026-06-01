@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/rate-limits-tab.tsx
+ * @purpose   Configure per-user rate limit overrides.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/owner/users
+ * @apis      GET /api/owner/users, PATCH /api/owner/users
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

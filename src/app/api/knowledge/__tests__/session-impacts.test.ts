@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/__tests__/session-impacts.test.ts
+ * @purpose   Tests retrieval of concept confidence deltas for an interview session.
+ * @tech      Vitest
+ * @connects  @/app/api/knowledge/session-impacts/route, @/lib/supabase/server, @/lib/supabase/service
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 

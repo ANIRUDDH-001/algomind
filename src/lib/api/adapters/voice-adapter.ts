@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/adapters/voice-adapter.ts
+ * @purpose   API adapter for retrieving voice runtime flags and transcribing audio
+ * @tech      fetch
+ * @connects  imports requestJson from '@/lib/api/client'
+ * @apis      GET /api/flags, POST /api/voice/transcribe
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { requestJson } from '@/lib/api/client';
 
 type FlagEntry = { value: boolean; description?: string };

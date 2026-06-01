@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/analytics-caching.test.ts
+ * @purpose   Tests caching behavior and fallback logic for admin analytics events.
+ * @tech      Vitest, TypeScript
+ * @connects  ../events/route, @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/upstash/client
+ * @apis      none
+ * @db        system_events (mocked)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '../events/route';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';

@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the transcript enricher logic ensuring final code blocks are appended correctly.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { buildEnrichedTranscript } from '../transcript-enricher';
 

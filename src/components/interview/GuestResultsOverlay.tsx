@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/GuestResultsOverlay.tsx
+ * @purpose   Displays the assessment results for a guest user with a call-to-action to sign up.
+ * @tech      React, Framer Motion, Lucide
+ * @connects  @/components/assessment/ReportCard
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React from 'react';

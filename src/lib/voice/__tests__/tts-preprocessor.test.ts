@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for text preprocessing logic targeting spoken audio adjustments.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { preprocessForTTS } from '../tts-preprocessor';
 

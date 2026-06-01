@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/adapters/employer-admin-adapter.ts
+ * @purpose   API adapter for employer administration, including invites and user management
+ * @tech      fetch
+ * @connects  imports requestJson, requestVoid from '@/lib/api/client'
+ * @apis      GET /api/user/owner-status, GET /api/admin/employer-invites, GET /api/admin/employers, POST /api/admin/employer-invites, DELETE /api/admin/employer-invites, GET /api/owner/users, PATCH /api/owner/users
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { requestJson, requestVoid } from '@/lib/api/client';
 
 export interface EmployerInviteDto {

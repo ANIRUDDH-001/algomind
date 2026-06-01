@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/app/assess/__tests__/complete.test.tsx
+ * @purpose   Tests for assessment complete page content
+ * @tech      Vitest, React Testing Library
+ * @connects  ../complete/content
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

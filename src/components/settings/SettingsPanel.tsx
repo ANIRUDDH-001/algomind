@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/settings/SettingsPanel.tsx
+ * @purpose   Main settings panel for managing user profile, notifications, and app preferences.
+ * @tech      React, TailwindCSS, Next.js App Router
+ * @connects  @/lib/onboarding/manager, @/components/auth/AuthProvider, @/lib/supabase/client, VoiceSettings, UpgradeButton
+ * @apis      GET /api/user/me, PATCH /api/user/preferences
+ * @db        Supabase assessments, interview_sessions (deletes)
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

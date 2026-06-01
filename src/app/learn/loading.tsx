@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/loading.tsx
+ * @purpose   Renders a loading skeleton UI while the learn mode concepts are being fetched.
+ * @tech      Next.js, React, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function LearnLoading() {
     return (
         <div className="flex-1 bg-[#0A0A0F] px-4 py-8">

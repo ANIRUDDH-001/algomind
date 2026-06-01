@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      refactor_learn.js
+ * @purpose   Script to refactor LearnSessionPageClient.tsx to implement mobile tab-based navigation
+ * @tech      Node.js (fs)
+ * @connects  Modifies src/app/learn/[slug]/LearnSessionPageClient.tsx
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 const fs = require('fs');
 
 const file = 'src/app/learn/[slug]/LearnSessionPageClient.tsx';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/__tests__/voice-adapter.test.ts
+ * @purpose   Tests for voice API adapter
+ * @tech      vitest
+ * @connects  imports getVoiceRuntimeFlags, transcribeVoiceAudio from '@/lib/api/adapters/voice-adapter'
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { __resetVoiceFlagsCacheForTests, getVoiceRuntimeFlags, transcribeVoiceAudio } from '@/lib/api/adapters/voice-adapter';
 

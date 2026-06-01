@@ -1,4 +1,11 @@
-import type { DifficultyMode } from './interview-config';
+/**
+ * @codesage
+ * @description Configuration mapping for mode-specific assessment logic, strictness, and feedback tone.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+import { DifficultyMode } from './interview-config';
 
 export interface ModeAssessmentConfig {
     /** Injected at top of feedback prompt — tells AI the evaluation context */

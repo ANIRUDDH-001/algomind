@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/admin/employers/client.tsx
+ * @purpose   Client component for managing employers, including creating invites and role management.
+ * @tech      React, Next.js, Lucide Icons, date-fns
+ * @connects  @/lib/api/adapters/employer-admin-adapter
+ * @apis      None
+ * @db        None directly (uses EmployerAdminAdapter)
+ * @state     invites, employers, loading, activeSearch, emailSuggestions, etc.
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';

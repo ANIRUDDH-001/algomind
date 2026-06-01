@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewLimitBar.tsx
+ * @purpose   Displays the progress bar for interview time and rounds limits.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     useState, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React, { useState, useEffect } from 'react';
 import { Timer, MessageSquare, ClockAlert } from 'lucide-react';
 

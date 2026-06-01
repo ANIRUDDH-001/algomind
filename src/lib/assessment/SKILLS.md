@@ -1,3 +1,4 @@
+<!-- @codesage | @file: src/lib/assessment/SKILLS.md | @purpose: Cognitive skills taxonomy documentation | @audit: CODESAGE-v1 -->
 # AlgoMind Cognitive Skill Taxonomy
 
 This document describes the 8 cognitive dimensions measured by the AlgoMind Assessment Engine.

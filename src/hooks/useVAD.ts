@@ -1,20 +1,17 @@
-'use client';
 /**
- * useVAD — Wrapper around VADManager singleton (vad-manager.ts).
- *
- * Phase 4c: Deprecates the @ricky0123/vad-web dynamic import.
- * Uses the script-tag singleton pattern from vad-manager.ts instead.
- *
- * Cascade:
- *   1. ONNX Silero VAD (via vad-manager.ts) — if device supports WASM + SharedArrayBuffer
- *   2. Push-to-talk fallback — no VAD, user controls mic manually
- *
- * Phase 3b: push-to-talk no longer fakes isListening = true.
- *
- * FIX: onSpeechEnd callback is registered once in a setup effect (not in startListening),
- *      preventing duplicate subscriptions. VAD failure triggers onFallback callback
- *      so useInterview can cascade to browser SpeechRecognition.
+ * @codesage
+ * @file      src/hooks/useVAD.ts
+ * @purpose   React wrapper around the VADManager singleton (Voice Activity Detection), cascading between ONNX Silero and push-to-talk.
+ * @tech      React
+ * @connects  Imports VADManager singleton; used by voice/interview hooks
+ * @apis      none
+ * @db        none
+ * @state     React component state for VAD mode and listening readiness
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
+'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import { VADState } from '@/lib/voice/types';

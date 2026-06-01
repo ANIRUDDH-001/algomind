@@ -1,7 +1,15 @@
 /**
- * @page /learn
- * @description Learn mode home — concept picker or diagnostic prompt.
- * @phase Phase 2J
+ * @codesage
+ * @file      src/app/learn/page.tsx
+ * @purpose   Server component for the Learn mode home, handling authentication, context retrieval, and displaying the ConceptPicker.
+ * @tech      Next.js, Supabase, React
+ * @connects  Imports ConceptPicker, knowledge-graph service, kai-context builder
+ * @apis      None
+ * @db        Supabase Auth
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
 import { Suspense } from 'react';
 import Link from 'next/link';

@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Central export index and feature flag checks for AWS integrations.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * AWS Service Index
  *
  * Kill switch: set ENABLE_AWS_POLLY_TTS + ENABLE_AWS_TRANSCRIBE_STT +

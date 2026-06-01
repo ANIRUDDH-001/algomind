@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/upstash/client.ts
+ * @purpose   Provides a Redis client instance with an integrated circuit breaker pattern.
+ * @tech      @upstash/redis
+ * @connects  Imports from @upstash/redis, exported to various caching services.
+ * @apis      Upstash Redis REST API
+ * @db        Redis (Upstash)
+ * @state     Maintains singleton redis instance and circuit state in memory.
+ * @env       UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { Redis } from '@upstash/redis';
 
 // Singleton instance to prevent multiple client creations

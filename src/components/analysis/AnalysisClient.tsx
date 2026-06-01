@@ -1,5 +1,23 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/analysis/AnalysisClient.tsx
+ * @purpose   Renders the detailed post-interview analysis dashboard with scores, feedback, and key moments.
+ * @tech      React, Next.js, framer-motion, lucide-react, TailwindCSS
+ * @connects  Imports multiple UI components, actions (addProblemToReviewQueue, retryAssessment), and types
+ * @apis      GET /api/knowledge/session-impacts
+ * @db        none
+ * @state     Local state for queueStatus, localReviewData, conceptImpacts, showImprovements
+ * @env       none
+ * @issues    Duplicate "Back to dashboard" button observed at the end of the CTA list.
+ * @audit     CODESAGE-v1
+ * 
+ * @section   AnimatedScore - Renders the circular animated score.
+ * @section   SkillBar - Renders individual skill scores with sub-criteria expansion.
+ * @section   AnalysisClient - Main component coordinating the 3-panel layout (Performance, Key Moments, Next Steps).
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

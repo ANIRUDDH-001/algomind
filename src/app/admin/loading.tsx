@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/admin/loading.tsx
+ * @purpose   Loading skeleton component for the admin pages while data is being fetched.
+ * @tech      React, Next.js, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">

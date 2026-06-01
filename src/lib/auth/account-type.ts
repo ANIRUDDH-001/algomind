@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/auth/account-type.ts
+ * @purpose   Authentication guards, roles, and session management.
+ * @tech      Node.js, NextAuth / Auth handlers
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { NextResponse } from 'next/server';

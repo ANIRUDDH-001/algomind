@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/auth/__tests__/requireAdminForApi.test.ts
+ * @purpose   Tests for Authentication guards, roles, and session management.
+ * @tech      Node.js, NextAuth / Auth handlers
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { requireAdminForApi } from '../requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';

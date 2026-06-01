@@ -1,4 +1,17 @@
 // @ts-check
+/**
+ * @codesage
+ * @file      stryker.config.mjs
+ * @purpose   Configuration file for Stryker mutation testing
+ * @tech      Stryker, Vitest
+ * @connects  Mutates core business logic files like assessment and AI clients
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 const config = {
   // ── Test Runner ────────────────────────────────────────────

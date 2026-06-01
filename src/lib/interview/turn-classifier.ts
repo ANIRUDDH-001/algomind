@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Fast classifier that detects when a user message contains a genuine cognitive signal to surface as a UI badge.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * turn-classifier.ts
  *
  * Lightweight (50-token) per-turn classifier that detects when a user

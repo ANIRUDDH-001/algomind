@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/progress.tsx
+ * @purpose   Provides a progress bar component built on Radix UI to visually display task completion.
+ * @tech      React, Radix UI, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { Progress as ProgressPrimitive } from "radix-ui"
 

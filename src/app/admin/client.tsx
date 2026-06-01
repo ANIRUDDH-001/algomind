@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/admin/client.tsx
+ * @purpose   Client component for managing admin users (adding, listing, and removing admins).
+ * @tech      React, Next.js, Lucide Icons, date-fns
+ * @connects  @/lib/supabase/client, @/lib/api/adapters/admin-adapter
+ * @apis      None
+ * @db        None directly (uses AdminAdapter)
+ * @state     admins, loading, error, currentUserEmail, isOwner, newEmail, isAdding, confirmingDelete
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/cache-stats/route.ts
+ * @purpose   Provides API endpoints for admins to get and clear AI response cache statistics.
+ * @tech      Next.js, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/ai/response-cache
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error in GET and DELETE catch blocks.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getResponseCache } from '@/lib/ai/response-cache';
@@ -19,7 +32,6 @@ export async function GET() {
 
         return NextResponse.json({ stats });
     } catch (error) {
-        console.error('[Admin Cache Stats API] Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -34,7 +46,6 @@ export async function DELETE() {
 
         return NextResponse.json({ success: true, message: 'Cache cleared' });
     } catch (error) {
-        console.error('[Admin Cache Stats API] DELETE Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

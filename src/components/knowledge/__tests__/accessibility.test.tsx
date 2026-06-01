@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/__tests__/accessibility.test.tsx
+ * @purpose   Phase 3E Accessibility tests for knowledge components.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ConceptTile, ConceptDetailPanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * @vitest-environment jsdom
  * @description Phase 3E Accessibility tests for knowledge components.
  *              Tests ARIA attributes, keyboard navigation, focus management.

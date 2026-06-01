@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/label.tsx
+ * @purpose   Provides an accessible Label component built on top of Radix UI to associate with form controls.
+ * @tech      React, Radix UI, class-variance-authority, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { cva, type VariantProps } from "class-variance-authority"

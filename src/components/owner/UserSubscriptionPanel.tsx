@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/owner/UserSubscriptionPanel.tsx
+ * @purpose   Admin panel to manually update a user's subscription status.
+ * @tech      React, TailwindCSS
+ * @connects  None
+ * @apis      POST /api/owner/manage-subscription
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

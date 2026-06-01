@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/page.tsx
+ * @purpose   Server component for the owner dashboard, pre-fetching platform statistics and system events securely using the service role.
+ * @tech      Next.js, Supabase
+ * @connects  Imports OwnerDashboardClient
+ * @apis      None
+ * @db        Supabase (profiles, global_feature_flags, co_owners, system_events)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { OwnerDashboardClient } from './client';

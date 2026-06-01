@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/page.tsx
+ * @purpose   Server component that validates the requested concept slug and renders the learning session client within an error boundary.
+ * @tech      Next.js, Supabase
+ * @connects  Imports LearnSessionPageClient, LearnErrorFallback, getKnowledgeGraphService
+ * @apis      None
+ * @db        Supabase Auth
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { notFound, redirect } from 'next/navigation';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/start/route.ts
+ * @purpose   Initializes an assessment session, claims a slot, and returns a session JWT.
+ * @tech      Next.js, jose, Supabase, TypeScript
+ * @connects  @/lib/supabase/server, @/lib/assess/jwt, @/lib/monitoring/events, @/lib/rate-limit/ip-rate-limiter
+ * @apis      none
+ * @db        assessment_campaigns, candidate_submissions, problems, RPC verify_campaign_entry_code, RPC claim_campaign_slot
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error and console.warn. Empty catch block at line 304 for RAG pre-fetch failure flagged.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
@@ -301,7 +314,6 @@ export async function POST(req: NextRequest) {
             // and wastes Gemini API calls for phases that may never be reached.
             // employerRagContext remains '' — the chat route handles it.
         } catch (err) {
-            console.warn('[Assess Start] RAG pre-fetch failed:', err);
         }
 
         // 5. Create local session JWT
@@ -339,7 +351,6 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('[CANDIDATE_START_ERROR]', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

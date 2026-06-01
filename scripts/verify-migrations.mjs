@@ -1,5 +1,18 @@
 #!/usr/bin/env node
 /**
+ * @codesage
+ * @file      scripts/verify-migrations.mjs
+ * @purpose   Checks that all required tables, RPCs, and columns exist in the Supabase DB
+ * @tech      Node.js, Supabase, dotenv
+ * @connects  Uses Supabase client to inspect database schema and functions
+ * @apis      none
+ * @db        Checks tables: admin_users, user_preferences, system_events, model_registry, interview_sessions, assessments, etc.
+ * @state     none
+ * @env       Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * verify-migrations.mjs
  * 
  * Checks that all required tables, RPCs, and columns exist in the Supabase DB.

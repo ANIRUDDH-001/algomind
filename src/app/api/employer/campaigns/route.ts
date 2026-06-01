@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/campaigns/route.ts
+ * @purpose   Handles listing and creating employer assessment campaigns.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/auth/require-employer
+ * @apis      None
+ * @db        assessment_campaigns, candidate_submissions
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';

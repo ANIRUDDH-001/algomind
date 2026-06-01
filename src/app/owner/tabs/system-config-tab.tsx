@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/system-config-tab.tsx
+ * @purpose   Displays system configuration defaults and descriptions.
+ * @tech      React
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { Card } from '@/components/ui/card';

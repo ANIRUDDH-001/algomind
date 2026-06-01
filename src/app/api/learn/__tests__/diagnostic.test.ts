@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/learn/__tests__/diagnostic.test.ts
+ * @purpose   Tests diagnostic submission logic and side effects.
+ * @tech      Vitest
+ * @connects  @/app/api/learn/diagnostic/route, @/lib/supabase/server, @/lib/knowledge-graph, @/lib/kai-context
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 

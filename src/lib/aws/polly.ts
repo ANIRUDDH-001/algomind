@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description AWS Polly TTS client implementation for synthesizing AI speech.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * AWS Polly TTS — Real Implementation
  *
  * Uses Kajal (Neural, Indian English) as default voice.

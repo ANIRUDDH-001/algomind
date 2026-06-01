@@ -1,11 +1,26 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/LearnSessionPageClient.tsx
+ * @purpose   Main client interface for interactive Socratic learning sessions with voice and text chat.
+ * @description Manages the complex UI state for the learning workspace, including transcription, voice input/output, interactive chat logs with code highlighting, and problem metadata display.
+ * @tech      Next.js, React, Framer Motion, Lucide React
+ * @connects  Imports hooks useLearnSession, useUnifiedVoice, components UpgradeModal, ResizablePanelGroup
+ * @apis      None
+ * @db        None
+ * @state     React local state, custom hooks state
+ * @env       None
+ * @issues    Removed unused icons (Layers, Play, Award) from lucide-react import
+ * @audit     CODESAGE-v1
+ */
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, Layers, Play, BookOpen, Code2, Send, Mic, Cpu, Clock, Award,
+  ArrowLeft, BookOpen, Code2, Send, Mic, Cpu, Clock,
   ChevronDown, ChevronUp, Lightbulb, AlertCircle, Loader2, Volume2, MicOff, MessageSquare
 } from 'lucide-react';
 

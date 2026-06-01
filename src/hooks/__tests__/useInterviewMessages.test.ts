@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterviewMessages.test.ts
+ * @purpose   Unit tests for the useInterviewMessages React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterviewMessages
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * @vitest-environment jsdom
  */
 import { renderHook, act } from '@testing-library/react';

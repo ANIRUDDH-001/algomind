@@ -1,4 +1,18 @@
 /**
+ * @codesage
+ * @file      src/components/interview/__tests__/IntegrityFlags.test.tsx
+ * @purpose   Tests for integrity flags detection in InterviewSession.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../InterviewSession
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { render, act, waitFor, screen } from '@testing-library/react';

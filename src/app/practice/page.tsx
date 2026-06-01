@@ -1,4 +1,24 @@
- 
+/**
+ * @codesage
+ * @file      src/app/practice/page.tsx
+ * @purpose   Displays paginated list of practice problems with filtering and sprint selection.
+ * @tech      React, Next.js, Framer Motion, Lucide React
+ * @connects  /lib/supabase/problems
+ * @apis      None
+ * @db        Reads problems and interview_sessions
+ * @state     React local state for pagination, filters, difficulty mode, and P2 sprint state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ * 
+ * @section   Imports & Config (Lines 1-30): Dependencies and static constants.
+ * @section   State & Data Loading (Lines 31-118): State hooks, `loadProblems`, `loadAttemptedProblems`.
+ * @section   Filters & Handlers (Lines 119-197): Logic for displaying problems, changing filters, starting interviews.
+ * @section   UI Render: Header & Selector (Lines 198-229): Title and mode toggle.
+ * @section   UI Render: Guest Mode (Lines 230-259): Unauthenticated view to prompt sign-up.
+ * @section   UI Render: List & Pagination (Lines 260-413): Render active problems and pagination controls.
+ * @section   UI Render: Sprint Modal (Lines 414-454): Modal for selecting second problem in Sprint mode.
+ */
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';

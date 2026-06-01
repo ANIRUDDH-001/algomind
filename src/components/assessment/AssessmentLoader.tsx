@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/assessment/AssessmentLoader.tsx
+ * @purpose   Shows an animated loading screen during the cognitive assessment process.
+ * @tech      React, framer-motion, lucide-react, TailwindCSS
+ * @connects  none
+ * @apis      none
+ * @db        none
+ * @state     Local state for currentSkill animation cycling
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit } from 'lucide-react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/admins/route.ts
+ * @purpose   Manages admin users (listing, adding, and safely deleting) via Supabase API endpoints.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/service, @/lib/monitoring/events, @/lib/api/error-response
+ * @apis      none
+ * @db        admin_users, system_config (via RPC safe_delete_admin)
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error in DELETE catch block.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from "next/server";
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';
@@ -95,7 +108,6 @@ export async function DELETE(request: Request) {
         });
 
         if (error) {
-            console.error('Failed to delete admin:', error);
             return ApiErrors.serverError('Failed to delete admin');
         }
 

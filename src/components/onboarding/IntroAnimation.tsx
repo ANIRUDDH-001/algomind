@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/onboarding/IntroAnimation.tsx
+ * @purpose   Animated introduction screen shown during user onboarding.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/purity */
 'use client';
 

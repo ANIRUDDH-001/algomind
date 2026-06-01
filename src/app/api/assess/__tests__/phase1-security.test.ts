@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/phase1-security.test.ts
+ * @purpose   Tests fallback and validation logic for assessment JWT secrets.
+ * @tech      Vitest, TypeScript
+ * @connects  @/lib/assess/jwt
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       ASSESSMENT_JWT_SECRET, SUPABASE_JWT_SECRET
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getAssessmentSecret, encodeAssessmentSecret } from '@/lib/assess/jwt';
 

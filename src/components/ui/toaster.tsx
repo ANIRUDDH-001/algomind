@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/ui/toaster.tsx
+ * @purpose   Configures and exports a global Toaster component utilizing Sonner for displaying toast notifications.
+ * @tech      React, Sonner, Tailwind CSS
+ * @connects  Imports Toaster from sonner. Used globally in layout.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import { Toaster as SonnerToaster } from 'sonner';
 
 export function Toaster() {

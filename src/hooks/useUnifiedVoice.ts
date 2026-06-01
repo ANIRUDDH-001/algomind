@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useUnifiedVoice.ts
+ * @purpose   Consolidates TTS, STT, and VAD into a single manageable React hook.
+ * @tech      React
+ * @connects  Composes useVAD, useSTT, useTTS; alternative to useInterviewVoice
+ * @apis      none
+ * @db        none
+ * @state     Unified state machine for voice (idle, listening, processing, speaking, error)
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useVAD, type VADMode } from './useVAD';

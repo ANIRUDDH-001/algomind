@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/practice/DifficultyModeSelector.tsx
+ * @purpose   Selector component for choosing interview difficulty mode (Warm-up, Practice, Crunch, Sprint).
+ * @tech      React, TailwindCSS
+ * @connects  @/hooks/useGlobalFeatureFlag, @/lib/utils, lucide-react
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useState } from 'react';

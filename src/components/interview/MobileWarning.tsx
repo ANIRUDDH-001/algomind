@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/MobileWarning.tsx
+ * @purpose   Warning modal for users accessing the platform on mobile devices.
+ * @tech      React, Tailwind CSS
+ * @connects  @/lib/utils/device-detection
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { getDeviceName } from '@/lib/utils/device-detection';

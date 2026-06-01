@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the silent observer, ensuring accurate detection and throttling of coaching nudges.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { SilentObserver } from '../silent-observer';
 import { getAIClient } from '../../ai/client';
 import { classifyTurnSignal } from '../turn-classifier';

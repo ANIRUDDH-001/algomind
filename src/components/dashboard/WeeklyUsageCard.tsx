@@ -1,4 +1,5 @@
 /**
+ * @codesage
  * @component WeeklyUsageCard
  * @description Dashboard card showing weekly session usage.
  *              Replaces deprecated DailyQuestionsCard.

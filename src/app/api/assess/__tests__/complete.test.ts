@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/complete.test.ts
+ * @purpose   Tests the candidate assessment completion API, including Edge Function invocation and state transitions.
+ * @tech      Vitest, Next.js, jose, TypeScript
+ * @connects  ../complete/route, @/lib/supabase/server, @/lib/kai-context
+ * @apis      Supabase Edge Function (mocked)
+ * @db        candidate_submissions, assessment_campaigns (mocked)
+ * @state     Redis (mocked circuit breaker)
+ * @env       SUPABASE_JWT_SECRET, INTERNAL_API_SECRET (mocked)
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../complete/route';
 import { createServerSupabase } from '@/lib/supabase/server';

@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/log-error/__tests__/route.test.ts
+ * @purpose   Tests client error logging endpoint for ingesting errors into system_events.
+ * @tech      Vitest
+ * @connects  ../route, @/lib/supabase/service
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '../route';
 import { getServiceClient } from '@/lib/supabase/service';

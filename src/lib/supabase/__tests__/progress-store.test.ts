@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/__tests__/progress-store.test.ts
+ * @purpose   Unit tests for SupabaseProgressStore, verifying session saving and progress retrieval.
+ * @tech      Vitest
+ * @connects  Imports from ../progress-store, @/lib/supabase/client
+ * @apis      None
+ * @db        Mocks interview_sessions, assessments, learner_profiles
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SupabaseProgressStore } from '../progress-store';
 import * as supabaseClientModule from '@/lib/supabase/client';

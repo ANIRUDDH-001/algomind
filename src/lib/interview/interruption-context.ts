@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Interruption context builder to provide the AI model with what it was saying before being cut off.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * Interruption context builder.
  *
  * When the user interrupts the AI mid-response, this utility builds a

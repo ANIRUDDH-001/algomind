@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/__tests__/analyzer.test.ts
+ * @purpose   Unit tests for assessment module
+ * @tech      vitest
+ * @connects  various
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CognitiveAnalyzer } from '../analyzer';
 import { ConversationTurn } from '../prompts';

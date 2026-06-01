@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/knowledge-tab.tsx
+ * @purpose   Administration tab for managing the RAG knowledge base, tracking gaps and chunks.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/admin/rag
+ * @apis      GET /api/admin/rag, POST /api/admin/rag
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

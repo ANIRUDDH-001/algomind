@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/interview/history/[sessionId]/not-found.tsx
+ * @purpose   Fallback UI when an interview session is not found or inaccessible.
+ * @tech      React, Next.js, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import Link from 'next/link';
 
 export default function NotFound() {

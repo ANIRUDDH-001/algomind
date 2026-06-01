@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useReviewCount.ts
+ * @purpose   React hook to fetch and cache the user's spaced repetition review queue count.
+ * @tech      React
+ * @connects  Calls getReviewQueue server action; Exported for badge/nav components
+ * @apis      none
+ * @db        none
+ * @state     React component state and module-level caching (cachedResult)
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';

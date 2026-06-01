@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useDraftPersistence.ts
+ * @purpose   React hook to persist form field values to sessionStorage with debouncing.
+ * @tech      React, DOM Storage
+ * @connects  Exported for use in form components across the app
+ * @apis      none
+ * @db        none
+ * @state     React component state synced with browser sessionStorage
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { useState, useEffect, useCallback } from 'react';
 
 /**

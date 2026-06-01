@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/dashboard/error.tsx
+ * @purpose   Error boundary for dashboard
+ * @tech      Next.js client component, React, Lucide React
+ * @connects  @/lib/telemetry/report-error, next/link
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

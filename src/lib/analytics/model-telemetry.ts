@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/analytics/model-telemetry.ts
+ * @purpose   Provides server-side in-memory telemetry tracking for AI model routing decisions and latency.
+ * @tech      TypeScript
+ * @connects  Exported singleton used by AI routing services.
+ * @apis      None
+ * @db        None
+ * @state     Maintains a circular buffer of routing decisions in memory.
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * Model Telemetry — server-side in-memory tracking of routing decisions.
  *
  * Tracks which model was chosen, response latency, and

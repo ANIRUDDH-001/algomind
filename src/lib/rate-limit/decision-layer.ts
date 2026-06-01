@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/rate-limit/decision-layer.ts
+ * @purpose   Rate limiting policies across user, IP, and sessions.
+ * @tech      Node.js, Upstash Redis
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 export type EndpointClass = 'critical' | 'service' | 'non-critical';
 export type FailureMode = 'fail-open' | 'fail-closed';
 

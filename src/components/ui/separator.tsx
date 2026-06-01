@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/separator.tsx
+ * @purpose   Provides a standard semantic separator or divider built on Radix UI.
+ * @tech      React, Radix UI, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 

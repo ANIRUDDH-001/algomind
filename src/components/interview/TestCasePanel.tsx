@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/TestCasePanel.tsx
+ * @purpose   Displays test cases and their execution results during code mode.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     useState, useMemo
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useMemo, useState } from 'react';

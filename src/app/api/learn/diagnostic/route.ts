@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/learn/diagnostic/route.ts
+ * @purpose   Handles submission and verification of user diagnostic learning results.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/knowledge-graph, @/lib/kai-context, @/lib/rate-limit/ip-rate-limiter, @/lib/monitoring/events, @/lib/diagnostic/questions
+ * @apis      None
+ * @db        concept_states, profiles
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';

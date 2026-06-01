@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/learn.ts
+ * @purpose   Server actions for learning sessions and memory updates
+ * @tech      Next.js Server Actions, Supabase
+ * @connects  @/lib/supabase/service, @/lib/supabase/server
+ * @apis      None
+ * @db        learner_profiles, system_events
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use server';
 
 import { getServiceClient } from '@/lib/supabase/service';

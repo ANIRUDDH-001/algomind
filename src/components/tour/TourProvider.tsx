@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/tour/TourProvider.tsx
+ * @purpose   Context provider orchestrating the interactive application tour logic.
+ * @tech      React, Next.js App Router
+ * @connects  next/navigation, @/lib/tour/index
+ * @apis      None
+ * @db        None
+ * @state     Tour Context State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, {

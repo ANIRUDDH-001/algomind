@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/providers/ClientProviders.tsx
+ * @purpose   Client-side providers wrapper for global hooks (session, telemetry).
+ * @tech      React, Next.js
+ * @connects  @/lib/auth/session-manager, @/components/upgrade/UpgradeModal, @/lib/telemetry/report-error
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect, useState } from 'react';

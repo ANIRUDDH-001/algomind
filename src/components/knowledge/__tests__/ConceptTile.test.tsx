@@ -1,6 +1,17 @@
 /**
- * @vitest-environment jsdom
+ * @codesage
+ * @file      src/components/knowledge/__tests__/ConceptTile.test.tsx
+ * @purpose   Tests for ConceptTile.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ConceptTile
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConceptTile } from '../ConceptTile';

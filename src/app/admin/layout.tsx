@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/admin/layout.tsx
+ * @purpose   Main layout wrapper for the admin section, enforcing admin access controls.
+ * @tech      React, Next.js
+ * @connects  @/components/admin/AdminTabsNav, @/lib/auth/is-admin
+ * @apis      None
+ * @db        None directly
+ * @state     None
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 import { ReactNode } from 'react';
 import { AdminTabsNav } from '@/components/admin/AdminTabsNav';
 import { requireAdmin } from '@/lib/auth/is-admin';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/practice/ProblemCard.tsx
+ * @purpose   Compact, information-dense card displaying a practice problem.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion, lucide-react, @/lib/supabase/problems
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

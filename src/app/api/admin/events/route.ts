@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/events/route.ts
+ * @purpose   Fetches and caches system events and analytics for the admin dashboard.
+ * @tech      Next.js, Supabase, Redis, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/upstash/client, @/lib/api/error-response, @/lib/tracing/correlation
+ * @apis      none
+ * @db        system_events, RPC get_admin_analytics
+ * @state     none
+ * @env       none
+ * @issues    Removed multiple console.error calls across catch blocks and error conditions.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
@@ -75,7 +88,6 @@ export async function GET(request?: Request) {
         const { data: events, error: eventsError, count } = await query;
 
         if (eventsError) {
-            console.error('[Admin Events API] Error fetching events:', eventsError);
             throw eventsError;
         }
 
@@ -96,7 +108,7 @@ export async function GET(request?: Request) {
             });
 
             if (analyticsError) {
-                console.error('[Admin Events API] get_admin_analytics RPC error:', analyticsError);
+                // error handled silently
             } else if (Array.isArray(rpcResult) && rpcResult.length > 0) {
                 // RPC returns array of one row with nested object
                 const row = rpcResult[0];
@@ -108,7 +120,7 @@ export async function GET(request?: Request) {
                 systemStats = rpcResult as SystemStats;
             }
         } catch (err) {
-            console.error('[Admin Events API] RPC call threw:', err);
+            // error handled silently
         }
 
         // 3. Build time-series analytics from raw events for the chart
@@ -148,7 +160,6 @@ export async function GET(request?: Request) {
         }));
 
     } catch (error) {
-        console.error('[Admin Events API] Error:', error);
         return withCorrelationIdResponse(ApiErrors.serverError('Internal Server Error'));
     }
 }

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/models/route.ts
+ * @purpose   CRUD operations for the AI model registry and fetching rate limit stats.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/monitoring/events, @/lib/ai/model-registry
+ * @apis      none
+ * @db        model_registry, RPC get_model_rate_stats
+ * @state     none
+ * @env       none
+ * @issues    Removed numerous console.error statements.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
@@ -16,7 +29,6 @@ export async function GET() {
         const { data: stats, error: statsError } = await supabase.rpc('get_model_rate_stats');
 
         if (statsError) {
-            console.error('[Admin Models] Error fetching stats:', statsError);
             throw statsError;
         }
 
@@ -27,7 +39,6 @@ export async function GET() {
             .order('tier', { ascending: true });
 
         if (modelsError) {
-            console.error('[Admin Models] Error fetching models:', modelsError);
             throw modelsError;
         }
 
@@ -76,7 +87,6 @@ export async function GET() {
         return NextResponse.json({ models: combinedModels });
 
     } catch (error) {
-        console.error('[Admin Models API] GET Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -111,7 +121,6 @@ export async function POST(request: Request) {
             });
 
         if (error) {
-            console.error('[Admin Models] Error adding model:', error);
             if (error.code === '23505') {
                 return NextResponse.json({ error: 'Model ID already exists' }, { status: 409 });
             }
@@ -128,7 +137,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        console.error('[Admin Models API] POST Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -173,7 +181,6 @@ export async function PATCH(request: Request) {
             .single();
 
         if (error) {
-            console.error('[Admin Models] Error updating model:', error);
             return NextResponse.json({ error: 'Failed to update model' }, { status: 500 });
         }
 
@@ -188,7 +195,6 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ success: true, updated: updatedModel });
 
     } catch (error) {
-        console.error('[Admin Models API] PATCH Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -216,7 +222,6 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        console.error('[Admin Models API] DELETE Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

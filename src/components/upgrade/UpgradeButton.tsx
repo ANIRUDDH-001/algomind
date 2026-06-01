@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/upgrade/UpgradeButton.tsx
+ * @purpose   Button to initiate Razorpay checkout flow for premium upgrade.
+ * @tech      React, TailwindCSS, Razorpay
+ * @connects  lucide-react, sonner, @/components/ui/button
+ * @apis      POST /api/payment/create-order, POST /api/payment/verify
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

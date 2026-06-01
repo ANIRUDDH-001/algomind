@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/adapters/employer-dashboard-adapter.ts
+ * @purpose   API adapter for employer dashboard actions like viewing submissions and managing campaigns
+ * @tech      fetch
+ * @connects  imports requestBlob, requestJson from '@/lib/api/client'
+ * @apis      GET /api/employer/submissions/{campaignId}, GET /api/employer/submissions/{campaignId}/report/{submissionId}, DELETE /api/employer/campaigns/{id}, GET /api/employer/submissions/{campaignId}/export
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { requestBlob, requestJson } from '@/lib/api/client';
 
 interface CandidateSubmissionSummary {

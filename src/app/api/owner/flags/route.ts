@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/owner/flags/route.ts
+ * @purpose   Provides owner-only write access to global feature flags.
+ * @tech      Next.js
+ * @connects  @/lib/feature-flags, @/lib/feature-flags-server, @/lib/auth/requireOwnerForApi
+ * @apis      None
+ * @db        global_feature_flags (via helper)
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';
 import { setGlobalFeatureFlag } from '@/lib/feature-flags-server';

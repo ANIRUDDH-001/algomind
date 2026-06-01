@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/log-error/route.ts
+ * @purpose   Client error logging endpoint for ingesting errors into system_events.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/service
+ * @apis      None
+ * @db        system_events
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 

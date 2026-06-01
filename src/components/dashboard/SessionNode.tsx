@@ -1,4 +1,8 @@
+/**
+ * @codesage
+ */
 'use client';
+
 
 import React from 'react';
 import { SessionHistory } from '@/types/assessment';

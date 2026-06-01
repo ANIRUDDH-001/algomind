@@ -1,4 +1,5 @@
 /**
+ * @codesage
  * @component RecommendationBanner
  * @description Top-of-dashboard personalized action recommendation.
  *              Shows diagnostic prompt for new users, session recommendation for returning.

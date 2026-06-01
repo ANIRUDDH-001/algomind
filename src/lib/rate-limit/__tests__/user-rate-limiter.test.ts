@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/rate-limit/__tests__/user-rate-limiter.test.ts
+ * @purpose   Tests for Rate limiting policies across user, IP, and sessions.
+ * @tech      Node.js, Upstash Redis
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { checkUserRateLimit, incrementUserUsage, RATE_LIMIT } from '../user-rate-limiter';
 import * as supabaseClientModule from '@/lib/supabase/client';

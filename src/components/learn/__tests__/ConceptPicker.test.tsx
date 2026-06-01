@@ -1,6 +1,17 @@
 /**
- * @vitest-environment jsdom
+ * @codesage
+ * @file      src/components/learn/__tests__/ConceptPicker.test.tsx
+ * @purpose   Tests for ConceptPicker component.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ConceptPicker
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConceptPicker } from '../ConceptPicker';

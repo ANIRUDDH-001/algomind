@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/ConversationView.tsx
+ * @purpose   Displays the chat transcript between the user and AI interviewer.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/hooks/useInterview
+ * @apis      None
+ * @db        None
+ * @state     useRef, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React, { memo, useEffect, useRef } from 'react';
 import { Message } from '@/hooks/useInterview';
 import { cn } from '@/lib/utils';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/__tests__/assessment-adapter.test.ts
+ * @purpose   Tests for assessment API adapter
+ * @tech      vitest
+ * @connects  imports AssessmentAdapter from '@/lib/api/adapters/assessment-adapter'
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { AssessmentAdapter } from '@/lib/api/adapters/assessment-adapter';
 

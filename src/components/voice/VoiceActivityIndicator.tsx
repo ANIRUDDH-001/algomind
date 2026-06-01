@@ -1,8 +1,15 @@
 /**
- * @component VoiceActivityIndicator
- * @description Animated voice state indicator.
- *              Shows: idle / kai-speaking / user-speaking / thinking
- * @phase Phase 2P
+ * @codesage
+ * @file      src/components/voice/VoiceActivityIndicator.tsx
+ * @purpose   Animated voice state indicator showing who is speaking or if AI is thinking.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion, lucide-react
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

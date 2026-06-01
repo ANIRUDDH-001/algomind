@@ -1,3 +1,18 @@
+/**
+ * @codesage
+ * @file      src/types/supabase.ts
+ * @purpose   Auto-generated TypeScript definitions for the Supabase Postgres database schema.
+ * @summary   This file contains comprehensive type definitions for all tables, views, and procedures in the Supabase database. It dictates the shapes of Row, Insert, and Update objects for the entire application, serving as the source of truth for the database schema in TypeScript.
+ * @tech      TypeScript, Supabase
+ * @connects  Used globally by any file querying or mutating data via the Supabase client.
+ * @apis      none
+ * @db        All tables in the public schema
+ * @state     none
+ * @env       none
+ * @issues    Auto-generated file; no manual dead code removal performed.
+ * @audit     CODESAGE-v1
+ */
+
 export type Json =
   | string
   | number

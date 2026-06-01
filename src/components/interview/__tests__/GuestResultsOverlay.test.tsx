@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/GuestResultsOverlay.test.tsx
+ * @purpose   Tests for GuestResultsOverlay component.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../GuestResultsOverlay
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/campaigns/[id]/route.ts
+ * @purpose   Retrieves, updates, and deletes individual assessment campaigns by ID.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/auth/require-employer
+ * @apis      None
+ * @db        assessment_campaigns, campaign_problem_links, problems, candidate_submissions, assessments
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';

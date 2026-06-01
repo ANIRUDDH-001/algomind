@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/settings/loading.tsx
+ * @purpose   Loading skeleton for settings page.
+ * @tech      React, Tailwind
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">

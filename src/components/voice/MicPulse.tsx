@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/voice/MicPulse.tsx
+ * @purpose   Animated microphone pulse visualizer indicating voice states.
+ * @tech      React, Framer Motion, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';

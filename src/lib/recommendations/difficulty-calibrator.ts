@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/recommendations/difficulty-calibrator.ts
+ * @purpose   Recommendation engine, calibrator, and insight processing.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 export interface DifficultyTier {
     tier: 1 | 2 | 3 | 4 | 5;
     label: 'Beginner' | 'Developing' | 'Intermediate' | 'Advanced' | 'Expert';

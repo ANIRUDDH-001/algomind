@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/onboarding/PlacementContextCard.tsx
+ * @purpose   Collects user's placement month and target companies during onboarding.
+ * @tech      React, TailwindCSS
+ * @connects  @/components/ui/button, @/components/ui/input, lucide-react
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

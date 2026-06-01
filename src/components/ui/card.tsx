@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/card.tsx
+ * @purpose   Provides layout components for Cards, including Header, Title, Description, Content, Action, and Footer elements.
+ * @tech      React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for use across the application.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

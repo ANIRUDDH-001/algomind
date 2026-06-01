@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/assessment/AnalysisPendingBanner.tsx
+ * @purpose   Displays a banner to poll and notify the user while their interview analysis report is being generated.
+ * @tech      React, TailwindCSS, lucide-react
+ * @connects  none (standalone component)
+ * @apis      GET /api/user/submissions/[submissionId]/report
+ * @db        none
+ * @state     Local state for polling (isChecking, pollCount)
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 import { useEffect, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 

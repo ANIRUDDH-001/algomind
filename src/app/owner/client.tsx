@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/client.tsx
+ * @purpose   Client component for the owner dashboard, rendering navigation and managing active tabs.
+ * @tech      React, Tailwind CSS, Lucide React
+ * @connects  Imports all tab components from ./tabs/*
+ * @apis      None
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

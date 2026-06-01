@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/flags-tab.tsx
+ * @purpose   Provides a UI to view and toggle global feature flags.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/owner/flags
+ * @apis      PATCH /api/owner/flags
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState } from 'react';

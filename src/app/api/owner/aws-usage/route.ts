@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/owner/aws-usage/route.ts
+ * @purpose   Retrieves AWS usage summary for the budget dashboard.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/service, @/lib/auth/requireOwnerForApi
+ * @apis      None
+ * @db        aws_usage_log
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/admin/error.tsx
+ * @purpose   Error boundary component for the admin panel to gracefully handle and report errors.
+ * @tech      React, Next.js, Lucide Icons
+ * @connects  @/lib/telemetry/report-error
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

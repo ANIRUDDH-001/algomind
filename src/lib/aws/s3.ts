@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description AWS S3 client implementation for storing interview transcripts.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * AWS S3 Client — Transcript Storage
  *
  * Stores interview transcripts as JSON on S3 when ENABLE_AWS_S3_STORAGE flag is ON.

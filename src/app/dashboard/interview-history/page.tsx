@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/dashboard/interview-history/page.tsx
+ * @purpose   Displays the history of candidate submissions for employer assessment campaigns.
+ * @tech      Next.js, React, Supabase
+ * @connects  @/lib/supabase/server, @/components/dashboard/*
+ * @apis      None
+ * @db        Supabase (candidate_submissions, assessment_campaigns)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';

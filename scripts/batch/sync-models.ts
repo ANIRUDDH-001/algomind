@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/batch/sync-models.ts
+ * @purpose   Pings active models via their provider APIs to verify they are alive and marks them deprecated if not
+ * @tech      Node.js, Supabase, Fetch
+ * @connects  Imports markModelDeprecated from src/lib/ai/model-registry
+ * @apis      Pings Groq API and Gemini API
+ * @db        Reads and updates model_registry
+ * @state     none
+ * @env       Loads NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY, GEMINI_API_KEY
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { createClient } from '@supabase/supabase-js';
 import { markModelDeprecated } from '../../src/lib/ai/model-registry';
 

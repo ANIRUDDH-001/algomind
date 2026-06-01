@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/parse-error.ts
+ * @purpose   Parses API error responses into a canonical ApiErrorBody format
+ * @tech      None
+ * @connects  imports ApiErrorBody from ./error-response
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import type { ApiErrorBody } from './error-response';
 
 /**

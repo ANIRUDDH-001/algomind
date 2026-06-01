@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/chat/route.ts
+ * @purpose   Handles candidate AI interviews via streaming (SSE) or JSON, applying rate limits and persisting transcripts.
+ * @tech      Next.js, jose, Redis, TypeScript, AWS SDK, Groq SDK
+ * @connects  @/lib/ai/client, @/lib/assess/jwt, @/lib/monitoring/events, @/lib/upstash/client, @/lib/supabase/service
+ * @apis      AI Providers (Groq/Bedrock via getAIClient)
+ * @db        candidate_submissions, assessment_campaigns
+ * @state     Redis (rate limiting message counts)
+ * @env       AWS_ACCESS_KEY_ID (implicitly checked)
+ * @issues    Removed console.error and console.warn statements. Empty catch blocks flagged? None found here besides parse Error which returns 400.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient } from '@/lib/ai/client';
 import * as jose from 'jose';
@@ -56,7 +69,6 @@ export async function POST(req: NextRequest) {
             const { payload: decoded } = await jose.jwtVerify(sessionToken, secret);
             payload = decoded;
         } catch (error) {
-            console.error('⛔ [Assess Chat API] Invalid session token', error);
             return withCorrelationIdResponse(ApiErrors.unauthorized('Invalid or expired session'));
         }
 
@@ -145,7 +157,6 @@ export async function POST(req: NextRequest) {
                     await redis.expire(messageCountKey, expirySeconds);
                 }
             } catch (redisErr) {
-                console.warn('[Assess Chat] Redis error, using DB fallback:', redisErr);
                 const { data: submission } = await getServiceClient()
                     .from('candidate_submissions')
                     .select('current_transcript')
@@ -200,11 +211,9 @@ export async function POST(req: NextRequest) {
                     .update({ current_transcript: newTranscript })
                     .eq('id', submissionId);
                 if (!error) return;
-                console.warn(`[Assess Chat] Transcript save attempt ${attempt}/3 failed:`, error.message);
                 if (attempt < 3) {
                     await new Promise(r => setTimeout(r, 200 * attempt));
                 } else {
-                    console.error('[Assess Chat] Transcript save failed after 3 retries — logging event');
                     void logSystemEvent({
                         type: 'transcript_save_failed',
                         correlationId,
@@ -262,7 +271,6 @@ export async function POST(req: NextRequest) {
                         });
                     } catch (err) {
                         if ((err as Error)?.name === 'AbortError') return;
-                        console.error('❌ [Assess Chat API] Stream error:', err);
                         void logSystemEvent({
                             type: 'model_error',
                             correlationId,
@@ -339,7 +347,6 @@ export async function POST(req: NextRequest) {
         return response;
 
     } catch (error: unknown) {
-        console.error(`❌ [Assess Chat API][${correlationId}] Error:`, error);
         return withCorrelationIdResponse(ApiErrors.serverError(error instanceof Error ? error.message : 'Internal Server Error'));
     }
 }

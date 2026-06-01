@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/dashboard/page.tsx
+ * @purpose   Main dashboard page displaying user progress, stats, skill profiles, and session history.
+ * @tech      Next.js, React, Framer Motion, Tailwind CSS
+ * @connects  @/hooks/useProgress, @/components/dashboard/*
+ * @apis      /api/user/me, /api/user/placement-context
+ * @db        None (handled via APIs/RPCs in hooks)
+ * @state     activeTab, direction, recommendations, showPlacementCard
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';

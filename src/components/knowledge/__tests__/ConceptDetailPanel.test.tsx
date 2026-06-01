@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/__tests__/ConceptDetailPanel.test.tsx
+ * @purpose   Tests for ConceptDetailPanel.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ConceptDetailPanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';

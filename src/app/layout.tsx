@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/layout.tsx
+ * @purpose   Root layout wrapping application with providers and global UI
+ * @tech      Next.js, React, Tailwind CSS
+ * @connects  Providers, Navbar, ErrorBoundary
+ * @apis      None
+ * @db        None
+ * @state     Global context via providers
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";

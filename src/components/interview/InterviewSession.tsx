@@ -1,3 +1,20 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewSession.tsx
+ * @purpose   Main orchestrator component for the technical interview interface.
+ * @tech      React, Next.js, Tailwind CSS
+ * @connects  @/hooks/useInterview, @/hooks/useAssessment, @/hooks/useGuestSession
+ * @apis      /api/knowledge/session-limit, Assessment API
+ * @db        None
+ * @state     Complex local state (useState, useReducer via hooks)
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * 
+ * Summary:
+ * Manages the entire interview lifecycle including chat, voice recognition,
+ * code execution, limit tracking, and final assessment submission.
+ */
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useInterview, type Message } from '@/hooks/useInterview';
 import { useAssessment } from '@/hooks/useAssessment';

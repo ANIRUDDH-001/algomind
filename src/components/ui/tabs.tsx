@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/tabs.tsx
+ * @purpose   Provides accessible tabbed navigation components (List, Trigger, Content) based on Radix UI.
+ * @tech      React, Radix UI, class-variance-authority, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"

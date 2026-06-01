@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the interview state machine, validating proper phase transitions.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InterviewStateMachine } from '../state-machine';
 

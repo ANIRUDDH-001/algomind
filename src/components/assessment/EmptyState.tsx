@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/assessment/EmptyState.tsx
+ * @purpose   Generic empty state component for rendering when no assessment/performance data is available.
+ * @tech      React, TailwindCSS, lucide-react
+ * @connects  Imports Button from @/components/ui/button
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 import React from 'react';
 import { LayoutDashboard, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';

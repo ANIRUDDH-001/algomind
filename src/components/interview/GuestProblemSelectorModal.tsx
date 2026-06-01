@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/GuestProblemSelectorModal.tsx
+ * @purpose   Allows guest users to select or randomly choose a practice problem.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/lib/guest/guest-problems
+ * @apis      None
+ * @db        None
+ * @state     useState
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useState } from 'react';

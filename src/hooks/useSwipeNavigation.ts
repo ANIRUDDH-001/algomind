@@ -1,13 +1,15 @@
 /**
- * useSwipeNavigation
- * 
- * Universal swipe-to-change-tab hook for all multi-tab screens in AlgoMind.
- * Uses pointer events (works on both touch and mouse).
- * 
- * Features:
- * - Horizontal swipe threshold: 60px minimum, more horizontal than vertical (1.5x ratio)
- * - Visual resistance feedback: content shifts slightly before snapping back if no tab change
- * - Respects scroll containers — won't fire if the swipe started inside a scrollable child
+ * @codesage
+ * @file      src/hooks/useSwipeNavigation.ts
+ * @purpose   Universal swipe-to-change-tab React hook for all multi-tab screens (mobile layouts).
+ * @tech      React, Pointer Events
+ * @connects  Exported for UI components managing horizontal sliding panels
+ * @apis      none
+ * @db        none
+ * @state     React refs for pointer coordinates and drag offset state
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  * 
  * @example
  * const { handlers, dragOffset } = useSwipeNavigation({

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/batch/cleanup.ts
+ * @purpose   Runs database cleanup tasks including expiring stale submissions and removing old event rows
+ * @tech      Supabase, Node.js
+ * @connects  Calls Supabase RPC functions expire_stale_submissions and cleanup_old_events
+ * @apis      none
+ * @db        Accesses DB via RPCs
+ * @state     none
+ * @env       Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { createClient } from '@supabase/supabase-js';
 
 export async function runCleanup(): Promise<void> {

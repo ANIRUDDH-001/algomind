@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/employer/error.tsx
+ * @purpose   Error boundary for the employer module.
+ * @tech      Next.js, React, Lucide React
+ * @connects  @/lib/telemetry/report-error
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/errors/user-friendly-errors.ts
+ * @purpose   Error handling and user-friendly error formatting.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 export interface UserFriendlyError {
     title: string;
     message: string;

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewLayoutContext.tsx
+ * @purpose   Provides context for the interview session state and layout elements.
+ * @tech      React Context API
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     Context Provider
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React, { createContext, useContext } from 'react';
 import type { Problem } from '@/lib/supabase/problems';
 import type { Message } from '@/hooks/useInterview';

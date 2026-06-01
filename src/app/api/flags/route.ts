@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/flags/route.ts
+ * @purpose   Provides public read access and admin write access to global feature flags.
+ * @tech      Next.js
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/feature-flags-server, @/lib/feature-flags, @/lib/monitoring/events, @/lib/rate-limit/ip-rate-limiter
+ * @apis      None
+ * @db        global_feature_flags (via helper)
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getAllGlobalFeatureFlags, setGlobalFeatureFlag } from '@/lib/feature-flags-server';

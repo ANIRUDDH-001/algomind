@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/employer/dashboard/page.tsx
+ * @purpose   Server-rendered employer dashboard showing campaigns and problems.
+ * @tech      Next.js, React, Supabase
+ * @connects  @/lib/auth/require-employer, @/components/enterprise/EmployerDashboard, @/lib/supabase/server
+ * @apis      None
+ * @db        Supabase (assessment_campaigns, problems, candidate_submissions)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { requireEmployer } from '@/lib/auth/require-employer';
 import { redirect } from 'next/navigation';
 import { EmployerDashboard } from '@/components/enterprise/EmployerDashboard';

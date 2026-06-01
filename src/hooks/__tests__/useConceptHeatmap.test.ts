@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/hooks/__tests__/useConceptHeatmap.test.ts
+ * @purpose   Unit tests for the useConceptHeatmap React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useConceptHeatmap
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * @vitest-environment jsdom
  */
 import { act, renderHook, waitFor } from '@testing-library/react';

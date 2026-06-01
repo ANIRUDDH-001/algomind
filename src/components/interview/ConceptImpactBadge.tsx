@@ -1,8 +1,15 @@
 /**
- * @component ConceptImpactBadge
- * @description Shows which concepts were impacted by an interview session.
- *              Displayed in analysis results after session completion.
- * @phase Phase 2M
+ * @codesage
+ * @file      src/components/interview/ConceptImpactBadge.tsx
+ * @purpose   Shows which concepts were impacted by an interview session.
+ * @tech      React, Framer Motion, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/complete/route.ts
+ * @purpose   Finalizes a candidate assessment session and triggers asynchronous analysis.
+ * @tech      Next.js, jose, Supabase, TypeScript
+ * @connects  @/lib/assess/jwt, @/lib/supabase/service, @/lib/upstash/client, @/lib/monitoring/events
+ * @apis      Supabase Edge Function (run-assessment)
+ * @db        candidate_submissions
+ * @state     Redis (circuit breaker via getCircuitState)
+ * @env       INTERNAL_API_SECRET
+ * @issues    Removed console.error.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { invalidateStudentContext } from '@/lib/kai-context';
@@ -76,7 +89,6 @@ export async function POST(req: NextRequest) {
             const { payload: decoded } = await jose.jwtVerify(sessionToken, secret);
             payload = decoded;
         } catch (error) {
-            console.error('⛔ [Assess Complete API] Invalid session token', error);
             return ApiErrors.unauthorized('Invalid or expired session. Cannot complete assessment.');
         }
 
@@ -160,7 +172,6 @@ export async function POST(req: NextRequest) {
         // 4. Kick off async analysis (fire and forget — edge function handles its own errors)
         const edgeFunctionSecret = process.env.INTERNAL_API_SECRET;
         if (!edgeFunctionSecret) {
-            console.error('[Assess Complete] INTERNAL_API_SECRET not set — skipping async analysis');
         } else {
             // Use supabase.functions.invoke — non-blocking
             await supabaseAdmin
@@ -231,7 +242,6 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('[CANDIDATE_COMPLETE_ERROR]', error);
         return ApiErrors.serverError('Internal server error processing assessment');
     }
 }

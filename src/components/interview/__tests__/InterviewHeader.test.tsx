@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/InterviewHeader.test.tsx
+ * @purpose   Tests for InterviewHeader component.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../InterviewHeader
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
 import { cleanup, render } from '@testing-library/react';

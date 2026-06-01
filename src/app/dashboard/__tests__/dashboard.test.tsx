@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/dashboard/__tests__/dashboard.test.tsx
+ * @purpose   Tests for the Dashboard page focusing on progress handling and null safety.
+ * @tech      Vitest, React Testing Library
+ * @connects  @/app/dashboard/page, @/hooks/useProgress
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 // @vitest-environment jsdom
 /**
  * Dashboard page: tests that the DashboardContent component correctly

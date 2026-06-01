@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/ManualControls.tsx
+ * @purpose   Floating controls to manually pause or resume AI speech during interviews.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React from 'react';

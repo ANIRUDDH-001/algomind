@@ -1,4 +1,12 @@
 /**
+ * @codesage
+ * @description Coordinates STT, TTS, and LLM streaming for conversation flow control and handles user interruptions.
+ * @summary Implements the InterruptionManager state machine which tracks AI vs User speaking states, debounce windows, grace periods, and triggers events for interruption or completion. Includes confidence filtering and consecutive frame requirements.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * InterruptionManager — Coordinates STT, TTS, and LLM streaming to handle
  * conversation flow control and user interruptions during AI speech.
  *

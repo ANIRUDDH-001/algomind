@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      next.config.ts
+ * @purpose   Next.js configuration file specifying strict mode, headers, image domains, and external packages
+ * @tech      Next.js, ONNX Runtime, HuggingFace Transformers
+ * @connects  Exported NextConfig object used by Next.js build system
+ * @apis      Configures domains: leetcode.com, supabase.co, workers.dev
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {

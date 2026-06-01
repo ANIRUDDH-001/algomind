@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/interview/analysis/page.tsx
+ * @purpose   Server component fetching and passing analysis data to the AnalysisClient.
+ * @tech      React, Next.js, Supabase
+ * @connects  AnalysisClient, server actions
+ * @apis      None
+ * @db        interview_sessions, problems, assessments
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createServerSupabase } from '@/lib/supabase/server';

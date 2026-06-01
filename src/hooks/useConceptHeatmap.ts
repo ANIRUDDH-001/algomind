@@ -1,8 +1,15 @@
 /**
- * @hook useConceptHeatmap
- * @description Fetches and manages concept heatmap state.
- *              Polls /api/knowledge/concepts every 30s during active sessions.
- * @phase Phase 2I
+ * @codesage
+ * @file      src/hooks/useConceptHeatmap.ts
+ * @purpose   Fetches and manages concept heatmap state for the knowledge graph.
+ * @tech      React, Fetch API
+ * @connects  Calls internal API endpoints; Exported for diagnostic and dashboard components
+ * @apis      GET /api/knowledge/concepts
+ * @db        none
+ * @state     React component state for knowledge concepts and loading status
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
 'use client';
 

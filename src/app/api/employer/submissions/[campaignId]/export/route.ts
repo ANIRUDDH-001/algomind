@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/submissions/[campaignId]/export/route.ts
+ * @purpose   Exports candidate submissions for a campaign as a CSV file.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/auth/require-employer, @/lib/rate-limit/ip-rate-limiter, @/lib/monitoring/events
+ * @apis      None
+ * @db        assessment_campaigns, candidate_submissions, assessments, interview_sessions
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';

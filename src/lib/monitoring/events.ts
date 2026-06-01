@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/lib/monitoring/events.ts
+ * @purpose   Telemetry, events mapping, and route correlation.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @summary   This is a large file (> 500 lines) handling complex logic for Telemetry, events mapping, and route correlation.
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { getServiceClient } from '@/lib/supabase/service';
 import { getCorrelationId } from '@/lib/tracing/correlation';
 

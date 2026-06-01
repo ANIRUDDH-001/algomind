@@ -1,8 +1,9 @@
+// @codesage
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { UserProgress, CognitiveSkill } from '@/types/assessment';
 import { Button } from '@/components/ui/button';
@@ -91,7 +92,6 @@ function sessionToProgress(data: SessionExportData): UserProgress {
 export function ExportReportButton({ progress, sessionData }: ExportReportButtonProps) {
     const [isClient, setIsClient] = useState(false);
     const [hasClicked, setHasClicked] = useState(false);
-    const buttonRef = useRef<HTMLAnchorElement>(null);
 
     useEffect(() => {
         setIsClient(true);

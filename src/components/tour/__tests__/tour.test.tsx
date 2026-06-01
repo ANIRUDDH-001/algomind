@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/tour/__tests__/tour.test.tsx
+ * @purpose   Tests for Tour step definitions, logic, and components.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, @/lib/tour/index, TourCard, KaiModal
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 // @vitest-environment jsdom
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useAdmin.ts
+ * @purpose   React hook to check if the current user has admin privileges via Supabase RPC, with module-level caching.
+ * @tech      React, Supabase
+ * @connects  Imports AuthProvider context; Exported for components needing admin gates
+ * @apis      none
+ * @db        Supabase RPC: check_is_admin
+ * @state     React component state and module-level global cache (_adminStatusCache)
+ * @env       NODE_ENV
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';

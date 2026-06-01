@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/inngest/functions.ts
+ * @purpose   Inngest job client and function definitions.
+ * @tech      Node.js, Inngest
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 // @ts-nocheck
 import { inngest } from "./client";
 import { getServiceClient } from "@/lib/supabase/service";

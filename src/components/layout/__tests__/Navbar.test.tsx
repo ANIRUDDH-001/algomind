@@ -1,4 +1,18 @@
 // @vitest-environment jsdom
+
+/**
+ * @codesage
+ * @file      src/components/layout/__tests__/Navbar.test.tsx
+ * @purpose   Unit tests for the Navbar component ensuring responsive design, role-based rendering, and authentication integration.
+ * @tech      Vitest, React Testing Library, jsdom
+ * @connects  Imports Navbar component, mocks Next.js routing, AuthProvider, and UI components.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

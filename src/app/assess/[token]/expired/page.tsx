@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/[token]/expired/page.tsx
+ * @purpose   Shows expired/inactive message for assessment link
+ * @tech      Next.js, React, Tailwind, Lucide React
+ * @connects  next/link, @/components/ui/card, @/components/ui/button
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';

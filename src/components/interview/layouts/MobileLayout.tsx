@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/layouts/MobileLayout.tsx
+ * @purpose   Mobile-specific layout wrapper for the interview session UI.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/hooks/useSwipeNavigation
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

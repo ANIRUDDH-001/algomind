@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/aws-budget-tab.tsx
+ * @purpose   Displays AWS usage and budget tracking.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/owner/aws-usage
+ * @apis      GET /api/owner/aws-usage
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';

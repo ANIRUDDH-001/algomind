@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/models/verify/route.ts
+ * @purpose   Verifies model availability and credentials via live pings to AI providers (Groq, Gemini, Bedrock).
+ * @tech      Next.js, Supabase, AWS SDK, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/monitoring/events, @/lib/ai/model-registry
+ * @apis      Groq (api.groq.com), Gemini (generativelanguage.googleapis.com), Bedrock
+ * @db        model_registry
+ * @state     none
+ * @env       GROQ_API_KEY, GEMINI_API_KEY, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+ * @issues    Removed multiple console.error calls inside catch blocks and error handlers.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
@@ -48,7 +61,6 @@ export async function POST(request: Request) {
                 .eq('model_id', modelId);
 
             if (updateError) {
-                console.error(`Failed to update verification status for audio model ${modelId}:`, updateError);
                 return NextResponse.json({ error: 'Failed to update database' }, { status: 500 });
             }
 
@@ -96,7 +108,7 @@ export async function POST(request: Request) {
                         .from('model_registry')
                         .update({ last_verified: new Date().toISOString() })
                         .eq('model_id', modelId);
-                    if (tsError) console.error('Failed to update 429 timestamp:', tsError);
+                    if (tsError) {}
                 } else {
                     status = 'error';
                     message = `Groq error: ${groqRes.statusText}`;
@@ -130,7 +142,7 @@ export async function POST(request: Request) {
                         .from('model_registry')
                         .update({ last_verified: new Date().toISOString() })
                         .eq('model_id', modelId);
-                    if (tsError) console.error('Failed to update 429 timestamp:', tsError);
+                    if (tsError) {}
                 } else {
                     status = 'error';
                     message = `Gemini error: ${geminiRes.statusText}`;
@@ -178,7 +190,7 @@ export async function POST(request: Request) {
                             .from('model_registry')
                             .update({ last_verified: new Date().toISOString() })
                             .eq('model_id', modelId);
-                        if (tsError) console.error('Failed to update 429 timestamp:', tsError);
+                        if (tsError) {}
                     } else {
                         throw bedrockError;
                     }
@@ -189,7 +201,6 @@ export async function POST(request: Request) {
             }
 
         } catch (pingError) {
-            console.error(`Ping failed for ${modelId}:`, pingError);
             status = 'error';
             message = pingError instanceof Error ? pingError.message : 'Network error during validation';
         }
@@ -208,7 +219,6 @@ export async function POST(request: Request) {
                 .eq('model_id', modelId);
 
             if (updateError) {
-                console.error(`Failed to update verification status for ${modelId}:`, updateError);
             }
         }
 
@@ -221,7 +231,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ modelId, status, message });
 
     } catch (error) {
-        console.error('[Admin Model Verify API] Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

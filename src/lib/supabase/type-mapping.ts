@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/type-mapping.ts
+ * @purpose   Maps TypeScript application types to Supabase database column names.
+ * @tech      TypeScript
+ * @connects  Imports CognitiveSkill from @/types/assessment, exported for use in database queries.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { CognitiveSkill } from '@/types/assessment';
 
 // Map TypeScript types to database columns

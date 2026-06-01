@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/dashboard.ts
+ * @purpose   Server action to fetch user dashboard averages
+ * @tech      Next.js Server Actions, Supabase
+ * @connects  @/lib/supabase/server, @/lib/cache/dashboardCache
+ * @apis      None
+ * @db        get_user_sessions_with_assessment (RPC)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use server';
 
 import { createServerSupabase } from '@/lib/supabase/server';

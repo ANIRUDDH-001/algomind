@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the fast turn classifier which detects cognitive signals in individual user messages.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { classifyTurnSignal } from '../turn-classifier';
 import * as aiClientModule from '@/lib/ai/client';

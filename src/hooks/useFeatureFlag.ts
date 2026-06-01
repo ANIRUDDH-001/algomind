@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useFeatureFlag.ts
+ * @purpose   React hook to manage local storage-based feature flags with cross-tab sync.
+ * @tech      React
+ * @connects  Imports feature-flags util; Exported for components handling experimental features
+ * @apis      none
+ * @db        none
+ * @state     React component state synced with window 'storage' events
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react';
 import { getFeatureFlag, setFeatureFlag, checkBrowserSupport, FEATURE_FLAGS, type FeatureFlagKey } from '@/lib/feature-flags';

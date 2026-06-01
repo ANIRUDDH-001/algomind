@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useZoomTranscript.test.ts
+ * @purpose   Unit tests for the useZoomTranscript React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useZoomTranscript
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 
 import { describe, it, expect } from 'vitest';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/[token]/not-found.tsx
+ * @purpose   Not found page for assessment token route
+ * @tech      Next.js, Tailwind
+ * @connects  next/link
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import Link from 'next/link';
 
 export default function NotFound() {

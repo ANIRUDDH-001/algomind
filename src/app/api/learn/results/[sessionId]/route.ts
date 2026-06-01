@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/learn/results/[sessionId]/route.ts
+ * @purpose   Retrieves details and assessment results for a completed learn session.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/server, @/lib/supabase/service, @/lib/knowledge-graph, @/lib/monitoring/events
+ * @apis      None
+ * @db        learn_sessions, concept_tags
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';

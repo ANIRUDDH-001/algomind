@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/textarea.tsx
+ * @purpose   Provides a standard styled textarea component for multiline text input.
+ * @tech      React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import { cn } from "@/lib/utils"
 

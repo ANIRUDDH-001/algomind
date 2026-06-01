@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/owner/SessionGateControlPanel.tsx
+ * @purpose   Admin panel to configure session gating and usage limits.
+ * @tech      React, TailwindCSS
+ * @connects  lucide-react
+ * @apis      GET /api/owner/system-config, POST /api/owner/system-config
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

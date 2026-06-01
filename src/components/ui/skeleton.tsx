@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/skeleton.tsx
+ * @purpose   Provides loading placeholder components (skeletons) to indicate that content is loading, including specific variants for various app sections.
+ * @tech      React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { cn } from '@/lib/utils';
 
 function Skeleton({

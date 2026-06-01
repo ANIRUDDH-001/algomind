@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/error/InterviewErrorBoundary.tsx
+ * @purpose   Catches and handles errors during an interview session.
+ * @tech      React (Class Component)
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     Component state (hasError)
+ * @env       None
+ * @issues    console.error used for logging (intentional)
+ * @audit     CODESAGE-v1
+ */
 'use client';
 import { Component, ReactNode } from 'react';
 

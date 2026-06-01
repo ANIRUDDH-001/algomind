@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/providers/QueryProvider.tsx
+ * @purpose   Tanstack QueryClient provider wrapper for React components.
+ * @tech      React, @tanstack/react-query
+ * @connects  @tanstack/react-query
+ * @apis      None
+ * @db        None
+ * @state     QueryClient state
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

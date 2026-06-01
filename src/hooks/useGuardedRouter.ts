@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useGuardedRouter.ts
+ * @purpose   React hook wrapping Next.js useRouter to prevent concurrent duplicate navigations.
+ * @tech      React, Next.js App Router
+ * @connects  Wraps next/navigation useRouter; Exported for general app navigation
+ * @apis      none
+ * @db        none
+ * @state     React refs for navigating status and timeouts
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useRouter } from 'next/navigation';

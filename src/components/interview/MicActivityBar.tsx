@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/MicActivityBar.tsx
+ * @purpose   Live visualizer for Silero VAD speech-probability.
+ * @tech      React, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 /**

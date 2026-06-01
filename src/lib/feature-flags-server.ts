@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/feature-flags-server.ts
+ * @purpose   Manages feature flag configuration and access.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * Server-side feature flag reader.
  * Reads from Redis cache (30s TTL) → Supabase fallback.
  * Used in ALL API routes to enforce admin kill switches.

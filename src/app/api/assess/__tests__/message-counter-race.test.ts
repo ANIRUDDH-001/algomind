@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/message-counter-race.test.ts
+ * @purpose   Tests atomic counter operations to ensure rate limit accuracy under concurrent message load.
+ * @tech      Vitest, TypeScript
+ * @connects  none
+ * @apis      none
+ * @db        none
+ * @state     Redis (mocked INCR/INCRBY)
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Message counter race condition', () => {

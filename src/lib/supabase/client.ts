@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/client.ts
+ * @purpose   Provides a singleton browser client for Supabase and configuration checks.
+ * @tech      @supabase/ssr, @supabase/supabase-js
+ * @connects  Imports from @supabase/ssr, @supabase/supabase-js, exported to application
+ * @apis      None
+ * @db        None
+ * @state     Maintains singleton instances for Supabase client
+ * @env       NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { createBrowserClient } from '@supabase/ssr';
 import { type SupabaseClient } from '@supabase/supabase-js';
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/batch/compute-learner-profiles.ts
+ * @purpose   Computes learner profiles, streaks, and difficulty tiers based on interview sessions
+ * @tech      Supabase, Node.js
+ * @connects  Imports computeDifficultyTier from src/lib/recommendations/difficulty-calibrator
+ * @apis      none
+ * @db        Reads interview_sessions, leetcode_profiles; Upserts learner_profiles
+ * @state     none
+ * @env       Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+ * @issues    updateStreaksOnly appears unused in nightly-batch.ts; flagged for review
+ * @audit     CODESAGE-v1
+ */
 import { createClient } from '@supabase/supabase-js';
 import { computeDifficultyTier } from '../../src/lib/recommendations/difficulty-calibrator';
 
@@ -48,6 +61,7 @@ export async function computeAllLearnerProfiles() {
  * Lighter weight function that only updates the streak counters.
  * Efficient when cognitive averages don't need recalculation.
  */
+// [CODESAGE-REVIEW] Possibly dead: updateStreaksOnly is not imported by nightly-batch.ts and may be unused — verify before removing
 export async function updateStreaksOnly() {
     const supabase = getClient();
 

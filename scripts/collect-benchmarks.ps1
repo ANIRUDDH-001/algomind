@@ -1,4 +1,5 @@
 #!/usr/bin/env pwsh
+# @codesage | @file: scripts/collect-benchmarks.ps1 | @purpose: Collects code quality, architecture, build, and content metrics for the project | @audit: CODESAGE-v1
 <#
 .SYNOPSIS
     AlgoMind Performance & Codebase Benchmarks — Hackathon Submission Data Collector

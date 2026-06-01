@@ -1,11 +1,23 @@
 /**
+ * @codesage
+ * @file      scripts/compare-load-baseline.ts
+ * @purpose   TypeScript baseline comparator enforcing drift rules and producing gate decision
+ * @tech      Node.js (fs)
+ * @connects  Loads local JSON metrics files for comparison
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    Removed unused path import
+ * @audit     CODESAGE-v1
+ */
+/**
  * Phase 7.10 - compare-load-baseline.ts
  * TypeScript baseline comparator enforcing drift rules and producing gate decision
  * 9 numeric assertions
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Assertion 1: Interface definitions
 interface PerformanceMetrics {

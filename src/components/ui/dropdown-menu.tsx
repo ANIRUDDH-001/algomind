@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/dropdown-menu.tsx
+ * @purpose   Provides customizable Dropdown Menu components including triggers, contents, items, checkboxes, and radio groups.
+ * @tech      React, Radix UI, Lucide React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for use across the application.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"

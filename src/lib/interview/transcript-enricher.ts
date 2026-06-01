@@ -1,3 +1,10 @@
+/**
+ * @codesage
+ * @description Combines the conversation history with the final submitted code for end-of-interview assessment generation.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
 import type { ConversationTurn } from '@/lib/assessment/prompts';
 
 export function buildEnrichedTranscript(

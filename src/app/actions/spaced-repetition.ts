@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/spaced-repetition.ts
+ * @purpose   Server actions for managing user's spaced repetition queues and problem review schedules.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/supabase/server, @/lib/supabase/service, @/lib/spaced-repetition/queue
+ * @apis      None
+ * @db        Supabase 'spaced_repetition' table (select, upsert)
+ * @state     None (Server Actions)
+ * @env       Supabase connection envs implicitly
+ * @issues    None found
+ * @audit     CODESAGE-v1
+ */
 'use server';
 
 import { createServerSupabase } from '@/lib/supabase/server';

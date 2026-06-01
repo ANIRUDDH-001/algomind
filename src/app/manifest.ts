@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/manifest.ts
+ * @purpose   Web App Manifest configuration for PWA installation
+ * @tech      Next.js Metadata API
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {

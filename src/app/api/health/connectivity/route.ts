@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/health/connectivity/route.ts
+ * @purpose   Tests connectivity to both proxy and direct Supabase instances.
+ * @tech      Next.js, fetch
+ * @connects  None
+ * @apis      Supabase /auth/v1/health (proxy & direct)
+ * @db        None
+ * @state     None
+ * @env       NEXT_PUBLIC_SUPABASE_URL, SUPABASE_DIRECT_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';

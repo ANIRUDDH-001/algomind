@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Splits text into optimized chunks for the Speech Synthesis API to avoid timeouts and limits.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * Splits text into optimized chunks for Speech Synthesis API.
  * The API has character limits and can timeout with long text.
  * We also want to avoid reading code blocks aloud.

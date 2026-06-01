@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/transcript-retry.test.ts
+ * @purpose   Tests exponential backoff logic for transcript saves to the database.
+ * @tech      Vitest, TypeScript
+ * @connects  none
+ * @apis      none
+ * @db        Supabase (mocked update queries)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Transcript save retry logic', () => {

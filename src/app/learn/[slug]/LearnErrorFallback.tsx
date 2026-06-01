@@ -1,12 +1,17 @@
 'use client';
 
 /**
- * LearnErrorFallback
- *
- * Error fallback rendered by ErrorBoundary around the Learn session client.
- * Streaming failures (SSE parser, abort handling, transcript persistence) and
- * other unhandled errors land here instead of a blank screen. Users can retry
- * the same concept or restart from /learn.
+ * @codesage
+ * @file      src/app/learn/[slug]/LearnErrorFallback.tsx
+ * @purpose   Error boundary fallback UI for handling streaming or unexpected failures within a learning session.
+ * @tech      React, Lucide React
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
 
 import { AlertTriangle, RefreshCcw, RotateCcw } from 'lucide-react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/campaign/question-timer.ts
+ * @purpose   Campaign code verification and timer handling.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { QuestionState, CampaignData } from '@/types/campaign';
 
 // Utility to compute effective remaining time for a question,

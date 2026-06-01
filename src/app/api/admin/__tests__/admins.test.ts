@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/admins.test.ts
+ * @purpose   Tests the admin users management API endpoints (GET, POST, DELETE).
+ * @tech      Vitest, TypeScript
+ * @connects  ../admins/route, @/lib/auth/requireAdminForApi, @/lib/supabase/service
+ * @apis      none
+ * @db        admin_users (mocked)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST, DELETE } from '../admins/route';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';

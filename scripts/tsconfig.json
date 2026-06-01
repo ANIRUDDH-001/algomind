@@ -1,4 +1,5 @@
 {
+    "_codesage": "CODESAGE-v1 | @file: scripts/tsconfig.json | @purpose: TypeScript compiler configuration for the scripts directory | @audit: CODESAGE-v1",
     "compilerOptions": {
         "module": "commonjs",
         "target": "es2020",

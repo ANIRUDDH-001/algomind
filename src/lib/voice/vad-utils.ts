@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Browser support utilities for checking VAD capabilities without loading heavy ONNX runtimes.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * Voice Activity Detection — browser support utilities.
  *
  * These helpers let consumers check VAD feasibility before paying

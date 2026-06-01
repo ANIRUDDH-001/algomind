@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useReviewCount.test.ts
+ * @purpose   Unit tests for the useReviewCount React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useReviewCount
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';

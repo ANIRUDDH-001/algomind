@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/CampaignInterviewSession.tsx
+ * @purpose   Manages the state and UI for an active campaign interview session.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/components/ui/card, @/components/interview/InterviewSession, @/lib/api/adapters/assessment-adapter
+ * @apis      /api/assess/save-progress, /api/assess/chat
+ * @db        None
+ * @state     useState, useCallback, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 

@@ -1,4 +1,18 @@
 /**
+ * @codesage
+ * @file      src/components/enterprise/__tests__/EmployerDashboard.stats.test.tsx
+ * @purpose   Tests for EmployerDashboard cohort stats.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../../enterprise/CohortStatsPanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';

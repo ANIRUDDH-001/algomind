@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/service.ts
+ * @purpose   Provides a singleton service-role Supabase client bypassing RLS for admin operations.
+ * @tech      @supabase/supabase-js
+ * @connects  Imports from @supabase/supabase-js, used in serverless environments.
+ * @apis      None
+ * @db        None
+ * @state     Maintains a singleton _serviceClient instance per invocation.
+ * @env       SUPABASE_DIRECT_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let _serviceClient: SupabaseClient | null = null;

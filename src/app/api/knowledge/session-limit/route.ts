@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/session-limit/route.ts
+ * @purpose   Checks and returns the user's weekly session quotas (interview/learn).
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/rate-limit/weekly-session-limiter, @/lib/supabase/user-preferences, @/lib/config/system-config
+ * @apis      None
+ * @db        None directly
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { checkWeeklySessionLimit, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';

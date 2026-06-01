@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/__tests__/score-validator.test.ts
+ * @purpose   Unit tests for assessment module
+ * @tech      vitest
+ * @connects  various
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { validateAndCorrectScores, applyValidation, ParsedSkillScore, ValidationResult } from '../score-validator';
 import * as aiClientModule from '@/lib/ai/client';

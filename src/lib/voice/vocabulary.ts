@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Provides an extensive vocabulary list for speech recognition.
+ * @summary Contains an exhaustive list of computer science, data structures, and web development terms. Helps the STT engines transcribe domain-specific jargon accurately.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
 // Auto-generated MASSIVE vocabulary list by AI
 export const DSA_VOCABULARY = [
     "0-based indexing",

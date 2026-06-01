@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/cron/trigger/route.ts
+ * @purpose   Secure trigger endpoint for dispatching nightly batch GitHub Actions workflows.
+ * @tech      Next.js, Redis, TypeScript
+ * @connects  @/lib/monitoring/events, @/lib/upstash/client
+ * @apis      GitHub Actions (api.github.com/repos/.../dispatches)
+ * @db        none
+ * @state     Redis (idempotency checks)
+ * @env       CRON_SECRET, GITHUB_TOKEN, GITHUB_REPO
+ * @issues    Removed console logs.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { logSystemLifecycle } from '@/lib/monitoring/events';
 import { redisGet, redisSet } from '@/lib/upstash/client';
@@ -80,7 +93,6 @@ export async function GET(request: Request) {
 
         if (!githubResponse.ok) {
             const errorText = await githubResponse.text();
-            console.error('GitHub Actions API failed:', githubResponse.status, errorText);
 
             await logSystemLifecycle({
                 type: 'cron.failed',
@@ -127,7 +139,6 @@ export async function GET(request: Request) {
         return withCorrelationIdResponse(response);
     } catch (error) {
         // 4. Return formatted failure, never throw
-        console.error('Cron trigger error:', error);
 
         await logSystemLifecycle({
             type: 'cron.failed',

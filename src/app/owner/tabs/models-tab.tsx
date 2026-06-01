@@ -1,3 +1,23 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/models-tab.tsx
+ * @purpose   Displays and manages the AI model registry, including health status and rate limits.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/admin/models, /api/admin/events
+ * @apis      GET /api/admin/models, GET /api/admin/events, POST /api/admin/models/verify, DELETE /api/admin/models, PATCH /api/admin/models, POST /api/admin/models
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ * 
+ * @section   Imports & Interfaces (Lines 1-36): Dependencies and TypeScript definitions.
+ * @section   State & Data Loading (Lines 37-109): State hooks, `loadData`, `handleVerify`.
+ * @section   Model Management Actions (Lines 111-224): Actions to deprecate, restore, add models, and save edits.
+ * @section   UI Render: Header & Banner (Lines 225-276): Page title and system health banners.
+ * @section   UI Render: Registry Table (Lines 277-410): Interactive table for models.
+ * @section   UI Render: Add Model Form (Lines 411-511): Form to add new models.
+ */
 'use client';
 
 import { useState, useEffect } from 'react';

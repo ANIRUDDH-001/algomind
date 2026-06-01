@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/diagnostic/layout.tsx
+ * @purpose   Provides metadata and layout structure for the diagnostic assessment page.
+ * @tech      Next.js
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

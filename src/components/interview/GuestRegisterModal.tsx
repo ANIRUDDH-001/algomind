@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/GuestRegisterModal.tsx
+ * @purpose   Prompts guest users to register after their session ends.
+ * @tech      React, Tailwind CSS, Lucide, Next.js Router
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     useRouter
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React from 'react';

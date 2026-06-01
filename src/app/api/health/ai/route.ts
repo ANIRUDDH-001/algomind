@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/health/ai/route.ts
+ * @purpose   Health check endpoint for verifying AI model availability.
+ * @tech      Next.js
+ * @connects  @/lib/ai/client, @/lib/tracing/correlation
+ * @apis      AI Provider endpoints (via client.checkAllModels)
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getAIClient } from "@/lib/ai/client";
 import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';

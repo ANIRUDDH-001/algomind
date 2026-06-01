@@ -1,3 +1,4 @@
+// @codesage
 /**
  * @vitest-environment jsdom
  */

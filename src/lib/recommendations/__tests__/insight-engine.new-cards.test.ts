@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/recommendations/__tests__/insight-engine.new-cards.test.ts
+ * @purpose   Tests for Recommendation engine, calibrator, and insight processing.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     buildConsistencyGapCards,

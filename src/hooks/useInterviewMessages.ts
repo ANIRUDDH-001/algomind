@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterviewMessages.ts
+ * @purpose   React hook to manage the array of chat messages for the interview session.
+ * @tech      React
+ * @connects  Exported for use in useInterviewControl or InterviewSession
+ * @apis      none
+ * @db        none
+ * @state     React component state for messages array and refs for history
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { useState, useRef, useCallback } from 'react';
 
 export interface Message {

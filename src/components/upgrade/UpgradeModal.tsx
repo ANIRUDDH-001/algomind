@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/upgrade/UpgradeModal.tsx
+ * @purpose   Modal prompting users to upgrade when hitting limits or requesting premium features.
+ * @tech      React, TailwindCSS, Next.js
+ * @connects  next/navigation, @/components/ui/dialog, @/components/ui/button
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useMemo } from 'react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/cost-stats/route.ts
+ * @purpose   Fetches daily token usage cost statistics per user from Redis.
+ * @tech      Next.js, Redis, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/upstash/client
+ * @apis      none
+ * @db        Redis (cost:daily:*)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getRedis } from '@/lib/upstash/client';

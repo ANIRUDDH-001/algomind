@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/concepts/route.ts
+ * @purpose   Fetches user knowledge graph concept summaries and diagnostic status.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/knowledge-graph, @/lib/monitoring/events
+ * @apis      None
+ * @db        None directly (handled by knowledge-graph service)
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/submissions/[campaignId]/route.ts
+ * @purpose   Fetches and ranks candidate submissions for a specific campaign.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/auth/require-employer
+ * @apis      None
+ * @db        assessment_campaigns, candidate_submissions, assessments
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';

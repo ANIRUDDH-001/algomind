@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Usage logger for tracking AWS API calls and estimating costs.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * AWS Usage Logger — Tracks all AWS API calls for budget visibility.
  *
  * Every AWS service call (Polly, S3, Transcribe, Bedrock) should log usage here.

@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/InterviewSession.orchestrator.test.tsx
+ * @purpose   Tests for InterviewSession orchestrator view.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../InterviewSession
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 
 import React from 'react';

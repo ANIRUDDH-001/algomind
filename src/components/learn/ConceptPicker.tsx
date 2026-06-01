@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/learn/ConceptPicker.tsx
+ * @purpose   Grid of concept cards for selecting what to learn, handling diagnostic prompt.
+ * @tech      React, Framer Motion, TailwindCSS, Next.js App Router
+ * @connects  framer-motion, lucide-react, next/navigation, KGConceptSummary
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
+/**
  * @component ConceptPicker
  * @description Grid of concept cards for selecting what to learn.
  *              Shows diagnostic prompt for new users.

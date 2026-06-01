@@ -1,4 +1,8 @@
+/**
+ * @codesage
+ */
 'use client';
+
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SessionHistory } from '@/types/assessment';

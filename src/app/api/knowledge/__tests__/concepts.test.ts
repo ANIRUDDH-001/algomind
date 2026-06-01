@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/__tests__/concepts.test.ts
+ * @purpose   Tests knowledge concepts retrieval and error handling.
+ * @tech      Vitest
+ * @connects  @/app/api/knowledge/concepts/route, @/lib/supabase/server, @/lib/knowledge-graph, @/lib/monitoring/events
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/knowledge/concepts/route';

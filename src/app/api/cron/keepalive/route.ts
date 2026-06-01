@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/cron/keepalive/route.ts
+ * @purpose   Keepalive ping to prevent Supabase free tier auto-pause (7 days idle).
+ * @tech      Next.js, TypeScript
+ * @connects  @/lib/supabase/service
+ * @apis      none
+ * @db        global_feature_flags
+ * @state     none
+ * @env       CRON_SECRET
+ * @issues    Removed console logs.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 
@@ -19,13 +32,11 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
-        console.info('[Keepalive] DB ping successful at', new Date().toISOString());
         return NextResponse.json({
             alive: true,
             at: new Date().toISOString(),
         });
     } catch (err) {
-        console.error('[Keepalive] DB ping failed:', err);
         return NextResponse.json(
             { alive: false, error: 'Internal server error' },
             { status: 500 }

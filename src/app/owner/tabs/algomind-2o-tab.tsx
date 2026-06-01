@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/algomind-2o-tab.tsx
+ * @purpose   AlgoMind 2.0 tab for managing session gating and user subscriptions.
+ * @tech      React
+ * @connects  Imports KGStatsPanel, SessionGateControlPanel, UserSubscriptionPanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { KGStatsPanel } from '@/components/owner/KGStatsPanel';

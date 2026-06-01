@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/legal/layout.tsx
+ * @purpose   Layout wrapper for legal pages, providing a common back button and styling.
+ * @tech      Next.js, Tailwind CSS, Lucide React
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

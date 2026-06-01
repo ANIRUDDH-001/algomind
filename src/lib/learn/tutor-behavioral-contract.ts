@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/learn/tutor-behavioral-contract.ts
+ * @purpose   System and tutor prompts for AI learning assistant.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @module learn/tutor-behavioral-contract
  * @description The Kai-Tutor behavioral rules. These are injected verbatim
  *              into the system prompt. Modify with extreme care.

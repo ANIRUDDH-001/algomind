@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/__tests__/design-tokens.test.ts
+ * @purpose   Tests for Defines shared design tokens and animations.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { COLORS, SPRING, ANIM, staggerChildren } from '../design-tokens';
 import { SKILL_DEFINITIONS } from '../assessment/skill-registry';

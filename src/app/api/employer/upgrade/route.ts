@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/upgrade/route.ts
+ * @purpose   Upgrades user account to employer using an invite code.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/supabase/service, @/lib/monitoring/events
+ * @apis      None
+ * @db        employer_invites, profiles
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';

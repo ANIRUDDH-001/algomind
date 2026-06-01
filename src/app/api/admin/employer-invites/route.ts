@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/employer-invites/route.ts
+ * @purpose   Manages generation and revocation of employer invite codes.
+ * @tech      Next.js, Supabase, TypeScript, nanoid
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/service, nanoid, @/lib/monitoring/events
+ * @apis      none
+ * @db        employer_invites
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';

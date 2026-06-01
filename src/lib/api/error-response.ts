@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/error-response.ts
+ * @purpose   Defines canonical API error structures and helper functions for Next.js API routes
+ * @tech      Next.js
+ * @connects  imports NextResponse from next/server
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       NODE_ENV
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 
 /**

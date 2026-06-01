@@ -1,10 +1,15 @@
 /**
- * @component SpeechBubble
- * @description A single speech turn bubble for ZoomTranscript.
- *              Kai's bubbles come from left, User's from right.
- *              Uses CSS keyframe animations (see globals.css) instead of
- *              framer-motion to keep the interview bundle lean.
- * @phase Phase 2P
+ * @codesage
+ * @file      src/components/voice/SpeechBubble.tsx
+ * @purpose   Single speech turn bubble (user or AI) used in transcripts.
+ * @tech      React, TailwindCSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

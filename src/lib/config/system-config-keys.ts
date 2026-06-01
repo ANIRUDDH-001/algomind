@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/config/system-config-keys.ts
+ * @purpose   System configuration settings and environment keys.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       process.env variables
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @module system-config-keys
  * @description Typed constants for all system_config keys used in application code.
  *              Single source of truth — add new keys here, not inline.

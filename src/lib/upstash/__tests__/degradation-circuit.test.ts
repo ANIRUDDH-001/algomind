@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/upstash/__tests__/degradation-circuit.test.ts
+ * @purpose   Unit tests for the Upstash Redis circuit breaker logic.
+ * @tech      Vitest
+ * @connects  Imports from ../client
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     __resetCircuitForTests,

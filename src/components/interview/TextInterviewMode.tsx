@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/TextInterviewMode.tsx
+ * @purpose   Chat-based interface for the technical interview (non-voice mode).
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/hooks/useDraftPersistence
+ * @apis      None
+ * @db        None
+ * @state     Local draft persistence
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useRef } from 'react';

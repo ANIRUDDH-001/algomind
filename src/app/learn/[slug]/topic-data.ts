@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/topic-data.ts
+ * @purpose   Provides static reference data (descriptions and code snippets) for algorithmic topics.
+ * @tech      TypeScript
+ * @connects  Exported for use in LearnSessionPageClient
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export interface TopicData {
   description: string;
   referenceCode: string;

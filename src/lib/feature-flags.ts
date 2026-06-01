@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/feature-flags.ts
+ * @purpose   Manages feature flag configuration and access.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * Feature Flags for Voice Interview System
  * Use these to control rollout and disable features if issues arise
  */

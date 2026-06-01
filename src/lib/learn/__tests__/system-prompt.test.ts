@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/learn/__tests__/system-prompt.test.ts
+ * @purpose   Tests for System and tutor prompts for AI learning assistant.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { buildLearnSystemPrompt, buildKaiMemoryUpdatePrompt } from '../system-prompt';
 

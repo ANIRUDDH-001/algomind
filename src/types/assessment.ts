@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/types/assessment.ts
+ * @purpose   Defines TypeScript interfaces and types for cognitive skills, scoring rubrics, and user assessment progress.
+ * @tech      TypeScript
+ * @connects  Exported types used by assessment engines and user progress tracking modules.
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
+ */
+
 export type CognitiveSkill =
     | 'problem-decomposition'
     | 'pattern-recognition'

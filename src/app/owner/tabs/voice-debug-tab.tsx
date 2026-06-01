@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/voice-debug-tab.tsx
+ * @purpose   Voice debug panel for tuning VAD parameters and monitoring interruption events.
+ * @tech      React
+ * @connects  InterruptionManager singleton, /config/voice-config
+ * @apis      None
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 

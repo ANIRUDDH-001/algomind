@@ -1,4 +1,8 @@
+/**
+ * @codesage
+ */
 'use client';
+
 
 import React, { useState } from 'react';
 import { Share2, Check, Loader2 } from 'lucide-react';

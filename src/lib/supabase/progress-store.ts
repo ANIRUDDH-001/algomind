@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/progress-store.ts
+ * @purpose   Provides a service for saving user interview sessions and retrieving progress data.
+ * @tech      Supabase JS Client
+ * @connects  Imports from ./client, ./type-mapping, types from @/types/assessment.
+ * @apis      None
+ * @db        interview_sessions, assessments, learner_profiles
+ * @state     Maintains singleton store instance.
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { getSupabase } from './client';
 import { SessionHistory, UserProgress, SkillTrend, CognitiveSkill } from '@/types/assessment';
@@ -27,14 +40,6 @@ export class SupabaseProgressStore {
             console.warn('⚠️ Supabase not configured, skipping save');
             return;
         }
-
-        console.log('💾 [SupabaseProgressStore] Starting save...');
-        console.log('💾 [SupabaseProgressStore] User ID:', userId);
-        console.log('💾 [SupabaseProgressStore] Session:', {
-            problemId: session.problemId,
-            difficulty: session.problemDifficulty,
-            overallScore: session.overallScore
-        });
 
         try {
             // Insert interview session - let Supabase generate UUID

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useGlobalFeatureFlag.ts
+ * @purpose   React hook to consume server-side feature flags with global caching and visibility-aware polling.
+ * @tech      React, Fetch API
+ * @connects  Calls internal flags API; Exported for global app feature toggling
+ * @apis      GET /api/flags
+ * @db        none
+ * @state     Module-level global cache (_flagCache) and component state
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';

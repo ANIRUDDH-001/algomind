@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/dialog.tsx
+ * @purpose   Provides an accessible modal Dialog component based on Radix UI, including overlays, triggers, and content layouts.
+ * @tech      React, Radix UI, Lucide React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils and Button from @/components/ui/button.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"

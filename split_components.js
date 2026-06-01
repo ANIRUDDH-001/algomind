@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      split_components.js
+ * @purpose   Utility script to refactor InterviewSession.tsx by extracting components
+ * @tech      Node.js (fs)
+ * @connects  Reads src/components/interview/InterviewSession.tsx
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 const fs = require('fs');
 const path = require('path');
 

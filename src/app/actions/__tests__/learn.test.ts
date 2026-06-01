@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/__tests__/learn.test.ts
+ * @purpose   Unit tests for learning session actions, memory generation, and recording sessions.
+ * @tech      Vitest, Supabase, TypeScript
+ * @connects  ../learn, @/lib/supabase/service, @/lib/supabase/server
+ * @apis      None
+ * @db        Mocked Supabase queries
+ * @state     None
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getKaiMemory, updateKaiMemory, recordLearnSession } from '../learn';
 import { getServiceClient } from '@/lib/supabase/service';

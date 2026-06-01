@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the InterruptionManager state machine and event handlers.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InterruptionManager, InterruptionEvent, InterruptionDecision } from '../interruption-manager';
 

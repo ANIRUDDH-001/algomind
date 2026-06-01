@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/spaced-repetition/sm2.ts
+ * @purpose   Spaced repetition algorithms (FSRS, SM2) and scheduling queues.
+ * @tech      Node.js, ts-fsrs
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @deprecated SM-2 spaced repetition algorithm removed.
  * All scheduling now uses FSRS-5. See fsrs.ts.
  *

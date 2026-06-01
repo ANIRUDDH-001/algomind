@@ -1,4 +1,17 @@
 'use client';
+/**
+ * @codesage
+ * @file      src/lib/tour/index.ts
+ * @purpose   App tour manager configuration.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

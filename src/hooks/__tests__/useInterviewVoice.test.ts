@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterviewVoice.test.ts
+ * @purpose   Unit tests for the useInterviewVoice React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterviewVoice
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * @vitest-environment jsdom
  */
 import { renderHook, act } from '@testing-library/react';

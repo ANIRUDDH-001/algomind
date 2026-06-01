@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      playwright.config.ts
+ * @purpose   Configuration file for Playwright E2E tests
+ * @tech      Playwright, TypeScript, dotenv
+ * @connects  Loads .env.local, configures global setup/teardown
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       Loads TEST_USER_EMAIL and other vars from .env.local via dotenv
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';

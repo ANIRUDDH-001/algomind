@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/complete/content.tsx
+ * @purpose   Displays assessment completion status, scores, and analysis
+ * @tech      React, Next.js, Tailwind, Lucide React
+ * @connects  next/navigation, @/components/ui/button, Card, @/lib/assessment/skill-registry, AnalysisPendingBanner
+ * @apis      none
+ * @db        none
+ * @state     score, showScore, dimensionScores, isAnimating, submissionId, analysisAvailable
+ * @env       none
+ * @issues    react-hooks/set-state-in-effect lint rule disabled
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 

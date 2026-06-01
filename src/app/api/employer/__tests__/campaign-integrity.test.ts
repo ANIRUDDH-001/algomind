@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/__tests__/campaign-integrity.test.ts
+ * @purpose   Tests for campaign creation, order index integrity, and relational data read preference.
+ * @tech      Vitest, Supabase (mocked)
+ * @connects  @/lib/supabase/server
+ * @apis      None
+ * @db        Mocked assessment_campaigns, campaign_problem_links
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**

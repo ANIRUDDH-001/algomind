@@ -1,4 +1,11 @@
-// @vitest-environment jsdom
+/**
+ * @codesage
+ * @file      src/app/__tests__/page.test.tsx
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ *
+ * @vitest-environment jsdom
+ */
 import React from 'react';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';

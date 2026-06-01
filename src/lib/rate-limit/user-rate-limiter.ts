@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/rate-limit/user-rate-limiter.ts
+ * @purpose   Rate limiting policies across user, IP, and sessions.
+ * @tech      Node.js, Upstash Redis
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';

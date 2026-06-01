@@ -1,3 +1,4 @@
+/* @codesage | @file: src/app/globals.css | @purpose: Global CSS variables, tailwind imports, and design system tokens | @audit: CODESAGE-v1 */
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));

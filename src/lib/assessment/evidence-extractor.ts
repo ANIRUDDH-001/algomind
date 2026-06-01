@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/evidence-extractor.ts
+ * @purpose   Extracts raw transcript evidence mapped to specific cognitive skills based on heuristics
+ * @tech      None
+ * @connects  imports CognitiveSkill, ConversationTurn
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    dead code removed (unused _userTurns variable)
+ * @audit     CODESAGE-v1
+ */
 import { CognitiveSkill } from '@/types/assessment';
 import { ConversationTurn } from './prompts';
 
@@ -7,8 +20,6 @@ export function extractEvidence(
     transcript: ConversationTurn[],
     skill: CognitiveSkill
 ): string[] {
-    const _userTurns = transcript.filter(t => t.role === 'user');
-
     const skillKeywords: Record<CognitiveSkill, string[]> = {
         'problem-decomposition': ['break down', 'subproblems', 'part', 'first', 'second', 'step', 'divide'],
         'pattern-recognition': ['dynamic programming', 'hash map', 'two pointers', 'sliding window', 'recursive'],

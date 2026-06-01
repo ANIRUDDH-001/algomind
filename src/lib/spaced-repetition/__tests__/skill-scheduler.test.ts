@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/spaced-repetition/__tests__/skill-scheduler.test.ts
+ * @purpose   Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues.
+ * @tech      Node.js, ts-fsrs
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDueSkills, formatSkillName, SKILL_TO_PROBLEM_TAGS } from '../skill-scheduler';
 import { updateSkillRepetition } from '../queue';

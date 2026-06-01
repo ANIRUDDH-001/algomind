@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/error.tsx
+ * @purpose   Error boundary fallback UI specifically for the owner dashboard.
+ * @tech      React, Lucide React
+ * @connects  Imports reportError from telemetry
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

@@ -1,7 +1,15 @@
 /**
- * @page /learn/[slug]/results
- * @description Post-session results screen with concept progress + next steps.
- * @phase Phase 2J
+ * @codesage
+ * @file      src/app/learn/[slug]/results/page.tsx
+ * @purpose   Client component to display post-session results, concept progress, and Kai's assessment notes.
+ * @tech      Next.js, React, Framer Motion, Lucide React
+ * @connects  API route /api/learn/results/[sessionId]
+ * @apis      GET /api/learn/results/[sessionId]
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
 'use client';
 

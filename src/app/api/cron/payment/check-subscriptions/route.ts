@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/cron/payment/check-subscriptions/route.ts
+ * @purpose   Nightly cron endpoint to downgrade users with expired subscriptions via Supabase backstop function.
+ * @tech      Next.js, TypeScript
+ * @connects  @/lib/supabase/service, @/lib/monitoring/events, @/lib/tracing/correlation
+ * @apis      none
+ * @db        RPC check_and_downgrade_expired_subscriptions
+ * @state     none
+ * @env       CRON_SECRET
+ * @issues    Removed console logs.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
@@ -43,7 +56,6 @@ export async function GET(req: Request) {
       .rpc('check_and_downgrade_expired_subscriptions');
 
     if (rpcError) {
-      console.error('Failed to check expired subscriptions:', rpcError);
       
       void logSystemEvent({
         type: 'cron.failed',
@@ -81,9 +93,8 @@ export async function GET(req: Request) {
       message: `Successfully downgraded ${downgradedCount} user(s) with expired subscriptions`,
     });
   } catch (error) {
-    console.error('Error in subscription expiry cron:', error);
 
-    void logSystemEvent({
+      void logSystemEvent({
       type: 'cron.failed',
       correlationId,
       errorMessage: error instanceof Error ? error.message : String(error),

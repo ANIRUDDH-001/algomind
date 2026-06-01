@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewTopBar.tsx
+ * @purpose   Top navigation bar for the interview interface, showing context and controls.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { BookOpen, Flag, PanelLeftClose, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

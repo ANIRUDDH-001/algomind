@@ -1,4 +1,5 @@
 /**
+ * @codesage
  * @component KnowledgeInsightsCard
  * @description Dashboard card showing concept heatmap + weekly progress.
  * @phase Phase 2K

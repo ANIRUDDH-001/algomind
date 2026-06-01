@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/ErrorBanner.tsx
+ * @purpose   Displays an auto-dismissible floating error banner for global application notifications.
+ * @tech      React, Lucide React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Used primarily by layout or global notification providers.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import React, { useEffect } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';

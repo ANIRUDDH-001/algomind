@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/save-progress/route.ts
+ * @purpose   Periodically saves a candidate's assessment progress during an active session.
+ * @tech      Next.js, jose, Supabase, TypeScript
+ * @connects  @/lib/assess/jwt, @/lib/supabase/service
+ * @apis      none
+ * @db        candidate_submissions, RPC save_question_progress
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error in catch blocks.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import * as jose from 'jose';
 import { validateEnv } from '@/lib/startup/validateEnv';
@@ -31,7 +44,6 @@ export async function POST(req: NextRequest) {
             const { payload: decoded } = await jose.jwtVerify(sessionToken, secret);
             payload = decoded;
         } catch (error) {
-            console.error('⛔ [Assess Save API] Invalid session token', error);
             // If JWT invalid -> 401
             return NextResponse.json({ saved: false }, { status: 401 });
         }
@@ -60,7 +72,6 @@ export async function POST(req: NextRequest) {
                 .eq('id', submissionId);
 
             if (updateError) {
-                console.error('[Assess Save] Failed to save progress:', updateError);
                 // Return 200 with saved: false so interview doesn't crash
                 return NextResponse.json({ saved: false }, { status: 200 });
             }
@@ -69,7 +80,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ saved: true });
 
     } catch (error: unknown) {
-        console.error('[CANDIDATE_SAVE_PROGRESS_ERROR]', error);
         // Never throw - return 200 to prevent crash
         return NextResponse.json({ saved: false }, { status: 200 });
     }

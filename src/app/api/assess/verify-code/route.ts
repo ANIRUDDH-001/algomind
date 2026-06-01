@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/verify-code/route.ts
+ * @purpose   Verifies candidate entry codes and fetches campaign/problem details to initialize the assessment environment.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/supabase/server, @/lib/campaign/entry-code
+ * @apis      none
+ * @db        assessment_campaigns, problems, RPC check_code_rate_limit, RPC record_code_attempt, RPC verify_campaign_entry_code
+ * @state     none
+ * @env       none
+ * @issues    Removed console.error statements.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { ENTRY_CODE_REGEX } from '@/lib/campaign/entry-code';
@@ -20,7 +33,6 @@ export async function POST(req: Request) {
             });
 
         if (limitError) {
-            console.error('[verify-code] Rate limit check failed:', limitError);
             // Fail open — don't block users if rate limit DB is down
         } else {
             const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
@@ -77,7 +89,6 @@ export async function POST(req: Request) {
         });
 
         if (rpcError) {
-            console.error('[verify-code] RPC error:', rpcError);
             return NextResponse.json(
                 { valid: false, reason: 'Verification service unavailable' },
                 { status: 503 }
@@ -141,7 +152,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ valid: true, campaign, questions });
 
     } catch (e: any) {
-        console.error('[verify-code] Unexpected error:', e);
         return NextResponse.json(
             { valid: false, reason: 'Internal server error' },
             { status: 500 }

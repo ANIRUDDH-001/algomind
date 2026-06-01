@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/cron/__tests__/trigger-idempotency.test.ts
+ * @purpose   Tests idempotency guarantees of the GitHub Actions workflow trigger endpoint.
+ * @tech      Vitest, TypeScript
+ * @connects  ../trigger/route, @/lib/upstash/client, @/lib/monitoring/events
+ * @apis      GitHub Actions (mocked fetch)
+ * @db        none
+ * @state     Redis (mocked)
+ * @env       CRON_SECRET, GITHUB_TOKEN, GITHUB_REPO (mocked)
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../trigger/route';
 import { redisGet, redisSet } from '@/lib/upstash/client';

@@ -1,5 +1,15 @@
 /**
- * Problem types for AlgoMind
+ * @codesage
+ * @file      src/types/problem.ts
+ * @purpose   Defines structures for programming problems, difficulty levels, and problem filters.
+ * @tech      TypeScript
+ * @connects  Exported types used by problem catalog and assessment system.
+ * @apis      none
+ * @db        problems
+ * @state     none
+ * @env       none
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
  */
 
 export interface Problem {

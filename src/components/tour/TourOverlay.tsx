@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/tour/TourOverlay.tsx
+ * @purpose   Global overlay that renders the active tour step (modal or spotlight).
+ * @tech      React, Framer Motion, ReactDOM Portals
+ * @connects  framer-motion, @/hooks/use-media-query, ./TourProvider, ./KaiModal, ./TourCard
+ * @apis      None
+ * @db        None
+ * @state     Local Component State (isMounted)
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 /* eslint-disable react-hooks/set-state-in-effect */

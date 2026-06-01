@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/model-routing-tab.tsx
+ * @purpose   Manage AI model routing configuration for chat and analysis.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  /api/owner/model-routing
+ * @apis      GET, POST, PATCH, DELETE /api/owner/model-routing
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';

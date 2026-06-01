@@ -1,8 +1,15 @@
 /**
- * improvement-examples.ts
- *
- * Generates "What you should have said" examples for weak sub-criteria.
- * Called post-assessment. Results stored in skill_evidence.improvementExamples.
+ * @codesage
+ * @file      src/lib/assessment/improvement-examples.ts
+ * @purpose   Generates actionable improvement examples for candidate feedback using AI
+ * @tech      AI Client
+ * @connects  imports getAIClient from '@/lib/ai/client'
+ * @apis      None directly (uses getAIClient)
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
 
 import { getAIClient } from '@/lib/ai/client';

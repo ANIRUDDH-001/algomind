@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/__tests__/save-session.scores.test.ts
+ * @purpose   Unit tests for saving interview sessions and correctly mapping scores in the database.
+ * @tech      Vitest, Supabase, TypeScript
+ * @connects  ../save-session, @/lib/supabase/server
+ * @apis      None
+ * @db        Mocked Supabase RPC calls
+ * @state     None
+ * @env       None
+ * @issues    Skipped tests exist
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { saveInterviewSession } from '../save-session';
 import { createServerSupabase } from '@/lib/supabase/server';

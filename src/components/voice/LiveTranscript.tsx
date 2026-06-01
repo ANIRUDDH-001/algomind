@@ -1,9 +1,15 @@
 /**
- * @component LiveTranscript
- * @description Zoom-style live transcript overlay for voice sessions.
- *              Shows: last AI message + current user speech (interim).
- *              Appears only during active voice exchange — fades out on silence.
- * @phase Phase 2L
+ * @codesage
+ * @file      src/components/voice/LiveTranscript.tsx
+ * @purpose   Zoom-style live transcript overlay for voice sessions.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

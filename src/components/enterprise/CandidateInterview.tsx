@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/CandidateInterview.tsx
+ * @purpose   Handles the candidate entry flow, setup, and initialization of an interview session.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/components/enterprise/CampaignInterviewSession, @/lib/api/adapters/assessment-adapter
+ * @apis      AssessmentAdapter.verifyCode, AssessmentAdapter.start, AssessmentAdapter.complete
+ * @db        None
+ * @state     useState, useEffect, useAuth
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useState, useEffect } from 'react';

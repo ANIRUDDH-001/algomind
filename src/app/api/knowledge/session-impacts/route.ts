@@ -1,6 +1,15 @@
 /**
- * GET /api/knowledge/session-impacts?sessionId=X
- * Returns concept confidence deltas for a given interview session.
+ * @codesage
+ * @file      src/app/api/knowledge/session-impacts/route.ts
+ * @purpose   Returns concept confidence deltas for a given interview session.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/server, @/lib/supabase/service, @/lib/monitoring/events
+ * @apis      None
+ * @db        learning_signals, concept_tags
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';

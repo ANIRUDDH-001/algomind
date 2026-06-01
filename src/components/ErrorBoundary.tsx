@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/ErrorBoundary.tsx
+ * @purpose   Provides a React error boundary to catch and gracefully display unexpected component errors.
+ * @tech      React, TailwindCSS, lucide-react
+ * @connects  Imports reportError from @/lib/telemetry/report-error
+ * @apis      none
+ * @db        none
+ * @state     Local error state (hasError, error, errorInfo)
+ * @env       NODE_ENV
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { reportError } from '@/lib/telemetry/report-error';

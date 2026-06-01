@@ -1,7 +1,15 @@
 /**
- * @page /learn/diagnostic
- * @description MCQ-based technical diagnostic assessment
- * @phase Phase 5 - MCQ Implementation
+ * @codesage
+ * @file      src/app/learn/diagnostic/page.tsx
+ * @purpose   Client component for the diagnostic technical assessment that calibrates the user's knowledge profile.
+ * @tech      Next.js, React, Framer Motion, Lucide React
+ * @connects  Imports DIAGNOSTIC_QUESTIONS
+ * @apis      POST /api/learn/diagnostic
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    Removed console.logs
+ * @audit     CODESAGE-v1
  */
 
 'use client';
@@ -98,7 +106,6 @@ export default function DiagnosticPage() {
 
   const handleSubmit = async (finalAnswers: Answer[]) => {
     setState('submitting');
-    console.log('[Diagnostic] Submitting answers:', finalAnswers);
 
     try {
       const res = await fetch('/api/learn/diagnostic', {
@@ -111,7 +118,6 @@ export default function DiagnosticPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log('[Diagnostic] API response:', { ok: res.ok, status: res.status, data });
 
       if (!res.ok || data.success === false) {
         const errorMsg = (data as { error?: string }).error || 'Failed to complete diagnostic';
@@ -122,13 +128,11 @@ export default function DiagnosticPage() {
       // Success: show completion screen
       setState('complete');
       localStorage.setItem('diagnosticCompletedAt', new Date().toISOString());
-      console.log('[Diagnostic] Assessment complete, waiting 2s before redirect...');
 
       // Wait for user to see success message
       await new Promise(r => setTimeout(r, 2000));
 
       // Navigate to learn
-      console.log('[Diagnostic] Redirecting to /learn');
       try {
         router.replace('/learn');
       } catch (routerErr) {

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/admins-tab.tsx
+ * @purpose   Displays the Admins tab in the owner dashboard.
+ * @tech      React
+ * @connects  Imports AdminsClient from app/admin
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 // Reuse the existing admin component for now, but embedded directly into the tab structure.

@@ -1,3 +1,9 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/__tests__/analytics-schema.contract.test.tsx
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';

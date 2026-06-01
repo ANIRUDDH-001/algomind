@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      extract.js
+ * @purpose   Utility script to extract desktop and mobile layout code from InterviewSession.tsx
+ * @tech      Node.js (fs)
+ * @connects  Reads src/components/interview/InterviewSession.tsx
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 const fs = require('fs');
 
 const code = fs.readFileSync('src/components/interview/InterviewSession.tsx', 'utf-8');

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/voice/MicrophoneButton.tsx
+ * @purpose   Interactive button to toggle voice listening state with visual feedback.
+ * @tech      React, Framer Motion, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { motion } from 'framer-motion';

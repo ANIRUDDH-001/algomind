@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description WhisperSTT integration for Groq Whisper API transcription.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * WhisperSTT — Groq Whisper API transcription client
  *
  * Captures audio via MediaRecorder, sends to /api/voice/transcribe,

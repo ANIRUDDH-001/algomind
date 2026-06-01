@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/employers/route.ts
+ * @purpose   Fetches a list of all employer profiles for the admin dashboard.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/service, @/lib/monitoring/events
+ * @apis      none
+ * @db        profiles (account_type = employer)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';

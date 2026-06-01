@@ -1,8 +1,15 @@
 /**
- * @hook useLearnSession
- * @description Manages the full lifecycle of a Kai-Tutor learn session.
- *              Handles API calls, transcript, session state, and TTS.
- * @phase Phase 2J
+ * @codesage
+ * @file      src/hooks/useLearnSession.ts
+ * @purpose   Manages the full lifecycle of a Kai-Tutor learn session, handling API calls, transcript, session state, and TTS.
+ * @tech      React, Fetch API
+ * @connects  Calls backend /api/learn/concept; Exported for Learn UI components
+ * @apis      POST /api/learn/concept
+ * @db        none
+ * @state     React component state for transcript, session ID, and active/idle state
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
 'use client';
 

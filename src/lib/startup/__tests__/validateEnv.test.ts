@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/startup/__tests__/validateEnv.test.ts
+ * @purpose   Tests for Environment validation at system startup.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       process.env variables
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * Tests for src/lib/startup/validateEnv.ts
  * Covers validateEnv() and validateDB() functions.
  */

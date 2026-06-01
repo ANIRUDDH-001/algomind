@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/__tests__/ConceptHeatmap.test.tsx
+ * @purpose   Tests for ConceptHeatmap.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, ConceptHeatmap, useConceptHeatmap
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/practice/ProblemFilters.tsx
+ * @purpose   Search and filter controls for the problem practice list.
+ * @tech      React, TailwindCSS
+ * @connects  lucide-react
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { ChevronDown, Search } from 'lucide-react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/problems.ts
+ * @purpose   Handles database operations for fetching and normalizing problem records.
+ * @tech      Supabase JS Client
+ * @connects  Imports from ./client, exported for use in problem-related features.
+ * @apis      None
+ * @db        problems (table), get_random_problem (RPC)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { getSupabase, isSupabaseConfigured } from './client';
 
 export interface Problem {

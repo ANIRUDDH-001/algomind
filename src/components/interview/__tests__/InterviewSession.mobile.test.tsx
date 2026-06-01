@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/InterviewSession.mobile.test.tsx
+ * @purpose   Tests for the mobile layout of the interview session.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../InterviewSession
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 import React from 'react';
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';

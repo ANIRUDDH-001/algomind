@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/owner/kg-stats/route.ts
+ * @purpose   Retrieves knowledge graph statistics for the owner dashboard.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/service, @/lib/monitoring/events, @/lib/auth/requireOwnerForApi
+ * @apis      None
+ * @db        learn_sessions, concept_states
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';

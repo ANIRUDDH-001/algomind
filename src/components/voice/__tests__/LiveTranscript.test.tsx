@@ -1,6 +1,17 @@
 /**
- * @vitest-environment jsdom
+ * @codesage
+ * @file      src/components/voice/__tests__/LiveTranscript.test.tsx
+ * @purpose   Tests for LiveTranscript component.
+ * @tech      Vitest, React Testing Library, JSDOM
+ * @connects  Vitest, @testing-library/react, LiveTranscript
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @vitest-environment jsdom
 import { render, screen, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LiveTranscript } from '../LiveTranscript';

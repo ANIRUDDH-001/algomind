@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/reset-model/route.ts
+ * @purpose   Resets rate limits for a specified AI model in development environments.
+ * @tech      Next.js, TypeScript
+ * @connects  @/lib/ai/rate-limiter, @/lib/auth/requireAdminForApi
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       NODE_ENV
+ * @issues    Removed console.info call.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse, NextRequest } from "next/server";
 import { getRateLimiter } from "@/lib/ai/rate-limiter";
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
@@ -21,7 +34,6 @@ export async function POST(req: NextRequest) {
         rateLimiter.resetModel(modelId);
 
         if (process.env.NODE_ENV === 'development') {
-            console.info(`[Admin] Reset rate limits for model: ${modelId}`);
         }
 
         return NextResponse.json({

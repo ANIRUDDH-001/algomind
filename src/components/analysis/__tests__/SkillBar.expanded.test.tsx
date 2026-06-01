@@ -1,6 +1,21 @@
 /**
  * @vitest-environment jsdom
  */
+
+/**
+ * @codesage
+ * @file      src/components/analysis/__tests__/SkillBar.expanded.test.tsx
+ * @purpose   Unit tests for the SkillBar sub-criteria expansion within AnalysisClient.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests AnalysisClient from ../AnalysisClient
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    Unused imports: fireEvent, waitFor.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { AnalysisClient } from '../AnalysisClient';

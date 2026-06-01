@@ -1,7 +1,15 @@
 /**
- * @module knowledge-graph types
- * @description TypeScript types for the knowledge graph system
- * @phase Phase 1A
+ * @codesage
+ * @file      src/types/knowledge-graph.ts
+ * @purpose   TypeScript types for the knowledge graph system, concept tracking, and FSRS spacing repetition algorithm.
+ * @tech      TypeScript
+ * @connects  Exported definitions for learning concepts, tags, and progress tracking.
+ * @apis      none
+ * @db        concept_tags, concept_states, learning_signals
+ * @state     none
+ * @env       none
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
  */
 
 export interface ConceptTag {

@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/rate-limit/weekly-session-limiter.ts
+ * @purpose   Rate limiting policies across user, IP, and sessions.
+ * @tech      Node.js, Upstash Redis
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        Redis / Supabase Auth
+ * @state     Session state
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @module rate-limit/weekly-session-limiter
  * @description Per-type weekly session limit enforcement for the freemium gate.
  *              Interview and learn sessions have independent limits, both configurable

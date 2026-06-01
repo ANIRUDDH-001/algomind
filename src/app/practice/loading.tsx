@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/practice/loading.tsx
+ * @purpose   Loading skeleton for the practice problems list.
+ * @tech      React, Tailwind
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterviewLimits.test.ts
+ * @purpose   Unit tests for the useInterviewLimits React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterviewLimits
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/layouts/DesktopLayout.tsx
+ * @purpose   Desktop-specific layout wrapper for the interview session UI.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/components/ui/resizable
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';

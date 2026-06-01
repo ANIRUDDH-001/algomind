@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/design-tokens.ts
+ * @purpose   Defines shared design tokens and animations.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 // Single source of truth for design decisions used in JS/TSX
 // (where Tailwind classes alone aren't enough)
 

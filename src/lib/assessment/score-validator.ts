@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/assessment/score-validator.ts
+ * @purpose   Mechanically enforces strict scoring rules via AI validation pass
+ * @tech      AI Client
+ * @connects  imports getAIClient from '@/lib/ai/client'
+ * @apis      None directly
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * score-validator.ts
  *
  * Two-pass validation: after the AI produces initial scores, this runs

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/owner/tabs/overview-tab.tsx
+ * @purpose   Displays high-level platform stats and recent system events.
+ * @tech      React, Lucide React, Tailwind
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { Card } from '@/components/ui/card';

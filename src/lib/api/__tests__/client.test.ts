@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/__tests__/client.test.ts
+ * @purpose   Tests for API client fetch wrappers
+ * @tech      vitest
+ * @connects  imports ApiClientError, requestBlob, requestJson, requestVoid from '@/lib/api/client'
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ApiClientError, requestBlob, requestJson, requestVoid } from '@/lib/api/client';
 

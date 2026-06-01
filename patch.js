@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      patch.js
+ * @purpose   One-off script to patch LearnSessionPageClient.tsx to support responsive split grids
+ * @tech      Node.js (fs)
+ * @connects  Modifies src/app/learn/[slug]/LearnSessionPageClient.tsx
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 const fs = require('fs');
 const path = require('path');
 

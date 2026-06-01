@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/__tests__/integration.test.tsx
+ * @purpose   Unit tests for assessment module
+ * @tech      vitest
+ * @connects  various
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 /* eslint-disable react/display-name */
 /**
  * @vitest-environment jsdom

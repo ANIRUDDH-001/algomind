@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Text preprocessing for TTS to fix pronunciation of technical terms and code snippets.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * Text preprocessing for TTS to fix pronunciation of technical terms
  * Converts DSA/coding notation to spoken equivalents
  */

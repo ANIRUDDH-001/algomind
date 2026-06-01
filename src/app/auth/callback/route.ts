@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/auth/callback/route.ts
+ * @purpose   Handles Supabase authentication callback and session exchange
+ * @tech      Next.js App Router, Supabase SSR
+ * @connects  @supabase/ssr, next/headers
+ * @apis      supabase.auth.exchangeCodeForSession, supabase.auth.verifyOtp
+ * @db        none
+ * @state     none
+ * @env       NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';

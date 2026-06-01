@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/interview/history/[sessionId]/page.tsx
+ * @purpose   Displays the detailed history and transcript of a completed interview session.
+ * @tech      React, Next.js, Supabase, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        interview_sessions, assessments, problems
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';

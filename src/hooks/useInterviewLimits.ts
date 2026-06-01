@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterviewLimits.ts
+ * @purpose   React hook to track time and turn limits during an active interview session.
+ * @tech      React
+ * @connects  Exported for use in InterviewSession to enforce session constraints
+ * @apis      none
+ * @db        none
+ * @state     React component state for elapsed time, used turns, and active timer
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';

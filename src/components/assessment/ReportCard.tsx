@@ -1,4 +1,5 @@
 /**
+ * @codesage
  * @deprecated Replaced by /interview/analysis page (A5). Kept for backward-compat.
  * Users now auto-redirect to AnalysisClient after interview ends.
  */

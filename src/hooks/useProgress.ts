@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useProgress.ts
+ * @purpose   React hook to fetch and save user progress/session history using React Query and Supabase.
+ * @tech      React, React Query, Supabase
+ * @connects  Imports getProgressStore; Exported for progress dashboards
+ * @apis      none
+ * @db        Supabase progress store interactions
+ * @state     React Query cache state for user-progress
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';

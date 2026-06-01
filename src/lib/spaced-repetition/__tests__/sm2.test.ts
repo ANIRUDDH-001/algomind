@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/spaced-repetition/__tests__/sm2.test.ts
+ * @purpose   Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues.
+ * @tech      Node.js, ts-fsrs
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { formatNextReviewDate, SpacedRepetitionRecord } from '../types';
 

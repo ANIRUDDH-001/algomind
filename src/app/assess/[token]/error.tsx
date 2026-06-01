@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/[token]/error.tsx
+ * @purpose   Error boundary page for assessment token route
+ * @tech      Next.js client component, React, Lucide React
+ * @connects  @/lib/telemetry/report-error
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

@@ -1,9 +1,15 @@
 /**
- * @hook useZoomTranscript
- * @description Manages the display state for ZoomTranscript.
- *              Tracks which message to show, animates transitions,
- *              and handles the sliding window logic.
- * @phase Phase 2P
+ * @codesage
+ * @file      src/hooks/useZoomTranscript.ts
+ * @purpose   Manages the display state for ZoomTranscript and provides a progressive word-by-word reveal hook.
+ * @tech      React
+ * @connects  Exported for UI components rendering transcripts
+ * @apis      none
+ * @db        none
+ * @state     React component state for displayed message and animated reveal counter
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
 'use client';
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/inngest/route.ts
+ * @purpose   Serves Inngest functions as Next.js API route endpoints.
+ * @tech      Next.js, Inngest
+ * @connects  inngest/next, @/lib/inngest/client, @/lib/inngest/functions
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest/client";
 import { assessInterviewFunction, chatAssistantFunction } from "@/lib/inngest/functions";

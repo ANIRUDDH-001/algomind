@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/chat/route.ts
+ * @purpose   Main chat endpoint for AI mock interviews, handling standard interactions via SSE and JSON fallbacks.
+ * @tech      Next.js, Supabase, Redis, Inngest, AWS Bedrock, Groq, TypeScript
+ * @connects  @/lib/ai/client, @/lib/rate-limit/user-rate-limiter, @/lib/rate-limit/weekly-session-limiter, @/lib/rate-limit/ip-rate-limiter, @/lib/rag/phase-retriever, @/lib/kai-context, @/lib/inngest/client
+ * @apis      Groq API, AWS Bedrock (via AI Client)
+ * @db        interview_sessions
+ * @state     Redis (rate limits, prompt caching)
+ * @env       NODE_ENV
+ * @issues    Removed console.error and console.warn statements to clean up server logs. Flagged empty catch blocks for prompt caching (line 175) and fallback stream (line 299).
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { getAIClient } from '@/lib/ai/client';
@@ -80,7 +93,6 @@ export async function POST(req: NextRequest) {
         }
 
         if (!guestMode && !user) {
-            console.warn('⛔ [Chat API] Unauthorized access attempt');
             return withCorrelationIdResponse(ApiErrors.unauthorized('Unauthorized'));
         }
 
@@ -113,7 +125,6 @@ export async function POST(req: NextRequest) {
                 problemContext.title,
                 problemContext.tags ?? []
             ).catch(err => {
-                console.warn('⚠️ [RAG] Phase-aware retrieval failed:', err);
                 return null;
             })
             : Promise.resolve(null);
@@ -253,7 +264,6 @@ export async function POST(req: NextRequest) {
                     }
                 });
             } catch (err) {
-                console.error('❌ [Chat API] Inngest send failed, falling back to local background execution:', err);
                 // Fallback: Run the streaming logic locally if Inngest is down
                 const fallbackStream = async () => {
                     const { getAIClient } = await import('@/lib/ai/client');
@@ -290,13 +300,12 @@ export async function POST(req: NextRequest) {
                             await incrementUserUsage(user.id, supabase);
                         }
                     } catch (streamErr) {
-                        console.error('❌ [Chat API] Fallback stream error:', streamErr);
                         await channel.send({ type: 'broadcast', event: 'chat_chunk', payload: { error: String(streamErr), done: true } });
                     } finally {
                         await supabase.removeChannel(channel);
                     }
                 };
-                fallbackStream().catch(e => console.error('Unhandled in fallback stream:', e));
+                fallbackStream().catch(e => {});
             }
 
             return NextResponse.json({ success: true, message: 'Event dispatched to background job' }, {
@@ -331,7 +340,6 @@ export async function POST(req: NextRequest) {
         });
 
         if (!result.success) {
-            console.error('❌ [AI] Generation failed. All models exhausted:', result.error);
             throw new Error(result.error || 'Failed to generate response after exhausting all models');
         }
 
@@ -341,9 +349,7 @@ export async function POST(req: NextRequest) {
 
         // Track usage for authenticated users
         if (user && !guestMode) {
-            incrementUserUsage(user.id, supabase).catch(err =>
-                console.error('❌ [Chat API] Failed to track usage:', err)
-            );
+            incrementUserUsage(user.id, supabase).catch(err => {});
         }
 
         const cleanResponse = (result.response || '').trim();
@@ -357,7 +363,6 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('❌ [Chat API] Error:', error);
         void logSystemEvent({
             type: 'model_error',
             errorMessage: error instanceof Error ? error.message : String(error),

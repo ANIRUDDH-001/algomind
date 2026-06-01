@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/enterprise/CohortStatsPanel.tsx
+ * @purpose   Computes and displays aggregate statistics for an assessment cohort.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React from 'react';

@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/learn/__tests__/concept.test.ts
+ * @purpose   Tests for Kai-Tutor concept teaching session API.
+ * @tech      Vitest
+ * @connects  @/app/api/learn/concept/route, @/lib/supabase/server, @/lib/supabase/service, @/lib/ai/client, @/lib/knowledge-graph, @/lib/kai-context, @/lib/rate-limit/weekly-session-limiter, @/lib/monitoring/events
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 

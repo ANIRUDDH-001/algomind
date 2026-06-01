@@ -1,4 +1,18 @@
 /**
+ * @codesage
+ * @file      src/lib/recommendations/insight-engine.ts
+ * @purpose   Recommendation engine, calibrator, and insight processing.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @summary   This is a large file (> 500 lines) handling complex logic for Recommendation engine, calibrator, and insight processing.
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * insight-engine.ts
  *
  * Replaces the static RecommendationEngine with a data-driven insight system.

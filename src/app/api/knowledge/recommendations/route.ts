@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/recommendations/route.ts
+ * @purpose   Fetches personalized learning recommendations based on knowledge context.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/kai-context, @/lib/monitoring/events
+ * @apis      None
+ * @db        None directly (handled by kai-context)
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { buildStudentContext } from '@/lib/kai-context';

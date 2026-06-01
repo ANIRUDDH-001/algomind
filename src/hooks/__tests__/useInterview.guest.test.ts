@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterview.guest.test.ts
+ * @purpose   Unit tests for the useInterview React hook (guest mode logic).
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterview
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';

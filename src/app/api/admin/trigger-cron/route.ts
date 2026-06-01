@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/trigger-cron/route.ts
+ * @purpose   Manually dispatches the nightly batch GitHub Actions workflow.
+ * @tech      Next.js, Redis, TypeScript, GitHub API
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/monitoring/events, @/lib/upstash/client
+ * @apis      GitHub Actions (api.github.com/repos/.../dispatches)
+ * @db        none (Redis used for caching)
+ * @state     none
+ * @env       GITHUB_TOKEN, GITHUB_REPO
+ * @issues    Removed console.error. Flagged empty catch block for Redis cache invalidation.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { logSystemEvent } from '@/lib/monitoring/events';
@@ -48,7 +61,6 @@ export async function POST() {
 
         if (!githubResponse.ok) {
             const errorText = await githubResponse.text();
-            console.error('[Trigger Cron] GitHub API failed:', githubResponse.status, errorText);
 
             await logSystemEvent({
                 type: 'cron_failed',
@@ -93,7 +105,6 @@ export async function POST() {
             timestamp: new Date().toISOString(),
         });
     } catch (error) {
-        console.error('[Trigger Cron] Unexpected error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

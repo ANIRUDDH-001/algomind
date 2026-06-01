@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/assessment/prompts.ts
+ * @purpose   Provides the authoritative prompt templates for post-interview cognitive assessment
+ * @tech      None
+ * @connects  imports CognitiveSkill, SkillDefinition, MODE_ASSESSMENT_CONFIGS
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * assessment/prompts.ts
  * ─────────────────────────────────────────────────────────────────────────────
  * AlgoMind — Post-Interview Cognitive Assessment Prompt Generator

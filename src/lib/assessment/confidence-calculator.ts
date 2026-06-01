@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/confidence-calculator.ts
+ * @purpose   Calculates a confidence score for the generated assessment based on session signal
+ * @tech      None
+ * @connects  imports ConversationTurn from ./prompts
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { ConversationTurn } from './prompts';
 
 export interface AssessmentPartial {

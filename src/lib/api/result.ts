@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/api/result.ts
+ * @purpose   Provides a discriminated union pattern for server action results
+ * @tech      None
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * Discriminated union for server action results.
  * Forces callers to check success before accessing data.
  */

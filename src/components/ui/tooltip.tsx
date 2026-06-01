@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/tooltip.tsx
+ * @purpose   Provides an accessible tooltip component based on Radix UI to show contextual information on hover or focus.
+ * @tech      React, Radix UI, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 

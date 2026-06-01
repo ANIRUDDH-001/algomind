@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/ai-status/route.ts
+ * @purpose   Retrieves and returns the status of AI models and rate limiter usage.
+ * @tech      Next.js, Supabase, TypeScript
+ * @connects  @/lib/supabase/service, @/lib/ai/client, @/lib/auth/requireAdminForApi, @/lib/tracing/correlation
+ * @apis      none
+ * @db        model_registry
+ * @state     none
+ * @env       none
+ * @issues    Flagged uncertain dead code / empty catch for rate limiter enrichment failure.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase/service";
 import { getAIClient } from "@/lib/ai/client";

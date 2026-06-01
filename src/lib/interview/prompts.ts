@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Orchestrates the generation of per-turn AI prompts injected into the conversation.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * prompts.ts
  * ─────────────────────────────────────────────────────────────────────────────
  * AlgoMind — Interview Turn Prompt Orchestrator

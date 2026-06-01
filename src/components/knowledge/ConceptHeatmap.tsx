@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/ConceptHeatmap.tsx
+ * @purpose   Displays a 20-tile concept knowledge visualization dashboard.
+ * @tech      React, Framer Motion, TailwindCSS, Next.js App Router
+ * @connects  React, framer-motion, next/navigation, useConceptHeatmap, ConceptTile, ConceptDetailPanel
+ * @apis      None
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
+/**
  * @component ConceptHeatmap
  * @description 20-tile concept knowledge visualization.
  *              Primary dashboard insight component for AlgoMind 2.0.

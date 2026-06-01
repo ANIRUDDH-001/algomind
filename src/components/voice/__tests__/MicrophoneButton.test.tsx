@@ -1,6 +1,17 @@
 /**
- * @vitest-environment jsdom
+ * @codesage
+ * @file      src/components/voice/__tests__/MicrophoneButton.test.tsx
+ * @purpose   Tests for MicrophoneButton interaction and states.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../MicrophoneButton
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @vitest-environment jsdom
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';

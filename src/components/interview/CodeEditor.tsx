@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/CodeEditor.tsx
+ * @purpose   Provides a Monaco-based code editor with language selection and execution capabilities.
+ * @tech      React, Monaco Editor, Tailwind CSS, Lucide
+ * @connects  @monaco-editor/react
+ * @apis      /api/execute
+ * @db        None
+ * @state     useState, useEffect, useRef, useId
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useRef, useId } from 'react';

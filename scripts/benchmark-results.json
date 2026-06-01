@@ -1,4 +1,5 @@
 {
+  "_codesage": "CODESAGE-v1 | @file: scripts/benchmark-results.json | @purpose: Contains historical load testing and latency metrics data | @audit: CODESAGE-v1",
   "timestamp": "2026-03-05T18:07:03.703Z",
   "baseUrl": "https://algomind-drab.vercel.app",
   "iterations": 12,

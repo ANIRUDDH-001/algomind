@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/config/system-config.ts
+ * @purpose   System configuration settings and environment keys.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       process.env variables
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @module system-config
  * @description Server-side helper to read system_config values with Redis caching.
  *              Always use this instead of querying system_config directly.

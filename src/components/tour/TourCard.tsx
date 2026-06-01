@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/tour/TourCard.tsx
+ * @purpose   Floating tooltip card for interactive tour steps.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion, lucide-react, @/components/ui/button
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { motion } from 'framer-motion';

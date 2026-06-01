@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/update-sw-version.js
+ * @purpose   Updates the service worker cache version string using the current timestamp
+ * @tech      Node.js (fs)
+ * @connects  Modifies public/sw.js
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 const fs = require('fs');
 const path = require('path');
 

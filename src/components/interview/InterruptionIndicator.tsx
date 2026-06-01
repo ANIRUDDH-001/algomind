@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterruptionIndicator.tsx
+ * @purpose   Provides visual feedback when the user interrupts the AI via voice.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Mic } from 'lucide-react';

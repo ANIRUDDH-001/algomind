@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useAssessment.ts
+ * @purpose   React hook to trigger server-side AI assessment of an interview session.
+ * @tech      React, Fetch API
+ * @connects  Calls internal API endpoints; Exported for use in interview flow components
+ * @apis      POST /api/interview/analyze
+ * @db        none
+ * @state     React component state for analysis progress and result
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { useState, useCallback } from 'react';
 import type { AssessmentResult } from '@/lib/assessment/analyzer';
 import type { ConversationTurn } from '@/lib/assessment/prompts';

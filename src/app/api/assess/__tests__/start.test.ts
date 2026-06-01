@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/assess/__tests__/start.test.ts
+ * @purpose   Tests the candidate assessment start endpoint, including token validation and session initialization.
+ * @tech      Vitest, Next.js, jose, TypeScript
+ * @connects  ../start/route, @/lib/supabase/server
+ * @apis      none
+ * @db        assessment_campaigns, problems, candidate_submissions (mocked)
+ * @state     none
+ * @env       SUPABASE_JWT_SECRET (mocked)
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../start/route';
 import { createServerSupabase } from '@/lib/supabase/server';

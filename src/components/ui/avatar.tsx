@@ -1,5 +1,19 @@
 "use client"
 
+/**
+ * @codesage
+ * @file      src/components/ui/avatar.tsx
+ * @purpose   Provides a reusable Avatar component with image, fallback, badge, and group layout capabilities.
+ * @tech      React, Radix UI, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for use across the application.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+
 import * as React from "react"
 import { Avatar as AvatarPrimitive } from "radix-ui"
 

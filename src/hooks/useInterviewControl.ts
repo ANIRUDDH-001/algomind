@@ -1,3 +1,22 @@
+/**
+ * @codesage
+ * @file      src/hooks/useInterviewControl.ts
+ * @purpose   Controller hook managing interview orchestration, prompt generation, turn limits, and user submissions.
+ * @tech      React
+ * @connects  Composes useInterviewVoice, useInterviewMessages, useInterviewApi
+ * @apis      none
+ * @db        none
+ * @state     Interview state machine state, round counts, and system prompt caching
+ * @env       NODE_ENV, NEXT_PUBLIC_ENABLE_TEST_HOOKS
+ * @issues    Large orchestration file, potential overlap with monolithic useInterview.ts
+ * @audit     CODESAGE-v1
+ * 
+ * @section   Prompt Generation
+ * Handles dynamic updates to the system prompt based on limits and session state.
+ * 
+ * @section   Turn Orchestration
+ * Handles starting, submitting turns, interrupts, and coding mode transitions.
+ */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateTurnPrompt, generateSystemPrompt, generateInterviewOpeningTrigger, GUEST_INTRO_TEXT, MAX_USER_INPUT, type SystemPromptOptions } from '@/lib/interview/prompts';
 import { buildInterruptionContext } from '@/lib/interview/interruption-context';

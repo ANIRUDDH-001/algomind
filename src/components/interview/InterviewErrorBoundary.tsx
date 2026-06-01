@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewErrorBoundary.tsx
+ * @purpose   Catches and displays runtime errors within the interview session view.
+ * @tech      React (Class Component), Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     Component state (hasError, error)
+ * @env       None
+ * @issues    console.error used for logging (intentional)
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { ReactNode } from 'react';

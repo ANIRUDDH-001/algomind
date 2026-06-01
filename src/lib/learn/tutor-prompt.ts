@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/learn/tutor-prompt.ts
+ * @purpose   System and tutor prompts for AI learning assistant.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * @module learn/tutor-prompt
  * @description Kai-Tutor system prompt builder.
  *              Called by /api/learn/concept on every turn.

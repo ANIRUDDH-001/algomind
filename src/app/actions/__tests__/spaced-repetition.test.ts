@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/__tests__/spaced-repetition.test.ts
+ * @purpose   Unit tests for spaced repetition server actions like upserting and queue fetching.
+ * @tech      Vitest, Supabase, TypeScript
+ * @connects  ../spaced-repetition, @/lib/spaced-repetition/queue, @/lib/supabase/service
+ * @apis      None
+ * @db        Mocked Supabase calls
+ * @state     None
+ * @env       None
+ * @issues    None found
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { upsertSpacedRepetition, getReviewQueue, getSpacedReviewForProblem } from '../spaced-repetition';
 import { addToQueue } from '@/lib/spaced-repetition/queue';

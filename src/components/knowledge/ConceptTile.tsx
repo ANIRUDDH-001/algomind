@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/components/knowledge/ConceptTile.tsx
+ * @purpose   Single color-coded tile representing a concept's confidence level in the heatmap.
+ * @tech      React, Framer Motion, TailwindCSS
+ * @connects  framer-motion, lucide-react, KGConceptSummary, ConceptConfidenceLevel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
+/**
  * @component ConceptTile
  * @description Single tile in the concept heatmap.
  *              Color-coded by confidence level. Click to open detail panel.

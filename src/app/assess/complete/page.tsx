@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/complete/page.tsx
+ * @purpose   Page component for assessment completion with Suspense wrapper
+ * @tech      React, Next.js
+ * @connects  ./content
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import React, { Suspense } from 'react';
 import { AssessmentCompleteContent } from './content';
 

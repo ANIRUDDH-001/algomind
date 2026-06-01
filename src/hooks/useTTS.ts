@@ -1,10 +1,17 @@
-'use client';
 /**
- * useTTS — React wrapper for TTSEngine.
- * - Polly enabled flag read from /api/flags ONCE on mount.
- * - Voice loaded from user_preferences via passed prop.
- * - onSpeakStart/onSpeakEnd fire reliably (used to gate mic).
+ * @codesage
+ * @file      src/hooks/useTTS.ts
+ * @purpose   React wrapper for TTSEngine, providing text-to-speech capabilities via Polly or browser fallback.
+ * @tech      React, Web Speech API
+ * @connects  Imports TTSEngine; Used by voice and interview hooks
+ * @apis      none
+ * @db        none
+ * @state     React component state for speaking status, TTS provider, and user voice preferences
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
  */
+'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TTSEngine, type TTSProvider } from '@/lib/voice/tts-engine';
 import { preprocessForTTS } from '@/lib/voice/tts-preprocessor';

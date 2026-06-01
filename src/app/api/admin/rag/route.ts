@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/rag/route.ts
+ * @purpose   Admin endpoints for managing knowledge gaps and RAG chunk creation, including AI drafting and embeddings.
+ * @tech      Next.js, Supabase, TypeScript, Gemini
+ * @connects  @/lib/auth/requireAdminForApi, @/lib/supabase/server, @/lib/ai/client, @/lib/monitoring/events, @/lib/tracing/correlation
+ * @apis      Gemini (via getAIClient)
+ * @db        knowledge_gaps, knowledge_chunks
+ * @state     none
+ * @env       none
+ * @issues    Replaced console.error with empty handlers for fire-and-forget and removed from catch blocks.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { createServerSupabase } from '@/lib/supabase/server';
@@ -56,7 +69,6 @@ export async function GET(req: NextRequest) {
         return jsonWithCorrelationId({ error: 'Invalid view' }, { status: 400 });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        console.error('[admin/rag] Error:', errMsg);
         void logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
         return jsonWithCorrelationId({ error: 'Internal server error' }, { status: 500 });
     }
@@ -162,7 +174,7 @@ KEYWORDS: [comma-separated list of keywords]`
         }
 
         // Trigger background embedding (fire and forget)
-        triggerEmbedding(chunk.id).catch(console.error);
+        triggerEmbedding(chunk.id).catch(() => {});
 
             return jsonWithCorrelationId({ success: true, chunkId: chunk.id });
         }
@@ -176,7 +188,7 @@ KEYWORDS: [comma-separated list of keywords]`
         const count = pending?.length || 0;
         // Fire and forget for each
         for (const chunk of pending || []) {
-            triggerEmbedding(chunk.id).catch(console.error);
+            triggerEmbedding(chunk.id).catch(() => {});
         }
 
             return jsonWithCorrelationId({ success: true, count });
@@ -185,7 +197,6 @@ KEYWORDS: [comma-separated list of keywords]`
         return jsonWithCorrelationId({ error: 'Invalid action' }, { status: 400 });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        console.error('[admin/rag] Error:', errMsg);
         void logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
         return jsonWithCorrelationId({ error: 'Internal server error' }, { status: 500 });
     }

@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/utils/retry.ts
+ * @purpose   Provides core utility and library functions.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * Exponential backoff retry utility for API calls.
  *
  * Retries failed requests with increasing delays:

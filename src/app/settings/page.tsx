@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/settings/page.tsx
+ * @purpose   Settings page wrapper rendering the SettingsPanel.
+ * @tech      React, Next.js
+ * @connects  SettingsPanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';

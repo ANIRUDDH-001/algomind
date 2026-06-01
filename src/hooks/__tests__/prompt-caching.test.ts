@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/prompt-caching.test.ts
+ * @purpose   Unit tests for system prompt caching and turn-based state updates.
+ * @tech      Vitest
+ * @connects  Tests updateSystemPromptForTurn from useInterviewControl
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { describe, it, expect } from 'vitest';
 import { updateSystemPromptForTurn } from '../useInterviewControl';
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/cache/dashboardCache.ts
+ * @purpose   Provides caching functions for user dashboard averages using Upstash Redis.
+ * @tech      Redis
+ * @connects  Imports from @/lib/upstash/client, exported to dashboard handlers.
+ * @apis      None
+ * @db        Redis cache (Upstash)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { getRedis } from '@/lib/upstash/client';
 
 const CACHE_TTL = 300; // 5 minutes

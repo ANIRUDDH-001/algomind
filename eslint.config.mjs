@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      eslint.config.mjs
+ * @purpose   Configures ESLint rules, plugins, and ignore patterns for the Next.js project
+ * @tech      ESLint, Next.js, React Hooks, TypeScript
+ * @connects  Imports eslint-config-next and react-hooks plugins
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";

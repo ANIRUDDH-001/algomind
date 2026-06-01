@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/login/page.tsx
+ * @purpose   Client component for the login page, handling Google and GitHub OAuth sign-in.
+ * @tech      Next.js, React, Supabase Auth
+ * @connects  Imports useAuth and useGuardedRouter hooks
+ * @apis      None
+ * @db        Supabase Auth
+ * @state     React local state
+ * @env       NODE_ENV
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useAuth } from '@/components/auth/AuthProvider';

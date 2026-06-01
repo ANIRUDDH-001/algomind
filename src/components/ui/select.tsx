@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/select.tsx
+ * @purpose   Provides an accessible dropdown select component based on Radix UI, complete with groups, triggers, items, and scroll buttons.
+ * @tech      React, Radix UI, Lucide React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for forms across the application.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"

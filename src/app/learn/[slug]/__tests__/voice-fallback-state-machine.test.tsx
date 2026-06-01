@@ -1,6 +1,19 @@
 /**
  * @vitest-environment jsdom
  */
+/**
+ * @codesage
+ * @file      src/app/learn/[slug]/__tests__/voice-fallback-state-machine.test.tsx
+ * @purpose   Test suite for the voice fallback state machine in the Learn mode client.
+ * @tech      Vitest, React Testing Library
+ * @connects  Imports LearnSessionPageClient
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';

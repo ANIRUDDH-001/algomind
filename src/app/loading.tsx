@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/loading.tsx
+ * @purpose   Global loading state fallback component
+ * @tech      Next.js, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="flex-1 flex items-center justify-center bg-zinc-950">

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/assessment/progress-store.ts
+ * @purpose   Manages local storage persistence of interview session history and progress
+ * @tech      localStorage
+ * @connects  imports CognitiveSkill, SKILL_DEFINITIONS
+ * @apis      None
+ * @db        localStorage (algomind_progress_*)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { CognitiveSkill } from '@/types/assessment';
 import { SKILL_DEFINITIONS } from './skill-registry';
 

@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/LoadingState.tsx
+ * @purpose   Displays loading spinners, skeletons, and full-screen loading states across the application.
+ * @tech      React, TailwindCSS
+ * @connects  Used by various components needing loading UI
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+
 interface LoadingStateProps {
     message?: string;
     size?: 'sm' | 'md' | 'lg';

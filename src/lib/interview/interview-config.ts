@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Defines the configuration interfaces and types for the interview sessions (modes, difficulties).
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * interview-config.ts
  * 
  * Every session setting flows from ONE of these three resolver functions.

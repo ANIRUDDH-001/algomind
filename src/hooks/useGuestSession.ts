@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/useGuestSession.ts
+ * @purpose   React hook to track guest session limits (user/AI turns) and store them in sessionStorage.
+ * @tech      React, DOM Storage
+ * @connects  Exported for InterviewSession and GuestModeBanner
+ * @apis      none
+ * @db        none
+ * @state     React component state synced with sessionStorage
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useCallback } from 'react';

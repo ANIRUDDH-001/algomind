@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/TestCasePanel.test.tsx
+ * @purpose   Tests for TestCasePanel and execution context generation.
+ * @tech      Vitest
+ * @connects  ../TestCasePanel
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { matchResults, buildKaiExecutionContext } from '../TestCasePanel';
 import type { TestCase } from '../TestCasePanel';

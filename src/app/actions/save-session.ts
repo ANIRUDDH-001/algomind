@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/actions/save-session.ts
+ * @purpose   Server action to save interview session and assessment results
+ * @tech      Next.js Server Actions, Supabase, AI
+ * @connects  @/lib/supabase/server, AI Analyzer, Memory Generator
+ * @apis      None
+ * @db        interview_sessions, assessments, learner_profiles, knowledge_gaps
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use server';
 
 import { createServerSupabase as createClient } from '@/lib/supabase/server';

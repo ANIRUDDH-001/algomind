@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useInterview.state-ownership.test.ts
+ * @purpose   Unit tests for state ownership and boundaries within the useInterview hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useInterview
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 
 import { renderHook, act } from '@testing-library/react';

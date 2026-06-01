@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/owner/KGStatsPanel.tsx
+ * @purpose   Admin panel displaying Knowledge Graph statistics.
+ * @tech      React, TailwindCSS
+ * @connects  lucide-react
+ * @apis      GET /api/owner/kg-stats
+ * @db        None
+ * @state     Local Component State
+ * @env       None
+ * @issues    No issues found
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect, useState } from 'react';

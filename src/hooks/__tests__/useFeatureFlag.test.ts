@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/hooks/__tests__/useFeatureFlag.test.ts
+ * @purpose   Unit tests for the useFeatureFlag React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useFeatureFlag
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 // @vitest-environment jsdom
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';

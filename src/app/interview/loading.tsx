@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/interview/loading.tsx
+ * @purpose   Loading UI skeleton for the interview session page.
+ * @tech      React, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 export default function Loading() {
     return (
         <div className="fixed inset-0 top-[var(--navbar-h)] bg-[var(--surface-base)] flex flex-col lg:flex-row p-4 gap-4 animate-pulse overflow-hidden">

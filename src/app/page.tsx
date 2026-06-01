@@ -1,4 +1,16 @@
- 
+/**
+ * @codesage
+ * @file      src/app/page.tsx
+ * @purpose   Marketing home page and landing screen
+ * @tech      Next.js, React, Framer Motion, Tailwind CSS
+ * @connects  lucide-react, auth provider, onboarding
+ * @apis      /api/user/account-type
+ * @db        None
+ * @state     Local state for tilt, routing, redirecting
+ * @env       ENABLE_GUEST_MODE
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';

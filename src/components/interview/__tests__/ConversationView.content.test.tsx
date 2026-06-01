@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/components/interview/__tests__/ConversationView.content.test.tsx
+ * @purpose   Tests for ConversationView defensive content rendering.
+ * @tech      Vitest, React Testing Library
+ * @connects  ../ConversationView
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 // @vitest-environment jsdom
 /**
  * BUG-V7-06 Regression: ConversationView must safely render every

@@ -1,7 +1,8 @@
+// @codesage
 'use client';
 
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { X } from 'lucide-react';
 import type { SessionHistory, CognitiveSkill } from '@/types/assessment';

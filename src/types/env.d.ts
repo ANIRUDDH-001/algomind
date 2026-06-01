@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/types/env.d.ts
+ * @purpose   TypeScript environment variable declarations and type definitions for NodeJS.ProcessEnv.
+ * @tech      TypeScript
+ * @connects  Provides global intellisense and typing for process.env across the entire application.
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       Defines application-wide environment variables including API keys, Supabase URLs, and AWS configs.
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
+ */
+
 declare namespace NodeJS {
     interface ProcessEnv {
         // AI Provider Keys

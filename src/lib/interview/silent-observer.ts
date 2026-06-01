@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Runs parallel logic to monitor the conversation, detect cognitive signals, and surface UI coaching nudges.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * silent-observer.ts  (REBUILT)
  *
  * Runs after each AI response exchange. Detects:

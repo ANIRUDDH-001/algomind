@@ -1,4 +1,9 @@
 /**
+ * @codesage
+ * @file      src/app/owner/tabs/__tests__/analytics-tab.test.tsx
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ *
  * @vitest-environment jsdom
  *
  * Tests for src/app/admin/analytics/client.tsx

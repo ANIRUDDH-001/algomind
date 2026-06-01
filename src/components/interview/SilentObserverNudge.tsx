@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/SilentObserverNudge.tsx
+ * @purpose   Displays non-intrusive coaching nudges based on silent observer signals.
+ * @tech      React, Framer Motion, Tailwind CSS
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useEffect } from 'react';

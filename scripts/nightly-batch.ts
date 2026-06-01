@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      scripts/nightly-batch.ts
+ * @purpose   Orchestrates scheduled background tasks like model sync, cleanup, and generating AI insights
+ * @tech      Node.js, dotenv, Supabase
+ * @connects  Imports various batch jobs and monitoring services
+ * @apis      none
+ * @db        Queries interview_sessions table
+ * @state     none
+ * @env       Uses NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import 'dotenv/config';
 import { syncModelRegistry } from './batch/sync-models';
 import { runCleanup } from './batch/cleanup';

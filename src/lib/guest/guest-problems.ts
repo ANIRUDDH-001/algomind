@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/guest/guest-problems.ts
+ * @purpose   Guest user management and problem generation.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import type { Problem } from '@/lib/supabase/problems';
 
 /**

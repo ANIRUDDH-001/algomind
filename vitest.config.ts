@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      vitest.config.ts
+ * @purpose   Configuration file for Vitest testing framework including coverage thresholds
+ * @tech      Vitest, Node.js
+ * @connects  Resolves src paths and configures test suites
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 

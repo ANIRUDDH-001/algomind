@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the VADManager singleton covering config injection and script load emulation.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getVADManager, resetVADManager, VADManager } from '../vad-manager';
 import { VADState } from '../types';

@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/knowledge/__tests__/recommendations.test.ts
+ * @purpose   Tests retrieval of personalized learning recommendations.
+ * @tech      Vitest
+ * @connects  @/app/api/knowledge/recommendations/route, @/lib/supabase/server, @/lib/kai-context, @/lib/monitoring/events
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/knowledge/recommendations/route';

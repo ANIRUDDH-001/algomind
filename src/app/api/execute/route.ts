@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/execute/route.ts
+ * @purpose   Executes user-provided code against the Piston API securely.
+ * @tech      Next.js, Supabase, Upstash Redis
+ * @connects  @/lib/supabase/server, @/lib/upstash/client, @/lib/monitoring/events
+ * @apis      Piston API (https://emkc.org/api/v2/piston/execute or PISTON_URL)
+ * @db        None
+ * @state     Redis caching for duplicate executions
+ * @env       PISTON_URL
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redisIncr, redisGet, redisSet } from '@/lib/upstash/client';

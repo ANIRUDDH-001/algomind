@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/spaced-repetition/fsrs.ts
+ * @purpose   Spaced repetition algorithms (FSRS, SM2) and scheduling queues.
+ * @tech      Node.js, ts-fsrs
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { FSRS, Card, Grade, Rating, createEmptyCard, State } from 'ts-fsrs';
 
 // FSRS instance with recommended settings for DSA problem review

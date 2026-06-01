@@ -1,10 +1,15 @@
 /**
- * @component ZoomTranscript
- * @description Voice-first live conversation display.
- *              Shows last Kai turn + live user transcript.
- *              Replaces scrolling chat log for voice sessions.
- *              Inspired by Zoom's live caption bar.
- * @phase Phase 2P
+ * @codesage
+ * @file      src/components/voice/ZoomTranscript.tsx
+ * @purpose   Voice-first live conversation display, showing AI and user transcripts.
+ * @tech      React, Framer Motion, Lucide
+ * @connects  @/hooks/useZoomTranscript
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
  */
 'use client';
 

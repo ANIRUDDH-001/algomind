@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/interview/analyze/route.ts
+ * @purpose   Endpoint for server-side cognitive analysis of interview transcripts.
+ * @tech      Next.js, Supabase, AI (CognitiveAnalyzer)
+ * @connects  @/lib/supabase/server, @/lib/assessment/analyzer, @/lib/monitoring/events, @/lib/rate-limit/ip-rate-limiter, @/lib/rate-limit/user-rate-limiter
+ * @apis      AI Providers via CognitiveAnalyzer
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { CognitiveAnalyzer } from '@/lib/assessment/analyzer';

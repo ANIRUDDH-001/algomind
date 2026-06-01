@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/startup/validateEnv.ts
+ * @purpose   Environment validation at system startup.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       process.env variables
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 import { createServerSupabase } from '@/lib/supabase/server';
 
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/concurrency-admin-delete.test.ts
+ * @purpose   Validates that atomic DB deletion prevents the final admin from being deleted under concurrent load.
+ * @tech      Vitest, TypeScript
+ * @connects  none
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, expect, it } from 'vitest';
 
 /**

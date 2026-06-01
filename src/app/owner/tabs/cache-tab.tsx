@@ -1,10 +1,17 @@
 'use client';
 
 /**
- * Admin — Cache Stats
- *
- * Fetches from /api/admin/cache-stats so we read actual server-side state,
- * not a fresh client-side instance (which always shows zeroes).
+ * @codesage
+ * @file      src/app/owner/tabs/cache-tab.tsx
+ * @purpose   Displays cache stats and provides options to clear or refresh the cache.
+ * @tech      React, Lucide React
+ * @connects  /api/admin/cache-stats
+ * @apis      GET /api/admin/cache-stats, DELETE /api/admin/cache-stats
+ * @db        None
+ * @state     React local state
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

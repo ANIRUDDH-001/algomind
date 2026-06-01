@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/server.ts
+ * @purpose   Provides functions to create Supabase clients for server components and service-role tasks.
+ * @tech      @supabase/ssr, @supabase/supabase-js, next/headers
+ * @connects  Imports from @supabase/ssr, @supabase/supabase-js, next/headers
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_DIRECT_URL, SUPABASE_SERVICE_ROLE_KEY
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { createServerClient } from '@supabase/ssr';
 import { type SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';

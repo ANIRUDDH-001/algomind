@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/app/api/admin/__tests__/auth-boundaries.test.ts
+ * @purpose   Ensures all admin API routes properly enforce admin-level authorization boundaries.
+ * @tech      Vitest, Next.js, TypeScript
+ * @connects  ../admins/route, ../health/route, ../models/route, ../reset-model/route, ../events/route, @/lib/auth/requireAdminForApi
+ * @apis      none
+ * @db        admin_users, profiles (mocked)
+ * @state     none
+ * @env       none
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * Auth Boundary Tests for Admin API Routes
  * 
  * Verifies that every admin endpoint enforces authentication

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/ui/input.tsx
+ * @purpose   Provides a standard, styled Input component with support for all native HTML input attributes.
+ * @tech      React, Tailwind CSS
+ * @connects  Imports utility 'cn' from @/lib/utils. Exported for forms across the app.
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import * as React from "react"
 import { cn } from "@/lib/utils"
 

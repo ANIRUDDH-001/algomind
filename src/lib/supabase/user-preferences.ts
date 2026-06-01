@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/user-preferences.ts
+ * @purpose   Manages user preferences and subscription status, syncing with Supabase and localStorage.
+ * @tech      Supabase JS Client
+ * @connects  Imports from ./client, ./service. Exported to application contexts.
+ * @apis      None
+ * @db        user_preferences, profiles
+ * @state     Interacts with browser localStorage.
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { getSupabase, isSupabaseConfigured } from './client';
 
 const LOCAL_STORAGE_KEY = 'algomind_user_preferences';

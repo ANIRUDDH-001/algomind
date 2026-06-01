@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/hooks/__tests__/useLearnSession.test.ts
+ * @purpose   Unit tests for the useLearnSession React hook.
+ * @tech      Vitest, React Testing Library
+ * @connects  Tests useLearnSession
+ * @apis      none
+ * @db        none
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
+/**
  * @vitest-environment jsdom
  */
 import { renderHook, act, waitFor } from '@testing-library/react';

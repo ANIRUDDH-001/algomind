@@ -1,4 +1,12 @@
 /**
+ * @codesage
+ * @description Core system prompt generator for the AI interviewer.
+ * @summary Central hub generating the exact AI prompt based on mode, difficulty, problem data, and candidate context. Handles nuances like strictness thresholds for practice vs crunch vs employer modes. Contains the core logic for the interviewer's persona and constraints.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * interviewer-prompt.ts
  * ─────────────────────────────────────────────────────────────────────────────
  * AlgoMind — AI Interviewer System Prompt Generator

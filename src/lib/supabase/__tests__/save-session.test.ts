@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/supabase/__tests__/save-session.test.ts
+ * @purpose   Unit tests for the saveInterviewSession action, testing happy paths and error states.
+ * @tech      Vitest
+ * @connects  Imports from @/app/actions/save-session, @/lib/supabase/server, @/lib/assessment/analyzer
+ * @apis      None
+ * @db        Mocks interview_sessions, assessments, save_interview_session_atomic (RPC)
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { createServerSupabase } from '@/lib/supabase/server';

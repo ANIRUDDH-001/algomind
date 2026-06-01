@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Singleton wrapper around the @ricky0123/vad-web MicVAD for robust voice activity detection.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * VADManager — Singleton wrapper around @ricky0123/vad-web MicVAD.
  *
  * Design decisions:

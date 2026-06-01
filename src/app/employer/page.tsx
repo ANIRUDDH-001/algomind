@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/employer/page.tsx
+ * @purpose   Employer marketing page and account upgrade flow.
+ * @tech      Next.js, React, Tailwind CSS
+ * @connects  @/components/auth/AuthProvider, @/hooks/useGuardedRouter, @/lib/supabase/client
+ * @apis      /api/employer/upgrade
+ * @db        Supabase (profiles)
+ * @state     accountType, checkingType, companyName, inviteCode, isUpgrading, upgradeError
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 

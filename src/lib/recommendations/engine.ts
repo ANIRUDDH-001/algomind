@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/recommendations/engine.ts
+ * @purpose   Recommendation engine, calibrator, and insight processing.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
  
 import { UserProgress, CognitiveSkill } from '@/types/assessment';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';

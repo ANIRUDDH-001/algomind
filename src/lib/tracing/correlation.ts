@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/tracing/correlation.ts
+ * @purpose   Correlation ID generation for request tracing.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
 // ═══════════════════════════════════════════════════════════════════════════════
 // PHASE 6: CORRELATION FOUNDATION HARDENING
 // ═══════════════════════════════════════════════════════════════════════════════

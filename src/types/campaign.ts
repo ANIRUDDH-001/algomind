@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/types/campaign.ts
+ * @purpose   Defines interfaces for assessment campaigns, candidate submissions, and per-question states.
+ * @tech      TypeScript
+ * @connects  Used by campaign execution and submission tracking logic.
+ * @apis      none
+ * @db        assessment_campaigns, candidate_submissions
+ * @state     none
+ * @env       none
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
+ */
+
 // Per-question config stored in assessment_campaigns.campaign_questions
 export interface CampaignQuestion {
   problem_id: string;

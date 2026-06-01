@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * @codesage
+ * @file      src/components/layout/Navbar.tsx
+ * @purpose   Provides the main top navigation bar and mobile bottom navigation for the application, handling user authentication state and role-based routing.
+ * @tech      Next.js, React, Framer Motion, Lucide React, Tailwind CSS
+ * @connects  Imports AuthProvider, useAdmin, useKeyboardShortcuts and UI components. Used by root layouts.
+ * @apis      GET /api/user/account-type, GET /api/user/owner-status, GET /api/admin/events
+ * @db        None
+ * @state     useAuth context
+ * @env       NEXT_PUBLIC_ENABLE_EMPLOYER_TIER
+ * @issues    Empty catch block in fetchAccountType. console.error in checkModels.
+ * @audit     CODESAGE-v1
+ */
+
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';

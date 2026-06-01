@@ -1,3 +1,6 @@
+/**
+ * @codesage
+ */
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';

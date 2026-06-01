@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/learn/error.tsx
+ * @purpose   Displays a fallback error UI and reports telemetry for failures within the learn route.
+ * @tech      Next.js, React, Lucide React
+ * @connects  Imports reportError from @/lib/telemetry/report-error
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import { useEffect } from 'react';

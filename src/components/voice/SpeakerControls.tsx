@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/voice/SpeakerControls.tsx
+ * @purpose   Controls for TTS playback (play, pause, stop, voice selection, speed).
+ * @tech      React, TailwindCSS
+ * @connects  lucide-react, @/components/ui/button, @/components/ui/select, @/components/ui/slider
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import React from 'react';
 import { Play, Pause, Square, Volume2, FastForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';

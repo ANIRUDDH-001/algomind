@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/app/interview/__tests__/analysis.test.tsx
+ * @purpose   Tests for AnalysisClient and AnalysisPage server component.
+ * @tech      Vitest, React Testing Library, React
+ * @connects  AnalysisClient, AnalysisPage, supabase/server, feature-flags-server, spaced-repetition
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
+/**
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

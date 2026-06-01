@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/assess/[token]/page.tsx
+ * @purpose   Server component for candidate assessment page
+ * @tech      Next.js server component, Supabase
+ * @connects  @/lib/supabase/server, @/components/enterprise/CandidateInterview
+ * @apis      none
+ * @db        supabase.from('assessment_campaigns')
+ * @state     none
+ * @env       none
+ * @issues    none
+ * @audit     CODESAGE-v1
+ */
 import { createServerSupabase } from '@/lib/supabase/server';
 import { CandidateInterview } from '@/components/enterprise/CandidateInterview';
 import { notFound, redirect } from 'next/navigation';

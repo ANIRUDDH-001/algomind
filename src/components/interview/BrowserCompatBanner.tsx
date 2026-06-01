@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/BrowserCompatBanner.tsx
+ * @purpose   Displays a warning banner for non-Chrome browsers.
+ * @tech      React, Lucide
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     useState, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 import { useState, useEffect } from 'react';

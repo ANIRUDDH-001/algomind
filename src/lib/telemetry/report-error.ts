@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/telemetry/report-error.ts
+ * @purpose   Provides a non-blocking utility to send client-side errors to the server via beacon or fetch.
+ * @tech      Browser fetch/sendBeacon
+ * @connects  Exported for use in React error boundaries.
+ * @apis      POST /api/log-error
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+/**
  * Report a client-side error to the server. Non-blocking, never throws.
  */
 export function reportError(

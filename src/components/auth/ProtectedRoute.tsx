@@ -1,3 +1,6 @@
+/**
+ * @codesage
+ */
 'use client';
 
 import { useAuth } from './AuthProvider';

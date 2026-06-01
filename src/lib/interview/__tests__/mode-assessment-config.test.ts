@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Tests for the mode assessment configuration mappings.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ * @skip: test-file
+ */
 import { describe, it, expect } from 'vitest';
 import { MODE_ASSESSMENT_CONFIGS } from '../mode-assessment-config';
 

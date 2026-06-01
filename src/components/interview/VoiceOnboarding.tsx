@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/VoiceOnboarding.tsx
+ * @purpose   Provides a modal/drawer for onboarding users to voice interaction.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/components/ui/dialog, @/components/ui/drawer
+ * @apis      None
+ * @db        None
+ * @state     useState, useEffect
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 /* eslint-disable react-hooks/set-state-in-effect */
 import * as React from 'react';
 import { useState, useEffect } from 'react';

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/InterviewHeader.tsx
+ * @purpose   Displays the problem title, difficulty, mode, and concept tags for an interview.
+ * @tech      React, Tailwind CSS
+ * @connects  @/components/ui/badge
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 import { Badge } from '@/components/ui/badge';
 
 type InterviewMode = 'warm-up' | 'practice' | 'crunch' | 'sprint' | 'employer';

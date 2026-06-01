@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/health/route.ts
+ * @purpose   Provides system health status covering database, redis, circuit breakers, and pending analysis backlog.
+ * @tech      Next.js, Supabase Service Client, Redis
+ * @connects  @/lib/supabase/service, @/lib/upstash/client, @/lib/monitoring/events
+ * @apis      None
+ * @db        global_feature_flags, candidate_submissions
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getCircuitState, getRedis } from '@/lib/upstash/client';

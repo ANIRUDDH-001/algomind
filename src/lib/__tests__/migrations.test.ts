@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/__tests__/migrations.test.ts
+ * @purpose   Tests for Provides core utility and library functions.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1 | @skip: test-file
+ */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import postgres from 'postgres';
 

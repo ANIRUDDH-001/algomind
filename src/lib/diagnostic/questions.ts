@@ -1,4 +1,17 @@
 /**
+ * @codesage
+ * @file      src/lib/diagnostic/questions.ts
+ * @purpose   Handles diagnostic questions.
+ * @tech      Node.js
+ * @connects  Imports app logic, configuration, and external library utilities
+ * @apis      None directly visible
+ * @db        None
+ * @state     Stateless
+ * @env       None
+ * @issues    No major issues observed.
+ * @audit     CODESAGE-v1
+ */
+/**
  * Standardized diagnostic questions with 1-5 scale answers
  * Each question maps to specific DSA concepts
  * User selects 1-5 which directly maps to confidence score:

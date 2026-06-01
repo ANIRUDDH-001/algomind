@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/interview/page.tsx
+ * @purpose   Main interview page component handling problem loading, rate limiting, and config resolution.
+ * @tech      React, Next.js, Supabase
+ * @connects  InterviewSession, InterviewErrorBoundary, useProgress, useAuth
+ * @apis      /api/rag/context
+ * @db        profiles
+ * @state     problem, interviewConfig, loading, error, rateLimitInfo, userTtsProvider
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';

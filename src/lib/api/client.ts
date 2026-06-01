@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/lib/api/client.ts
+ * @purpose   Provides typed fetch wrappers for making HTTP requests and handling errors
+ * @tech      fetch
+ * @connects  imports parseApiError from '@/lib/api/parse-error'
+ * @apis      Generic internal/external endpoints via fetch
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import { parseApiError } from '@/lib/api/parse-error';
 
 export class ApiClientError extends Error {

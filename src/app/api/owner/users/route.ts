@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/owner/users/route.ts
+ * @purpose   Owner-only API for listing users and modifying account statuses/preferences.
+ * @tech      Next.js, Supabase Service Client
+ * @connects  @/lib/supabase/server, @/lib/auth/account-type, @/lib/auth/requireOwnerForApi, @/lib/monitoring/events
+ * @apis      None
+ * @db        profiles, user_preferences
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { isPrimaryOwner } from '@/lib/auth/account-type';

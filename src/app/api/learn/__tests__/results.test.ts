@@ -1,3 +1,17 @@
+/**
+ * @codesage
+ * @file      src/app/api/learn/__tests__/results.test.ts
+ * @purpose   Tests retrieval of learn session results.
+ * @tech      Vitest
+ * @connects  @/app/api/learn/results/[sessionId]/route, @/lib/supabase/server, @/lib/supabase/service, @/lib/knowledge-graph
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ * @skip      test-file
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/legal/privacy/page.tsx
+ * @purpose   Static page displaying the application's privacy policy.
+ * @tech      Next.js, Tailwind Typography
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

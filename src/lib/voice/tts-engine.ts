@@ -1,4 +1,11 @@
 /**
+ * @codesage
+ * @description Implements the TTSEngine bridging AWS Polly and Browser WebSpeech APIs.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
+/**
  * TTSEngine
  * Polly → Browser WebSpeech cascade.
  * Single <audio> element (not AudioContext) — iOS uses media volume correctly.

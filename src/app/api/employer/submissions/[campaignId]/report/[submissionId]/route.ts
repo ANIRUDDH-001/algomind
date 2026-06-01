@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/app/api/employer/submissions/[campaignId]/report/[submissionId]/route.ts
+ * @purpose   Retrieves a detailed assessment report for a specific candidate submission.
+ * @tech      Next.js, Supabase
+ * @connects  @/lib/supabase/server, @/lib/auth/require-employer
+ * @apis      None
+ * @db        assessment_campaigns, candidate_submissions, assessments, interview_sessions, problems
+ * @state     None
+ * @env       None
+ * @issues    None found.
+ * @audit     CODESAGE-v1
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';

@@ -1,3 +1,11 @@
+/**
+ * @codesage
+ * @description Provides a large auto-generated vocabulary list for speech recognition adaptation.
+ * @summary Contains thousands of DSA and software engineering terms. Used to pre-warm speech recognition models or adjust vocabulary hints so that technical terms are recognized correctly.
+ * @section SEC-05: Core Libs: Interview & Voice
+ * @author ANIRUDDH
+ * @last_audited 2026-06-01
+ */
 // Auto-generated MASSIVE vocabulary list by AI
 export const DSA_VOCABULARY = [
     "1",

@@ -1,3 +1,16 @@
+/**
+ * @codesage
+ * @file      src/components/interview/GuestModeBanner.tsx
+ * @purpose   Displays a banner warning guest users about session limits and data persistence.
+ * @tech      React, Tailwind CSS, Lucide
+ * @connects  @/hooks/useGuestSession, @/lib/interview/prompts
+ * @apis      None
+ * @db        None
+ * @state     useState
+ * @env       None
+ * @issues    None observed
+ * @audit     CODESAGE-v1
+ */
 'use client';
 
 import React, { useState } from 'react';

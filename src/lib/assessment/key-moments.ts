@@ -1,9 +1,18 @@
 /**
- * key-moments.ts
- *
- * Identifies 5-7 meaningful turning points in an interview transcript.
- * Called once post-session (not real-time). Result cached in assessments.skill_evidence.
+ * @codesage
+ * @file      src/lib/assessment/key-moments.ts
+ * @purpose   Identifies 5-7 meaningful turning points in an interview transcript
+ * @tech      AI Client
+ * @connects  imports getAIClient from '@/lib/ai/client'
+ * @apis      None directly
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
  */
+
+import { getAIClient } from '@/lib/ai/client';
 
 import { getAIClient } from '@/lib/ai/client';
 
