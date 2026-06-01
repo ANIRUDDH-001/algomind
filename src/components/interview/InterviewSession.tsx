@@ -24,14 +24,12 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterviewLimits } from '@/hooks/useInterviewLimits';
 import { useGuestSession, GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';
 import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
-import { RATE_LIMIT } from '@/lib/rate-limit/user-rate-limiter';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { ConversationView } from './ConversationView';
 import { DesktopLayout } from './layouts/DesktopLayout';
 import { MobileLayout } from './layouts/MobileLayout';
 import { InterviewLayoutContext } from './InterviewLayoutContext';
 import { InterviewLimitBar } from './InterviewLimitBar';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 // Voice & Layout
 import { GuestModeBanner } from './GuestModeBanner';
 import { GuestResultsOverlay } from './GuestResultsOverlay';
@@ -45,7 +43,7 @@ import { LiveTranscript } from '@/components/voice/LiveTranscript';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, Mic, MessageSquare, ArrowLeft, Clock, AlertTriangle, Code, ChevronRight } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, ArrowLeft, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
 import { cn } from "@/lib/utils";
 // framer-motion removed from interview chunk; the single badge animation
 // below is replaced by a CSS keyframe (see globals.css → cognitive-badge-in).
@@ -57,8 +55,8 @@ import { AssessmentLoader } from '@/components/assessment/AssessmentLoader';
 // Tools & Helpers
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import type { Problem } from '@/lib/supabase/problems';
-import { CodeEditor, type ExecutionResult } from './CodeEditor';
-import { TestCasePanel, type TestCase } from './TestCasePanel';
+import type { ExecutionResult } from './CodeEditor';
+import { type TestCase } from './TestCasePanel';
 import { saveInterviewSession } from '@/app/actions/save-session';
 import { toast } from 'sonner';
 import { GuestRegisterModal } from './GuestRegisterModal';
@@ -67,15 +65,12 @@ import { InterviewHeader } from './InterviewHeader';
 // Observer
 import { SilentObserver, type InterviewState } from '@/lib/interview/silent-observer';
 import { SilentObserverNudge } from './SilentObserverNudge';
-import { classifyTurnSignal } from '@/lib/interview/turn-classifier';
 import { buildEnrichedTranscript } from '@/lib/interview/transcript-enricher';
 
 import type { InterviewConfig } from '@/lib/interview/interview-config';
-import { shouldAdvanceSprint, advanceSprintProblem } from '@/lib/interview/interview-config';
-import type { KaiMemoryStructured } from '@/types/kai-memory';
+import { advanceSprintProblem } from '@/lib/interview/interview-config';
 import { getSupabase } from '@/lib/supabase/client';
 import { getProblemById } from '@/lib/supabase/problems';
-import { GUEST_INTRO_BANNER } from '@/lib/interview/prompts';
 
 interface InterviewSessionProps {
     problem: Problem;
@@ -123,7 +118,6 @@ export function InterviewSession({
 }: InterviewSessionProps) {
     const { user } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     // VAD & Observer feature flags (server-side)
     const observerEnabled = useGlobalFeatureFlag('ENABLE_SILENT_OBSERVER', true);
@@ -161,6 +155,12 @@ export function InterviewSession({
         onTabChange: (tab) => setActiveTab(tab as MobileTab),
         disabled: showLimitModal || showLoginModal || isAssessment && activeTab === 'problem', // Optional conditional disablings
     });
+
+    // We can suppress eslint if we aren't using swipeHandlers/currentIndex yet
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _swipe = swipeHandlers;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _idx = currentIndex;
 
     // Handle screen resize fallback properly
     useEffect(() => {
