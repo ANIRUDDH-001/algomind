@@ -1,26 +1,28 @@
 # AI & API Audit
 
-## External APIs Found
+## AI Models In Use
 
-| File | APIs/Endpoints |
-|---|---|
-| next.config.ts | leetcode.com, supabase.co, workers.dev |
-| scripts/batch/sync-models.ts | https://api.groq.com/openai/v1/chat/completions, https://generativelanguage.googleapis.com/v1beta/models/ |
-| src/lib/ai/bedrock-client.ts | Bedrock/OpenAI |
-| src/lib/ai/client.ts | Bedrock/OpenAI |
-| src/lib/ai/common-questions.ts | Bedrock/OpenAI |
-| src/lib/ai/cost-guard.ts | Bedrock/OpenAI |
-| src/lib/ai/index.ts | Bedrock/OpenAI |
-| src/lib/ai/intent-classifier.ts | Bedrock/OpenAI |
-| src/lib/ai/memory-generator.ts | Bedrock/OpenAI |
-| src/lib/ai/model-registry.ts | Bedrock/OpenAI |
-| src/lib/ai/model-routing.ts | Bedrock/OpenAI |
-| src/lib/ai/narrative-generator.ts | Bedrock/OpenAI |
-| src/lib/ai/patterns.ts | Bedrock/OpenAI |
-| src/lib/ai/providers.ts | Bedrock/OpenAI |
-| src/lib/ai/rate-limiter.ts | Bedrock/OpenAI |
-| src/lib/ai/response-cache.ts | Bedrock/OpenAI |
-| src/lib/ai/response-chunker.ts | Bedrock/OpenAI |
-| src/lib/ai/types.ts | Bedrock/OpenAI |
-| src/lib/upstash/client.ts | Upstash Redis REST API |
-| src/lib/telemetry/report-error.ts | POST /api/log-error |
+### Gemini (1.5 Flash / Pro)
+- **Provider:** Google AI Studio
+- **Usage:** Core conversational agent (`src/lib/ai/client.ts`), Narrative Generation (`src/lib/assessment/narrative-generator.ts`), Concept extraction.
+- **Integration:** API calls route through `@/lib/ai/providers.ts`. Uses system prompts with strict JSON outputs for assessments.
+
+### Groq / Whisper
+- **Provider:** Groq
+- **Usage:** Ultra-fast Speech-to-Text (STT).
+- **Integration:** Handled in `src/lib/voice/whisper-stt.ts` and `src/app/api/voice/transcribe/route.ts`. Audio blobs from client VAD are sent here for immediate transcription.
+
+### AWS Polly
+- **Provider:** AWS
+- **Usage:** Text-to-Speech (TTS) for the AI Interviewer voice.
+- **Integration:** Handled in `src/lib/aws/polly.ts` and `src/app/api/voice/synthesize-polly/route.ts`. Streamed to the client.
+
+## External APIs
+
+### Piston (emkc.org)
+- **Usage:** Remote code execution environment for candidate code.
+- **Integration:** Evaluates submitted code against test cases securely. Currently relying on the public API endpoint which is subject to strict rate limits.
+
+### Supabase / Upstash
+- **Supabase:** PostgreSQL database and Auth provider.
+- **Upstash:** Redis-backed rate limiter (`src/lib/rate-limit/decision-layer.ts`) protecting AI endpoints from abuse.
