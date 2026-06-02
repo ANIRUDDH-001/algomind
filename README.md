@@ -1,243 +1,131 @@
-# 🧠 Algomind
+# AlgoMind
+> An AI-powered technical interview and learning platform that simulates real-world coding interviews with voice and real-time feedback.
 
-Welcome to **Algomind**, the next-generation AI-powered mock interview platform. This repository serves as the core blueprint for the application's backend, frontend, and database architecture.
-
-## 🚀 Overview
-
-Algomind is built to provide a highly interactive, voice-driven, and code-enabled interview experience. It features strict timing/turn constraints, highly responsive UI dual-layouts, and fallback-heavy backend services to ensure 100% uptime during live sessions.
-
-### Key Capabilities
-- **Voice Pipeline**: Real-time STT/TTS processing with fallback mechanisms.
-- **Code Execution**: In-browser synchronized code editing and remote execution via Piston.
-- **Cognitive Assessment**: Multi-dimensional grading covering algorithmic thinking, communication, problem decomposition, and pattern recognition.
-- **Spaced Repetition**: Adaptive learning integrations for post-interview reviews.
-- **Robust Telemetry**: Fire-and-forget backend logging and performance monitoring.
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![Supabase](https://img.shields.io/badge/Supabase-DB-green) ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
 
 ---
 
-## 🛠 Tech Stack
+## What This Is
 
-- **Frontend**: Next.js, React 18, Tailwind CSS, Lucide Icons
-- **Backend Architecture**: Next.js App Router (Serverless Functions), Upstash Redis (Caching & Rate Limiting)
-- **Database & Auth**: Supabase (PostgreSQL, Row-Level Security, JWT Auth, Atomic RPCs)
-- **AI / Voice Integration**:
-  - **STT**: Groq Whisper (Primary) -> Web Speech API (Fallback)
-  - **TTS**: AWS Polly (Primary) -> Browser TTS (Fallback)
-  - **Assessment Engine**: Groq/Gemini routing determinism
-- **Testing**: Vitest, React Testing Library
+AlgoMind solves the problem of finding high-quality, realistic technical interview practice. Candidates often practice algorithms in a vacuum, failing to develop the communication and problem-decomposition skills required in actual interviews. AlgoMind provides an interactive, voice-enabled interview environment that assesses cognitive skills just like a human interviewer.
+
+The system orchestrates a complex state machine that pairs a real-time code editor with AI-driven voice interaction. It chunks candidate speech, analyzes problem-solving dimensions in real time, manages interruptions dynamically, and generates comprehensive post-interview feedback and skill trajectory analytics.
+
+Unlike simple chatbot wrappers, AlgoMind uses a dedicated multi-agent backend. It separates the cognitive assessment logic from the conversational flow, utilizing a retrieval-augmented generation (RAG) system for context, an Upstash-backed rate limiter for abuse prevention, and a custom state machine to handle edge cases like candidate silence or mid-sentence interruptions.
 
 ---
 
-## 🏗 Architecture & System Design
+## Architecture
 
-### 1. Graceful Degradation (Voice & AI)
-The system is designed with multiple fail-safes. If Groq Whisper or AWS Polly experiences an outage, Algomind instantly falls back to native Browser Speech APIs without crashing the active user session. AI routing gracefully cascades through fallback models for assessment grading.
+*Architecture diagram available in internal masterbook.md*
 
-### 2. Frontend Modularity & Layouts
-The primary `InterviewSession` orchestrates logic globally, distributing state via `InterviewLayoutContext`.
-- **`DesktopLayout`**: A dynamic 4-quadrant UI for side-by-side video/voice, problem description, code execution, and chat history.
-- **`MobileLayout`**: A heavily optimized, swipe-friendly UI isolating concerns into focused tabs (Voice, Code, Problem) to prevent viewport stretching.
-
-### 3. Database Integrity & Security (Supabase)
-Our PostgreSQL instance strictly guards user data.
-- **Row-Level Security (RLS)**: Enforced via JWT claims (`auth.uid()`).
-- **Atomic Operations**: Core session completions are performed via secure RPCs (`save_interview_session_atomic`) to prevent partial multi-table writes.
-- **CHECK Constraints**: Score boundaries (0-100) and enum matching are native to the DB schema to prevent phantom dirty states.
-- **JSONB Optimization**: Deep-nested data (`transcript`, `skill_evidence`) are highly optimized with `GIN` indexes.
+The architecture relies on a Next.js App Router monolith communicating with a Supabase PostgreSQL backend. Real-time voice processing uses a combination of client-side Voice Activity Detection (VAD), AWS Polly for Text-to-Speech (TTS), and Groq/Whisper for Speech-to-Text (STT), all orchestrated via server-side API routes.
 
 ---
 
-## 🧪 Testing
+## Tech Stack
 
-The repository boasts a massive suite of ~1,300+ tests spanning unit, integration, and UI component layers. We utilize `vitest` for blisteringly fast test parallelization.
+| Layer | Technology | Role in This Project |
+|-------|-----------|----------------------|
+| **Frontend** | Next.js 14, React 19, Tailwind CSS | Client interface, Server Components, Routing |
+| **Backend** | Next.js API Routes, Inngest | REST endpoints, Background Jobs |
+| **Database** | Supabase (PostgreSQL + pgvector) | Persistent storage, RAG embeddings |
+| **Caching/Rate Limits** | Upstash Redis | API Rate limiting, Circuit breakers, Session caches |
+| **AI Models** | Gemini API, Groq, DeepSeek | Conversational intelligence, Transcript assessment |
+| **Voice / STT / TTS** | AWS Polly, Whisper, VAD-Web | Client-side silence detection, Speech generation |
+| **Auth** | Supabase Auth | User management and session tracking |
+
+---
+
+## Key Features
+
+- **Interactive Coding Environment**: Split-pane code editor with real-time compilation execution via Piston.
+- **Voice-First AI Interviewer**: Client-side VAD combined with AWS Polly enables a low-latency, interruptible voice interview experience.
+- **Multi-dimensional Assessment**: Evaluates candidates across 8 cognitive dimensions (e.g., algorithmic thinking, communication clarity) instead of just pass/fail.
+- **Spaced Repetition Learning (FSRS)**: Adapts problem difficulty and schedules reviews based on performance.
+- **Cohort Analytics for Employers**: Enterprise dashboards to track candidate performance and hire-readiness.
+
+---
+
+## AI & External Integrations
+
+| Integration | Provider | Used For |
+|------------|---------|---------|
+| Gemini 1.5 | Google AI Studio | Core conversational agent and assessment generation |
+| Whisper STT | Groq | Ultra-fast speech-to-text processing |
+| Polly TTS | AWS | Generating realistic AI interviewer voice audio |
+| Piston API | EngineerMan | Remote code execution for candidate solutions |
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js v20+
+- Supabase Project (PostgreSQL)
+- Upstash Redis Database
+- Google AI Studio API Key
+
+### Installation
 
 ```bash
-# Run the complete test suite
-npm run test
+git clone [repo URL]
+cd algomind
+npm install
 ```
 
-*Note: Component tests involving deeply nested context providers must be wrapped in their respective layout providers (e.g., `InterviewLayoutContext.Provider`).*
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in:
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| NEXT_PUBLIC_SUPABASE_URL | Supabase project URL | Yes | https://xyz.supabase.co |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase public anonymous key | Yes | eyJhb... |
+| SUPABASE_SERVICE_ROLE_KEY | Supabase admin bypass key | Yes | eyJhb... |
+| INTERNAL_API_SECRET | Auth secret for edge functions | Yes | my-secret |
+| ASSESSMENT_JWT_SECRET | JWT signing secret for sessions | Yes | my-jwt-secret |
+| GEMINI_API_KEY | Google AI Studio API Key | Yes | AIza... |
+
+### Running Locally
+
+```bash
+npm run dev
+```
 
 ---
 
-## 🔒 Security Best Practices
-- Ensure you have configured all ENV variables prior to deploying the Next.js edge functions. Missing ENVs will trigger graceful service degradation rather than full crashes, but primary models will be bypassed.
-- RLS Policies restrict reads/writes strictly to authenticated users. System-level DB patches bypass these constraints safely during atomic RPC execution.
+## Project Structure
+
+```
+algomind/
+├── scripts/         # Build and utility scripts
+├── src/
+│   ├── app/         # Next.js App Router pages and API endpoints
+│   ├── components/  # React UI components (Dashboard, Interview, UI primitives)
+│   ├── hooks/       # Custom React hooks
+│   ├── lib/         # Core business logic (AI, DB, Assessment, Voice)
+│   ├── test-utils/  # Mocks and test helpers
+│   ├── types/       # Global TypeScript interfaces
+│   └── __tests__/   # Integration and unit tests
+```
 
 ---
-**Prepared post-audit (Launch Version 1.0.0). Happy coding!**
+
+## Known Limitations
+
+- Voice pipeline latency is heavily dependent on the chosen TTS provider and may not yet be optimized for sub-500ms responses on slow connections.
+- The Piston code execution API defaults to a public endpoint, which is subject to strict rate limits and should be self-hosted for production.
+- RAG context retrieval currently relies on simple vector similarity without hybrid search (BM25), which may reduce accuracy on highly ambiguous queries.
 
 ---
 
-## 📊 System Diagrams
+## License
 
-The following diagrams have been generated through an automated investigation of the system's frontend components, backend routes, server actions, and database schemas.
+[License TBD]
 
-### Architecture Diagram
-This diagram outlines the complete end-to-end architecture of Algomind, mapping the client, backend, database, cache, and external service layers.
+---
 
-```mermaid
-graph TD
-    Client[Client Browser / Next.js Frontend]
-    NextAPI[Next.js API Routes & Server Actions]
-    Supabase[(Supabase PostgreSQL & Realtime)]
-    Upstash[(Upstash Redis Cache)]
-    Inngest[Inngest Background Jobs]
-    External[External Services: AWS Polly, Groq Whisper, LLMs, Piston]
-    
-    Client -- "Fetch / Mutations" --> NextAPI
-    Client -- "Listen to Channels" --> Supabase
-    NextAPI -- "RPCs, Queries, RLS" --> Supabase
-    NextAPI -- "Caching & Rate Limiting" --> Upstash
-    NextAPI -- "Dispatch Events" --> Inngest
-    Inngest -- "Broadcast Streams" --> Supabase
-    Inngest -- "Voice / AI / Execution" --> External
-    NextAPI -- "Voice / Quick LLM" --> External
-```
+## Built By
 
-### Use Case Diagram
-This diagram maps out the primary interactions between various actors (User, Admin, Employer) and the core platform workflows.
-
-```mermaid
-flowchart LR
-    User([User])
-    Admin([Admin])
-    Employer([Employer])
-    
-    subgraph Algomind Platform
-        UC1(Login & Onboarding)
-        UC2(Dashboard & Analytics)
-        UC3(Interactive AI Interview)
-        UC4(Code Execution)
-        UC5(Spaced Repetition Review)
-        
-        UCA1(Manage AI Models)
-        UCA2(Monitor Costs & Cache)
-        
-        UCE1(Manage Assessment Campaigns)
-        UCE2(Review Candidate Submissions)
-    end
-    
-    User --> UC1
-    User --> UC2
-    User --> UC3
-    User --> UC4
-    User --> UC5
-    
-    Admin --> UCA1
-    Admin --> UCA2
-    
-    Employer --> UCE1
-    Employer --> UCE2
-```
-
-### High-Level Diagram
-This diagram breaks down the separation of concerns across the Frontend, Backend, and Infrastructure domains.
-
-```mermaid
-graph TD
-    subgraph Frontend [Frontend React 19 / Tailwind / Radix]
-        AppRouter[Next.js App Router]
-        Pages[Pages: Dashboard, Interview, Learn, Auth]
-        Hooks[Custom Hooks: useInterview, useSTT, useVAD, useProgress]
-        State[State: React Query, React Context]
-        AppRouter --> Pages
-        Pages --> Hooks
-        Hooks --> State
-    end
-    
-    subgraph Backend [Backend Next.js Edge / Node]
-        ServerActions[Server Actions: saveSession, getDashboardAverages, etc.]
-        APIRoutes[API Routes: /api/chat, /api/assess, /api/admin]
-        Lib[Lib: Assessment Engine, Knowledge Graph, Caching]
-        APIRoutes --> Lib
-        ServerActions --> Lib
-    end
-    
-    subgraph Infrastructure [Infrastructure & DB]
-        Supabase[(Supabase DB & RPCs)]
-        Redis[(Upstash Redis)]
-        AWS[AWS Polly]
-        Groq[Groq / Gemini]
-        Lib --> Supabase
-        Lib --> Redis
-        Lib --> AWS
-        Lib --> Groq
-    end
-    
-    Frontend <-->|REST / SSE / Server Actions| Backend
-```
-
-### Low-Level Component Diagrams
-
-#### Frontend Low-Level Architecture
-This highlights how the highly interactive `Dashboard` and `Interview` components manage state, fetch data, and coordinate children.
-
-```mermaid
-graph TD
-    subgraph Dashboard [Dashboard Component app/dashboard]
-        DBController[Dashboard Controller]
-        RQ[React Query Provider]
-        DBController --> RQ
-        RQ --> |fetches| getDashboardAveragesAction
-        DBController --> StatsOverview
-        DBController --> SessionTimeline
-        DBController --> RecommendationEngine
-        RecommendationEngine --> ReviewQueueWidget
-        RecommendationEngine --> SkillTrendCard
-        RecommendationEngine --> RadarChart
-    end
-    
-    subgraph Interview [Interview Component app/interview]
-        IntController[InterviewSession & useInterview.ts]
-        SM[InterviewStateMachine]
-        IntController --> SM
-        IntController --> DesktopLayout
-        IntController --> MobileLayout
-        DesktopLayout --> VoiceUI[MicrophoneButton, LiveTranscript]
-        DesktopLayout --> CodeUI[CodeEditor]
-        VoiceUI --> useVAD
-        VoiceUI --> useSTT
-        IntController --> API[POST /api/chat Fire & Forget]
-        IntController --> SupabaseRT[Supabase Realtime Listener]
-    end
-```
-
-#### Backend Low-Level Architecture
-This details the critical API endpoints and Database persistence logic handling the core real-time session workflows.
-
-```mermaid
-graph TD
-    subgraph API_Chat [API chat and Interview Loop]
-        ChatRoute[POST /api/chat]
-        VoiceAPI[POST /api/voice/transcribe]
-        InngestChat[Inngest: interview/chat Job]
-        ContextBuilder[Build User Context]
-        LLM[LLM / Groq API]
-        TTS[Voice Synthesize]
-        SupabaseRT[Supabase Realtime Channel]
-        
-        VoiceAPI --> ChatRoute
-        ChatRoute -- "Dispatch Event" --> InngestChat
-        InngestChat --> ContextBuilder
-        ContextBuilder --> LLM
-        LLM --> TTS
-        LLM -- "Broadcast Stream" --> SupabaseRT
-    end
-    
-    subgraph DB_Interaction [Data Persistence via Server Actions]
-        Action[saveInterviewSession Action]
-        AuthCheck[Verify Auth / RLS]
-        InngestAssess[Inngest: interview/assess Job]
-        AssessEngine[AI Assessment Engine]
-        SpacedRep[Spaced Repetition Updater]
-        SupabaseRPC[RPC: save_interview_session_atomic]
-        
-        Action --> AuthCheck
-        Action -- "Dispatch Event" --> InngestAssess
-        Action --> SupabaseRPC
-        InngestAssess --> AssessEngine
-        AssessEngine --> SpacedRep
-        AssessEngine --> SupabaseRPC
-    end
-```
+AlgoMind Team

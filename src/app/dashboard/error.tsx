@@ -26,7 +26,7 @@ export default function ErrorPage({
     reset: () => void;
 }) {
     useEffect(() => {
-        console.error('[Dashboard] Error:', error);
+
         reportError(error, { severity: 'error' });
     }, [error]);
 

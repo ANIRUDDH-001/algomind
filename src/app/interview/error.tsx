@@ -26,7 +26,7 @@ export default function ErrorPage({
     reset: () => void;
 }) {
     useEffect(() => {
-        console.error('[Interview] Error:', error);
+
         reportError(error, { severity: 'error' });
     }, [error]);
 

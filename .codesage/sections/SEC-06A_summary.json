@@ -1,0 +1,263 @@
+{
+  "section": "SEC-06A",
+  "name": "Other Libs (Part 1)",
+  "files_processed": [
+    {
+      "file": "src/lib/design-tokens.ts",
+      "purpose": "Defines shared design tokens and animations."
+    },
+    {
+      "file": "src/lib/feature-flags-server.ts",
+      "purpose": "Manages feature flag configuration and access."
+    },
+    {
+      "file": "src/lib/feature-flags.ts",
+      "purpose": "Manages feature flag configuration and access."
+    },
+    {
+      "file": "src/lib/utils.ts",
+      "purpose": "Common utility functions."
+    },
+    {
+      "file": "src/lib/auth/account-type.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/is-admin.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/require-employer.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/requireAdminForApi.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/requireOwnerForApi.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/role-policy.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/session-cache.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/session-manager.ts",
+      "purpose": "Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/__tests__/requireAdminForApi.test.ts",
+      "purpose": "Tests for Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/auth/__tests__/role-policy-matrix.test.ts",
+      "purpose": "Tests for Authentication guards, roles, and session management."
+    },
+    {
+      "file": "src/lib/campaign/entry-code.ts",
+      "purpose": "Campaign code verification and timer handling."
+    },
+    {
+      "file": "src/lib/campaign/question-timer.ts",
+      "purpose": "Campaign code verification and timer handling."
+    },
+    {
+      "file": "src/lib/config/system-config-keys.ts",
+      "purpose": "System configuration settings and environment keys."
+    },
+    {
+      "file": "src/lib/config/system-config.ts",
+      "purpose": "System configuration settings and environment keys."
+    },
+    {
+      "file": "src/lib/diagnostic/questions.ts",
+      "purpose": "Handles diagnostic questions."
+    },
+    {
+      "file": "src/lib/errors/handler.ts",
+      "purpose": "Error handling and user-friendly error formatting."
+    },
+    {
+      "file": "src/lib/errors/user-friendly-errors.ts",
+      "purpose": "Error handling and user-friendly error formatting."
+    },
+    {
+      "file": "src/lib/guest/guest-problems.ts",
+      "purpose": "Guest user management and problem generation."
+    },
+    {
+      "file": "src/lib/inngest/client.ts",
+      "purpose": "Inngest job client and function definitions."
+    },
+    {
+      "file": "src/lib/inngest/functions.ts",
+      "purpose": "Inngest job client and function definitions."
+    },
+    {
+      "file": "src/lib/learn/system-prompt.ts",
+      "purpose": "System and tutor prompts for AI learning assistant."
+    },
+    {
+      "file": "src/lib/learn/tutor-behavioral-contract.ts",
+      "purpose": "System and tutor prompts for AI learning assistant."
+    },
+    {
+      "file": "src/lib/learn/tutor-prompt.ts",
+      "purpose": "System and tutor prompts for AI learning assistant."
+    },
+    {
+      "file": "src/lib/learn/__tests__/system-prompt.test.ts",
+      "purpose": "Tests for System and tutor prompts for AI learning assistant."
+    },
+    {
+      "file": "src/lib/learn/__tests__/tutor-prompt.test.ts",
+      "purpose": "Tests for System and tutor prompts for AI learning assistant."
+    },
+    {
+      "file": "src/lib/monitoring/events.ts",
+      "purpose": "Telemetry, events mapping, and route correlation."
+    },
+    {
+      "file": "src/lib/monitoring/__tests__/event-taxonomy.contract.test.ts",
+      "purpose": "Tests for Telemetry, events mapping, and route correlation."
+    },
+    {
+      "file": "src/lib/monitoring/__tests__/route-correlation-audit.contract.test.ts",
+      "purpose": "Tests for Telemetry, events mapping, and route correlation."
+    },
+    {
+      "file": "src/lib/onboarding/manager.ts",
+      "purpose": "User onboarding state manager."
+    },
+    {
+      "file": "src/lib/rate-limit/decision-layer.ts",
+      "purpose": "Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/ip-rate-limiter.ts",
+      "purpose": "Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/user-rate-limiter.ts",
+      "purpose": "Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/weekly-session-limiter.ts",
+      "purpose": "Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/failure-injection-matrix.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/ip-rate-limiter.failure-mode.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/policy-matrix.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/rate-limit-integration.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/user-rate-limiter.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/rate-limit/__tests__/weekly-session-limiter.test.ts",
+      "purpose": "Tests for Rate limiting policies across user, IP, and sessions."
+    },
+    {
+      "file": "src/lib/recommendations/difficulty-calibrator.ts",
+      "purpose": "Recommendation engine, calibrator, and insight processing."
+    },
+    {
+      "file": "src/lib/recommendations/engine.ts",
+      "purpose": "Recommendation engine, calibrator, and insight processing."
+    },
+    {
+      "file": "src/lib/recommendations/insight-engine.ts",
+      "purpose": "Recommendation engine, calibrator, and insight processing."
+    },
+    {
+      "file": "src/lib/recommendations/__tests__/insight-engine.new-cards.test.ts",
+      "purpose": "Tests for Recommendation engine, calibrator, and insight processing."
+    },
+    {
+      "file": "src/lib/spaced-repetition/fsrs.ts",
+      "purpose": "Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/queue.ts",
+      "purpose": "Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/skill-scheduler.ts",
+      "purpose": "Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/sm2.ts",
+      "purpose": "Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/types.ts",
+      "purpose": "Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/__tests__/fsrs.difficulty.test.ts",
+      "purpose": "Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/__tests__/skill-queue.integration.test.ts",
+      "purpose": "Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/__tests__/skill-scheduler.test.ts",
+      "purpose": "Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/spaced-repetition/__tests__/sm2.test.ts",
+      "purpose": "Tests for Spaced repetition algorithms (FSRS, SM2) and scheduling queues."
+    },
+    {
+      "file": "src/lib/startup/validateEnv.ts",
+      "purpose": "Environment validation at system startup."
+    },
+    {
+      "file": "src/lib/startup/__tests__/validateEnv.test.ts",
+      "purpose": "Tests for Environment validation at system startup."
+    },
+    {
+      "file": "src/lib/tour/index.ts",
+      "purpose": "App tour manager configuration."
+    },
+    {
+      "file": "src/lib/tracing/correlation.ts",
+      "purpose": "Correlation ID generation for request tracing."
+    },
+    {
+      "file": "src/lib/utils/device-detection.ts",
+      "purpose": "Provides core utility and library functions."
+    },
+    {
+      "file": "src/lib/utils/retry.ts",
+      "purpose": "Provides core utility and library functions."
+    },
+    {
+      "file": "src/lib/__tests__/design-tokens.test.ts",
+      "purpose": "Tests for Defines shared design tokens and animations."
+    },
+    {
+      "file": "src/lib/__tests__/migrations.test.ts",
+      "purpose": "Tests for Provides core utility and library functions."
+    }
+  ],
+  "section_summary": "Processed core utility libraries, authentication guards, configuration definitions, and rate-limiting infrastructure for the application. Also audited testing, spaced repetition queue algorithms, and recommendation engine core logic."
+}
