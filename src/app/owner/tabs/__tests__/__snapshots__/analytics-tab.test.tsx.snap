@@ -1,5 +1,4 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-// @codesage @audit: CODESAGE-v1 @skip: test-file
 
 exports[`AnalyticsTab — DOM Render Tests > Snapshot: matches stable structure (catches color regressions) 1`] = `
 <div>

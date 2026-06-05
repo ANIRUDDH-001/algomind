@@ -93,8 +93,8 @@ vi.mock('@/hooks/useSwipeNavigation', () => ({
 
 // Mock useInterview to return our test messages
 let mockMessages: any[] = [];
-let mockVoiceState = { isSpeaking: false, isListening: false, stopListening: vi.fn(), startListening: vi.fn() };
-let mockEndInterview = vi.fn();
+const mockVoiceState = { isSpeaking: false, isListening: false, stopListening: vi.fn(), startListening: vi.fn() };
+const mockEndInterview = vi.fn();
 
 vi.mock('@/hooks/useInterview', () => ({
     useInterview: vi.fn(() => ({

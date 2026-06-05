@@ -157,9 +157,9 @@ export function InterviewSession({
     });
 
     // We can suppress eslint if we aren't using swipeHandlers/currentIndex yet
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const _swipe = swipeHandlers;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const _idx = currentIndex;
 
     // Handle screen resize fallback properly

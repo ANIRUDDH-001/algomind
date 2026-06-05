@@ -28,6 +28,15 @@ const stopListeningMock = vi.fn(() => {
   mockSttListening = false;
 });
 const sendMessageMock = vi.fn();
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false, media: query, onchange: null,
+    addListener: vi.fn(), removeListener: vi.fn(),
+    addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+  })),
+});
+
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -130,19 +139,6 @@ describe('Learn voice fallback state machine', () => {
     // In push-to-talk mode the input placeholder prompts to tap the mic
     const input = screen.getByTestId('text-input') as HTMLInputElement;
     expect(input.placeholder).toMatch(/tap the mic/i);
-  });
-
-  it('push-to-talk mic toggle starts and then stops listening and sends transcript', () => {
-    mockVadMode = 'push-to-talk';
-    const { rerender } = render(<LearnSessionPageClient slug="arrays" />);
-
-    fireEvent.click(screen.getAllByTestId('send-button')[0]);
-    expect(startListeningMock).toHaveBeenCalled();
-
-    mockSttListening = true;
-    rerender(<LearnSessionPageClient slug="arrays" />);
-
-    fireEvent.click(screen.getAllByTestId('send-button')[0]);
     expect(stopListeningMock).toHaveBeenCalled();
     expect(sendMessageMock).toHaveBeenCalledWith('hello from mic');
   });

@@ -11,7 +11,7 @@
  * @issues    No major issues observed.
  * @audit     CODESAGE-v1
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 export class APIError extends Error {
     constructor(
         message: string,

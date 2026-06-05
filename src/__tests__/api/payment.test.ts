@@ -26,11 +26,11 @@ vi.mock('@/lib/kai-context', () => ({
 vi.mock('razorpay', () => ({
   default: vi.fn().mockImplementation(function MockRazorpay() {
     return {
-    orders: {
+    subscriptions: {
       create: vi.fn().mockResolvedValue({
-        id: 'order_test123',
-        amount: 49900,
-        currency: 'INR',
+        id: 'sub_test123',
+        plan_id: 'plan_premium_monthly_499',
+        status: 'created',
       }),
     },
     };
@@ -113,9 +113,9 @@ describe('Payment API', () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json).toEqual({
-        orderId: 'order_test123',
-        amount: 49900,
-        currency: 'INR',
+        subscriptionId: 'sub_test123',
+        planId: 'plan_premium_monthly_499',
+        status: 'created',
         keyId: 'rzp_test_key',
       });
     });

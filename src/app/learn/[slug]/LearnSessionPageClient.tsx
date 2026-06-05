@@ -175,7 +175,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
 
   const renderContentWithHighlights = (content: string) => {
-    let text = content;
+    const text = content;
     
     // Extract any python/js code blocks first
     const codeRegex = /```(python|javascript|js)?\n([\s\S]+?)\n```/;
