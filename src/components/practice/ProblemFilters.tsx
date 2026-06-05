@@ -13,7 +13,8 @@
  */
 'use client';
 
-import { ChevronDown, Search } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Search, Filter } from 'lucide-react';
 
 // Curated list options
 export const CURATED_LISTS = [
@@ -65,6 +66,8 @@ interface ProblemFiltersProps {
 }
 
 export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFiltersProps) {
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
     const handleDifficultyChange = (newDifficulty: 'all' | 'easy' | 'medium' | 'hard') => {
         onFilterChange({ ...currentFilters, difficulty: newDifficulty });
     };
@@ -89,9 +92,26 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
     const selectStyles = "appearance-none text-white text-sm font-medium rounded-lg px-4 py-2.5 pr-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors";
 
     return (
-        <div className="flex flex-col gap-4 mb-6">
-            {/* Search Bar */}
-            <div className="relative w-full md:max-w-md">
+        <div className="flex flex-col gap-4 mb-2">
+            {/* Mobile Toggle Button */}
+            <div className="md:hidden">
+                <button 
+                    onClick={() => setIsMobileOpen(!isMobileOpen)} 
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors"
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)', color: 'white' }}
+                >
+                    <span className="flex items-center gap-2 font-medium text-sm">
+                        <Filter className="w-4 h-4 text-indigo-400" />
+                        {isMobileOpen ? 'Hide Filters' : 'Show Filters'}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isMobileOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            {/* Filter Contents */}
+            <div className={`flex-col gap-4 ${isMobileOpen ? 'flex' : 'hidden'} md:flex`}>
+                {/* Search Bar */}
+                <div className="relative w-full md:max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
                     type="text"
@@ -188,6 +208,7 @@ export function ProblemFilters({ onFilterChange, currentFilters }: ProblemFilter
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 </div>
+            </div>
             </div>
         </div>
     );
