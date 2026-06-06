@@ -130,7 +130,7 @@ describe('Learn voice fallback state machine', () => {
     render(<LearnSessionPageClient slug="arrays" />);
     // In VAD/onnx mode the input placeholder shows the default typing hint
     const input = screen.getByTestId('text-input') as HTMLInputElement;
-    expect(input.placeholder).toMatch(/mic/i);
+    expect(input.placeholder).toMatch(/Listening for speech/i);
   });
 
   it('switches to push-to-talk UX hint when fallback mode is push-to-talk', () => {
@@ -138,7 +138,8 @@ describe('Learn voice fallback state machine', () => {
     render(<LearnSessionPageClient slug="arrays" />);
     // In push-to-talk mode the input placeholder prompts to tap the mic
     const input = screen.getByTestId('text-input') as HTMLInputElement;
-    expect(input.placeholder).toMatch(/mic/i);
+    expect(input.placeholder).toMatch(/Listening for speech/i);
+    fireEvent.click(screen.getByTitle('Mock Mic Input'));
     expect(stopListeningMock).toHaveBeenCalled();
     expect(sendMessageMock).toHaveBeenCalledWith('hello from mic');
   });

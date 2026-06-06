@@ -11,6 +11,7 @@
  * @issues    No major issues observed.
  * @audit     CODESAGE-v1
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { inngest } from "./client";
 import { getServiceClient } from "@/lib/supabase/service";

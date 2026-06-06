@@ -99,7 +99,6 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                         </div>
 
                         <div className="p-4 pt-0">
-                            {/* @ts-expect-error - renderProblemCardContent is currently passed from parent */}
                             {renderProblemCardContent?.()}
                         </div>
                         </div>
