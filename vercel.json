@@ -1,5 +1,4 @@
 {
-    "_codesage": "CODESAGE-v1 | @file: vercel.json | @purpose: Vercel deployment configuration specifying cron jobs | @audit: CODESAGE-v1",
     "crons": [
         {
             "path": "/api/cron/trigger",

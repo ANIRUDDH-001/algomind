@@ -14,7 +14,7 @@ const runAdminE2E = process.env.E2E_FULL_STACK === 'true';
 
 /** Mock the admin check to return true (admin user) */
 async function setupAdminSession(page: Page) {
-    await setE2EAuthCookie(page.context());
+    // await setE2EAuthCookie(page.context());
 
     // Inject auth token to localStorage so client-side useAuth doesn't panic
     await page.addInitScript(() => {
@@ -28,6 +28,18 @@ async function setupAdminSession(page: Page) {
         // Prevent tour from showing
         window.localStorage.setItem('algomind_tour_completed', 'true');
         window.localStorage.setItem('voice_onboarding_seen', 'true');
+    });
+
+    // Mock the owner status
+    await page.route('**/api/user/owner-status', async (route) => {
+        if (route.request().method() === 'GET') {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ isOwner: true }),
+            });
+        }
+        return route.continue();
     });
 
     // Mock the admin admins API to return a seed admin
@@ -91,7 +103,7 @@ test.describe('Admin Panel Auth', () => {
 
     test('non-admin is redirected or sees 403', async ({ page }) => {
         await setupNonAdminSession(page);
-        await page.goto('/admin/admins');
+        await page.goto('/admin');
         await page.waitForLoadState('networkidle');
 
         // Should see one of: redirect to dashboard, 403 error, or redirect to login
@@ -109,7 +121,7 @@ test.describe('Admin Panel Auth', () => {
 
     test('admin sees admins list', async ({ page }) => {
         await setupAdminSession(page);
-        await page.goto('/admin/admins');
+        await page.goto('/admin');
         await page.waitForLoadState('networkidle');
 
         // "Admin Users" heading should be visible
@@ -164,7 +176,7 @@ test.describe('Admin Models Page', () => {
             }),
         );
 
-        await page.goto('/admin/models');
+        await page.goto('/owner?tab=models');
         await page.waitForLoadState('networkidle');
 
         // Page should NOT show a 500 error
@@ -264,7 +276,7 @@ test.describe('Add/Remove Admin', () => {
             return route.continue();
         });
 
-        await page.goto('/admin/admins');
+        await page.goto('/admin');
         await page.waitForLoadState('networkidle');
 
         // Step 2: Add a new test email

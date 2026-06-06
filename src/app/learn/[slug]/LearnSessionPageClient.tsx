@@ -522,6 +522,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                         </button>
 
                         <input
+                            data-testid="text-input"
                             type="text"
                             value={textInput}
                             onChange={(e) => setTextInput(e.target.value)}
