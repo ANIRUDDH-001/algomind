@@ -27,7 +27,7 @@ describe('system events contract', () => {
     it('owner overview tab renders recent event type from canonical field', () => {
         const source = fs.readFileSync(ownerOverviewTabPath, 'utf8');
 
-        expect(source).toContain('{event.type}');
-        expect(source).not.toContain('{event.event_type}');
+        expect(source).toContain('e.type ===');
+        expect(source).not.toContain('e.event_type ===');
     });
 });

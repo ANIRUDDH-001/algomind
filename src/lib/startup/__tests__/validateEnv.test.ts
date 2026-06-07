@@ -148,6 +148,7 @@ describe('validateEnv', () => {
         INTERNAL_API_SECRET: 'test-internal-api-secret',
         ASSESSMENT_JWT_SECRET: 'test-assessment-jwt-secret',
         RAZORPAY_KEY_SECRET: 'test-razorpay-secret',
+        RAZORPAY_WEBHOOK_SECRET: 'test-razorpay-webhook',
         GEMINI_API_KEY: 'test-gemini-key',
         UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
         UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
@@ -179,9 +180,9 @@ describe('validateEnv', () => {
         expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: NEXT_PUBLIC_SUPABASE_URL');
     });
 
-    it('3. Missing RAZORPAY_KEY_SECRET → warns but does not throw (temporarily disabled)', () => {
+    it('3. Missing RAZORPAY_KEY_SECRET → throws critical error', () => {
         delete process.env.RAZORPAY_KEY_SECRET;
-        expect(() => validateEnv()).not.toThrow();
+        expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: RAZORPAY_KEY_SECRET');
     });
 
     it('4. GOOGLE_API_KEY alias satisfies Gemini validation when GEMINI_API_KEY is absent', () => {

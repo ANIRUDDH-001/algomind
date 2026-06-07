@@ -79,22 +79,42 @@ export async function POST(req: NextRequest) {
             return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
         }
 
-        // 🔒 Auth Check
+        // ── Authenticate caller ────────────────────────────────────────────────
+        // Guest mode is explicitly passed in the request body and validated
+        // against the ENABLE_GUEST_MODE feature flag below.
+        // All non-guest requests MUST have a valid Supabase session cookie —
+        // never trust the x-user-id header.
         const supabase = await createServerSupabase();
-        const userIdHeader = req.headers.get('x-user-id');
-        let user: { id: string } | null = null;
-        
-        if (userIdHeader) {
-            user = { id: userIdHeader };
-        } else if (!guestMode) {
-            // Fallback just in case middleware was bypassed
-            const { data } = await supabase.auth.getUser();
-            user = data.user;
-        }
+        let user: { id: string; email?: string } | null = null;
 
-        if (!guestMode && !user) {
-            return withCorrelationIdResponse(ApiErrors.unauthorized('Unauthorized'));
+        if (!guestMode) {
+            const { data: { user: sessionUser }, error: authError } = await supabase.auth.getUser();
+
+            if (authError || !sessionUser) {
+                console.warn('[Chat API] Unauthenticated request rejected', {
+                    correlationId,
+                    hasAuthError: !!authError,
+                });
+                return withCorrelationIdResponse(
+                    ApiErrors.unauthorized('Authentication required')
+                );
+            }
+
+            user = { id: sessionUser.id, email: sessionUser.email };
         }
+        // ── End auth ───────────────────────────────────────────────────────────
+
+        // ── Validate guest mode against feature flag ───────────────────────────
+        if (guestMode) {
+            const { getGlobalFeatureFlag } = await import('@/lib/feature-flags-server');
+            const guestEnabled = await getGlobalFeatureFlag('ENABLE_GUEST_MODE');
+            if (!guestEnabled) {
+                return withCorrelationIdResponse(
+                    ApiErrors.forbidden('Guest mode is currently disabled')
+                );
+            }
+        }
+        // ── End guest mode check ───────────────────────────────────────────────
 
         const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
             ?? req.headers.get('x-real-ip')

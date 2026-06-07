@@ -12,38 +12,6 @@ export interface SwipeableCardProps {
 }
 
 export function SwipeableCard({ children, actions, actionWidth = 100, isOpen, onOpenChange }: SwipeableCardProps) {
-  const controls = useAnimation();
-  const [internalIsOpen, setInternalIsOpen] = React.useState(false);
-
-  const isControlled = isOpen !== undefined;
-  const currentIsOpen = isControlled ? isOpen : internalIsOpen;
-
-  React.useEffect(() => {
-    if (currentIsOpen) {
-      controls.start({ x: -actionWidth });
-    } else {
-      controls.start({ x: 0 });
-    }
-  }, [currentIsOpen, actionWidth, controls]);
-
-  const handleDragEnd = (event: any, info: PanInfo) => {
-    const shouldOpen = info.offset.x < -actionWidth / 2;
-    if (shouldOpen) {
-      if (isControlled && onOpenChange) {
-        onOpenChange(true);
-      } else {
-        setInternalIsOpen(true);
-        // The useEffect will trigger controls.start
-      }
-    } else {
-      if (isControlled && onOpenChange) {
-        onOpenChange(false);
-      } else {
-        setInternalIsOpen(false);
-      }
-    }
-  };
-
   return (
     <div className="relative overflow-hidden w-full">
       {/* Back layer (actions) */}
@@ -58,11 +26,11 @@ export function SwipeableCard({ children, actions, actionWidth = 100, isOpen, on
       <motion.div
         drag="x"
         dragDirectionLock={true}
-        dragConstraints={{ left: -actionWidth, right: 0 }}
+        dragConstraints={{ right: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        animate={controls}
-        initial={{ x: 0 }}
+        animate={{ x: currentIsOpen ? -actionWidth : 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         style={{ touchAction: "pan-y" }}
         className="relative z-10 w-full cursor-grab active:cursor-grabbing"
       >

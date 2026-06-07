@@ -130,6 +130,7 @@ describe('Chat API (/api/chat)', () => {
 
     it('3. Guest mode (guestMode: true) -> bypasses rate limit check', async () => {
         mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+        vi.mocked(getGlobalFeatureFlag).mockResolvedValueOnce(true);
 
         const req = createRequest({ messages: [{ role: 'user', content: 'hello' }], guestMode: true });
         const res = await POST(req);
@@ -341,5 +342,73 @@ describe('Chat API (/api/chat)', () => {
         expect(data.code).toBe('session_not_active');
         expect(data.error).toContain('completed');
         expect(mockAIClient.generateResponse).not.toHaveBeenCalled();
+    });
+
+    describe('Auth bypass prevention', () => {
+        it('rejects non-guest request with no session cookie', async () => {
+            vi.mocked(createServerSupabase).mockResolvedValueOnce({
+                auth: { getUser: async () => ({ data: { user: null }, error: null }) }
+            } as any);
+
+            const req = new NextRequest('http://localhost/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': '3f463715-0ff8-4566-8d58-3f9ecf4b48c0',
+                },
+                body: JSON.stringify({ guestMode: false, messages: [{ role: 'user', content: 'hello' }] }),
+            });
+
+            const res = await POST(req);
+            expect(res.status).toBe(401);
+        });
+
+        it('ignores x-user-id header even when present with valid session', async () => {
+            const realUserId = 'real-user-uuid';
+            const injectedUserId = 'victim-user-uuid';
+
+            vi.mocked(createServerSupabase).mockResolvedValueOnce({
+                auth: { getUser: async () => ({ data: { user: { id: realUserId, email: 'real@test.com' } }, error: null }) }
+            } as any);
+
+            const req = new NextRequest('http://localhost/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': injectedUserId,
+                },
+                body: JSON.stringify({ guestMode: false, messages: [{ role: 'user', content: 'hello' }] }),
+            });
+
+            await POST(req);
+
+            expect(checkUserRateLimit).toHaveBeenCalledWith(realUserId);
+            expect(checkUserRateLimit).not.toHaveBeenCalledWith(injectedUserId);
+        });
+
+        it('allows guest mode without session when ENABLE_GUEST_MODE flag is true', async () => {
+            vi.mocked(getGlobalFeatureFlag).mockResolvedValue(true);
+
+            const req = new NextRequest('http://localhost/api/chat', {
+                method: 'POST',
+                body: JSON.stringify({ guestMode: true, messages: [{ role: 'user', content: 'hello' }] }),
+            });
+
+            const res = await POST(req);
+            expect(res.status).not.toBe(401);
+            expect(res.status).not.toBe(403);
+        });
+
+        it('blocks guest mode when ENABLE_GUEST_MODE flag is false', async () => {
+            vi.mocked(getGlobalFeatureFlag).mockResolvedValue(false);
+
+            const req = new NextRequest('http://localhost/api/chat', {
+                method: 'POST',
+                body: JSON.stringify({ guestMode: true, messages: [{ role: 'user', content: 'hello' }] }),
+            });
+
+            const res = await POST(req);
+            expect(res.status).toBe(403);
+        });
     });
 });

@@ -72,6 +72,7 @@ test.describe('Adversarial Swipeable Cards', () => {
 
     test('Edge Case 2: Multiple cards swiped open at once', async ({ page }) => {
         const cards = page.locator('.relative.overflow-hidden.w-full');
+        await cards.first().waitFor({ state: 'visible' });
         expect(await cards.count()).toBeGreaterThanOrEqual(2);
 
         let box1 = await cards.nth(1).locator('.cursor-grab').boundingBox();
@@ -119,15 +120,15 @@ test.describe('Adversarial Swipeable Cards', () => {
         await page.waitForTimeout(500);
 
         const trashButton = cardContainer.locator('button').first();
-        await trashButton.click();
+        await trashButton.evaluate((node) => (node as HTMLElement).click());
 
         await page.waitForTimeout(500);
 
         const yesBtn = cardContainer.locator('button', { hasText: 'Yes' });
         const cancelBtn = cardContainer.locator('button', { hasText: 'Cancel' });
 
-        expect(await yesBtn.isVisible()).toBe(true);
-        expect(await cancelBtn.isVisible()).toBe(true);
+        await expect(yesBtn).toBeVisible();
+        await expect(cancelBtn).toBeVisible();
 
         const yesBox = await yesBtn.boundingBox();
         const grabBox = await grabArea.boundingBox();

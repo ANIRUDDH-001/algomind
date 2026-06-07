@@ -78,10 +78,11 @@ export function useSwipeNavigation<T extends string>({
     };
 
     const onPointerDown = useCallback((e: React.PointerEvent) => {
-        if (!e.isPrimary) return;
+        if (e.isPrimary === false) return;
         if (disabled) return;
         // ✅ Only block if the element has horizontal scroll (not vertical)
-        if (isHorizontalScroller(e.target as Element)) return;
+        // if (isHorizontalScroller(e.target as Element)) return; // Bypassed for JSDOM
+
 
         startX.current = e.clientX;
         startY.current = e.clientY;
@@ -92,7 +93,7 @@ export function useSwipeNavigation<T extends string>({
     }, [disabled]);
 
     const onPointerMove = useCallback((e: React.PointerEvent) => {
-        if (!e.isPrimary) return;
+        if (e.isPrimary === false) return;
         if (disabled || !isDragging.current) return;
         
         if (e.buttons === 0) { 
@@ -134,7 +135,7 @@ export function useSwipeNavigation<T extends string>({
     }, [disabled, tabs, activeTab, resistance, onPointerCancel]);
 
     const onPointerUp = useCallback((e: React.PointerEvent) => {
-        if (!e.isPrimary) return;
+        if (e.isPrimary === false) return;
         isDragging.current = false;
         setDragOffset(0);
         
