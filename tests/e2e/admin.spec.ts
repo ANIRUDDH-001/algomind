@@ -323,9 +323,44 @@ test.describe('Add/Remove Admin', () => {
             .getByRole('button', { name: /remove/i })
             .or(lastAdminRow.locator('button:has(svg)'));
 
-        // Button should be disabled when only 1 admin remains
         if (await lastRemoveBtn.first().isVisible()) {
             await expect(lastRemoveBtn.first()).toBeDisabled();
         }
+    });
+});
+
+// ───────────────────────────────────────────────
+//  4. Mobile Admin Card Drag
+// ───────────────────────────────────────────────
+
+test.describe('Mobile Admin Card Drag', () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+    test('mobile admin card touch drag reveals remove button', async ({ page }) => {
+        await setupAdminSession(page);
+        
+        await page.goto('/admin');
+        await page.waitForLoadState('networkidle');
+
+        // Verify we are seeing the admin text
+        const cardContainer = page.locator('.relative.overflow-hidden.w-full').filter({ hasText: 'admin@algomind.dev' });
+        const grabArea = cardContainer.locator('.cursor-grab');
+
+        await grabArea.waitFor({ state: 'visible', timeout: 10000 });
+
+        const box = await grabArea.boundingBox();
+        if (!box) throw new Error('Card not found');
+
+        // Simulate touch drag to the left
+        await page.mouse.move(box.x + 300, box.y + 20);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 50, box.y + 20, { steps: 10 });
+        await page.mouse.up();
+
+        await page.waitForTimeout(500);
+
+        // Remove button should be visible (the first button in the actions area)
+        const removeButton = cardContainer.locator('button').first();
+        await expect(removeButton).toBeVisible();
     });
 });

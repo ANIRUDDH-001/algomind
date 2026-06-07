@@ -57,6 +57,7 @@ export function MobileLayout({
         tabs: MOBILE_TABS,
         activeTab: activeTab as MobileTab,
         onTabChange: (tab) => setActiveTab(tab),
+        disabled: activeTab === 'code',
     });
 
     return (

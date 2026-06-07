@@ -17,6 +17,7 @@ import React from 'react';
 import { LogIn, Sparkles, History, Target, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 
 interface GuestRegisterModalProps {
     isOpen: boolean;
@@ -29,14 +30,21 @@ export function GuestRegisterModal({ isOpen, onClose: _onClose }: GuestRegisterM
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="rounded-3xl p-8 max-w-lg w-full shadow-2xl relative overflow-hidden group" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+        <ResponsiveModal
+            open={true}
+            onOpenChange={(open) => {
+                if (!open) _onClose();
+            }}
+            desktopClassName="max-w-lg p-0 border-white/10"
+            className="p-0 border-white/10"
+        >
+            <div className="rounded-3xl p-8 w-full relative overflow-hidden group" style={{ background: 'var(--surface-1)' }}>
                 {/* Visual Flair */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/20 blur-3xl rounded-full group-hover:bg-blue-600/30 transition-colors duration-500" />
                 <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-600/20 blur-3xl rounded-full group-hover:bg-indigo-600/30 transition-colors duration-500" />
 
                 <div className="text-center space-y-8 relative z-10">
-                    <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300 mt-4">
                         <Sparkles className="w-10 h-10 text-white animate-pulse" />
                     </div>
 
@@ -78,7 +86,7 @@ export function GuestRegisterModal({ isOpen, onClose: _onClose }: GuestRegisterM
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 pb-4">
                         <Button
                             onClick={() => router.push('/login')}
                             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-6 text-lg rounded-2xl shadow-lg shadow-blue-900/20"
@@ -94,6 +102,6 @@ export function GuestRegisterModal({ isOpen, onClose: _onClose }: GuestRegisterM
                     </div>
                 </div>
             </div>
-        </div>
+        </ResponsiveModal>
     );
 }

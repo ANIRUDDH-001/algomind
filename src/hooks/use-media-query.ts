@@ -22,6 +22,10 @@ export function useMediaQuery(query: string) {
             setValue(event.matches);
         }
 
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            return;
+        }
+
         const result = window.matchMedia(query);
         result.addEventListener("change", onChange);
         setValue(result.matches);

@@ -41,6 +41,8 @@ import { SystemConfigTab } from './tabs/system-config-tab';
 import { AlgoMind2OTab } from './tabs/algomind-2o-tab';
 import { useSearchParams, useRouter } from 'next/navigation';
 
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+
 export interface OwnerDashboardProps {
     stats: { totalUsers: number; totalAdmins: number; totalEmployers: number };
     featureFlags: any[];
@@ -80,6 +82,14 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
         setActiveTab(tab);
         router.replace(`/owner?tab=${tab}`, { scroll: false });
     };
+
+    const availableTabIds = TABS.filter(tab => tab.id !== 'co-owners' || props.isPrimaryOwner).map(tab => tab.id);
+
+    const { handlers } = useSwipeNavigation({
+        tabs: availableTabIds,
+        activeTab: availableTabIds.includes(activeTab) ? activeTab : 'overview',
+        onTabChange: handleTabChange,
+    });
 
     return (
         <div className="min-h-screen bg-[var(--surface-base)] text-white p-6 lg:p-10">
@@ -124,7 +134,7 @@ export function OwnerDashboardClient(props: OwnerDashboardProps) {
                     </Card>
 
                     {/* Main Content Area */}
-                    <div className="flex-1 w-full relative min-h-[500px]">
+                    <div {...handlers} className="flex-1 w-full relative min-h-[500px] touch-pan-y">
                         {activeTab === 'overview' && <OverviewTab {...props} />}
                         {activeTab === 'users' && <UsersTab />}
                         {activeTab === 'flags' && <FlagsTab initialFlags={props.featureFlags} />}

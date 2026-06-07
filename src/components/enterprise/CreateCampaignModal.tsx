@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CampaignQuestion } from '@/types/campaign';
 import { AssessmentAdapter } from '@/lib/api/adapters/assessment-adapter';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 
 interface ProblemData {
     id: string;
@@ -176,25 +177,74 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
         );
     }
 
-    return (
-        <div className="fixed inset-0 bg-[var(--surface-base)]/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <Card className="flex flex-col bg-[var(--surface-1)] border-white/15 w-full max-w-2xl max-h-[90vh] min-h-0 shadow-2xl overflow-hidden glass-morphism animate-in zoom-in-95 duration-300">
-                {/* Header */}
-                <div className="p-6 border-b border-white/8 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <Layers className="w-5 h-5 text-blue-400" />
-                            {step === 1 ? 'Step 1: Select Questions' : 'Step 2: Adjust Timing'}
-                        </h3>
-                        <p className="text-sm text-zinc-400">
-                            {step === 1 ? 'Choose up to 3 problems for this assessment.' : 'Customize the time limit for each question.'}
-                        </p>
-                    </div>
-                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
+    const modalTitle = (
+        <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-blue-400" />
+            {step === 1 ? 'Step 1: Select Questions' : 'Step 2: Adjust Timing'}
+        </div>
+    );
 
+    const modalDescription = step === 1 
+        ? 'Choose up to 3 problems for this assessment.' 
+        : 'Customize the time limit for each question.';
+
+    const footer = (
+        <div className="flex justify-between items-center w-full">
+            {step === 1 ? (
+                <>
+                    <Button variant="ghost" onClick={onClose} className="text-zinc-400 hover:text-white">
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={() => setStep(2)}
+                        disabled={!title || selectedQuestions.length === 0}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+                    >
+                        Next: Adjust Timing
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </>
+            ) : (
+                <>
+                    <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-white gap-2">
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={isCreating}
+                        className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                    >
+                        {isCreating ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Creating...
+                            </>
+                        ) : (
+                            <>
+                                Create Campaign
+                                <CheckCircle2 className="w-4 h-4" />
+                            </>
+                        )}
+                    </Button>
+                </>
+            )}
+        </div>
+    );
+
+    return (
+        <ResponsiveModal
+            open={isOpen}
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
+            title={modalTitle}
+            description={modalDescription}
+            footer={footer}
+            desktopClassName="max-w-2xl p-0"
+            className="bg-[var(--surface-1)] border-white/15 p-0"
+        >
+            <div className="flex flex-col h-full overflow-hidden">
                 {/* Wizard Progress */}
                 <div className="flex items-center gap-2 px-6 pt-6 -mb-2">
                     {[1, 2].map(stepIndex => (
@@ -210,7 +260,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                     ))}
                 </div>
 
-                <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-6">
                     {step === 1 ? (
                         <div className="space-y-6">
                             {/* Campaign Title */}
@@ -331,7 +381,7 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 mt-6">
                             <h4 className="text-lg font-semibold text-white">Review & Customize Timing</h4>
 
                             {/* Advanced Timing Defaults */}
@@ -429,51 +479,8 @@ export function CreateCampaignModal({ isOpen, onClose, availableProblems, onSucc
                         </div>
                     )}
                 </div>
-
-                {/* Footer */}
-                <div className="p-6 border-t border-white/8 bg-[var(--surface-base)]/30 flex justify-between items-center">
-                    {step === 1 ? (
-                        <>
-                            <Button variant="ghost" onClick={onClose} className="text-zinc-400 hover:text-white">
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={() => setStep(2)}
-                                disabled={!title || selectedQuestions.length === 0}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
-                            >
-                                Next: Adjust Timing
-                                <ChevronRight className="w-4 h-4" />
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-white gap-2">
-                                <ChevronLeft className="w-4 h-4" />
-                                Back
-                            </Button>
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={isCreating}
-                                className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                            >
-                                {isCreating ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        Create Campaign
-                                        <CheckCircle2 className="w-4 h-4" />
-                                    </>
-                                )}
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </Card>
-        </div>
+            </div>
+        </ResponsiveModal>
     );
 }
 
@@ -572,8 +579,15 @@ function SuccessModal({ campaign, onClose }: { campaign: any, onClose: () => voi
     };
 
     return (
-        <div className="fixed inset-0 bg-[var(--surface-base)]/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-in zoom-in-95 duration-300">
-            <Card className="bg-[var(--surface-1)] border-white/10 w-full max-w-md shadow-2xl overflow-hidden glass-morphism p-8 text-center space-y-6">
+        <ResponsiveModal
+            open={true}
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
+            desktopClassName="max-w-md p-0"
+            className="bg-[var(--surface-1)] border-white/10 p-0 text-center"
+        >
+            <div className="p-8 space-y-6">
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
                     <CheckCircle2 className="w-10 h-10 text-green-400" />
                 </div>
@@ -587,11 +601,11 @@ function SuccessModal({ campaign, onClose }: { campaign: any, onClose: () => voi
 
                 <div className="space-y-4 pt-2">
                     {/* Entry Code Box */}
-                    <div className="space-y-2">
-                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Candidate Entry Code</span>
+                    <div className="space-y-2 text-left">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest block text-center">Candidate Entry Code</span>
                         <div className="bg-[var(--surface-base)] border-2 border-white/8 rounded-xl p-6 relative group overflow-hidden">
                             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-500 transition-all group-hover:h-full group-hover:opacity-5" />
-                            <div className="text-3xl font-mono font-bold tracking-[0.2em] text-white">
+                            <div className="text-3xl font-mono font-bold tracking-[0.2em] text-white text-center">
                                 {campaign.entry_code}
                             </div>
                             <button
@@ -624,10 +638,10 @@ function SuccessModal({ campaign, onClose }: { campaign: any, onClose: () => voi
                     </p>
                 </div>
 
-                <Button onClick={onClose} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11">
+                <Button onClick={onClose} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 mt-4">
                     Done
                 </Button>
-            </Card>
-        </div>
+            </div>
+        </ResponsiveModal>
     );
 }

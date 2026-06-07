@@ -24,6 +24,9 @@ export default defineConfig({
         // Default to Node environment (voice tests mock their own browser globals)
         environment: 'node',
 
+        // Global setup files
+        setupFiles: ['tests/setup.ts'],
+
         // Include pattern
         include: [
             'src/**/__tests__/**/*.test.ts',

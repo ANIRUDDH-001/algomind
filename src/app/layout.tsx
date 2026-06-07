@@ -104,7 +104,7 @@ export default async function RootLayout({
                     <ServiceWorkerRegistration />
                     {!hideNavbar && <Navbar />}
                     {/* Main Content Area */}
-                    <main className={`flex-1 flex flex-col overflow-x-hidden overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-indigo-500/20 pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
+                    <main className={`flex-1 flex flex-col overflow-x-hidden overflow-y-auto scroll-container scrollbar-thin scrollbar-track-transparent scrollbar-thumb-indigo-500/20 pb-0 md:pb-0 ${hideNavbar ? 'pt-0' : 'pt-[var(--navbar-h,64px)]'}`}>
                       {children}
                     </main>
                     <TourOverlay />

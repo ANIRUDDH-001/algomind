@@ -29,7 +29,9 @@ import { RadarChart } from '@/components/charts/RadarChart';
 import { useRouter } from 'next/navigation';
 import { CandidateTranscriptViewer } from './CandidateTranscriptViewer';
 import { CreateCampaignModal } from './CreateCampaignModal';
+import { ResponsiveModal } from '@/components/ui/responsive-modal';
 import { CohortStatsPanel } from './CohortStatsPanel';
+import { SwipeableCard } from '@/components/ui/swipeable-card';
 import { CampaignData as CampaignType, CampaignQuestion } from '@/types/campaign';
 import { ApiClientError } from '@/lib/api/client';
 import { EmployerDashboardAdapter } from '@/lib/api/adapters/employer-dashboard-adapter';
@@ -116,6 +118,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
     // Compare State
     const [compareSelection, setCompareSelection] = useState<string[]>([]);
     const [showCompareModal, setShowCompareModal] = useState(false);
+    const [openCardId, setOpenCardId] = useState<string | null>(null);
 
     // Sort State
     const [sortColumn, setSortColumn] = useState<string>('overall_score');
@@ -532,7 +535,7 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                             </button>
                         </div>
 
-                        <div className="rounded-xl border-[var(--surface-edge)] overflow-hidden overflow-x-auto" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                        <div className="hidden md:block rounded-xl border-[var(--surface-edge)] overflow-hidden overflow-x-auto" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
                             <table className="w-full text-sm text-left text-zinc-300 whitespace-nowrap">
                                 <thead className="text-xs text-zinc-600 uppercase border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
                                     <tr>
@@ -651,6 +654,75 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile List View with Swipeable Cards */}
+                        <div className="md:hidden grid gap-4">
+                            {submissions.length === 0 ? (
+                                <div className="p-6 text-center text-zinc-500 bg-[var(--surface-1)] border border-white/8 rounded-xl">
+                                    {selectedCampaignId ? "No candidates have completed this assessment yet." : "Please select a campaign."}
+                                </div>
+                            ) : (
+                                submissions.map((sub) => (
+                                    <SwipeableCard
+                                        key={sub.id}
+                                        isOpen={openCardId === sub.id}
+                                        onOpenChange={(isOpen) => setOpenCardId(isOpen ? sub.id : null)}
+                                        actionWidth={160}
+                                        actions={
+                                            <div className="flex h-full gap-2 py-1 items-stretch">
+                                                <Button
+                                                    className="h-full bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                                    onClick={() => setViewDetailsSubmissionId(sub.id)}
+                                                >
+                                                    Details
+                                                </Button>
+                                                <Button
+                                                    className="h-full bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                                                    onClick={() => toggleCompareSubmission(sub.id)}
+                                                >
+                                                    {compareSelection.includes(sub.id) ? 'Uncompare' : 'Compare'}
+                                                </Button>
+                                            </div>
+                                        }
+                                    >
+                                        <Card className="p-4 flex flex-col gap-3" style={{ background: 'var(--surface-1)', borderColor: 'var(--surface-edge)' }}>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <div className="font-semibold text-white">{sub.candidate_name || 'Anonymous'}</div>
+                                                    <div className="text-xs text-zinc-500">{sub.candidate_email || 'No email provided'}</div>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <div className="font-mono font-bold text-zinc-200">{sub.rank ? `#${sub.rank}` : '-'}</div>
+                                                    {sub.analysis_status === 'pending' && !sub.overall_score ? (
+                                                        <span className="px-2 py-1 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Analyzing…</span>
+                                                    ) : sub.analysis_status === 'failed' ? (
+                                                        <span className="px-2 py-1 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">Failed</span>
+                                                    ) : (
+                                                        <span className={`px-2 py-1 rounded font-bold text-xs ${getScoreColor(sub.overall_score)}`}>
+                                                            {sub.overall_score ? sub.overall_score.toFixed(1) : '—'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {renderStatusBadge(sub.status, sub.updated_at)}
+                                                {sub.hire_decision && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sub.hire_decision === 'STRONG_HIRE' || sub.hire_decision === 'HIRE' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' : sub.hire_decision === 'BORDERLINE' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'bg-red-500/15 text-red-400 border border-red-500/25'}`}>
+                                                        {sub.hire_decision.replace('_', ' ')}
+                                                    </span>
+                                                )}
+                                                {sub.integrity_flags && sub.integrity_flags.length > 0 && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/15 text-red-400 border border-red-500/25">
+                                                        🚩 {sub.integrity_flags.length} Flags
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    </SwipeableCard>
+                                ))
+                            )}
+                        </div>
                     </div>
                 )
             }
@@ -696,56 +768,57 @@ export function EmployerDashboard({ initialCampaigns, availableProblems }: Emplo
                     };
 
                     return (
-                        <div className="fixed inset-0 bg-[var(--surface-base)]/90 backdrop-blur-md z-50 flex items-center justify-center p-4 min-h-screen overflow-y-auto">
-                            <Card className="bg-[var(--surface-1)] border-white/10 w-full max-w-4xl shadow-2xl my-8">
-                                <div className="p-6 border-b border-white/8 flex justify-between items-center bg-[var(--surface-1)]/50 sticky top-0 z-10">
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <BarChart2 className="w-5 h-5 text-purple-400" />
-                                        Candidate Comparison
-                                    </h3>
-                                    <Button variant="ghost" onClick={() => setShowCompareModal(false)} size="sm" className="text-zinc-400 hover:text-white">
-                                        Close
-                                    </Button>
+                        <ResponsiveModal
+                            open={true}
+                            onOpenChange={(open) => {
+                                if (!open) setShowCompareModal(false);
+                            }}
+                            title={
+                                <div className="flex items-center gap-2">
+                                    <BarChart2 className="w-5 h-5 text-purple-400" />
+                                    Candidate Comparison
                                 </div>
-
-                                <div className="p-6 space-y-8">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center text-center">
-                                            <div className="text-sm text-blue-400 font-medium mb-2 line-clamp-1">{c1.candidate_name || 'Candidate 1'}</div>
-                                            <div className="mb-3">{renderStatusBadge(c1.status, c1.updated_at)}</div>
-                                            <div className="text-3xl font-bold text-zinc-100">{c1.overall_score ? c1.overall_score.toFixed(1) : '-'}</div>
-                                            <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
-                                        </div>
-                                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center text-center">
-                                            <div className="text-sm text-purple-400 font-medium mb-2 line-clamp-1">{c2.candidate_name || 'Candidate 2'}</div>
-                                            <div className="mb-3">{renderStatusBadge(c2.status, c2.updated_at)}</div>
-                                            <div className="text-3xl font-bold text-zinc-100">{c2.overall_score ? c2.overall_score.toFixed(1) : '-'}</div>
-                                            <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
-                                        </div>
+                            }
+                            desktopClassName="max-w-4xl p-0"
+                            className="bg-[var(--surface-1)] border-white/10 p-0"
+                        >
+                            <div className="p-6 space-y-8">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center text-center">
+                                        <div className="text-sm text-blue-400 font-medium mb-2 line-clamp-1">{c1.candidate_name || 'Candidate 1'}</div>
+                                        <div className="mb-3">{renderStatusBadge(c1.status, c1.updated_at)}</div>
+                                        <div className="text-3xl font-bold text-zinc-100">{c1.overall_score ? c1.overall_score.toFixed(1) : '-'}</div>
+                                        <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
                                     </div>
-
-                                    <div className="bg-[var(--surface-base)] rounded-xl p-4 border border-white/10 relative">
-                                        <RadarChart
-                                            currentData={scores1}
-                                            previousScores={scores2}
-                                            showComparison={true}
-                                            showAllTime={false}
-                                            size="large"
-                                        />
-                                        <div className="absolute top-4 right-4 flex flex-col gap-2 text-xs bg-[var(--surface-1)]/80 p-3 rounded-lg border border-white/8 backdrop-blur-sm">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-blue-500 border border-[var(--surface-base)]"></div>
-                                                <span className="text-zinc-200">{c1.candidate_name || 'Candidate 1'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full bg-purple-500 border border-[var(--surface-base)]"></div>
-                                                <span className="text-zinc-200">{c2.candidate_name || 'Candidate 2'}</span>
-                                            </div>
-                                        </div>
+                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center text-center">
+                                        <div className="text-sm text-purple-400 font-medium mb-2 line-clamp-1">{c2.candidate_name || 'Candidate 2'}</div>
+                                        <div className="mb-3">{renderStatusBadge(c2.status, c2.updated_at)}</div>
+                                        <div className="text-3xl font-bold text-zinc-100">{c2.overall_score ? c2.overall_score.toFixed(1) : '-'}</div>
+                                        <div className="text-xs text-zinc-500 mt-1">Overall Vector</div>
                                     </div>
                                 </div>
-                            </Card>
-                        </div>
+
+                                <div className="bg-[var(--surface-base)] rounded-xl p-4 border border-white/10 relative">
+                                    <RadarChart
+                                        currentData={scores1}
+                                        previousScores={scores2}
+                                        showComparison={true}
+                                        showAllTime={false}
+                                        size="large"
+                                    />
+                                    <div className="absolute top-4 right-4 flex flex-col gap-2 text-xs bg-[var(--surface-1)]/80 p-3 rounded-lg border border-white/8 backdrop-blur-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-blue-500 border border-[var(--surface-base)]"></div>
+                                            <span className="text-zinc-200">{c1.candidate_name || 'Candidate 1'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-purple-500 border border-[var(--surface-base)]"></div>
+                                            <span className="text-zinc-200">{c2.candidate_name || 'Candidate 2'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ResponsiveModal>
                     );
                 })()
             }

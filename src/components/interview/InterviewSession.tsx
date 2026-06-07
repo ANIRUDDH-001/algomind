@@ -153,7 +153,7 @@ export function InterviewSession({
         tabs: mobileTabs,
         activeTab: activeTab,
         onTabChange: (tab) => setActiveTab(tab as MobileTab),
-        disabled: showLimitModal || showLoginModal || isAssessment && activeTab === 'problem', // Optional conditional disablings
+        disabled: showLimitModal || showLoginModal || (isAssessment && activeTab === 'problem') || activeTab === 'code', // Optional conditional disablings
     });
 
     // We can suppress eslint if we aren't using swipeHandlers/currentIndex yet

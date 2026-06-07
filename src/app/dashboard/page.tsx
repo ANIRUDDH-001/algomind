@@ -165,7 +165,7 @@ function DashboardContent() {
     });
 
     return (
-        <div {...handlers} className="flex-1 text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 overflow-x-hidden touch-pan-y">
+        <div {...handlers} className="flex-1 text-zinc-100 p-4 sm:p-6 lg:p-8 pb-20 md:pb-4 touch-pan-y overscroll-x-none" style={{ touchAction: 'pan-y' }}>
             <div className="max-w-7xl mx-auto">
                 <DashboardHeader
                     progress={progress}

@@ -20,7 +20,7 @@
  * return <div {...handlers} style={{ transform: `translateX(${dragOffset}px)` }}>
  */
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 interface UseSwipeNavigationOptions<T extends string> {
     tabs: readonly T[];
@@ -42,12 +42,30 @@ export function useSwipeNavigation<T extends string>({
     const startX = useRef(0);
     const startY = useRef(0);
     const isDragging = useRef(false);
+    const directionLocked = useRef<boolean>(false);
+    const isHorizontal = useRef<boolean>(false);
     const [dragOffset, setDragOffset] = useState(0);
+
+    const onPointerCancel = useCallback(() => {
+        isDragging.current = false;
+        directionLocked.current = false;
+        isHorizontal.current = false;
+        setDragOffset(0);
+    }, []);
+
+    useEffect(() => {
+        if (disabled) {
+            onPointerCancel();
+        }
+    }, [disabled, onPointerCancel]);
 
     // ✅ FIX: Only block swipe if element has HORIZONTAL overflow scroll
     // Vertical scrollers (overflow-y-auto) should NOT block horizontal swipe
     const isHorizontalScroller = (el: Element | null): boolean => {
         while (el) {
+            if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range') {
+                return true;
+            }
             const style = window.getComputedStyle(el);
             const overflowX = style.overflowX;
             if ((overflowX === 'auto' || overflowX === 'scroll') &&
@@ -60,6 +78,7 @@ export function useSwipeNavigation<T extends string>({
     };
 
     const onPointerDown = useCallback((e: React.PointerEvent) => {
+        if (!e.isPrimary) return;
         if (disabled) return;
         // ✅ Only block if the element has horizontal scroll (not vertical)
         if (isHorizontalScroller(e.target as Element)) return;
@@ -67,18 +86,41 @@ export function useSwipeNavigation<T extends string>({
         startX.current = e.clientX;
         startY.current = e.clientY;
         isDragging.current = true;
+        directionLocked.current = false;
+        isHorizontal.current = false;
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
     }, [disabled]);
 
     const onPointerMove = useCallback((e: React.PointerEvent) => {
+        if (!e.isPrimary) return;
         if (disabled || !isDragging.current) return;
+        
+        if (e.buttons === 0) { 
+            onPointerCancel(); 
+            return; 
+        }
+        
         const dx = e.clientX - startX.current;
         const dy = e.clientY - startY.current;
 
-        // ✅ Only require dx to be at least somewhat horizontal (not strictly > dy)
-        // Allow up to 2:1 vertical-to-horizontal ratio before giving up
-        if (Math.abs(dy) > Math.abs(dx) * 2) {
-            isDragging.current = false;
-            setDragOffset(0);
+        if (!directionLocked.current) {
+            // Lock direction after 10px of movement
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                directionLocked.current = true;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    isHorizontal.current = true;
+                } else {
+                    isHorizontal.current = false;
+                    isDragging.current = false;
+                    setDragOffset(0);
+                    return;
+                }
+            } else {
+                return; // Wait until threshold is met before moving
+            }
+        }
+
+        if (!isHorizontal.current) {
             return;
         }
 
@@ -89,18 +131,24 @@ export function useSwipeNavigation<T extends string>({
         if ((dx < 0 && canGoLeft) || (dx > 0 && canGoRight)) {
             setDragOffset(dx * resistance);
         }
-    }, [disabled, tabs, activeTab, resistance]);
+    }, [disabled, tabs, activeTab, resistance, onPointerCancel]);
 
     const onPointerUp = useCallback((e: React.PointerEvent) => {
-        setDragOffset(0);
-        if (disabled || !isDragging.current) return;
+        if (!e.isPrimary) return;
         isDragging.current = false;
+        setDragOffset(0);
+        
+        try {
+            (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+        } catch (error) {
+            // ignore if pointer is not captured
+        }
+        
+        if (disabled || !isHorizontal.current) return;
 
         const dx = e.clientX - startX.current;
-        const dy = e.clientY - startY.current;
 
         if (Math.abs(dx) < threshold) return;
-        if (Math.abs(dy) > Math.abs(dx) * 2) return;
 
         const currentIndex = tabs.indexOf(activeTab);
 
@@ -111,15 +159,18 @@ export function useSwipeNavigation<T extends string>({
         }
     }, [disabled, tabs, activeTab, onTabChange, threshold]);
 
-    const onPointerCancel = useCallback(() => {
-        isDragging.current = false;
-        setDragOffset(0);
-    }, []);
-
     return {
-        handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
+        handlers: { 
+            onPointerDown, 
+            onPointerMove, 
+            onPointerUp, 
+            onPointerCancel,
+            onPointerLeave: onPointerCancel,
+            onLostPointerCapture: onPointerCancel
+        },
         dragOffset,
         currentIndex: tabs.indexOf(activeTab),
         totalTabs: tabs.length,
     };
 }
+

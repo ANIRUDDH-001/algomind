@@ -21,24 +21,24 @@ import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 
 describe('GuestProblemSelectorModal', () => {
     it('renders nothing when isOpen is false', () => {
-        const { container } = render(
+        render(
             <GuestProblemSelectorModal isOpen={false} onSelect={vi.fn()} />
         );
-        expect(container.firstChild).toBeNull();
+        expect(screen.queryByTestId('guest-selector-modal')).toBeNull();
     });
 
     it('renders all 5 problems when open', () => {
-        const { container } = render(<GuestProblemSelectorModal isOpen={true} onSelect={vi.fn()} />);
-        expect(container.querySelector('[data-testid="guest-selector-modal"]')).not.toBeNull();
+        render(<GuestProblemSelectorModal isOpen={true} onSelect={vi.fn()} />);
+        expect(screen.getAllByTestId('guest-selector-modal').length).toBeGreaterThan(0);
         GUEST_PROBLEMS.forEach(p => {
-            expect(container.querySelector(`[data-testid="problem-card-${p.id}"]`)).not.toBeNull();
+            expect(screen.getAllByTestId(`problem-card-${p.id}`).length).toBeGreaterThan(0);
         });
     });
 
     it('calls onSelect with correct problem when a card is clicked', () => {
         const onSelect = vi.fn();
-        const { container } = render(<GuestProblemSelectorModal isOpen={true} onSelect={onSelect} />);
-        const card = container.querySelector(`[data-testid="problem-card-${GUEST_PROBLEMS[0].id}"]`);
+        render(<GuestProblemSelectorModal isOpen={true} onSelect={onSelect} />);
+        const card = screen.getAllByTestId(`problem-card-${GUEST_PROBLEMS[0].id}`)[0];
         expect(card).not.toBeNull();
         fireEvent.click(card!);
         expect(onSelect).toHaveBeenCalledWith(GUEST_PROBLEMS[0]);
@@ -47,8 +47,8 @@ describe('GuestProblemSelectorModal', () => {
 
     it('calls onSelect with a problem when "Surprise Me" is clicked', () => {
         const onSelect = vi.fn();
-        const { container } = render(<GuestProblemSelectorModal isOpen={true} onSelect={onSelect} />);
-        const btn = container.querySelector('[data-testid="random-problem-button"]');
+        render(<GuestProblemSelectorModal isOpen={true} onSelect={onSelect} />);
+        const btn = screen.getAllByTestId('random-problem-button')[0];
         expect(btn).not.toBeNull();
         fireEvent.click(btn!);
         expect(onSelect).toHaveBeenCalledTimes(1);

@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { getSupabase } from '@/lib/supabase/client';
 import { ApiClientError } from '@/lib/api/client';
 import { AdminAdapter, type AdminUserDto } from '@/lib/api/adapters/admin-adapter';
+import { SwipeableCard } from '@/components/ui/swipeable-card';
 
 type AdminUser = AdminUserDto;
 
@@ -38,6 +39,7 @@ export default function AdminsClient() {
     const [addSuccess, setAddSuccess] = useState(false);
 
     const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+    const [openCardId, setOpenCardId] = useState<string | null>(null);
 
     const supabase = getSupabase();
 
@@ -183,65 +185,133 @@ export default function AdminsClient() {
                     ) : admins.length === 0 ? (
                         <div className="text-center py-10 text-zinc-500">No admins found</div>
                     ) : (
-                        <div className="grid gap-3">
-                            {admins.map((admin) => (
-                                <Card key={admin.id} className="p-4 sm:p-5 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-zinc-400 shrink-0">
-                                            {admin.email[0].toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-bold text-white leading-none">{admin.email}</p>
-                                                {currentUserEmail === admin.email && (
-                                                    <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-1.5 py-0 text-[10px]">
-                                                        You
-                                                    </Badge>
-                                                )}
+                        <>
+                            <div className="hidden md:grid gap-3">
+                                {admins.map((admin) => (
+                                    <Card key={admin.id} className="p-4 sm:p-5 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-zinc-400 shrink-0">
+                                                {admin.email[0].toUpperCase()}
                                             </div>
-                                            <p className="text-xs text-zinc-500 font-medium mt-1.5">
-                                                Added {format(new Date(admin.added_at || new Date()), 'MMM d, yyyy')}
-                                            </p>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-white leading-none">{admin.email}</p>
+                                                    {currentUserEmail === admin.email && (
+                                                        <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-1.5 py-0 text-[10px]">
+                                                            You
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-zinc-500 font-medium mt-1.5">
+                                                    Added {format(new Date(admin.added_at || new Date()), 'MMM d, yyyy')}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {isOwner && (
-                                        confirmingDelete === admin.email ? (
-                                            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
-                                                <span className="text-sm text-zinc-400 mr-2">Are you sure?</span>
+                                        {isOwner && (
+                                            confirmingDelete === admin.email ? (
+                                                <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                                                    <span className="text-sm text-zinc-400 mr-2">Are you sure?</span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/20"
+                                                        onClick={() => handleRemoveAdmin(admin.email)}
+                                                    >
+                                                        Yes, remove
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="border-white/10 bg-[var(--surface-2)] text-zinc-300 hover:bg-[var(--surface-3)] hover:text-white"
+                                                        onClick={() => setConfirmingDelete(null)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            ) : (
                                                 <Button
+                                                    variant="ghost"
                                                     size="sm"
-                                                    variant="destructive"
-                                                    className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/20"
-                                                    onClick={() => handleRemoveAdmin(admin.email)}
+                                                    className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2"
+                                                    disabled={admins.length <= 1}
+                                                    onClick={() => setConfirmingDelete(admin.email)}
                                                 >
-                                                    Yes, remove
+                                                    <Trash2 className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">Remove</span>
                                                 </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="border-white/10 bg-[var(--surface-2)] text-zinc-300 hover:bg-[var(--surface-3)] hover:text-white"
-                                                    onClick={() => setConfirmingDelete(null)}
-                                                >
-                                                    Cancel
-                                                </Button>
+                                            )
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+                            <div className="md:hidden grid gap-4">
+                                {admins.map((admin) => (
+                                    <SwipeableCard
+                                        key={admin.id}
+                                        isOpen={openCardId === admin.id}
+                                        onOpenChange={(isOpen) => {
+                                            setOpenCardId(isOpen ? admin.id : null);
+                                            if (!isOpen && confirmingDelete === admin.email) {
+                                                setConfirmingDelete(null);
+                                            }
+                                        }}
+                                        actionWidth={confirmingDelete === admin.email ? 220 : 100}
+                                        actions={
+                                            isOwner ? (
+                                                confirmingDelete === admin.email ? (
+                                                    <div className="flex items-center gap-2 h-full py-1">
+                                                        <Button
+                                                            className="h-full bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                                                            onClick={() => handleRemoveAdmin(admin.email)}
+                                                        >
+                                                            Yes
+                                                        </Button>
+                                                        <Button
+                                                            className="h-full bg-[var(--surface-2)] text-zinc-300 hover:bg-[var(--surface-3)]"
+                                                            onClick={() => setConfirmingDelete(null)}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex h-full gap-2 py-1 items-stretch">
+                                                        <Button
+                                                            className="h-full bg-red-500/20 text-red-400 hover:bg-red-500/30 px-6"
+                                                            disabled={admins.length <= 1}
+                                                            onClick={() => setConfirmingDelete(admin.email)}
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            ) : null
+                                        }
+                                    >
+                                        <Card className="p-4 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 backdrop-blur-sm flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-zinc-400 shrink-0">
+                                                    {admin.email[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-bold text-white leading-none truncate max-w-[150px]">{admin.email}</p>
+                                                        {currentUserEmail === admin.email && (
+                                                            <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-1.5 py-0 text-[10px]">
+                                                                You
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-zinc-500 font-medium mt-1.5">
+                                                        Added {format(new Date(admin.added_at || new Date()), 'MMM d, yyyy')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors gap-2"
-                                                disabled={admins.length <= 1}
-                                                onClick={() => setConfirmingDelete(admin.email)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                                <span className="hidden sm:inline">Remove</span>
-                                            </Button>
-                                        )
-                                    )}
-                                </Card>
-                            ))}
-                        </div>
+                                        </Card>
+                                    </SwipeableCard>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
