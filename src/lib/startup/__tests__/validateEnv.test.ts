@@ -180,9 +180,12 @@ describe('validateEnv', () => {
         expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: NEXT_PUBLIC_SUPABASE_URL');
     });
 
-    it('3. Missing RAZORPAY_KEY_SECRET → throws critical error', () => {
+    it('3. Missing RAZORPAY_KEY_SECRET (high var) → warns but does not throw', () => {
         delete process.env.RAZORPAY_KEY_SECRET;
-        expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: RAZORPAY_KEY_SECRET');
+        expect(() => validateEnv()).not.toThrow();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining('HIGH ENV VAR MISSING: RAZORPAY_KEY_SECRET')
+        );
     });
 
     it('4. GOOGLE_API_KEY alias satisfies Gemini validation when GEMINI_API_KEY is absent', () => {

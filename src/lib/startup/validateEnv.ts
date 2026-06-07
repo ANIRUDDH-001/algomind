@@ -21,16 +21,43 @@ type CriticalEnvVar = {
 };
 
 export function validateEnv(): void {
+    // Skip strict runtime validation during Next.js static build phase 
+    // to prevent build failures from missing production-only secrets
+    if (
+        process.env.npm_lifecycle_event === 'build' || 
+        process.env.NEXT_PHASE === 'phase-production-build'
+    ) {
+        return;
+    }
+
     const criticalVars: CriticalEnvVar[] = [
         { key: "NEXT_PUBLIC_SUPABASE_URL", use: "Supabase project URL" },
         { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", use: "Supabase anon key" },
         { key: "SUPABASE_SERVICE_ROLE_KEY", use: "Service role key (NEVER use as JWT secret)" },
         { key: "SUPABASE_JWT_SECRET", use: "JWT signing secret for candidate assessment sessions — must be separate from service role key" },
-        { key: "INTERNAL_API_SECRET", use: "Authorization secret for invoking run-assessment edge function — missing means all candidate assessments complete with no analysis" },
-        { key: "ASSESSMENT_JWT_SECRET", use: "Dedicated JWT signing secret for candidate assessment sessions — falls back to SUPABASE_JWT_SECRET if absent but should be set explicitly" },
-        { key: "RAZORPAY_KEY_SECRET", use: "Razorpay key secret for payment order signature verification" },
-        { key: "RAZORPAY_WEBHOOK_SECRET", use: "Razorpay webhook HMAC secret — missing means ALL webhook events are accepted without authentication, allowing free premium subscriptions" },
+        {
+            key: "INTERNAL_API_SECRET",
+            use: "Authorization secret for invoking the run-assessment Supabase Edge Function — missing means all candidate assessments complete with no AI analysis."
+        },
+        {
+            key: "ASSESSMENT_JWT_SECRET",
+            use: "JWT secret for signing and verifying assessment session tokens — must be a unique secret, never the same value as SUPABASE_JWT_SECRET. Missing means all assessment endpoints are unauthenticated."
+        },
         { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
+
+        // ── Payment (Razorpay) ───────────────────────────────────────────────────
+        {
+            key: "RAZORPAY_KEY_ID",
+            use: "Razorpay public key ID — required for creating payment orders. Missing means no payments can be initiated."
+        },
+        {
+            key: "RAZORPAY_KEY_SECRET",
+            use: "Razorpay key secret — required for verifying payment signatures on the verify route. Missing means payment verification will fail for all users."
+        },
+        {
+            key: "RAZORPAY_WEBHOOK_SECRET",
+            use: "Razorpay webhook HMAC secret — required for authenticating all incoming Razorpay webhook events. MISSING MEANS ALL WEBHOOK EVENTS ARE ACCEPTED WITHOUT AUTHENTICATION, allowing anyone to grant free premium subscriptions or cancel real subscriptions."
+        },
     ];
 
     for (const { key, use, anyOf } of criticalVars) {
@@ -60,6 +87,8 @@ export function validateEnv(): void {
         { key: "NEXT_PUBLIC_APP_URL", issue: "OAuth callback URLs will be wrong — OAuth login will fail in production" },
         { key: "SUPABASE_DIRECT_URL", issue: "Supabase Realtime and direct DB connections may fail" },
 
+        // Payments (moved to criticalVars)
+
         // Operational
         { key: "CRON_SECRET", issue: "Nightly batch cron will fail to trigger" },
         { key: "GITHUB_TOKEN", issue: "Cron GitHub trigger will fail" },
@@ -73,6 +102,28 @@ export function validateEnv(): void {
         if (!process.env[key]) {
             console.warn(`HIGH ENV VAR MISSING: ${key} - ${issue}`);
         }
+    }
+
+    // ── Minimum entropy check for cryptographic secrets ─────────────────────
+    const SECRET_MIN_LENGTH = 32;
+    const secretVars = [
+        'RAZORPAY_KEY_SECRET',
+        'RAZORPAY_WEBHOOK_SECRET',
+        'ASSESSMENT_JWT_SECRET',
+        'INTERNAL_API_SECRET',
+        'SUPABASE_JWT_SECRET',
+    ];
+
+    const weakSecrets = secretVars
+        .filter(key => process.env[key] && (process.env[key]?.length ?? 0) < SECRET_MIN_LENGTH)
+        .map(key => `${key} (length: ${process.env[key]?.length ?? 0}, minimum: ${SECRET_MIN_LENGTH})`);
+
+    if (weakSecrets.length > 0) {
+        console.warn(
+            `[validateEnv] WARNING: The following secrets are shorter than ${SECRET_MIN_LENGTH} characters ` +
+            `and may be insufficiently strong for production:\n  ${weakSecrets.join('\n  ')}`
+        );
+        // Warn only (not fatal) — some valid secrets like Razorpay test keys are shorter
     }
 
     // Warn on known-dead env vars that should have been removed
