@@ -3,6 +3,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createClient } from '@supabase/supabase-js';
 
+// Refuse to use static auth.json — always authenticate fresh in CI
+// This prevents accidentally running tests with stale/committed tokens
+const AUTH_PATH = path.join(__dirname, '../../.playwright/auth.json');
+if (fs.existsSync(AUTH_PATH)) {
+    const content = JSON.parse(fs.readFileSync(AUTH_PATH, 'utf-8'));
+    const hasRealToken = JSON.stringify(content).includes('access_token');
+    if (hasRealToken) {
+        throw new Error(
+            'SECURITY: .playwright/auth.json contains a real access token. ' +
+            'Run `git rm --cached .playwright/auth.json` and add .playwright/ to .gitignore immediately.'
+        );
+    }
+}
+
 const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL ?? 'aniruddhvijayvargia@gmail.com';
 
 /**
