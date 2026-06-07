@@ -68,9 +68,8 @@ export async function toggleUserSuspension(userId: string, suspend: boolean) {
 export async function updateUserTTSProvider(userId: string, provider: string) {
     const supabase = await createServiceRoleSupabase();
     const { error } = await supabase
-        .from('profiles')
-        .update({ tts_provider: provider === 'auto' ? null : provider })
-        .eq('id', userId);
+        .from('user_preferences')
+        .upsert({ user_id: userId, tts_provider: provider === 'auto' ? null : provider });
 
     if (error) throw new Error(`Failed to update TTS provider: ${error.message}`);
     revalidatePath('/owner/users');

@@ -13,7 +13,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { ApiErrors } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
@@ -66,7 +66,7 @@ export async function GET(request?: Request) {
         }
 
         // ── Cache miss — hit DB ──
-        const supabase = await createServerSupabase();
+        const supabase = await createServiceRoleSupabase();
 
         // 1. Fetch raw events
         let query = supabase

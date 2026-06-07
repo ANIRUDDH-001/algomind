@@ -79,6 +79,9 @@ export async function POST(request: Request) {
         // 2. Ping the provider
         try {
             if (model.provider === 'groq') {
+                if (!process.env.GROQ_API_KEY) {
+                    return NextResponse.json({ error: 'Missing GROQ_API_KEY configuration' }, { status: 500 });
+                }
                 const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -115,6 +118,9 @@ export async function POST(request: Request) {
                 }
 
             } else if (model.provider === 'gemini') {
+                if (!process.env.GEMINI_API_KEY) {
+                    return NextResponse.json({ error: 'Missing GEMINI_API_KEY configuration' }, { status: 500 });
+                }
                 // Format: models/model-name
                 // For Gemini we test using generateContent
                 const cleanModelName = modelId.replace('models/', '');
@@ -148,6 +154,9 @@ export async function POST(request: Request) {
                     message = `Gemini error: ${geminiRes.statusText}`;
                 }
             } else if (model.provider === 'bedrock') {
+                if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+                    return NextResponse.json({ error: 'Missing AWS credentials configuration' }, { status: 500 });
+                }
                 const bedrock = new BedrockRuntimeClient({
                     region: process.env.AWS_REGION || 'us-east-1',
                     credentials: {

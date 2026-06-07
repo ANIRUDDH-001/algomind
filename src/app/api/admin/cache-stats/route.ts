@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getResponseCache } from '@/lib/ai/response-cache';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,12 +26,16 @@ export async function GET() {
         const cache = getResponseCache();
         const stats = cache.getStats();
 
-        // Note: ENABLE_RESPONSE_CACHE is a localStorage-based flag (client-side only).
-        // We do NOT call getFeatureFlag() here because on the server typeof window === 'undefined'
-        // always returns the hardcoded defaultValue (false), making the status always show "Disabled".
-        // The client component reads the flag directly from localStorage instead.
+        const supabase = await createServerSupabase();
+        const { data: flagData } = await supabase
+            .from('global_feature_flags')
+            .select('is_enabled')
+            .eq('key', 'ENABLE_RESPONSE_CACHE')
+            .single();
 
-        return NextResponse.json({ stats });
+        const isEnabled = flagData?.is_enabled ?? false;
+
+        return NextResponse.json({ stats, isEnabled });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

@@ -1,27 +1,27 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { AWSConfigPanel } from './AWSConfigPanel';
 import { AWSUsagePanel } from './AWSUsagePanel';
+import { redirect } from 'next/navigation';
+import { isPrimaryOwner } from '@/lib/auth/account-type';
 
 export default async function AWSPage() {
     const supabase = await createServerSupabase();
     
     // Auth & role check
     const { data: { user } } = await supabase.auth.getUser();
-    const roleRes = await getUserRole(supabase);
-    const role = roleRes.role;
+    if (!user) {
+        redirect('/login');
+    }
     
-    const isPrimaryOwner = role === 'owner'; // Only owner, not co-owner
+    const primaryOwner = await isPrimaryOwner(user.id);
 
-    // Fetch config for AWS
-    const { data: configData } = await supabase
-        .from('system_config')
-        .select('key, value')
-        .in('key', ['AWS_REGION', 'AWS_BEDROCK_REGION', 'AWS_S3_BUCKET', 'AWS_BUDGET_LIMIT']);
-
-    const config = (configData || []).reduce((acc: any, c: any) => ({
-        ...acc,
-        [c.key]: c.value
-    }), {});
+    // Fetch config from .env
+    const config = {
+        AWS_REGION: process.env.AWS_REGION || 'Not set',
+        AWS_BEDROCK_REGION: process.env.AWS_BEDROCK_REGION || 'Not set',
+        AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || 'Not set',
+        AWS_BUDGET_LIMIT: process.env.AWS_BUDGET_LIMIT || '100'
+    };
 
     const budgetLimit = parseFloat(config['AWS_BUDGET_LIMIT'] || '100');
 
@@ -30,7 +30,7 @@ export default async function AWSPage() {
             <h1 className="text-3xl font-black text-white">AWS Configuration & Usage</h1>
             <p className="text-zinc-400">Monitor budget and manage your AWS integration settings.</p>
 
-            <AWSConfigPanel isPrimaryOwner={isPrimaryOwner} config={config} />
+            <AWSConfigPanel isPrimaryOwner={primaryOwner} config={config} />
             <AWSUsagePanel budgetLimit={budgetLimit} />
         </div>
     );

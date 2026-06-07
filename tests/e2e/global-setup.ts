@@ -122,6 +122,10 @@ async function buildAuthState(baseUrl: string): Promise<boolean> {
     // Add the playwright-e2e cookie
     await context.addCookies([{ name: 'playwright-e2e', value: 'true', url: baseUrl }]);
 
+    // Reload the page so the Supabase client-side listener can write the auth cookie!
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+
     const authDir = path.join(process.cwd(), '.playwright');
     fs.mkdirSync(authDir, { recursive: true });
     await context.storageState({ path: path.join(authDir, 'auth.json') });

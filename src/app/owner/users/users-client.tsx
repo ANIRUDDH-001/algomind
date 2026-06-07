@@ -21,7 +21,7 @@ export type OwnerUserRow = {
     tts_provider?: string | null;
 };
 
-export function UsersClient({ initialUsers, initialQuery }: { initialUsers: OwnerUserRow[], initialQuery: string }) {
+export function UsersClient({ initialUsers, initialQuery, title = "Platform Users" }: { initialUsers: OwnerUserRow[], initialQuery: string, title?: string }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -89,7 +89,7 @@ export function UsersClient({ initialUsers, initialQuery }: { initialUsers: Owne
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
-                <h2 className="text-xl font-bold text-white">Platform Users</h2>
+                <h2 className="text-xl font-bold text-white">{title}</h2>
                 <div className="relative w-full sm:w-96">
                     <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input

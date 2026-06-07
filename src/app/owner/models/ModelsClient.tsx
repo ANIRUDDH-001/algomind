@@ -1,29 +1,11 @@
-/**
- * @codesage
- * @file      src/app/owner/tabs/models-tab.tsx
- * @purpose   Displays and manages the AI model registry, including health status and rate limits.
- * @tech      React, Lucide React, Tailwind
- * @connects  /api/admin/models, /api/admin/events
- * @apis      GET /api/admin/models, GET /api/admin/events, POST /api/admin/models/verify, DELETE /api/admin/models, PATCH /api/admin/models, POST /api/admin/models
- * @db        None
- * @state     React local state
- * @env       None
- * @issues    None
- * @audit     CODESAGE-v1
- * 
- * @section   Imports & Interfaces (Lines 1-36): Dependencies and TypeScript definitions.
- * @section   State & Data Loading (Lines 37-109): State hooks, `loadData`, `handleVerify`.
- * @section   Model Management Actions (Lines 111-224): Actions to deprecate, restore, add models, and save edits.
- * @section   UI Render: Header & Banner (Lines 225-276): Page title and system health banners.
- * @section   UI Render: Registry Table (Lines 277-410): Interactive table for models.
- * @section   UI Render: Add Model Form (Lines 411-511): Form to add new models.
- */
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Copy, RotateCcw, Play, Plus, Edit2, Check, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, CheckCircle2, Copy, RotateCcw, Play, Plus, Edit2, Check, X, Trash2, ToggleRight, ToggleLeft, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 interface ModelStat {
     modelId: string;
@@ -32,76 +14,71 @@ interface ModelStat {
     rpm: number;
     tpm: number;
     rpd: number;
-    contextWindow: number;
     isActive: boolean;
-    isVerified: boolean;
-    isPreview: boolean;
-    deprecatedAt: string | null;
     lastVerified: string | null;
-    notes: string | null;
     rateLimitHits24h: number;
-    lastRateLimitHit: string | null;
     status: 'active' | 'degraded' | 'deprecated';
     modelType: 'audio' | 'text';
 }
 
-interface NewModelForm {
-    modelId: string;
+interface RoutingEntry {
+    id: string;
+    model_id: string;
     provider: string;
-    tier: number;
-    rpm: number;
-    tpm: number;
-    rpd: number;
-    notes: string;
+    use_case: string;
+    priority: number;
+    is_active: boolean;
 }
 
 export function ModelsTab() {
     const [models, setModels] = useState<ModelStat[]>([]);
+    const [routing, setRouting] = useState<{ chat: RoutingEntry[], analysis: RoutingEntry[] }>({ chat: [], analysis: [] });
     const [deprecatedCount24h, setDeprecatedCount24h] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
     const [verifyingModel, setVerifyingModel] = useState<string | null>(null);
-    const [showAddForm, setShowAddForm] = useState(false);
 
-    // Inline editing state
-    const [editingModel, setEditingModel] = useState<string | null>(null);
+    // Expandable row state
+    const [expandedModel, setExpandedModel] = useState<string | null>(null);
+    
+    // Dialog states
+    const [modelToDelete, setModelToDelete] = useState<string | null>(null);
+    const [showAddDialog, setShowAddDialog] = useState(false);
+    
+    // Add Model form state
+    const [isAdding, setIsAdding] = useState(false);
+    const [newModel, setNewModel] = useState({ modelId: '', provider: 'groq', tier: 5, rpm: 30, tpm: 100000, rpd: 1000 });
+
+    // Editing State (for expanded view)
     const [editValues, setEditValues] = useState<{ rpm: number; tpm: number; rpd: number }>({ rpm: 0, tpm: 0, rpd: 0 });
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-    const [newModel, setNewModel] = useState<NewModelForm>({
-        modelId: '',
-        provider: 'groq',
-        tier: 5,
-        rpm: 30,
-        tpm: 100000,
-        rpd: 1000,
-        notes: ''
-    });
+    // Routing Priority Editing State
+    const [routePriorities, setRoutePriorities] = useState<Record<string, number>>({});
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [modelsRes, eventsRes] = await Promise.all([
+            const [modelsRes, eventsRes, routingRes] = await Promise.all([
                 fetch('/api/admin/models', { cache: 'no-store' }),
-                fetch('/api/admin/events?type=model_deprecated&days=1&limit=50', { cache: 'no-store' })
+                fetch('/api/admin/events?type=model_deprecated&days=1&limit=50', { cache: 'no-store' }),
+                fetch('/api/owner/model-routing', { cache: 'no-store' })
             ]);
 
             const modelsData = await modelsRes.json();
             const eventsData = await eventsRes.json();
+            const routingData = await routingRes.json();
 
             setModels(modelsData.models || []);
             setDeprecatedCount24h(eventsData.events?.length || 0);
+            setRouting({ chat: routingData.chat || [], analysis: routingData.analysis || [] });
         } catch (error) {
-            console.error('Failed to load model data:', error);
             toast.error('Failed to load model registry');
         } finally {
             setIsLoading(false);
         }
-    };
-
-    useEffect(() => {
-        loadData();
     }, []);
+
+    useEffect(() => { loadData(); }, [loadData]);
 
     const handleVerify = async (modelId: string) => {
         setVerifyingModel(modelId);
@@ -112,15 +89,9 @@ export function ModelsTab() {
                 body: JSON.stringify({ modelId })
             });
             const data = await res.json();
-
-            if (res.ok) {
-                if (data.status === 'verified') toast.success(data.message);
-                else if (data.status === 'rate_limited') toast.warning(data.message);
-                else toast.info(data.message);
-            } else {
-                toast.error(data.error || 'Verification failed');
-            }
-            loadData(); // Refresh list to update status
+            if (res.ok) toast.success(data.message);
+            else toast.error(data.error || 'Verification failed');
+            loadData();
         } catch {
             toast.error('Network error during verification');
         } finally {
@@ -129,23 +100,34 @@ export function ModelsTab() {
     };
 
     const handleDeprecate = async (modelId: string) => {
-        if (!confirm(`Are you sure you want to deprecate ${modelId}?`)) return;
         try {
             const res = await fetch('/api/admin/models', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ modelId, reason: 'Manual deprecation by admin' })
+                body: JSON.stringify({ modelId, reason: 'Manual suspension by admin' })
             });
-            if (res.ok) {
-                toast.success('Model deprecated successfully');
-                loadData();
-            } else {
-                const data = await res.json();
-                toast.error(data.error || 'Failed to deprecate');
+            if (res.ok) { toast.success('Model suspended'); loadData(); }
+            else { toast.error('Failed to suspend'); }
+        } catch { toast.error('Network error'); }
+    };
+
+    const handleDelete = async () => {
+        if (!modelToDelete) return;
+        try {
+            const res = await fetch('/api/admin/models', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelId: modelToDelete, hardDelete: true })
+            });
+            if (res.ok) { 
+                toast.success('Model permanently deleted'); 
+                setModelToDelete(null);
+                setExpandedModel(null);
+                loadData(); 
+            } else { 
+                toast.error('Failed to delete model'); 
             }
-        } catch {
-            toast.error('Network error');
-        }
+        } catch { toast.error('Network error'); }
     };
 
     const handleRestore = async (modelId: string) => {
@@ -155,25 +137,15 @@ export function ModelsTab() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ modelId, isActive: true, notes: 'Restored by admin' })
             });
-
-            if (res.ok) {
-                toast.success('Model restored — click Verify to confirm it still works');
-                loadData();
-            } else {
-                const data = await res.json();
-                toast.error(data.error || 'Failed to restore model');
-            }
-        } catch {
-            toast.error('Network error');
-        }
+            if (res.ok) { toast.success('Model restored'); loadData(); }
+        } catch { toast.error('Network error'); }
     };
 
     const handleAddModel = async () => {
-        if (!newModel.modelId || !newModel.provider) {
-            toast.error('Model ID and Provider are required');
+        if (!newModel.modelId) {
+            toast.error('Model ID is required');
             return;
         }
-
         setIsAdding(true);
         try {
             const res = await fetch('/api/admin/models', {
@@ -181,46 +153,20 @@ export function ModelsTab() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newModel)
             });
-            const data = await res.json();
-
             if (res.ok) {
-                toast.success('Model added');
-                setShowAddForm(false);
-                setNewModel({
-                    modelId: '',
-                    provider: 'groq',
-                    tier: 5,
-                    rpm: 30,
-                    tpm: 100000,
-                    rpd: 1000,
-                    notes: ''
-                });
+                toast.success('Model added successfully');
+                setShowAddDialog(false);
+                setNewModel({ modelId: '', provider: 'groq', tier: 5, rpm: 30, tpm: 100000, rpd: 1000 });
                 loadData();
-            } else {
-                toast.error(data.error || 'Failed to add model');
+            } else { 
+                const err = await res.json();
+                toast.error(err.error || 'Failed to add model'); 
             }
-        } catch {
-            toast.error('Network error');
-        } finally {
-            setIsAdding(false);
-        }
+        } catch { toast.error('Network error'); }
+        finally { setIsAdding(false); }
     };
 
-    const handleCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success('Copied to clipboard');
-    };
-
-    const startEditing = (model: ModelStat) => {
-        setEditingModel(model.modelId);
-        setEditValues({ rpm: model.rpm, tpm: model.tpm, rpd: model.rpd });
-    };
-
-    const cancelEditing = () => {
-        setEditingModel(null);
-    };
-
-    const saveEdit = async (modelId: string) => {
+    const saveLimits = async (modelId: string) => {
         setIsSavingEdit(true);
         try {
             const res = await fetch('/api/admin/models', {
@@ -228,303 +174,415 @@ export function ModelsTab() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ modelId, ...editValues })
             });
-            if (res.ok) {
-                toast.success('Saved successfully');
-                setEditingModel(null);
-                loadData();
+            if (res.ok) { toast.success('Limits saved'); loadData(); }
+            else { toast.error('Failed to save limits'); }
+        } catch { toast.error('Network error'); }
+        finally { setIsSavingEdit(false); }
+    };
+
+    const toggleRoute = async (routeEntry: RoutingEntry | undefined, modelId: string, provider: string, useCase: string) => {
+        try {
+            if (routeEntry) {
+                await fetch('/api/owner/model-routing', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: routeEntry.id })
+                });
             } else {
-                toast.error('Failed to save changes');
+                await fetch('/api/owner/model-routing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model_id: modelId, provider, use_case: useCase, priority: 100 })
+                });
             }
-        } catch {
-            toast.error('Network error');
-        } finally {
-            setIsSavingEdit(false);
+            loadData();
+        } catch { toast.error('Failed to update routing'); }
+    };
+
+    const toggleRouteActive = async (id: string, currentIsActive: boolean) => {
+        try {
+            await fetch('/api/owner/model-routing', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, is_active: !currentIsActive })
+            });
+            loadData();
+        } catch { toast.error('Failed to toggle routing status'); }
+    };
+
+    const saveRoutePriority = async (id: string, newPriority: number) => {
+        try {
+            await fetch('/api/owner/model-routing', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, priority: newPriority })
+            });
+            toast.success('Priority saved');
+            loadData();
+        } catch { toast.error('Failed to update priority'); }
+    };
+
+    const toggleExpand = (model: ModelStat) => {
+        if (expandedModel === model.modelId) {
+            setExpandedModel(null);
+        } else {
+            setExpandedModel(model.modelId);
+            setEditValues({ rpm: model.rpm, tpm: model.tpm, rpd: model.rpd });
+            
+            // Prefill priority states
+            const cRoute = routing.chat.find(r => r.model_id === model.modelId);
+            const aRoute = routing.analysis.find(r => r.model_id === model.modelId);
+            setRoutePriorities(prev => ({
+                ...prev,
+                ...(cRoute && { [cRoute.id]: cRoute.priority }),
+                ...(aRoute && { [aRoute.id]: aRoute.priority }),
+            }));
         }
     };
 
-    // Note: The UI for Add Model uses Verify underneath, which also acts as an "Add" if the model didn't exist? Wait, our verify API requires the model to exist in the registry already to fetch its provider. 
-    // We should just use direct SQL/Supabase insert for Add, but since we don't have an Add API yet, we'll need to create one if we want full functionality. For now, we will mock the button.
-
-    const getRelativeTime = (isoDate: string | null) => {
-        if (!isoDate) return 'Never';
-        const msPerMinute = 60 * 1000;
-        const msPerHour = msPerMinute * 60;
-        const msPerDay = msPerHour * 24;
-
-        const elapsed = Date.now() - new Date(isoDate).getTime();
-
-        if (elapsed < msPerMinute) return 'Just now';
-        if (elapsed < msPerHour) return Math.round(elapsed / msPerMinute) + ' minutes ago';
-        if (elapsed < msPerDay) return Math.round(elapsed / msPerHour) + ' hours ago';
-        return Math.round(elapsed / msPerDay) + ' days ago';
-    };
-
-    const isStale = (isoDate: string | null) => {
-        if (!isoDate) return true;
-        return (Date.now() - new Date(isoDate).getTime()) > (48 * 60 * 60 * 1000);
+    const handleCopy = (e: React.MouseEvent, text: string) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        toast.success('Copied to clipboard');
     };
 
     return (
-        <div className="text-white p-6 lg:p-10">
-            <div className="max-w-[1400px] mx-auto space-y-8">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-                        Model Registry
-                    </h1>
-                    <p className="text-zinc-400 mt-2 font-medium">
-                        Monitor provider health, rate limits, and model verification status
-                    </p>
+        <div className="text-white p-4 md:p-6 lg:p-10 pb-20">
+            <div className="max-w-[1500px] mx-auto space-y-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+                            Unified Model Registry
+                        </h1>
+                        <p className="text-zinc-400 mt-2 font-medium text-sm md:text-base">
+                            Monitor provider health, adjust rate limits, and configure AI routing cleanly.
+                        </p>
+                    </div>
+                    <Button onClick={() => setShowAddDialog(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20 w-full sm:w-auto">
+                        <Plus className="w-4 h-4 mr-2" /> Register New Model
+                    </Button>
                 </div>
 
-                {/* Banner */}
-                {deprecatedCount24h > 0 ? (
-                    <div className="rounded-xl p-4 bg-red-500/10 border border-red-500/25 flex items-center gap-3">
-                        <AlertCircle className="text-red-400 w-5 h-5 flex-shrink-0" />
-                        <span className="text-red-200 font-bold text-sm">
-                            ⚠ {deprecatedCount24h} model(s) automatically deprecated in the last 24 hours. Check system events for details.
-                        </span>
-                    </div>
-                ) : (
-                    models.length > 0 && !isLoading && (
-                        <div className="rounded-xl p-4 bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
-                            <CheckCircle2 className="text-emerald-400 w-5 h-5 flex-shrink-0" />
-                            <span className="text-emerald-200 font-bold text-sm">
-                                All {models.filter(m => m.isActive).length} active models verified and healthy.
-                            </span>
-                        </div>
-                    )
-                )}
-
-                {/* Main Table */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
+                <div className="rounded-2xl overflow-hidden bg-[var(--surface-1)] border border-[var(--surface-edge)] shadow-2xl">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-600 border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
+                        <table className="w-full text-sm text-left table-fixed sm:table-auto">
+                            <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-500 border-b border-[var(--surface-edge)] bg-[var(--surface-2)]">
                                 <tr>
-                                    <th className="px-4 py-4">Status</th>
-                                    <th className="px-4 py-4">Model ID</th>
-                                    <th className="px-4 py-4">Provider</th>
-                                    <th className="px-4 py-4">Tier</th>
-                                    <th className="px-4 py-4">RPM</th>
-                                    <th className="px-4 py-4">TPM</th>
-                                    <th className="px-4 py-4">RPD</th>
-                                    <th className="px-4 py-4">Last Verified</th>
-                                    <th className="px-4 py-4">429s/24h</th>
-                                    <th className="px-4 py-4 text-right">Actions</th>
+                                    <th className="px-3 py-4 w-10 text-center">Status</th>
+                                    <th className="px-3 py-4 sm:min-w-[200px] w-[50%] sm:w-auto">Model ID</th>
+                                    <th className="px-4 py-4 hidden sm:table-cell">Provider</th>
+                                    <th className="px-4 py-4 hidden md:table-cell">Health</th>
+                                    <th className="px-3 py-4 text-right w-24 sm:w-auto">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--surface-edge)]">
                                 {isLoading ? (
-                                    <tr>
-                                        <td colSpan={10} className="px-4 py-12 text-center text-zinc-500">
-                                            <div className="w-6 h-6 mx-auto mb-2 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-                                            Loading registry data...
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan={5} className="text-center py-16"><Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto"/></td></tr>
                                 ) : models.map((model) => (
-                                    <tr key={model.modelId} className="hover:bg-zinc-800/30 transition-colors">
-                                        <td className="px-4 py-3">
-                                            {model.status === 'active' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" title="Active & Healthy" />}
-                                            {model.status === 'degraded' && <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)] animate-pulse" title="Degraded (High 429s)" />}
-                                            {model.status === 'deprecated' && <div className="w-2.5 h-2.5 rounded-full bg-red-500" title="Deprecated" />}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <button
-                                                onClick={() => handleCopy(model.modelId)}
-                                                className="font-mono text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 transition-colors"
-                                            >
-                                                {model.modelId} <Copy className="w-3 h-3 opacity-50" />
-                                            </button>
-                                            {model.modelType === 'audio' && (
-                                                <span className="mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/25">
-                                                    Audio
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-zinc-300 capitalize">{model.provider}</td>
-                                        <td className="px-4 py-3 text-zinc-300">{model.tier}</td>
-
-                                        {/* Editable Columns */}
-                                        {['rpm', 'tpm', 'rpd'].map((field) => (
-                                            <td key={field} className="px-4 py-3 text-zinc-300">
-                                                {editingModel === model.modelId ? (
-                                                    <input
-                                                        type="number"
-                                                        value={editValues[field as keyof typeof editValues]}
-                                                        onChange={(e) => setEditValues(prev => ({ ...prev, [field]: parseInt(e.target.value) || 0 }))}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') saveEdit(model.modelId);
-                                                            if (e.key === 'Escape') cancelEditing();
-                                                        }}
-                                                        className="w-20 bg-black border border-indigo-500/50 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                                        autoFocus={field === 'rpm'}
-                                                    />
+                                    <React.Fragment key={model.modelId}>
+                                        <tr 
+                                            className={`transition-colors cursor-pointer group ${expandedModel === model.modelId ? 'bg-indigo-500/5' : 'hover:bg-white/[0.02]'}`}
+                                            onClick={() => toggleExpand(model)}
+                                        >
+                                            <td className="px-3 py-4 text-center">
+                                                {model.status === 'active' && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 mx-auto rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]" title="Active & Healthy" />}
+                                                {model.status === 'degraded' && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 mx-auto rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)] animate-pulse" title="Degraded" />}
+                                                {model.status === 'deprecated' && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 mx-auto rounded-full bg-zinc-600" title="Suspended" />}
+                                            </td>
+                                            <td className="px-3 py-4 truncate pr-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs sm:text-sm font-semibold text-zinc-200 group-hover:text-indigo-300 transition-colors truncate">{model.modelId}</span>
+                                                    <button onClick={(e) => handleCopy(e, model.modelId)} className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-white transition-opacity shrink-0"><Copy className="w-3 h-3"/></button>
+                                                </div>
+                                                <div className="sm:hidden mt-1 text-[10px] text-zinc-500 uppercase font-bold">{model.provider}</div>
+                                            </td>
+                                            <td className="px-4 py-4 hidden sm:table-cell">
+                                                <Badge variant="outline" className="bg-zinc-800/50 text-zinc-300 border-zinc-700 capitalize">{model.provider}</Badge>
+                                            </td>
+                                            <td className="px-4 py-4 hidden md:table-cell text-zinc-400 text-xs">
+                                                {model.status === 'deprecated' ? (
+                                                    <span className="flex items-center gap-1 text-zinc-500"><AlertCircle className="w-3 h-3"/> Suspended</span>
+                                                ) : model.status === 'degraded' ? (
+                                                    <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="w-3 h-3"/> Degraded</span>
+                                                ) : model.rateLimitHits24h > 0 ? (
+                                                    <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded flex items-center w-fit gap-1"><AlertCircle className="w-3 h-3"/> {model.rateLimitHits24h} hits (24h)</span>
                                                 ) : (
-                                                    <div
-                                                        onClick={() => startEditing(model)}
-                                                        className="cursor-pointer hover:bg-zinc-800/50 px-2 py-1 -mx-2 rounded flex items-center gap-2 group"
-                                                    >
-                                                        {model[field as keyof typeof model]}
-                                                        <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-50" />
-                                                    </div>
+                                                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-500"/> Healthy</span>
                                                 )}
                                             </td>
-                                        ))}
+                                            <td className="px-3 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-1 sm:gap-2">
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        className="h-8 w-8 sm:w-auto px-0 sm:px-3 border sm:border-zinc-700 border-transparent hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 transition-all text-zinc-400 sm:text-zinc-300" 
+                                                        onClick={(e) => { e.stopPropagation(); handleVerify(model.modelId); }} 
+                                                        disabled={verifyingModel === model.modelId}
+                                                    >
+                                                        {verifyingModel === model.modelId ? <Loader2 className="w-3.5 h-3.5 sm:mr-1 animate-spin" /> : <Play className="w-3.5 h-3.5 sm:mr-1" />}
+                                                        <span className="hidden sm:inline">Verify</span>
+                                                    </Button>
+                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
+                                                        {expandedModel === model.modelId ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                        {/* Expanded Details Panel */}
+                                        {expandedModel === model.modelId && (
+                                            <tr>
+                                                <td colSpan={5} className="p-0 border-b border-[var(--surface-edge)] bg-black/40">
+                                                    {/* Wrap in relative max-w to handle overflowing table if it happens */}
+                                                    <div className="p-4 md:p-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 shadow-inner w-full left-0 sticky">
+                                                        
+                                                        {/* Configuration & Limits */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 text-indigo-400 mb-2">
+                                                                <Edit2 className="w-4 h-4" />
+                                                                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-widest">Limits Config</h4>
+                                                            </div>
+                                                            <div className="bg-zinc-900/80 rounded-xl p-3 sm:p-4 border border-zinc-800 space-y-3">
+                                                                <div className="flex justify-between items-center gap-2">
+                                                                    <label className="text-[10px] sm:text-xs text-zinc-500 font-medium">Req per min (RPM)</label>
+                                                                    <input type="number" className="w-16 sm:w-24 bg-black border border-zinc-700 rounded px-2 py-1 text-xs sm:text-sm text-right focus:border-indigo-500 focus:outline-none" value={editValues.rpm} onChange={e => setEditValues(p => ({...p, rpm: +e.target.value}))} />
+                                                                </div>
+                                                                <div className="flex justify-between items-center gap-2">
+                                                                    <label className="text-[10px] sm:text-xs text-zinc-500 font-medium">Tokens per min (TPM)</label>
+                                                                    <input type="number" className="w-16 sm:w-24 bg-black border border-zinc-700 rounded px-2 py-1 text-xs sm:text-sm text-right focus:border-indigo-500 focus:outline-none" value={editValues.tpm} onChange={e => setEditValues(p => ({...p, tpm: +e.target.value}))} />
+                                                                </div>
+                                                                <div className="flex justify-between items-center gap-2">
+                                                                    <label className="text-[10px] sm:text-xs text-zinc-500 font-medium">Req per day (RPD)</label>
+                                                                    <input type="number" className="w-16 sm:w-24 bg-black border border-zinc-700 rounded px-2 py-1 text-xs sm:text-sm text-right focus:border-indigo-500 focus:outline-none" value={editValues.rpd} onChange={e => setEditValues(p => ({...p, rpd: +e.target.value}))} />
+                                                                </div>
+                                                                <Button size="sm" className="w-full mt-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs sm:text-sm" onClick={() => saveLimits(model.modelId)} disabled={isSavingEdit}>
+                                                                    {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5"/> : <Check className="w-3.5 h-3.5 mr-1.5"/>} Save Limits
+                                                                </Button>
+                                                            </div>
+                                                        </div>
 
-                                        <td className="px-4 py-3">
-                                            <span className={isStale(model.lastVerified) ? "text-red-400 font-medium" : "text-zinc-400"}>
-                                                {getRelativeTime(model.lastVerified)}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {model.rateLimitHits24h > 0 ? (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/25">
-                                                    {model.rateLimitHits24h}
-                                                </span>
-                                            ) : (
-                                                <span className="text-zinc-500">0</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {editingModel === model.modelId ? (
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button size="sm" variant="ghost" className="h-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10" onClick={() => saveEdit(model.modelId)} disabled={isSavingEdit}>
-                                                        {isSavingEdit ? <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Check className="w-4 h-4" />}
-                                                    </Button>
-                                                    <Button size="sm" variant="ghost" className="h-8 text-zinc-400 hover:text-white" onClick={cancelEditing}>
-                                                        <X className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-end gap-2 text-zinc-400">
-                                                    {model.status === 'deprecated' ? (
-                                                        <Button size="sm" variant="outline" className="h-8 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => handleRestore(model.modelId)}>
-                                                            <RotateCcw className="w-3 h-3 mr-1" /> Restore
-                                                        </Button>
-                                                    ) : (
-                                                        <>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="h-8 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-700 hover:text-white"
-                                                                onClick={() => handleVerify(model.modelId)}
-                                                                disabled={verifyingModel === model.modelId}
-                                                            >
-                                                                {verifyingModel === model.modelId ? <div className="w-3 h-3 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
-                                                                {model.modelType === 'audio' ? 'Mark OK' : 'Verify'}
+                                                        {/* Routing Configuration */}
+                                                        <div className="lg:col-span-2 space-y-4">
+                                                            <div className="flex items-center gap-2 text-purple-400 mb-2">
+                                                                <Play className="w-4 h-4" />
+                                                                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-widest">Routing Integration</h4>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {/* Chat Route Card */}
+                                                                <div className="bg-zinc-900/80 rounded-xl p-3 sm:p-4 border border-zinc-800 flex flex-col justify-between">
+                                                                    <div>
+                                                                        <div className="flex justify-between items-start mb-3">
+                                                                            <span className="text-sm font-bold text-zinc-300">Chat Routing</span>
+                                                                            {routing.chat.find(r => r.model_id === model.modelId) ? (
+                                                                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] sm:text-xs">Configured</Badge>
+                                                                            ) : (
+                                                                                <Badge variant="outline" className="bg-zinc-800 text-zinc-500 border-zinc-700 text-[10px] sm:text-xs">Not Added</Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {(() => {
+                                                                            const route = routing.chat.find(r => r.model_id === model.modelId);
+                                                                            if (!route) {
+                                                                                return (
+                                                                                    <div className="text-center py-4">
+                                                                                        <p className="text-xs text-zinc-500 mb-3">Not available for chat processing.</p>
+                                                                                        <Button size="sm" variant="outline" className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 w-full sm:w-auto" onClick={() => toggleRoute(undefined, model.modelId, model.provider, 'chat')}>
+                                                                                            <Plus className="w-3 h-3 mr-1"/> Add to Chat
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+                                                                            return (
+                                                                                <div className="space-y-3">
+                                                                                    <div className="flex justify-between items-center bg-black/40 p-2 rounded-lg">
+                                                                                        <span className="text-[10px] sm:text-xs text-zinc-400">Status</span>
+                                                                                        <button className="flex items-center gap-1.5" onClick={() => toggleRouteActive(route.id, route.is_active)}>
+                                                                                            <span className="text-[10px] sm:text-xs font-semibold text-zinc-300">{route.is_active ? 'Active' : 'Paused'}</span>
+                                                                                            {route.is_active ? <ToggleRight className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500"/> : <ToggleLeft className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-600"/>}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center bg-black/40 p-2 rounded-lg">
+                                                                                        <span className="text-[10px] sm:text-xs text-zinc-400 truncate pr-2">Priority (lower=first)</span>
+                                                                                        <div className="flex items-center gap-1 shrink-0">
+                                                                                            <input type="number" className="w-12 sm:w-16 bg-black border border-zinc-700 rounded px-1.5 sm:px-2 py-1 text-xs sm:text-sm text-right focus:border-indigo-500 focus:outline-none" value={routePriorities[route.id] ?? route.priority} onChange={(e) => setRoutePriorities(p => ({...p, [route.id]: +e.target.value}))} />
+                                                                                            <Button size="sm" variant="ghost" className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-emerald-400" onClick={() => saveRoutePriority(route.id, routePriorities[route.id])}><Check className="w-3 h-3"/></Button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                    {routing.chat.find(r => r.model_id === model.modelId) && (
+                                                                        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-3 w-full text-xs sm:text-sm" onClick={() => toggleRoute(routing.chat.find(r => r.model_id === model.modelId), model.modelId, model.provider, 'chat')}>
+                                                                            <X className="w-3 h-3 mr-1"/> Remove
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Analysis Route Card */}
+                                                                <div className="bg-zinc-900/80 rounded-xl p-3 sm:p-4 border border-zinc-800 flex flex-col justify-between">
+                                                                    <div>
+                                                                        <div className="flex justify-between items-start mb-3">
+                                                                            <span className="text-sm font-bold text-zinc-300">Analysis Routing</span>
+                                                                            {routing.analysis.find(r => r.model_id === model.modelId) ? (
+                                                                                <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] sm:text-xs">Configured</Badge>
+                                                                            ) : (
+                                                                                <Badge variant="outline" className="bg-zinc-800 text-zinc-500 border-zinc-700 text-[10px] sm:text-xs">Not Added</Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {(() => {
+                                                                            const route = routing.analysis.find(r => r.model_id === model.modelId);
+                                                                            if (!route) {
+                                                                                return (
+                                                                                    <div className="text-center py-4">
+                                                                                        <p className="text-xs text-zinc-500 mb-3">Not available for background analysis.</p>
+                                                                                        <Button size="sm" variant="outline" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 w-full sm:w-auto" onClick={() => toggleRoute(undefined, model.modelId, model.provider, 'analysis')}>
+                                                                                            <Plus className="w-3 h-3 mr-1"/> Add to Analysis
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+                                                                            return (
+                                                                                <div className="space-y-3">
+                                                                                    <div className="flex justify-between items-center bg-black/40 p-2 rounded-lg">
+                                                                                        <span className="text-[10px] sm:text-xs text-zinc-400">Status</span>
+                                                                                        <button className="flex items-center gap-1.5" onClick={() => toggleRouteActive(route.id, route.is_active)}>
+                                                                                            <span className="text-[10px] sm:text-xs font-semibold text-zinc-300">{route.is_active ? 'Active' : 'Paused'}</span>
+                                                                                            {route.is_active ? <ToggleRight className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500"/> : <ToggleLeft className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-600"/>}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center bg-black/40 p-2 rounded-lg">
+                                                                                        <span className="text-[10px] sm:text-xs text-zinc-400 truncate pr-2">Priority (lower=first)</span>
+                                                                                        <div className="flex items-center gap-1 shrink-0">
+                                                                                            <input type="number" className="w-12 sm:w-16 bg-black border border-zinc-700 rounded px-1.5 sm:px-2 py-1 text-xs sm:text-sm text-right focus:border-purple-500 focus:outline-none" value={routePriorities[route.id] ?? route.priority} onChange={(e) => setRoutePriorities(p => ({...p, [route.id]: +e.target.value}))} />
+                                                                                            <Button size="sm" variant="ghost" className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-emerald-400" onClick={() => saveRoutePriority(route.id, routePriorities[route.id])}><Check className="w-3 h-3"/></Button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                    {routing.analysis.find(r => r.model_id === model.modelId) && (
+                                                                        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-3 w-full text-xs sm:text-sm" onClick={() => toggleRoute(routing.analysis.find(r => r.model_id === model.modelId), model.modelId, model.provider, 'analysis')}>
+                                                                            <X className="w-3 h-3 mr-1"/> Remove
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Danger Zone Actions */}
+                                                        <div className="lg:col-span-3 pt-4 border-t border-zinc-800/50 flex flex-col sm:flex-row justify-end gap-3 items-center">
+                                                            {model.status === 'deprecated' ? (
+                                                                <Button variant="outline" className="w-full sm:w-auto border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => handleRestore(model.modelId)}>
+                                                                    <RotateCcw className="w-4 h-4 mr-2" /> Restore Model
+                                                                </Button>
+                                                            ) : (
+                                                                <Button variant="outline" className="w-full sm:w-auto border-amber-500/30 text-amber-500 hover:bg-amber-500/10" onClick={() => handleDeprecate(model.modelId)}>
+                                                                    Suspend Model
+                                                                </Button>
+                                                            )}
+                                                            <Button variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20" onClick={() => setModelToDelete(model.modelId)}>
+                                                                <Trash2 className="w-4 h-4 mr-2" /> Hard Delete
                                                             </Button>
-                                                            <Button size="sm" variant="outline" className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => handleDeprecate(model.modelId)}>
-                                                                Deprecate
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
+                                                        </div>
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
+            </div>
 
-                {/* Add Model Form placeholder - backend endpoint required for full insert, keeping UI matching requirements */}
-                <div className="pt-4 border-t border-[var(--surface-edge)]">
-                    <Button
-                        variant="ghost"
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 font-bold"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        {showAddForm ? 'Cancel Adding' : 'Add New Model'}
-                    </Button>
-
-                    {showAddForm && (
-                        <div className="rounded-2xl p-6 mt-4" style={{ background: 'var(--surface-1)', border: '1px solid var(--surface-edge)' }}>
-                            <h3 className="text-lg font-bold text-zinc-200 mb-4">Register New Model</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Basic form structure to match spec */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Model ID</label>
-                                    <input
-                                        type="text"
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        placeholder="e.g. llama-3.1-8b"
-                                        value={newModel.modelId}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, modelId: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Provider</label>
-                                    <select
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        value={newModel.provider}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, provider: e.target.value }))}
-                                    >
-                                        <option value="groq">Groq</option>
-                                        <option value="gemini">Gemini</option>
-
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Tier (1-12)</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="12"
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        value={newModel.tier}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, tier: parseInt(e.target.value) || 0 }))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">RPM (Req per min)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        value={newModel.rpm}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, rpm: parseInt(e.target.value) || 0 }))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">TPM (Tokens per min)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        value={newModel.tpm}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, tpm: parseInt(e.target.value) || 0 }))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">RPD (Req per day)</label>
-                                    <input
-                                        type="number"
-                                        className="w-full rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                        style={{ background: 'var(--surface-2)', border: '1px solid var(--surface-edge)' }}
-                                        value={newModel.rpd}
-                                        onChange={(e) => setNewModel(prev => ({ ...prev, rpd: parseInt(e.target.value) || 0 }))}
-                                    />
-                                </div>
+            {/* Add Model Dialog */}
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogContent className="bg-[var(--surface-1)] border-[var(--surface-edge)] text-white sm:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Register New Model</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            Add a new AI model to the registry. You must configure routing separately after adding.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Model ID</label>
+                            <input 
+                                type="text" 
+                                placeholder="e.g. llama-3.3-70b-versatile" 
+                                className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" 
+                                value={newModel.modelId} 
+                                onChange={e => setNewModel(p => ({...p, modelId: e.target.value}))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Provider</label>
+                            <select 
+                                className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" 
+                                value={newModel.provider} 
+                                onChange={e => setNewModel(p => ({...p, provider: e.target.value}))}
+                            >
+                                <option value="groq">Groq</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="bedrock">AWS Bedrock</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">RPM</label>
+                                <input type="number" className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-sm text-center" value={newModel.rpm} onChange={e => setNewModel(p => ({...p, rpm: +e.target.value}))}/>
                             </div>
-                            <div className="mt-6 flex justify-end">
-                                <Button
-                                    className="btn-primary"
-                                    onClick={handleAddModel}
-                                    disabled={isAdding}
-                                >
-                                    {isAdding ? <div className="w-4 h-4 mr-2 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                                    Verify & Add
-                                </Button>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">TPM</label>
+                                <input type="number" className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-sm text-center" value={newModel.tpm} onChange={e => setNewModel(p => ({...p, tpm: +e.target.value}))}/>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">RPD</label>
+                                <input type="number" className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-sm text-center" value={newModel.rpd} onChange={e => setNewModel(p => ({...p, rpd: +e.target.value}))}/>
                             </div>
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowAddDialog(false)} className="text-zinc-400 hover:text-white">Cancel</Button>
+                        <Button onClick={handleAddModel} disabled={isAdding || !newModel.modelId} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                            {isAdding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />} Add Model
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!modelToDelete} onOpenChange={(open) => !open && setModelToDelete(null)}>
+                <DialogContent className="bg-[var(--surface-1)] border-red-500/20 text-white sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-500">
+                            <AlertCircle className="w-5 h-5" /> Confirm Hard Delete
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-400 pt-2">
+                            Are you absolutely sure you want to completely delete <strong className="text-white font-mono">{modelToDelete}</strong> from the system?
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-sm text-red-400 font-medium">
+                        This action cannot be undone. All routing associations for this model will also be permanently destroyed.
+                    </div>
+
+                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setModelToDelete(null)} className="text-zinc-400 hover:text-white">Cancel</Button>
+                        <Button variant="destructive" onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20">
+                            <Trash2 className="w-4 h-4 mr-2" /> Yes, Delete Permanently
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

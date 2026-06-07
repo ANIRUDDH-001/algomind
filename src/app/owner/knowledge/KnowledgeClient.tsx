@@ -231,8 +231,8 @@ export function KnowledgeTab() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="bg-[var(--surface-1)] border border-white/8 p-1 mb-6 rounded-lg">
-                        <TabsTrigger value="queue" className="data-[state=active]:bg-[var(--surface-2)] text-sm">
+                    <TabsList className="bg-[var(--surface-1)] border border-white/8 p-1 mb-6 rounded-lg max-w-full overflow-x-auto overflow-y-hidden justify-start custom-scrollbar">
+                        <TabsTrigger value="queue" className="data-[state=active]:bg-[var(--surface-2)] text-sm whitespace-nowrap">
                             <LayoutDashboard className="w-4 h-4 mr-2" />
                             Gaps Queue ({gaps.length})
                         </TabsTrigger>
@@ -256,7 +256,7 @@ export function KnowledgeTab() {
                                 </h2>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
+                                <table className="w-full min-w-[800px] text-sm text-left">
                                     <thead className="text-xs text-zinc-500 uppercase bg-[var(--surface-1)]/80 border-b border-white/8">
                                         <tr>
                                             <th className="px-6 py-3">Priority</th>
@@ -341,7 +341,7 @@ export function KnowledgeTab() {
                                 </div>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
+                                <table className="w-full min-w-[800px] text-sm text-left">
                                     <thead className="text-xs text-zinc-500 uppercase bg-[var(--surface-1)]/80 border-b border-white/8">
                                         <tr>
                                             <th className="px-6 py-3">Title</th>

@@ -204,20 +204,39 @@ export async function DELETE(request: Request) {
         const { errorResponse } = await requireAdminForApi();
         if (errorResponse) return errorResponse;
         const body = await request.json();
-        const { modelId, reason } = body;
+        const { modelId, reason, hardDelete } = body;
 
-        if (!modelId || !reason) {
-            return NextResponse.json({ error: 'Missing modelId or reason' }, { status: 400 });
+        if (!modelId) {
+            return NextResponse.json({ error: 'Missing modelId' }, { status: 400 });
         }
 
-        // Use the existing markModelDeprecated function
-        const { markModelDeprecated } = await import('@/lib/ai/model-registry');
-        await markModelDeprecated(modelId, reason);
+        if (hardDelete) {
+            const supabase = await createServerSupabase();
+            const { error } = await supabase
+                .from('model_registry')
+                .delete()
+                .eq('model_id', modelId);
+            
+            if (error) {
+                return NextResponse.json({ error: 'Failed to hard delete model' }, { status: 500 });
+            }
 
-        void logSystemEvent({
-            type: 'admin_action' as any,
-            metadata: { action: 'deprecate_model', modelId, reason }
-        });
+            void logSystemEvent({
+                type: 'admin_action' as any,
+                metadata: { action: 'hard_delete_model', modelId }
+            });
+        } else {
+            if (!reason) return NextResponse.json({ error: 'Missing reason for deprecation' }, { status: 400 });
+
+            // Use the existing markModelDeprecated function
+            const { markModelDeprecated } = await import('@/lib/ai/model-registry');
+            await markModelDeprecated(modelId, reason);
+
+            void logSystemEvent({
+                type: 'admin_action' as any,
+                metadata: { action: 'deprecate_model', modelId, reason }
+            });
+        }
 
         return NextResponse.json({ success: true });
 
