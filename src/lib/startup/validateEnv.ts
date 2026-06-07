@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1
  */
 import { createServerSupabase } from '@/lib/supabase/server';
+import { assertAssessmentSecretIsUnique } from '@/lib/assess/jwt';
 
 
 type CriticalEnvVar = {
@@ -134,6 +135,13 @@ export function validateEnv(): void {
         if (process.env[v as keyof NodeJS.ProcessEnv]) {
             console.warn(`[validateEnv] WARNING: ${v} is set but not used by any code. Remove it from Vercel to avoid confusion.`);
         }
+    }
+
+    try {
+        assertAssessmentSecretIsUnique();
+    } catch (err) {
+        console.error((err as Error).message);
+        process.exit(1);
     }
 }
 
