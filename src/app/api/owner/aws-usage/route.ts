@@ -64,13 +64,15 @@ export async function GET(request: NextRequest) {
             0
         );
 
+        const budgetLimit = Number(process.env.AWS_BUDGET_LIMIT) || 100;
+
         return NextResponse.json({
             summary: summary || [],
             recentLogs: recentLogs || [],
             dailyCosts,
             totalCost,
-            budgetLimit: 100, // $100 hackathon budget
-            budgetUsedPercent: (totalCost / 100) * 100,
+            budgetLimit,
+            budgetUsedPercent: (totalCost / budgetLimit) * 100,
             days,
         });
     } catch (err) {
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
             recentLogs: [],
             dailyCosts: {},
             totalCost: 0,
-            budgetLimit: 100,
+            budgetLimit: Number(process.env.AWS_BUDGET_LIMIT) || 100,
             budgetUsedPercent: 0,
             days,
             warning: 'aws_usage_log table may not exist yet. Run the SQL migration.',

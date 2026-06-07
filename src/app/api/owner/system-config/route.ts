@@ -19,7 +19,7 @@ export async function GET() {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'db_error',
                 errorMessage: errMsg,
                 metadata: { context: 'owner_system_config.get' },
@@ -30,7 +30,7 @@ export async function GET() {
         return NextResponse.json({ config: data ?? [] });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'db_error',
             errorMessage: errMsg,
             metadata: { context: 'owner_system_config.get' },
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'db_error',
                 errorMessage: errMsg,
                 metadata: { context: 'owner_system_config.post' },
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'db_error',
             errorMessage: errMsg,
             metadata: { context: 'owner_system_config.post' },

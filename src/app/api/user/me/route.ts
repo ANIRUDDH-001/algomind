@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('[user/me] Error:', errMsg);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'user/me' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'user/me' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

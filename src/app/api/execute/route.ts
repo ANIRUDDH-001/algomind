@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
             const isTimeout = error instanceof DOMException && error.name === 'AbortError';
 
             if (isTimeout) {
-                void logSystemEvent({
+                await logSystemEvent({
                     type: 'piston_error',
                     errorMessage: 'Piston API Timeout',
                     metadata: { language, userId: user.id }
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json(response, { status: 200 }); // Handled timeout is 200 to client
             }
 
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'piston_error',
                 errorMessage: error instanceof Error ? error.message : String(error),
                 metadata: { language, userId: user.id }

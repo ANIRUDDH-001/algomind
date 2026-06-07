@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('[employer/upgrade] Error:', errMsg);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'employer/upgrade' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'employer/upgrade' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

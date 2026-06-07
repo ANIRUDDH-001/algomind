@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
 
         const dependencyHealth = await checkDependenciesHealthy(submissionId);
         if (!dependencyHealth.dbOk || !dependencyHealth.redisOk) {
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'route_error',
                 errorMessage: 'Assessment async queue denied due to unhealthy dependencies',
                 metadata: {
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
                     .eq('id', submissionId)
                     .eq('analysis_status', 'pending');
 
-                void logSystemEvent({
+                await logSystemEvent({
                     type: 'route_error',
                     errorMessage: 'run-assessment invoke failed after retries',
                     metadata: {

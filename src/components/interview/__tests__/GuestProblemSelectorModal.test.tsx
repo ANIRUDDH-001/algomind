@@ -19,6 +19,10 @@ import React from 'react';
 import { GuestProblemSelectorModal } from '../GuestProblemSelectorModal';
 import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 
+vi.mock('@/components/ui/responsive-modal', () => ({
+    ResponsiveModal: ({ children }: any) => <div data-testid="mock-modal">{children}</div>
+}));
+
 describe('GuestProblemSelectorModal', () => {
     it('renders nothing when isOpen is false', () => {
         render(

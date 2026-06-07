@@ -363,7 +363,7 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: unknown) {
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'model_error',
             errorMessage: error instanceof Error ? error.message : String(error),
             correlationId,

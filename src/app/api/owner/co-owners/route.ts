@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
         if (error) {
             if (error.code === '23505') return NextResponse.json({ error: 'User is already a co-owner' }, { status: 400 });
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action',
             userId: user.id,
             metadata: {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, coOwner });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -90,11 +90,11 @@ export async function DELETE(req: NextRequest) {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action',
             userId: user.id,
             metadata: {
@@ -107,7 +107,7 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/co-owners' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

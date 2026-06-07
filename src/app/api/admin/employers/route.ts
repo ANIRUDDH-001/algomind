@@ -32,14 +32,14 @@ export async function GET() {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ employers: data });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employers' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

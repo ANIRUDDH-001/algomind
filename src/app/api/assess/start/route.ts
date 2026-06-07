@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (lookupError || !campaignRef) {
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'route_error',
                 errorMessage: 'assess_start_campaign_not_found',
                 metadata: {
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
                 });
             const verifyResult = Array.isArray(verifyData) ? verifyData[0] : verifyData;
             if (verifyError || !verifyResult?.valid) {
-                void logSystemEvent({
+                await logSystemEvent({
                     type: 'client_error',
                     errorMessage: 'assess_start_invalid_entry_code',
                     metadata: {

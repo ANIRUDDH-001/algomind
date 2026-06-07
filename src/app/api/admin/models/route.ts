@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 
         await invalidateModelCache();
 
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action' as any, // Legacy event type, ignoring TS for this existing record
             metadata: { action: 'add_model', modelId, provider }
         });
@@ -187,7 +187,7 @@ export async function PATCH(request: Request) {
         // Invalidate cache
         await invalidateModelCache();
 
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action' as any,
             metadata: { action: 'update_model', modelId, updates }
         });
@@ -221,7 +221,7 @@ export async function DELETE(request: Request) {
                 return NextResponse.json({ error: 'Failed to hard delete model' }, { status: 500 });
             }
 
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'admin_action' as any,
                 metadata: { action: 'hard_delete_model', modelId }
             });
@@ -232,7 +232,7 @@ export async function DELETE(request: Request) {
             const { markModelDeprecated } = await import('@/lib/ai/model-registry');
             await markModelDeprecated(modelId, reason);
 
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'admin_action' as any,
                 metadata: { action: 'deprecate_model', modelId, reason }
             });

@@ -160,6 +160,7 @@ export async function GET(request?: Request) {
         }));
 
     } catch (error) {
+        console.error('Test Error:', error);
         return withCorrelationIdResponse(ApiErrors.serverError('Internal Server Error'));
     }
 }

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Failed to update database' }, { status: 500 });
             }
 
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'admin_action',
                 metadata: { action: 'verify_model', modelId, status: 'verified', message: 'Audio model — marked verified (no ping required)' }
             });
@@ -232,7 +232,7 @@ export async function POST(request: Request) {
         }
 
         // 4. Log the attempt
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action',
             metadata: { action: 'verify_model', modelId, status, message }
         });

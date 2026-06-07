@@ -5,11 +5,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []
@@ -20,11 +20,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []
@@ -47,11 +47,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []
@@ -89,11 +89,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []
@@ -109,9 +109,7 @@
   "/owner/cache": {
     "errors": [
       "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-      "Console error: [Cache Stats] Failed to load: Error: HTTP 401\n    at CachePage.useCallback[refresh] (http://localhost:3000/_next/static/chunks/_94a52ff1._.js:98:36)",
-      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
-      "Console error: [Cache Stats] Failed to load: Error: HTTP 401\n    at CachePage.useCallback[refresh] (http://localhost:3000/_next/static/chunks/_94a52ff1._.js:98:36)"
+      "Console error: [Cache Stats] Failed to load: Error: HTTP 401"
     ],
     "overlappingElements": [
       "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">",
@@ -125,11 +123,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []
@@ -140,11 +138,11 @@
     ],
     "overlappingElements": [
       "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
       "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
-      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto\"> vs <div class=\"w-5 h-8 rounded-full border-2 border-zinc-700 flex justify-center p-1\">",
+      "Overlap: <button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 has-[>svg]:px-4 w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
       "Sidebar overlaps main content! Sidebar right: 1280, Main left: 0"
     ],
     "missingContent": []

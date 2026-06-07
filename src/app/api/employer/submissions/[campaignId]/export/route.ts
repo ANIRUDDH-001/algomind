@@ -194,7 +194,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     } catch (error: unknown) {
         console.error('[SUBMISSIONS_EXPORT_ERROR]', error);
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'employer/submissions/export' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'employer/submissions/export' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

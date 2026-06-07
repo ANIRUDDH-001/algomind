@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('❌ [Analyze] Assessment failed:', errMsg);
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'model_error',
             errorMessage: `Assessment failed: ${errMsg}`,
         });

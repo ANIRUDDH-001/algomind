@@ -74,7 +74,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 30, clientY: 205 }); // diffX = -70, diffY = 5
+        fireEvent.pointerMove(element, { clientX: 30, clientY: 205, buttons: 1 }); // diffX = -70, diffY = 5
         fireEvent.pointerUp(element, { clientX: 30, clientY: 205 });
 
         expect(mockOnTabChange).toHaveBeenCalledWith('tab3');
@@ -85,7 +85,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 170, clientY: 205 }); // diffX = 70, diffY = 5
+        fireEvent.pointerMove(element, { clientX: 170, clientY: 205, buttons: 1 }); // diffX = 70, diffY = 5
         fireEvent.pointerUp(element, { clientX: 170, clientY: 205 });
 
         expect(mockOnTabChange).toHaveBeenCalledWith('tab1');
@@ -120,7 +120,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 170, clientY: 205 }); // diffX = 70
+        fireEvent.pointerMove(element, { clientX: 170, clientY: 205, buttons: 1 }); // diffX = 70
         fireEvent.pointerUp(element, { clientX: 170, clientY: 205 });
 
         expect(mockOnTabChange).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 30, clientY: 205 }); // diffX = -70
+        fireEvent.pointerMove(element, { clientX: 30, clientY: 205, buttons: 1 }); // diffX = -70
         fireEvent.pointerUp(element, { clientX: 30, clientY: 205 });
 
         expect(mockOnTabChange).not.toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 30, clientY: 205 }); // diffX = -70
+        fireEvent.pointerMove(element, { clientX: 30, clientY: 205, buttons: 1 }); // diffX = -70
         fireEvent.pointerUp(element, { clientX: 30, clientY: 205 });
 
         expect(mockOnTabChange).not.toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe('useSwipeNavigation', () => {
         const element = screen.getByTestId('swipe-area');
 
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 30, clientY: 205 }); // diffX = -70
+        fireEvent.pointerMove(element, { clientX: 30, clientY: 205, buttons: 1 }); // diffX = -70
 
         // Offset should be populated (dx * resistance)
         const offset = Number(element.getAttribute('data-offset'));
@@ -167,7 +167,7 @@ describe('useSwipeNavigation', () => {
 
         // pointerUp
         fireEvent.pointerDown(element, { clientX: 100, clientY: 200 });
-        fireEvent.pointerMove(element, { clientX: 30, clientY: 205 });
+        fireEvent.pointerMove(element, { clientX: 30, clientY: 205, buttons: 1 });
         expect(Number(element.getAttribute('data-offset'))).not.toBe(0);
 
         fireEvent.pointerUp(element, { clientX: 30, clientY: 205 });

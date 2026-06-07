@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     const serviceClient = getServiceClient();
 
     // Log cron trigger
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'cron.triggered',
       correlationId,
       metadata: {
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
 
     if (rpcError) {
       
-      void logSystemEvent({
+      await logSystemEvent({
         type: 'cron.failed',
         correlationId,
         errorMessage: rpcError.message,
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
     const downgradedCount = Array.isArray(downgradedUsers) ? downgradedUsers.length : 0;
 
     // Log successful completion
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'cron.completed',
       correlationId,
       metadata: {
@@ -94,7 +94,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
 
-      void logSystemEvent({
+      await logSystemEvent({
       type: 'cron.failed',
       correlationId,
       errorMessage: error instanceof Error ? error.message : String(error),

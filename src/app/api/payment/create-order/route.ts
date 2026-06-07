@@ -47,7 +47,7 @@ export async function POST() {
     });
 
     // Log subscription creation
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'payment.subscription_created',
       user_id: user.id,
       metadata: {
@@ -65,7 +65,7 @@ export async function POST() {
   } catch (error) {
     console.error('Error creating Razorpay subscription:', error);
     
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'payment.order_created',
       errorMessage: error instanceof Error ? error.message : String(error),
       metadata: {

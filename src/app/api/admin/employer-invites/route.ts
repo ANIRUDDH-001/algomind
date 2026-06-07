@@ -30,14 +30,14 @@ export async function GET() {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ invites: data });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -75,14 +75,14 @@ export async function POST(req: NextRequest) {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ invite: data });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -107,14 +107,14 @@ export async function DELETE(req: NextRequest) {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/employer-invites' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

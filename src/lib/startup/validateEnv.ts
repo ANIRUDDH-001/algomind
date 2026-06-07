@@ -28,7 +28,8 @@ export function validateEnv(): void {
         { key: "SUPABASE_JWT_SECRET", use: "JWT signing secret for candidate assessment sessions — must be separate from service role key" },
         { key: "INTERNAL_API_SECRET", use: "Authorization secret for invoking run-assessment edge function — missing means all candidate assessments complete with no analysis" },
         { key: "ASSESSMENT_JWT_SECRET", use: "Dedicated JWT signing secret for candidate assessment sessions — falls back to SUPABASE_JWT_SECRET if absent but should be set explicitly" },
-        // { key: "RAZORPAY_KEY_SECRET", use: "Razorpay signature verification secret" },
+        { key: "RAZORPAY_KEY_SECRET", use: "Razorpay key secret for payment order signature verification" },
+        { key: "RAZORPAY_WEBHOOK_SECRET", use: "Razorpay webhook HMAC secret — missing means ALL webhook events are accepted without authentication, allowing free premium subscriptions" },
         { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
     ];
 
@@ -94,6 +95,7 @@ export const env = {
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET,
     ASSESSMENT_JWT_SECRET: process.env.ASSESSMENT_JWT_SECRET,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
 

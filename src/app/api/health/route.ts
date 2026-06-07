@@ -96,7 +96,7 @@ export async function GET() {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('[health] Error:', errMsg);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'health' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'health' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

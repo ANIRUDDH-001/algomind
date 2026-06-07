@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
                 if (attempt < 3) {
                     await new Promise(r => setTimeout(r, 200 * attempt));
                 } else {
-                    void logSystemEvent({
+                    await logSystemEvent({
                         type: 'transcript_save_failed',
                         correlationId,
                         metadata: { submissionId, attempts: 3, errorCode: error.code },
@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
                         });
                     } catch (err) {
                         if ((err as Error)?.name === 'AbortError') return;
-                        void logSystemEvent({
+                        await logSystemEvent({
                             type: 'model_error',
                             correlationId,
                             errorMessage: err instanceof Error ? err.message : String(err),

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { invalidateStudentContext } from '@/lib/kai-context';
@@ -21,8 +22,61 @@ export async function POST(req: Request) {
   
   try {
     validateEnv();
-    
-    const body = await req.json() as {
+
+    // ── 1. Read raw body BEFORE any parsing ────────────────────────────────
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-razorpay-signature');
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    // ── 2. Reject immediately if secret not configured ─────────────────────
+    if (!webhookSecret) {
+      console.error('[Webhook] RAZORPAY_WEBHOOK_SECRET is not set — rejecting all webhook events');
+      void logSystemEvent({
+        type: 'payment.webhook_failed',
+        correlationId,
+        metadata: { component: 'payment.webhook', operation: 'webhook_rejected', reason: 'secret_not_configured' },
+      });
+      return NextResponse.json({ error: 'Misconfigured' }, { status: 500 });
+    }
+
+    // ── 3. Reject if signature header is missing ───────────────────────────
+    if (!signature) {
+      void logSystemEvent({
+        type: 'payment.webhook_failed',
+        correlationId,
+        metadata: { component: 'payment.webhook', operation: 'webhook_rejected', reason: 'missing_signature_header' },
+      });
+      return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+    }
+
+    // ── 4. HMAC verification (timing-safe) ─────────────────────────────────
+    const expectedHex = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('hex');
+
+    let signatureValid = false;
+    try {
+      signatureValid = crypto.timingSafeEqual(
+        Buffer.from(expectedHex, 'hex'),
+        Buffer.from(signature, 'hex')
+      );
+    } catch {
+      // Buffer lengths differ → invalid signature (don't throw, just reject)
+      signatureValid = false;
+    }
+
+    if (!signatureValid) {
+      void logSystemEvent({
+        type: 'payment.webhook_failed',
+        correlationId,
+        metadata: { component: 'payment.webhook', operation: 'webhook_rejected', reason: 'invalid_signature' },
+      });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    // ── 5. Parse body only after signature is verified ─────────────────────
+    let body: {
       event?: string;
       payload?: {
         subscription?: {
@@ -44,6 +98,11 @@ export async function POST(req: Request) {
       };
       created_at?: number;
     };
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     const webhookEvent = body.event;
     const payload = body.payload;
@@ -56,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     // Log webhook receipt
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'payment.webhook_received',
       correlationId,
       metadata: {
@@ -128,7 +187,7 @@ export async function POST(req: Request) {
           }
 
           // Log success
-          void logSystemEvent({
+          await logSystemEvent({
             type: 'payment.subscription_charged',
             user_id: existingSubscription.user_id,
             correlationId,
@@ -187,7 +246,7 @@ export async function POST(req: Request) {
           }
 
           // Log cancellation
-          void logSystemEvent({
+          await logSystemEvent({
             type: 'payment.subscription_cancelled',
             user_id: existingSubscription.user_id,
             correlationId,
@@ -207,7 +266,7 @@ export async function POST(req: Request) {
         // Log other subscription lifecycle events without taking action
         console.log(`Received subscription event: ${webhookEvent}`, { subscription });
         
-        void logSystemEvent({
+        await logSystemEvent({
           type: 'payment.webhook_processed',
           correlationId,
           metadata: {
@@ -224,7 +283,7 @@ export async function POST(req: Request) {
     }
 
     // Log successful webhook processing
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'payment.webhook_processed',
       correlationId,
       metadata: {
@@ -238,7 +297,7 @@ export async function POST(req: Request) {
     console.error('Error processing webhook:', error);
 
     // Log webhook failure
-    void logSystemEvent({
+    await logSystemEvent({
       type: 'payment.webhook_failed',
       correlationId,
       errorMessage: error instanceof Error ? error.message : String(error),

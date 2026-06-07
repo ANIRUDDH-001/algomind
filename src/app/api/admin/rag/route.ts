@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
         return jsonWithCorrelationId({ error: 'Invalid view' }, { status: 400 });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
         return jsonWithCorrelationId({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -197,7 +197,7 @@ KEYWORDS: [comma-separated list of keywords]`
         return jsonWithCorrelationId({ error: 'Invalid action' }, { status: 400 });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, correlationId, metadata: { route: 'admin/rag' } });
         return jsonWithCorrelationId({ error: 'Internal server error' }, { status: 500 });
     }
 }

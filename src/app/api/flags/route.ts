@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         await setGlobalFeatureFlag(key as FeatureFlagKey, isEnabled, user!.id);
 
         // Log this admin action for audit trail
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action',
             userId: user!.id,
             metadata: { action: 'toggle_feature_flag', key, isEnabled }

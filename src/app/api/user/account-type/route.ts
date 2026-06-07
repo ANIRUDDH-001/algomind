@@ -18,7 +18,7 @@ export async function GET() {
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error('[user/account-type] Error:', errMsg);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'user/account-type' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'user/account-type' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

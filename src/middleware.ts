@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { adminRateLimit, employerRateLimit, redis } from '@/lib/rate-limit';
 
 const DIAGNOSTIC_COMPLETE_COOKIE = 'diag_done';
 
@@ -138,6 +139,38 @@ export default async function middleware(request: NextRequest) {
     }
 
     // Check if user needs to complete diagnostic before accessing learn features
+
+    // ==========================================
+    // API Gateway Global Rate Limiting
+    // ==========================================
+    if (user && redis) {
+        let rateLimitResult = null;
+        
+        // Owners get unlimited access, no limits applied.
+        if (pathname.startsWith('/api/owner') || isOwnerRoute) {
+            // Unrestricted
+        } 
+        // Admins get 200 combined
+        else if (pathname.startsWith('/api/admin') || isAdmin) {
+            if (adminRateLimit) rateLimitResult = await adminRateLimit.limit(user.id);
+        } 
+        // Employers get 200 combined
+        else if (pathname.startsWith('/api/employer') || isEmployer) {
+            if (employerRateLimit) rateLimitResult = await employerRateLimit.limit(user.id);
+        }
+
+        if (rateLimitResult && !rateLimitResult.success) {
+            if (pathname.startsWith('/api/')) {
+                return withCorrelationId(NextResponse.json(
+                    { error: 'Too Many Requests - Rate Limit Exceeded' },
+                    { status: 429 }
+                ));
+            } else {
+                return new NextResponse('Too Many Requests', { status: 429 });
+            }
+        }
+    }
+
     if (user && supabase && isLearn && !pathname.startsWith('/learn/diagnostic')) {
         const diagnosticCookie = request.cookies.get(DIAGNOSTIC_COMPLETE_COOKIE);
 

@@ -19,7 +19,7 @@ export async function GET() {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
@@ -29,7 +29,7 @@ export async function GET() {
         return NextResponse.json({ chat, analysis });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -69,14 +69,14 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'Model already exists for this use case' }, { status: 409 });
             }
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, entry: data });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -107,7 +107,7 @@ export async function PATCH(req: NextRequest) {
             }
             if (errors.length > 0) {
                 const errMsg = errors.join('; ');
-                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+                await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
                 return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
             }
             return NextResponse.json({ success: true });
@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest) {
 
             if (error) {
                 const errMsg = error instanceof Error ? error.message : String(error);
-                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+                await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
                 return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
             }
             return NextResponse.json({ success: true });
@@ -137,7 +137,7 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Missing id or updates array' }, { status: 400 });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
@@ -159,13 +159,13 @@ export async function DELETE(req: NextRequest) {
 
         if (error) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+            await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/model-routing' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

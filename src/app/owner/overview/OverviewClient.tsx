@@ -47,17 +47,21 @@ interface SystemStats {
 export function OverviewClient({ 
     totalUsers, 
     totalAdmins, 
-    totalEmployers 
+    totalEmployers,
+    initialEventsData,
+    initialModelsData
 }: { 
     totalUsers: number, 
     totalAdmins: number, 
-    totalEmployers: number 
+    totalEmployers: number;
+    initialEventsData?: any;
+    initialModelsData?: any;
 }) {
-    const [events, setEvents] = useState<SystemEvent[]>([]);
-    const [analytics, setAnalytics] = useState<AnalyticsRow[]>([]);
-    const [models, setModels] = useState<ModelStat[]>([]);
-    const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [events, setEvents] = useState<SystemEvent[]>(initialEventsData?.events || []);
+    const [analytics, setAnalytics] = useState<AnalyticsRow[]>(initialEventsData?.analytics || []);
+    const [models, setModels] = useState<ModelStat[]>(initialModelsData?.models || []);
+    const [systemStats, setSystemStats] = useState<SystemStats | null>(initialEventsData?.systemStats || null);
+    const [isLoading, setIsLoading] = useState(!initialEventsData);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
     const [expandedDbErrors, setExpandedDbErrors] = useState<Record<string, boolean>>({});

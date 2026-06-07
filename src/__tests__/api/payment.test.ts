@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST as postCreateOrder } from '@/app/api/payment/create-order/route';
 import { POST as postVerify } from '@/app/api/payment/verify/route';
+import { POST } from '@/app/api/payment/webhook/route';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
@@ -62,6 +63,7 @@ describe('Payment API', () => {
     process.env.RAZORPAY_KEY_SECRET = 'test_secret';
     process.env.GEMINI_API_KEY = 'test-gemini-key';
     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID = 'rzp_test_key';
+    process.env.RAZORPAY_WEBHOOK_SECRET = 'test-webhook-secret';
   });
 
   describe('POST /api/payment/create-order', () => {
@@ -270,6 +272,98 @@ describe('Payment API', () => {
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toBe('Missing payment details');
+    });
+  });
+
+  describe('POST /api/payment/webhook', () => {
+    const WEBHOOK_SECRET = 'test-webhook-secret';
+
+    beforeEach(() => {
+      process.env.RAZORPAY_WEBHOOK_SECRET = WEBHOOK_SECRET;
+    });
+
+    afterEach(() => {
+      delete process.env.RAZORPAY_WEBHOOK_SECRET;
+    });
+
+    function makeSignature(body: string, secret: string): string {
+      return crypto.createHmac('sha256', secret).update(body).digest('hex');
+    }
+
+    it('returns 400 when x-razorpay-signature header is missing', async () => {
+      const body = JSON.stringify({ event: 'subscription.charged', payload: { subscription: { id: 'sub_test' } } });
+      const req = new Request('http://localhost/api/payment/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toBe('Missing signature');
+    });
+
+    it('returns 400 when signature is wrong', async () => {
+      const body = JSON.stringify({ event: 'subscription.charged', payload: { subscription: { id: 'sub_test' } } });
+      const req = new Request('http://localhost/api/payment/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-razorpay-signature': 'deadbeef'.repeat(8), // wrong
+        },
+        body,
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toBe('Invalid signature');
+    });
+
+    it('returns 500 when RAZORPAY_WEBHOOK_SECRET is not set', async () => {
+      delete process.env.RAZORPAY_WEBHOOK_SECRET;
+      const body = JSON.stringify({ event: 'subscription.charged', payload: {} });
+      const req = new Request('http://localhost/api/payment/webhook', {
+        method: 'POST',
+        body,
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(500);
+    });
+
+    it('processes subscription.charged with valid signature', async () => {
+      const body = JSON.stringify({
+        event: 'subscription.charged',
+        payload: {
+          subscription: {
+            id: 'sub_valid',
+            current_start: Math.floor(Date.now() / 1000),
+            current_end: Math.floor(Date.now() / 1000) + 2592000,
+          },
+        },
+      });
+      const sig = makeSignature(body, WEBHOOK_SECRET);
+      const req = new Request('http://localhost/api/payment/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': sig },
+        body,
+      });
+
+      const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      vi.mocked(getServiceClient).mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === 'subscriptions') {
+            return {
+              select: vi.fn().mockReturnThis(),
+              eq: vi.fn().mockReturnThis(),
+              maybeSingle,
+            };
+          }
+          return {};
+        }),
+      } as any);
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
     });
   });
 });

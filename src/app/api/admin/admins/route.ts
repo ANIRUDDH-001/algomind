@@ -41,7 +41,7 @@ export async function GET() {
         return NextResponse.json(admins || []);
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return ApiErrors.serverError('Internal server error');
     }
 }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, email });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return ApiErrors.serverError('Internal server error');
     }
 }
@@ -129,7 +129,7 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'admin/admins' } });
         return ApiErrors.serverError('Internal server error');
     }
 }

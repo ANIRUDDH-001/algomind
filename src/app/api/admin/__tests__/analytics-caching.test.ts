@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '../events/route';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redisGet, redisSet, getRedis } from '@/lib/upstash/client';
 
 vi.mock('@/lib/auth/requireAdminForApi');
@@ -70,6 +70,7 @@ describe('Admin Analytics Caching (/api/admin/events)', () => {
             errorResponse: null,
         });
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
+        vi.mocked(createServiceRoleSupabase).mockResolvedValue(mockSupabase as any);
 
         // Default: cache miss
         vi.mocked(redisGet).mockResolvedValue(null);
@@ -113,7 +114,7 @@ describe('Admin Analytics Caching (/api/admin/events)', () => {
 
         // DB was NOT called
         expect(queryTracker.dbQueried).toBe(false);
-        expect(createServerSupabase).not.toHaveBeenCalled();
+        expect(createServiceRoleSupabase).not.toHaveBeenCalled();
 
         // Response still contains data from cache
         expect(data.events).toBeDefined();

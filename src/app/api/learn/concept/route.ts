@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
     const promptTokensEstimate = Math.round(systemPrompt.length / 4);
     if (promptTokensEstimate > 2000) {
       console.warn(`[Learn API] System prompt too large: ~${promptTokensEstimate} tokens`);
-      void logSystemEvent({
+      await logSystemEvent({
         type: 'prompt_size_warning',
         userId: user.id,
         correlationId,
@@ -332,7 +332,7 @@ export async function POST(req: NextRequest) {
           } catch (err) {
             if ((err as Error)?.name === 'AbortError') return;
             console.error('❌ [learn/concept] Stream error:', err);
-            void logSystemEvent({
+            await logSystemEvent({
               type: 'model_error',
               userId: capturedUserId,
               correlationId,

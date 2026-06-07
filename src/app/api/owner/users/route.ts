@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
@@ -107,7 +107,7 @@ export async function PATCH(req: NextRequest) {
 
             if (error) {
                 const errMsg = error instanceof Error ? error.message : String(error);
-                void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+                await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
                 return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
             }
         }
@@ -118,7 +118,7 @@ export async function PATCH(req: NextRequest) {
                 .upsert({ user_id: userId, tts_provider: ttsProvider }, { onConflict: 'user_id' });
         }
 
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'admin_action',
             userId: user.id,
             metadata: {
@@ -132,7 +132,7 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        void logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
+        await logSystemEvent({ type: 'route_error', errorMessage: errMsg, metadata: { route: 'owner/users' } });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -5,7 +5,7 @@ import path from 'node:path';
 describe('system events contract', () => {
     const adminEventsRoutePath = path.join(process.cwd(), 'src/app/api/admin/events/route.ts');
     const ownerAnalyticsTabPath = path.join(process.cwd(), 'src/app/owner/tabs/analytics-tab.tsx');
-    const ownerOverviewTabPath = path.join(process.cwd(), 'src/app/owner/tabs/overview-tab.tsx');
+    const ownerOverviewTabPath = path.join(process.cwd(), 'src/app/owner/overview/OverviewClient.tsx');
 
     it('uses canonical type field in admin analytics aggregation payload', () => {
         const source = fs.readFileSync(adminEventsRoutePath, 'utf8');

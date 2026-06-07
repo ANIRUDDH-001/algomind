@@ -191,7 +191,7 @@ Be specific to THIS transcript. Max 8 annotations.`;
             }
         } catch (aiErr) {
             console.error('[API/Replay] AI Annotation failed:', aiErr);
-            void logSystemEvent({
+            await logSystemEvent({
                 type: 'model_error',
                 correlationId,
                 metadata: { context: 'replay_generation_parse', sessionId, error: String(aiErr) }
@@ -228,7 +228,7 @@ Be specific to THIS transcript. Max 8 annotations.`;
 
     } catch (error) {
         console.error('[API/Replay] Fatal error:', error);
-        void logSystemEvent({
+        await logSystemEvent({
             type: 'model_error',
             correlationId,
             metadata: { context: 'api_replay_generate_catch', error: String(error) }

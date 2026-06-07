@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     const supabaseAdmin = getServiceClient();
 
-    void logSystemEvent({
+    await logSystemEvent({
         type: 'admin_action',
         userId: authResult.user.id,
         metadata: {
