@@ -1,27 +1,14 @@
-/**
- * @codesage
- * @file      src/app/owner/tabs/co-owners-tab.tsx
- * @purpose   Allows primary owner to grant and revoke co-owner access.
- * @tech      React, Lucide React, Tailwind
- * @connects  /api/owner/co-owners
- * @apis      POST /api/owner/co-owners, DELETE /api/owner/co-owners
- * @db        None
- * @state     React local state
- * @env       None
- * @issues    None
- * @audit     CODESAGE-v1
- */
 'use client';
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Key, Trash2, UserPlus } from 'lucide-react';
+import { AlertCircle, Key, Trash2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { addCoOwner, removeCoOwner } from '@/app/actions/owner-mutations';
 
-export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
-    const [ownersList, setOwnersList] = useState(coOwners);
+export function CoOwnersClient({ initialCoOwners }: { initialCoOwners: any[] }) {
     const [newEmail, setNewEmail] = useState('');
     const [isAdding, setIsAdding] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
@@ -32,16 +19,8 @@ export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
 
         setIsAdding(true);
         try {
-            const res = await fetch('/api/owner/co-owners', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: newEmail }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to add co-owner');
-
+            await addCoOwner(newEmail);
             toast.success('Co-owner added correctly. They now have full access.');
-            setOwnersList([data.coOwner, ...ownersList]);
             setNewEmail('');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -53,11 +32,7 @@ export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
     const handleRemove = async (id: string) => {
         setRemovingId(id);
         try {
-            const res = await fetch(`/api/owner/co-owners?id=${id}`, {
-                method: 'DELETE',
-            });
-            if (!res.ok) throw new Error('Failed to revoke access');
-            setOwnersList(ownersList.filter(o => o.id !== id));
+            await removeCoOwner(id);
             toast.success('Access revoked for co-owner.');
         } catch {
             toast.error('Failed to revoke access');
@@ -103,11 +78,11 @@ export function CoOwnersTab({ coOwners }: { coOwners: any[] }) {
 
             <div className="space-y-4">
                 <h3 className="font-bold text-zinc-200 px-1">Active Co-Owners</h3>
-                {ownersList.length === 0 ? (
+                {initialCoOwners.length === 0 ? (
                     <div className="text-zinc-500 text-sm px-1">No co-owners have been granted access.</div>
                 ) : (
                     <div className="grid gap-3">
-                        {ownersList.map(owner => (
+                        {initialCoOwners.map(owner => (
                             <Card key={owner.id} className="p-5 bg-[var(--surface-1)]/40 border-[var(--surface-edge)]/50 flex items-center justify-between gap-4 group">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-amber-500 shrink-0">

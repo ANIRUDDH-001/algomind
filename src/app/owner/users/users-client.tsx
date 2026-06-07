@@ -1,27 +1,16 @@
-/**
- * @codesage
- * @file      src/app/owner/tabs/users-tab.tsx
- * @purpose   Platform users management tab allowing role changes, suspension, and TTS preferences.
- * @tech      React, Lucide React, date-fns, Tailwind
- * @connects  /api/owner/users
- * @apis      GET, PATCH /api/owner/users
- * @db        None
- * @state     React local state
- * @env       None
- * @issues    None
- * @audit     CODESAGE-v1
- */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search, Zap, ShieldAlert, Key, Pause, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { updateUserAccountType, toggleUserSuspension, updateUserTTSProvider } from '@/app/actions/owner-mutations';
 
-type OwnerUserRow = {
+export type OwnerUserRow = {
     id: string;
     email: string;
     account_type: 'owner' | 'admin' | 'employer' | 'candidate';
@@ -32,51 +21,40 @@ type OwnerUserRow = {
     tts_provider?: string | null;
 };
 
-export function UsersTab() {
-    const [users, setUsers] = useState<OwnerUserRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+export function UsersClient({ initialUsers, initialQuery }: { initialUsers: OwnerUserRow[], initialQuery: string }) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [isPending, startTransition] = useTransition();
+
+    const [search, setSearch] = useState(initialQuery);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-    const fetchUsers = async (query = '') => {
-        setLoading(true);
-        try {
-            const url = new URL('/api/owner/users', window.location.origin);
-            if (query) url.searchParams.set('q', query);
-            const res = await fetch(url.toString());
-            if (!res.ok) throw new Error('Failed to fetch users');
-            const data = await res.json();
-            setUsers(data.users || []);
-        } catch {
-            toast.error('Failed to load users');
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // Debounce search update to URL
     useEffect(() => {
-        // Debounce search
         const timeout = setTimeout(() => {
-            fetchUsers(search);
+            if (search !== initialQuery) {
+                const params = new URLSearchParams(searchParams);
+                if (search) {
+                    params.set('q', search);
+                } else {
+                    params.delete('q');
+                }
+                startTransition(() => {
+                    router.push(`${pathname}?${params.toString()}`);
+                });
+            }
         }, 500);
         return () => clearTimeout(timeout);
-    }, [search]);
+    }, [search, pathname, searchParams, router, initialQuery]);
 
     const handleUpdateType = async (userId: string, targetType: string, currentType: string) => {
         if (!confirm(`Are you sure you want to change this user from ${currentType} to ${targetType}?`)) return;
 
         setUpdatingId(userId);
         try {
-            const res = await fetch('/api/owner/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, accountType: targetType }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Update failed');
-
+            await updateUserAccountType(userId, targetType);
             toast.success(`User updated to ${targetType}`);
-            fetchUsers(search); // Refresh
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Unknown error');
         } finally {
@@ -90,20 +68,21 @@ export function UsersTab() {
 
         setUpdatingId(userId);
         try {
-            const res = await fetch('/api/owner/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, suspend: !isSuspended }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Update failed');
-
+            await toggleUserSuspension(userId, !isSuspended);
             toast.success(`User ${action}ed successfully`);
-            fetchUsers(search); // Refresh
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Unknown error');
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const handleTTSUpdate = async (userId: string, ttsProvider: string) => {
+        try {
+            await updateUserTTSProvider(userId, ttsProvider);
+            toast.success(`TTS set to ${ttsProvider}`);
+        } catch (err) {
+            toast.error('Failed to update TTS setting');
         }
     };
 
@@ -118,23 +97,23 @@ export function UsersTab() {
                         placeholder="Search by email..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-(--surface-1) border border-(--surface-edge) rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/50"
+                        className="w-full bg-[var(--surface-1)] border border-[var(--surface-edge)] rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/50"
                     />
                 </div>
             </div>
 
-            {loading ? (
+            {isPending ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
                 </div>
-            ) : users.length === 0 ? (
+            ) : initialUsers.length === 0 ? (
                 <Card className="p-10 text-center text-zinc-500 border-dashed border-zinc-800 bg-transparent">
                     {search ? 'No users found matching your search.' : 'No users found.'}
                 </Card>
             ) : (
-                <div className="bg-(--surface-0) border border-(--surface-edge) rounded-2xl overflow-x-auto">
+                <div className="bg-[var(--surface-0)] border border-[var(--surface-edge)] rounded-2xl overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-(--surface-1) border-b border-(--surface-edge) text-zinc-400">
+                        <thead className="bg-[var(--surface-1)] border-b border-[var(--surface-edge)] text-zinc-400">
                             <tr>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">User</th>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">Tier</th>
@@ -144,8 +123,8 @@ export function UsersTab() {
                                 <th className="px-6 py-4 font-bold whitespace-nowrap text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-(--surface-edge)">
-                            {users.map(user => (
+                        <tbody className="divide-y divide-[var(--surface-edge)]">
+                            {initialUsers.map(user => (
                                 <tr key={user.id} className="hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
@@ -185,20 +164,8 @@ export function UsersTab() {
                                     <td className="px-4 py-3">
                                         <select
                                             defaultValue={user.tts_provider || 'auto'}
-                                            onChange={async (e) => {
-                                                try {
-                                                    const res = await fetch('/api/owner/users', {
-                                                        method: 'PATCH',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ userId: user.id, ttsProvider: e.target.value }),
-                                                    });
-                                                    if (!res.ok) throw new Error('Failed to update TTS preference');
-                                                    toast.success(`TTS set to ${e.target.value}`);
-                                                } catch (err) {
-                                                    toast.error('Failed to update TTS setting');
-                                                }
-                                            }}
-                                            className="bg-(--surface-1) border border-(--surface-edge) rounded-lg px-2 py-1.5 text-xs text-zinc-300 w-24 focus:outline-none focus:border-indigo-500/50"
+                                            onChange={(e) => handleTTSUpdate(user.id, e.target.value)}
+                                            className="bg-[var(--surface-1)] border border-[var(--surface-edge)] rounded-lg px-2 py-1.5 text-xs text-zinc-300 w-24 focus:outline-none focus:border-indigo-500/50"
                                         >
                                             <option value="auto">Auto</option>
                                             <option value="polly">Polly</option>
@@ -209,7 +176,7 @@ export function UsersTab() {
                                         <div className="flex items-center justify-end gap-2">
                                             {/* Account Type Demotion/Promotion */}
                                             {user.account_type !== 'owner' && (
-                                                <div className="flex items-center gap-1 bg-(--surface-1) rounded-lg p-1 border border-(--surface-edge)">
+                                                <div className="flex items-center gap-1 bg-[var(--surface-1)] rounded-lg p-1 border border-[var(--surface-edge)]">
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"

@@ -1,24 +1,66 @@
-/**
- * @codesage
- * @file      src/app/owner/tabs/overview-tab.tsx
- * @purpose   Displays high-level platform stats and recent system events.
- * @tech      React, Lucide React, Tailwind
- * @connects  None
- * @apis      None
- * @db        None
- * @state     None
- * @env       None
- * @issues    None
- * @audit     CODESAGE-v1
- */
-'use client';
-
+import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { Card } from '@/components/ui/card';
 import { Users, Shield, Briefcase, Activity } from 'lucide-react';
-import { OwnerDashboardProps } from '../client';
 import { format } from 'date-fns';
 
-export function OverviewTab({ stats, recentEvents }: OwnerDashboardProps) {
+export default async function OverviewPage() {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
+
+    const isOwner = await isOwnerOrCoOwner(user.id);
+    if (!isOwner) {
+        redirect('/dashboard');
+    }
+
+    const adminSupabase = await createServiceRoleSupabase();
+    const results = await Promise.allSettled([
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }),
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'admin'),
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'employer'),
+        adminSupabase
+            .from('system_events')
+            .select('*')
+            .in('type', [
+                'db_error',
+                'db.error',
+                'route_error',
+                'api.route_error',
+                'model_error',
+                'ai.model_error',
+                'model_deprecated',
+                'ai.model_deprecated',
+                'model_verification_failed',
+                'ai.model_verification_failed',
+                'cron_failed',
+                'cron.failed',
+                'batch.failed',
+                'assessment_insufficient',
+                'assessment.insufficient_response',
+                'embedding_failed',
+                'ai.embedding_failed',
+                'piston_error',
+                'integration.piston_error',
+                'leetcode_fetch_failed',
+                'integration.leetcode_fetch_failed',
+                'transcript_save_failed',
+                'integration.transcript_save_failed',
+            ])
+            .order('created_at', { ascending: false })
+            .limit(20),
+    ]);
+
+    const [usersRes, adminsRes, employersRes, eventsRes] = results;
+    const totalUsers = usersRes.status === 'fulfilled' ? (usersRes.value.count ?? 0) : 0;
+    const totalAdmins = adminsRes.status === 'fulfilled' ? (adminsRes.value.count ?? 0) : 0;
+    const totalEmployers = employersRes.status === 'fulfilled' ? (employersRes.value.count ?? 0) : 0;
+    const recentEvents = eventsRes.status === 'fulfilled' ? (eventsRes.value.data ?? []) : [];
+
     return (
         <div className="space-y-6">
             <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
@@ -33,7 +75,7 @@ export function OverviewTab({ stats, recentEvents }: OwnerDashboardProps) {
                         </div>
                         <div>
                             <p className="text-sm font-medium text-emerald-400/80 uppercase tracking-wider">Total Users</p>
-                            <p className="text-3xl font-black text-emerald-300">{stats.totalUsers.toLocaleString()}</p>
+                            <p className="text-3xl font-black text-emerald-300">{totalUsers.toLocaleString()}</p>
                         </div>
                     </div>
                 </Card>
@@ -45,7 +87,7 @@ export function OverviewTab({ stats, recentEvents }: OwnerDashboardProps) {
                         </div>
                         <div>
                             <p className="text-sm font-medium text-indigo-400/80 uppercase tracking-wider">Employers</p>
-                            <p className="text-3xl font-black text-indigo-300">{stats.totalEmployers.toLocaleString()}</p>
+                            <p className="text-3xl font-black text-indigo-300">{totalEmployers.toLocaleString()}</p>
                         </div>
                     </div>
                 </Card>
@@ -57,7 +99,7 @@ export function OverviewTab({ stats, recentEvents }: OwnerDashboardProps) {
                         </div>
                         <div>
                             <p className="text-sm font-medium text-amber-400/80 uppercase tracking-wider">Admins</p>
-                            <p className="text-3xl font-black text-amber-300">{stats.totalAdmins.toLocaleString()}</p>
+                            <p className="text-3xl font-black text-amber-300">{totalAdmins.toLocaleString()}</p>
                         </div>
                     </div>
                 </Card>
