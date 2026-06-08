@@ -16,25 +16,44 @@
 const config = {
   // ── Test Runner ────────────────────────────────────────────
   testRunner: 'vitest',
+  packageManager: 'npm',
+  tempDirName: 'stryker-tmp',
 
   // ── Mutate Scope ───────────────────────────────────────────
   // Only mutate critical business logic — keeps runs fast and focused.
   mutate: [
+    // Existing scope (keep all existing entries)
     'src/lib/assessment/analyzer.ts',
     'src/lib/assessment/score-validator.ts',
     'src/lib/assessment/confidence-calculator.ts',
     'src/lib/ai/client.ts',
     'src/lib/ai/rate-limiter.ts',
     'src/lib/auth/requireAdminForApi.ts',
+
+    // ── Newly added high-risk modules ───────────────────────────
+    'src/lib/spaced-repetition/fsrs.ts',
+    'src/lib/knowledge-graph/service.ts',
+    'src/lib/rate-limit/weekly-session-limiter.ts',
+    'src/app/api/payment/verify/route.ts',
+    'src/app/api/payment/webhook/route.ts',
+    'src/lib/assess/jwt.ts',
+    'src/lib/rate-limit/decision-layer.ts',
+  ],
+
+  // ── Exclude generated and type-only files ─────────────────────────
+  ignorePatterns: [
+    'src/types/supabase.ts',
+    '**/__tests__/**',
+    '**/*.test.ts',
+    '**/*.spec.ts',
+    '**/node_modules/**',
+    '.agents/**',
   ],
 
   // ── Reporters ──────────────────────────────────────────────
-  reporters: ['clear-text', 'json'],
+  reporters: ['html', 'clear-text', 'progress'],
 
   // ── Thresholds ─────────────────────────────────────────────
-  // high  : Score >= 80% → green in report
-  // low   : Score >= 60% → yellow warning
-  // break : Score < 50%  → CI fails
   thresholds: {
     high: 80,
     low: 60,
@@ -43,7 +62,15 @@ const config = {
 
   // ── Performance ────────────────────────────────────────────
   concurrency: 4,
-  timeoutMS: 30000,
+  timeoutMS: 10000,
+  timeoutFactor: 2,
+
+  // ── Vitest config ─────────────────────────────────────────────────
+  vitest: {
+      configFile: 'vitest.config.ts',
+      dir: 'src',
+      related: false,
+  },
 };
 
 export default config;

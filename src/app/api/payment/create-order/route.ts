@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { getServiceClient } from '@/lib/supabase/service';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { validateEnv } from '@/lib/startup/validateEnv';
 import { logSystemEvent } from '@/lib/monitoring/events';
-import { getCorrelationId } from '@/lib/tracing/correlation';
 
 // Razorpay plan ID for monthly ₹499 subscription (created once, reused)
 const RAZORPAY_PLAN_ID = 'plan_premium_monthly_499';

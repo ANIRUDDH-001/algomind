@@ -25,6 +25,13 @@ jobs:
           REDIS_TEST_TOKEN: ${{ secrets.REDIS_TEST_TOKEN }}
         run: npx vitest run src/__tests__/integration
 
+      - name: Mutation Testing (high-risk modules)
+        run: npx stryker run
+        env:
+          CI: true
+        # Allow failure for now — build awareness before enforcing
+        continue-on-error: false
+
       - name: Run Phase 6 observability contracts
         run: |
           npx vitest run src/lib/monitoring/__tests__/event-taxonomy.contract.test.ts

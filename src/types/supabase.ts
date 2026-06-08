@@ -1,19 +1,4 @@
-/**
- * @codesage
- * @file      src/types/supabase.ts
- * @purpose   Auto-generated TypeScript definitions for the Supabase Postgres database schema.
- * @summary   This file contains comprehensive type definitions for all tables, views, and procedures in the Supabase database. It dictates the shapes of Row, Insert, and Update objects for the entire application, serving as the source of truth for the database schema in TypeScript.
- * @tech      TypeScript, Supabase
- * @connects  Used globally by any file querying or mutating data via the Supabase client.
- * @apis      none
- * @db        All tables in the public schema
- * @state     none
- * @env       none
- * @issues    Auto-generated file; no manual dead code removal performed.
- * @audit     CODESAGE-v1
- */
-
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -301,6 +286,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_progress"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      campaign_problem_links: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          id: string
+          order_index: number
+          problem_id: string
+          time_limit_min: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          id?: string
+          order_index?: number
+          problem_id: string
+          time_limit_min?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          id?: string
+          order_index?: number
+          problem_id?: string
+          time_limit_min?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_campaign_problem_links_campaign_id"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_problem_links_problem_id"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "problems"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1313,40 +1340,40 @@ export type Database = {
         Row: {
           avg_score_before_placement: number | null
           company_name: string
-          created_at: string | null
+          created_at: string
           id: string
           notes: string | null
           package_lpa: number | null
           placed_at: string
           role: string | null
           sessions_before_placement: number | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           avg_score_before_placement?: number | null
           company_name: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           notes?: string | null
           package_lpa?: number | null
           placed_at: string
           role?: string | null
           sessions_before_placement?: number | null
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           avg_score_before_placement?: number | null
           company_name?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           notes?: string | null
           package_lpa?: number | null
           placed_at?: string
           role?: string | null
           sessions_before_placement?: number | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -1354,8 +1381,8 @@ export type Database = {
             foreignKeyName: "placement_outcomes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "user_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1435,7 +1462,7 @@ export type Database = {
           is_suspended: boolean | null
           rate_limit_override: number | null
           subscription_expires_at: string | null
-          subscription_status: "free" | "premium" | "college"
+          subscription_status: string
           suspended_at: string | null
           suspended_reason: string | null
           updated_at: string | null
@@ -1452,7 +1479,7 @@ export type Database = {
           is_suspended?: boolean | null
           rate_limit_override?: number | null
           subscription_expires_at?: string | null
-          subscription_status?: "free" | "premium" | "college"
+          subscription_status?: string
           suspended_at?: string | null
           suspended_reason?: string | null
           updated_at?: string | null
@@ -1469,7 +1496,7 @@ export type Database = {
           is_suspended?: boolean | null
           rate_limit_override?: number | null
           subscription_expires_at?: string | null
-          subscription_status?: "free" | "premium" | "college"
+          subscription_status?: string
           suspended_at?: string | null
           suspended_reason?: string | null
           updated_at?: string | null
@@ -1808,6 +1835,7 @@ export type Database = {
           metadata: Json | null
           model_id: string | null
           provider: string | null
+          severity: string | null
           type: string
           user_id: string | null
         }
@@ -1819,6 +1847,7 @@ export type Database = {
           metadata?: Json | null
           model_id?: string | null
           provider?: string | null
+          severity?: string | null
           type: string
           user_id?: string | null
         }
@@ -1830,6 +1859,7 @@ export type Database = {
           metadata?: Json | null
           model_id?: string | null
           provider?: string | null
+          severity?: string | null
           type?: string
           user_id?: string | null
         }
@@ -1882,6 +1912,7 @@ export type Database = {
         Row: {
           created_at: string | null
           email_notifications: boolean | null
+          hinglish_enabled: boolean
           id: string
           leetcode_fetch_error: string | null
           leetcode_fetch_status: string | null
@@ -1902,6 +1933,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email_notifications?: boolean | null
+          hinglish_enabled?: boolean
+          id?: string
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null
@@ -1921,6 +1954,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           email_notifications?: boolean | null
+          hinglish_enabled?: boolean
+          id?: string
           leetcode_fetch_error?: string | null
           leetcode_fetch_status?: string | null
           leetcode_username?: string | null
@@ -2007,6 +2042,22 @@ export type Database = {
       }
     }
     Functions: {
+      atomic_increment_weekly_usage: {
+        Args: { p_limit: number; p_type: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_and_increment_weekly_usage: {
+        Args: {
+          p_session_type: string
+          p_user_id: string
+          p_weekly_limit: number
+        }
+        Returns: {
+          allowed: boolean
+          limit_value: number
+          sessions_used: number
+        }[]
+      }
       check_code_rate_limit: {
         Args: {
           p_identifier: string
@@ -2053,6 +2104,7 @@ export type Database = {
         Args: { p_difficulty: string; p_raw_score: number }
         Returns: number
       }
+      count_distinct_diagnosed_users: { Args: never; Returns: number }
       ensure_learner_profile: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -2081,6 +2133,13 @@ export type Database = {
           id: string
           problem_id: string
           problem_title: string
+        }[]
+      }
+      get_hardest_concepts: {
+        Args: { p_limit?: number }
+        Returns: {
+          avg_confidence: number
+          concept_slug: string
         }[]
       }
       get_model_rate_stats: {
@@ -2113,6 +2172,7 @@ export type Database = {
           title: string
         }[]
       }
+      get_student_context: { Args: { p_user_id: string }; Returns: Json }
       get_system_health: { Args: never; Returns: Json }
       get_user_progress: {
         Args: { session_limit?: number; target_user_id: string }
@@ -2152,6 +2212,10 @@ export type Database = {
         }[]
       }
       increment_view_count: { Args: { p_token: string }; Returns: undefined }
+      initialize_concept_states: {
+        Args: { p_results: Json; p_user_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_owner: { Args: never; Returns: boolean }
       mark_submission_dropped: {
@@ -2173,6 +2237,14 @@ export type Database = {
           topic: string
         }[]
       }
+      on_interview_session_completed: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      on_learn_session_completed: {
+        Args: { p_kai_assessment: Json; p_session_id: string }
+        Returns: undefined
+      }
       record_code_attempt: {
         Args: {
           p_campaign_id?: string
@@ -2182,43 +2254,44 @@ export type Database = {
         Returns: undefined
       }
       record_user_question: { Args: { p_user_id: string }; Returns: undefined }
+      safe_delete_admin: { Args: { p_email: string }; Returns: Json }
       save_interview_session_atomic: {
         Args: {
-          p_adjusted_score?: number | null
-          p_assessment_adjusted_score?: number | null
-          p_assessment_algorithmic_thinking?: number | null
-          p_assessment_code_quality?: Json | null
-          p_assessment_communication_clarity?: number | null
-          p_assessment_complexity_analysis?: number | null
-          p_assessment_confidence?: number | null
-          p_assessment_debugging_approach?: number | null
-          p_assessment_difficulty_mode?: string | null
-          p_assessment_edge_case_awareness?: number | null
-          p_assessment_hire_decision?: string | null
-          p_assessment_model_used?: string | null
-          p_assessment_next_steps?: string[] | null
-          p_assessment_optimization_mindset?: number | null
-          p_assessment_overall_feedback?: string | null
-          p_assessment_pattern_recognition?: number | null
-          p_assessment_problem_decomposition?: number | null
-          p_assessment_skill_evidence?: Json | null
-          p_assessment_sub_criteria?: Json | null
-          p_assessment_validation_pass_done?: boolean | null
-          p_create_assessment?: boolean | null
-          p_difficulty_mode?: string | null
-          p_duration?: number | null
-          p_feedback?: Json | null
-          p_is_candidate_session?: boolean | null
-          p_overall_score?: number | null
+          p_adjusted_score?: number
+          p_assessment_adjusted_score?: number
+          p_assessment_algorithmic_thinking?: number
+          p_assessment_code_quality?: Json
+          p_assessment_communication_clarity?: number
+          p_assessment_complexity_analysis?: number
+          p_assessment_confidence?: number
+          p_assessment_debugging_approach?: number
+          p_assessment_difficulty_mode?: string
+          p_assessment_edge_case_awareness?: number
+          p_assessment_hire_decision?: string
+          p_assessment_model_used?: string
+          p_assessment_next_steps?: string[]
+          p_assessment_optimization_mindset?: number
+          p_assessment_overall_feedback?: string
+          p_assessment_pattern_recognition?: number
+          p_assessment_problem_decomposition?: number
+          p_assessment_skill_evidence?: Json
+          p_assessment_sub_criteria?: Json
+          p_assessment_validation_pass_done?: boolean
+          p_create_assessment?: boolean
+          p_difficulty_mode?: string
+          p_duration?: number
+          p_feedback?: Json
+          p_is_candidate_session?: boolean
+          p_overall_score?: number
           p_problem_id: string
           p_problem_title: string
-          p_raw_score?: number | null
-          p_status?: string | null
+          p_raw_score?: number
+          p_status?: string
           p_transcript: Json
           p_user_id: string
         }
         Returns: {
-          assessment_id: string | null
+          assessment_id: string
           session_id: string
         }[]
       }
@@ -2236,6 +2309,14 @@ export type Database = {
           is_new_record: boolean
           longest_streak: number
           new_streak: number
+        }[]
+      }
+      upsert_concept_states_batch: {
+        Args: { p_updates: Json; p_user_id: string }
+        Returns: {
+          concept_slug: string
+          new_confidence: number
+          was_inserted: boolean
         }[]
       }
       verify_campaign_entry_code: {
@@ -2378,4 +2459,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
