@@ -101,6 +101,11 @@ export function __resetCircuitForTests(): void {
     };
 }
 
+export function __resetRedisInstanceForTests(): void {
+    redisInstance = null;
+    isInitialized = false;
+}
+
 /**
  * Returns the Redis singleton instance.
  * Gracefully returns null if environment variables are not set or initialization fails.
@@ -187,30 +192,48 @@ export async function redisSet(key: string, value: string, ttlSeconds?: number):
 }
 
 /**
- * Increments a key's value in Redis. Can also set an optional TTL.
- * Returns 0 gracefully if Redis is unavailable or on error.
+ * Atomically increments a Redis key and optionally sets a TTL on the key.
+ *
+ * Uses a pipeline to execute INCR + EXPIRE in a single round-trip.
+ * The EXPIRE uses the NX flag so it only sets the TTL if the key has none —
+ * this preserves the original window expiry on subsequent increments.
+ *
+ * If the pipeline fails for any reason, returns 0 (fail-open for rate limiting).
+ * The caller is responsible for deciding whether 0 means "allow" or "deny".
  */
 export async function redisIncr(key: string, ttlSeconds?: number): Promise<number> {
     const redis = getRedis();
     if (!redis) return 0;
 
     try {
-        const newValue = await redis.incr(key);
+        const pipeline = redis.pipeline();
+        pipeline.incr(key);
 
-        // Apply TTL if provided and valid
         if (typeof ttlSeconds === 'number' && ttlSeconds > 0) {
-            await redis.expire(key, ttlSeconds);
+            // 'NX' means: only set TTL if the key does not already have one.
+            // This prevents resetting the rate-limit window on every request.
+            pipeline.expire(key, ttlSeconds, 'NX');
         }
 
+        const results = await pipeline.exec();
         recordRedisAttempt(true);
 
-        return newValue;
+        // results[0] is the INCR result (new count as number)
+        const newCount = results?.[0];
+        return typeof newCount === 'number' ? newCount : 0;
+
     } catch (error) {
         recordRedisAttempt(false, error);
-        console.error(`Redis INCR error [${key}]:`, error instanceof Error ? error.message : String(error));
+        console.error(`[Redis] redisIncr pipeline failed [${key}]:`, error instanceof Error ? error.message : String(error));
         return 0;
     }
 }
+
+/**
+ * @alias redisIncr
+ * Exists to make the atomic pipeline behaviour explicit at call sites.
+ */
+export const redisIncrAtomic = redisIncr;
 
 /**
  * Deletes a key from Redis.
