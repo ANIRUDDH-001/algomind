@@ -54,6 +54,59 @@ const nextConfig: NextConfig = {
   // Scoped to /vad/ assets only to avoid breaking OAuth popups or 3P scripts.
   async headers() {
     return [
+      // ── Global security headers (all routes) ───────────────────────
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: [
+              'camera=()',
+              'geolocation=()',
+              'payment=()',
+              'usb=()',
+              'microphone=(self)',
+              'autoplay=(self)',
+            ].join(', '),
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://polly.*.amazonaws.com https://api.groq.com https://*.upstash.io https://api.anthropic.com https://generativelanguage.googleapis.com wss://*.supabase.co",
+              "font-src 'self' https://fonts.gstatic.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https:",
+              "media-src 'self' blob: https://polly.*.amazonaws.com",
+              "worker-src 'self' blob:",
+              "frame-ancestors 'none'",
+              "report-uri /api/log-error?source=csp",
+            ].join('; '),
+          },
+        ],
+      },
+      // ── Keep all existing path-specific headers below this line ────
       {
         source: "/vad/:path*",
         headers: [
