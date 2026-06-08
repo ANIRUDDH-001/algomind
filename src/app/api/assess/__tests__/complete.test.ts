@@ -7,7 +7,7 @@
  * @apis      Supabase Edge Function (mocked)
  * @db        candidate_submissions, assessment_campaigns (mocked)
  * @state     Redis (mocked circuit breaker)
- * @env       SUPABASE_JWT_SECRET, INTERNAL_API_SECRET (mocked)
+ * @env       ASSESSMENT_JWT_SECRET, SUPABASE_JWT_SECRET, INTERNAL_API_SECRET (mocked)
  * @issues    None
  * @audit     CODESAGE-v1 | @skip: test-file
  */
@@ -83,10 +83,11 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     beforeEach(async () => {
         vi.resetAllMocks();
 
+        process.env.ASSESSMENT_JWT_SECRET = 'a-valid-32-char-assessment-secret-key-12345';
         process.env.SUPABASE_JWT_SECRET = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
         process.env.INTERNAL_API_SECRET = 'test-internal-secret';
 
-        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
+        const secret = new TextEncoder().encode(process.env.ASSESSMENT_JWT_SECRET);
         validToken = await new jose.SignJWT({
             submissionId: 'sub-123',
             campaignId: 'campaign-123',
@@ -97,6 +98,7 @@ describe('Assess Complete API (/api/assess/complete)', () => {
     });
 
     afterEach(() => {
+        delete (process.env as any).ASSESSMENT_JWT_SECRET;
         delete (process.env as any).SUPABASE_JWT_SECRET;
         delete (process.env as any).INTERNAL_API_SECRET;
     });

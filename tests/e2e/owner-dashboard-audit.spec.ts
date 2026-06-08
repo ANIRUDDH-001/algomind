@@ -24,7 +24,7 @@ test.describe('Owner Dashboard Audit', () => {
 
     for (const route of routes) {
         test(`Audit route: ${route}`, async ({ page }, testInfo) => {
-            const routeResults = { errors: [], overlappingElements: [], missingContent: [] };
+            const routeResults: { errors: string[], overlappingElements: string[], missingContent: string[] } = { errors: [], overlappingElements: [], missingContent: [] };
             results[route] = routeResults;
 
             const consoleLogs: string[] = [];

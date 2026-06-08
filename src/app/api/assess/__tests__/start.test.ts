@@ -7,7 +7,7 @@
  * @apis      none
  * @db        assessment_campaigns, problems, candidate_submissions (mocked)
  * @state     none
- * @env       SUPABASE_JWT_SECRET (mocked)
+ * @env       ASSESSMENT_JWT_SECRET, SUPABASE_JWT_SECRET (mocked)
  * @issues    None
  * @audit     CODESAGE-v1 | @skip: test-file
  */
@@ -33,7 +33,8 @@ describe('Assess Start API (/api/assess/start)', () => {
         vi.useFakeTimers();
         vi.setSystemTime(mockDate);
 
-        // Required environment variable for JWT
+        // Required environment variables for JWT
+        process.env.ASSESSMENT_JWT_SECRET = 'a-valid-32-char-assessment-secret-key-12345';
         process.env.SUPABASE_JWT_SECRET = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
 
         mockSupabase = {
@@ -80,6 +81,7 @@ describe('Assess Start API (/api/assess/start)', () => {
     afterEach(() => {
         vi.useRealTimers();
         delete (process.env as any).SUPABASE_JWT_SECRET;
+        delete (process.env as any).ASSESSMENT_JWT_SECRET;
     });
 
     const createRequest = (body: any) => new NextRequest('http://localhost:3000/api/assess/start', {
@@ -104,7 +106,7 @@ describe('Assess Start API (/api/assess/start)', () => {
         expect(data.submissionId).toBe('sub-123');
 
         // Verify the JWT was signed correctly
-        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
+        const secret = new TextEncoder().encode(process.env.ASSESSMENT_JWT_SECRET);
         const { payload } = await jose.jwtVerify(data.sessionToken, secret);
         expect(payload.submissionId).toBe('sub-123');
         expect(payload.campaignId).toBe('campaign-123');

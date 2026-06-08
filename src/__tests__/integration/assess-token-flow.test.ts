@@ -7,6 +7,7 @@ import path from 'node:path';
 describe('assessment token flow integration', () => {
     it('validates signed session token and rejects tampered token', async () => {
         process.env.SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'phase0-test-secret';
+        process.env.ASSESSMENT_JWT_SECRET = 'a-valid-32-char-assessment-secret-key-12345';
         const secret = encodeAssessmentSecret();
 
         const valid = await new jose.SignJWT({ sub: 'submission-123' })

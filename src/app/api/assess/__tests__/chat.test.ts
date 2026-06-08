@@ -7,7 +7,7 @@
  * @apis      none
  * @db        candidate_submissions, assessment_campaigns (mocked)
  * @state     Redis (mocked)
- * @env       SUPABASE_JWT_SECRET (mocked)
+ * @env       ASSESSMENT_JWT_SECRET, SUPABASE_JWT_SECRET (mocked)
  * @issues    None
  * @audit     CODESAGE-v1 | @skip: test-file
  */
@@ -37,10 +37,12 @@ describe('Assess Chat API (/api/assess/chat)', () => {
     beforeEach(async () => {
         vi.resetAllMocks();
 
+        // Need a secret for jose
+        process.env.ASSESSMENT_JWT_SECRET = 'a-valid-32-char-assessment-secret-key-12345';
         process.env.SUPABASE_JWT_SECRET = 'test-secret-key-that-needs-to-be-long-enough-for-hs256';
 
         // Generate a valid mock JWT
-        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
+        const secret = new TextEncoder().encode(process.env.ASSESSMENT_JWT_SECRET);
         validToken = await new jose.SignJWT({
             submissionId: 'sub-123',
             campaignId: 'campaign-123',
@@ -127,6 +129,7 @@ describe('Assess Chat API (/api/assess/chat)', () => {
     });
 
     afterEach(() => {
+        delete (process.env as any).ASSESSMENT_JWT_SECRET;
         delete (process.env as any).SUPABASE_JWT_SECRET;
     });
 

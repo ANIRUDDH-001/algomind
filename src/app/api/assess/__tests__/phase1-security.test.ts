@@ -12,7 +12,7 @@
  * @audit     CODESAGE-v1 | @skip: test-file
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getAssessmentSecret, encodeAssessmentSecret } from '@/lib/assess/jwt';
+import { getAssessmentSecret, encodeAssessmentSecret, assertAssessmentSecretIsUnique } from '@/lib/assess/jwt';
 
 describe('getAssessmentSecret', () => {
     const originalEnv = process.env;
@@ -22,28 +22,37 @@ describe('getAssessmentSecret', () => {
         process.env = { ...originalEnv };
     });
 
-    it('prefers ASSESSMENT_JWT_SECRET over SUPABASE_JWT_SECRET', () => {
-        process.env.ASSESSMENT_JWT_SECRET = 'new-secret';
-        process.env.SUPABASE_JWT_SECRET = 'old-secret';
-        expect(getAssessmentSecret()).toBe('new-secret');
+    it('returns ASSESSMENT_JWT_SECRET if valid', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'a-very-long-secret-that-is-at-least-32-chars-long';
+        expect(getAssessmentSecret()).toBe('a-very-long-secret-that-is-at-least-32-chars-long');
     });
 
-    it('falls back to SUPABASE_JWT_SECRET when ASSESSMENT_JWT_SECRET missing', () => {
+    it('throws if ASSESSMENT_JWT_SECRET is missing', () => {
         delete process.env.ASSESSMENT_JWT_SECRET;
-        process.env.SUPABASE_JWT_SECRET = 'fallback-secret';
-        expect(getAssessmentSecret()).toBe('fallback-secret');
+        expect(() => getAssessmentSecret()).toThrow('[Assessment JWT] ASSESSMENT_JWT_SECRET is not set');
     });
 
-    it('throws when neither secret is set', () => {
-        delete process.env.ASSESSMENT_JWT_SECRET;
-        process.env.SUPABASE_JWT_SECRET = '';
-        expect(() => getAssessmentSecret()).toThrow('[Assessment JWT]');
+    it('throws if ASSESSMENT_JWT_SECRET is too short', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'too-short';
+        expect(() => getAssessmentSecret()).toThrow('[Assessment JWT] ASSESSMENT_JWT_SECRET is too short');
     });
 
     it('encodeAssessmentSecret returns Uint8Array', () => {
-        process.env.ASSESSMENT_JWT_SECRET = 'test-secret';
+        process.env.ASSESSMENT_JWT_SECRET = 'a-very-long-secret-that-is-at-least-32-chars-long';
         const encoded = encodeAssessmentSecret();
         expect(encoded).toBeInstanceOf(Uint8Array);
         expect(encoded.length).toBeGreaterThan(0);
+    });
+
+    it('throws if ASSESSMENT_JWT_SECRET is the same as SUPABASE_JWT_SECRET', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'a-very-long-secret-that-is-at-least-32-chars-long';
+        process.env.SUPABASE_JWT_SECRET = 'a-very-long-secret-that-is-at-least-32-chars-long';
+        expect(() => assertAssessmentSecretIsUnique()).toThrow('[Assessment JWT] FATAL');
+    });
+
+    it('does not throw if ASSESSMENT_JWT_SECRET is unique', () => {
+        process.env.ASSESSMENT_JWT_SECRET = 'a-very-long-secret-that-is-at-least-32-chars-long';
+        process.env.SUPABASE_JWT_SECRET = 'different-long-secret-that-is-at-least-32-chars-long';
+        expect(() => assertAssessmentSecretIsUnique()).not.toThrow();
     });
 });

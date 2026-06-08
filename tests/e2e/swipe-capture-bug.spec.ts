@@ -21,7 +21,7 @@ test.describe('Swipe Navigation Capture Bug', () => {
         const btn = document.createElement('button');
         btn.id = 'test-btn';
         btn.innerText = 'Click Me';
-        btn.onclick = () => { window.__btnClicked = true; };
+        btn.onclick = () => { (window as any).__btnClicked = true; };
         container.appendChild(btn);
       }
     });
@@ -35,7 +35,7 @@ test.describe('Swipe Navigation Capture Bug', () => {
     await page.mouse.up();
 
     // Check if button was clicked
-    const wasClicked = await page.evaluate(() => !!window.__btnClicked);
+    const wasClicked = await page.evaluate(() => !!(window as any).__btnClicked);
     expect(wasClicked).toBe(true);
   });
 });
