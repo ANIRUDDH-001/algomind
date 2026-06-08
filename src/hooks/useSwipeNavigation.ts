@@ -91,7 +91,7 @@ export function useSwipeNavigation<T extends string>({
         isDragging.current = true;
         directionLocked.current = false;
         isHorizontal.current = false;
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        // Capture is deferred to onPointerMove for horizontal swipes
     }, [disabled]);
 
     const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -112,6 +112,9 @@ export function useSwipeNavigation<T extends string>({
                 directionLocked.current = true;
                 if (Math.abs(dx) > Math.abs(dy)) {
                     isHorizontal.current = true;
+                    try {
+                        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+                    } catch { /* ignore */ }
                 } else {
                     isHorizontal.current = false;
                     isDragging.current = false;
