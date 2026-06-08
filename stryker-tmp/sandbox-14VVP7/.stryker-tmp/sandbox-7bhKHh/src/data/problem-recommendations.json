@@ -1,0 +1,89 @@
+{
+    "problem-decomposition": [
+        {
+            "id": "lru-cache",
+            "title": "LRU Cache",
+            "difficulty": "hard"
+        },
+        {
+            "id": "merge-intervals",
+            "title": "Merge Intervals",
+            "difficulty": "medium"
+        },
+        {
+            "id": "flatten-doubly-linked-list",
+            "title": "Flatten Doubly Linked List",
+            "difficulty": "medium"
+        }
+    ],
+    "pattern-recognition": [
+        {
+            "id": "two-sum",
+            "title": "Two Sum",
+            "difficulty": "easy"
+        },
+        {
+            "id": "longest-substring",
+            "title": "Longest Substring Without Repeating",
+            "difficulty": "medium"
+        },
+        {
+            "id": "house-robber",
+            "title": "House Robber",
+            "difficulty": "medium"
+        }
+    ],
+    "algorithmic-thinking": [
+        {
+            "id": "invert-binary-tree",
+            "title": "Invert Binary Tree",
+            "difficulty": "easy"
+        },
+        {
+            "id": "number-of-islands",
+            "title": "Number of Islands",
+            "difficulty": "medium"
+        },
+        {
+            "id": "search-in-rotated-array",
+            "title": "Search in Rotated Array",
+            "difficulty": "medium"
+        }
+    ],
+    "complexity-analysis": [
+        {
+            "id": "sort-colors",
+            "title": "Sort Colors",
+            "difficulty": "medium"
+        },
+        {
+            "id": "median-of-two-sorted-arrays",
+            "title": "Median of Two Sorted Arrays",
+            "difficulty": "hard"
+        }
+    ],
+    "edge-case-awareness": [
+        {
+            "id": "valid-number",
+            "title": "Valid Number",
+            "difficulty": "hard"
+        },
+        {
+            "id": "string-to-integer",
+            "title": "String to Integer (atoi)",
+            "difficulty": "medium"
+        }
+    ],
+    "optimization-mindset": [
+        {
+            "id": "trapping-rain-water",
+            "title": "Trapping Rain Water",
+            "difficulty": "hard"
+        },
+        {
+            "id": "best-time-to-buy-sell-stock",
+            "title": "Best Time to Buy and Sell Stock",
+            "difficulty": "easy"
+        }
+    ]
+}

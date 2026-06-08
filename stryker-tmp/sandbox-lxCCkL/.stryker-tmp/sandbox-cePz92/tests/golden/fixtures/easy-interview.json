@@ -1,0 +1,26 @@
+{
+  "difficulty": "warm-up",
+  "problem": "Two Sum",
+  "turns": 8,
+  "transcript": [
+    { "role": "assistant", "content": "Let's work on the Two Sum problem..." },
+    { "role": "user", "content": "I'd use a hash map to store complements..." },
+    { "role": "assistant", "content": "Good approach. What's the time complexity?" },
+    { "role": "user", "content": "O(n) time and O(n) space for the hash map." },
+    { "role": "assistant", "content": "Can you handle edge cases?" },
+    { "role": "user", "content": "Empty array returns empty. Duplicate values work because we check before inserting." },
+    { "role": "assistant", "content": "What about negative numbers?" },
+    { "role": "user", "content": "Works the same since we're checking complement = target - current." }
+  ],
+  "expected": {
+    "overall_score_range": [4.0, 7.5],
+    "required_skills": [
+      "problem-decomposition",
+      "algorithmic-thinking",
+      "complexity-analysis",
+      "edge-case-awareness"
+    ],
+    "confidence_range": [0.3, 0.8],
+    "max_any_skill_score": 8
+  }
+}

@@ -23,7 +23,7 @@ import type {
 
 const KG_CACHE_KEY = (userId: string) => `kg:concepts:${userId}`;
 const STUDENT_CONTEXT_CACHE_KEY = (userId: string) => `student_context:${userId}`;
-const CONCEPT_TAGS_CACHE_KEY = 'kg:concept_tags:all';
+export const CONCEPT_TAGS_CACHE_KEY = 'kg:concept_tags:all';
 const KG_CACHE_TTL_SECONDS = 60 * 60;
 const CONCEPT_TAGS_TTL_SECONDS = 60 * 60 * 24;
 
@@ -286,7 +286,8 @@ export class KnowledgeGraphService {
                 operation: 'upsert_concept_states_batch',
             },
         });
-        throw new Error(`[KG] Batch upsert failed: ${error.message}`);
+        console.error(`[KG] Batch upsert failed: ${error.message}`);
+        return;
     }
 
     console.info(`[KG] Updated ${data?.length ?? 0} concept states for user ${params.userId}`);

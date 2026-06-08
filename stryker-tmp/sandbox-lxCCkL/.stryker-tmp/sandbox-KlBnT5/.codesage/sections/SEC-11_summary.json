@@ -1,0 +1,35 @@
+{
+  "section": "SEC-11",
+  "name": "Types & Contexts",
+  "files_processed": [
+    {
+      "file": "src/types/assessment.ts",
+      "purpose": "Defines TypeScript interfaces and types for cognitive skills, scoring rubrics, and user assessment progress."
+    },
+    {
+      "file": "src/types/campaign.ts",
+      "purpose": "Defines interfaces for assessment campaigns, candidate submissions, and per-question states."
+    },
+    {
+      "file": "src/types/env.d.ts",
+      "purpose": "TypeScript environment variable declarations and type definitions for NodeJS.ProcessEnv."
+    },
+    {
+      "file": "src/types/kai-memory.ts",
+      "purpose": "Defines structures for the Kai agent's structured memory and communication style preferences."
+    },
+    {
+      "file": "src/types/knowledge-graph.ts",
+      "purpose": "TypeScript types for the knowledge graph system, concept tracking, and FSRS spacing repetition algorithm."
+    },
+    {
+      "file": "src/types/problem.ts",
+      "purpose": "Defines structures for programming problems, difficulty levels, and problem filters."
+    },
+    {
+      "file": "src/types/supabase.ts",
+      "purpose": "Auto-generated TypeScript definitions for the Supabase Postgres database schema."
+    }
+  ],
+  "section_summary": "This section contains all the core TypeScript declarations and interfaces that enforce data integrity and typing across the application. It includes models for assessments, user progress, concepts, problems, as well as the complete auto-generated database schema from Supabase. No context providers were found in the scope."
+}

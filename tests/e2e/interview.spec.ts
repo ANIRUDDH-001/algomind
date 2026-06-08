@@ -5,11 +5,7 @@
  */
 import { test, expect } from '@playwright/test';
 import {
-    setupInterviewPage,
-    waitForInterviewReady,
     mockChatAPI,
-    dismissOnboardingModal,
-    InterviewPanelPOM,
 } from '../../src/test-utils/playwright-helpers';
 
 const RUN_FULL_STACK_E2E = process.env.E2E_FULL_STACK === 'true';

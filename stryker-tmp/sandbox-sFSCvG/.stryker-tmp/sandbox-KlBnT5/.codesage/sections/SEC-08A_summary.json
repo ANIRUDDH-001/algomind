@@ -1,0 +1,30 @@
+{
+  "section": "SEC-08A",
+  "name": "App Routes: Pages (Part 1)",
+  "totalFiles": 48,
+  "processedFiles": 48,
+  "directories": [
+    "src/app",
+    "src/app/actions",
+    "src/app/actions/__tests__",
+    "src/app/admin",
+    "src/app/admin/employers",
+    "src/app/assess",
+    "src/app/assess/__tests__",
+    "src/app/auth/callback",
+    "src/app/dashboard",
+    "src/app/dashboard/__tests__",
+    "src/app/employer",
+    "src/app/employer/dashboard",
+    "src/app/interview",
+    "src/app/interview/__tests__",
+    "src/app/interview/analysis",
+    "src/app/interview/history"
+  ],
+  "architecturalFindings": {
+    "dataFetching": "Standard Next.js server components pattern with Supabase SSR client for data retrieval.",
+    "clientComponents": "Heavy use of React hooks (useEffect, useState) for interactivity in files like InterviewSession, client admin tables, and dashboard charts.",
+    "transactions": "High-stakes operations (like save-session.ts) use multiple RPC calls or batched updates via Supabase."
+  },
+  "status": "complete"
+}

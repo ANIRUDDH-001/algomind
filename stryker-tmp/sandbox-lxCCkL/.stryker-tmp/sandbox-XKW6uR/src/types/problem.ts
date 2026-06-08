@@ -1,0 +1,49 @@
+/**
+ * @codesage
+ * @file      src/types/problem.ts
+ * @purpose   Defines structures for programming problems, difficulty levels, and problem filters.
+ * @tech      TypeScript
+ * @connects  Exported types used by problem catalog and assessment system.
+ * @apis      none
+ * @db        problems
+ * @state     none
+ * @env       none
+ * @issues    No dead code or unused imports found.
+ * @audit     CODESAGE-v1
+ */
+// @ts-nocheck
+
+// 
+
+
+export interface Problem {
+    id: string;
+    title: string;
+    content?: string;
+    description?: string;
+    examples?: any;
+    constraints?: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    category?: string;
+    patterns?: string[];
+    hints?: string[];
+    solution?: string;
+    external_url?: string;
+    ragContext?: string; // Pre-embedded context for guest problems
+    tags?: string[];
+    curated_lists?: string[];
+    time_complexity?: string;
+    space_complexity?: string;
+}
+
+export interface ProblemWithContext extends Problem {
+    ragContext: string;
+}
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export interface ProblemFilter {
+    difficulty?: Difficulty;
+    category?: string;
+    pattern?: string;
+}

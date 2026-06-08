@@ -1,0 +1,138 @@
+{
+  "/owner/overview": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/users": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/models": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/aws": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/rate-limits": {
+    "errors": [],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/settings": {
+    "errors": [],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/knowledge": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/co-owners": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/flags": {
+    "errors": [],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/cache": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Console error: [Cache Stats] Failed to load: Error: HTTP 401\n    at CachePage.useCallback[refresh] (http://localhost:3000/_next/static/chunks/_94a52ff1._.js:98:36)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"px-3 pt-4 pb-1\"> vs <div class=\"shrink-0 p-3 border-t border-neutral-800\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/admins": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  },
+  "/owner/employers": {
+    "errors": [
+      "Console error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "overlappingElements": [
+      "Overlap: <div class=\"relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full\"> vs <div class=\"absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-zinc-500 hidden md:flex\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">",
+      "Overlap: <div class=\"\"> vs <div class=\"\">"
+    ],
+    "missingContent": []
+  }
+}

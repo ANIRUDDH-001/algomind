@@ -20,7 +20,7 @@ export async function POST() {
     // Check if user is already premium
     const { status: subscriptionStatus } = await getUserSubscriptionStatus(user.id);
     if (subscriptionStatus !== 'free') {
-      return NextResponse.json({ error: 'Already subscribed' }, { status: 400 });
+      return NextResponse.json({ error: 'SUBSCRIPTION_EXISTS' }, { status: 409 });
     }
 
     // Create Razorpay subscription using dynamic import for CJS

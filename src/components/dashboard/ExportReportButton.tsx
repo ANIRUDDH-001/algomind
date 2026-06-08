@@ -116,8 +116,7 @@ export function ExportReportButton({ progress, sessionData }: ExportReportButton
             progress={resolvedProgress}
             fileName={`AlgoMind_Report_${candidateName.replace(/ /g, '_')}_${dateStr}.pdf`}
         >
-            // @ts-expect-error -- automated unused local suppression
-            {({ blob, url, loading, error }) => {
+            {({ loading }) => {
                 // Only show loading state after user has clicked
                 const showLoading = hasClicked && loading;
                 return (

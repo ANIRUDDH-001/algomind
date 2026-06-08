@@ -1,0 +1,58 @@
+/**
+ * @codesage
+ * @file      src/app/manifest.ts
+ * @purpose   Web App Manifest configuration for PWA installation
+ * @tech      Next.js Metadata API
+ * @connects  None
+ * @apis      None
+ * @db        None
+ * @state     None
+ * @env       None
+ * @issues    None
+ * @audit     CODESAGE-v1
+ */
+// @ts-nocheck
+
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+    return {
+        name: 'AlgoMind',
+        short_name: 'AlgoMind',
+        description: 'Master Data Structures and Algorithms with AI-powered voice interviews and cognitive assessment.',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#0a0a0f',
+        theme_color: '#6366f1',
+        orientation: 'portrait-primary',
+        icons: [
+            {
+                src: '/icon-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any',
+            },
+            {
+                src: '/icon-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any',
+            },
+            {
+                src: '/icon-maskable-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'maskable',
+            },
+            {
+                src: '/icon-maskable-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable',
+            },
+        ],
+        categories: ['education', 'productivity', 'utilities'],
+        lang: 'en',
+        dir: 'ltr',
+    };
+}

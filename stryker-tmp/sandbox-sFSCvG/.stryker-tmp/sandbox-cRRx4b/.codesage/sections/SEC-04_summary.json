@@ -1,0 +1,204 @@
+{
+  "section": "SEC-04",
+  "name": "Core Libs: DB, Cache & Analytics",
+  "files_processed": [
+    {
+      "file": "src/lib/supabase/client.ts",
+      "purpose": "Provides a singleton browser client for Supabase and configuration checks.",
+      "tech": "@supabase/ssr, @supabase/supabase-js",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/problems.ts",
+      "purpose": "Handles database operations for fetching and normalizing problem records.",
+      "tech": "Supabase JS Client",
+      "apis_found": [],
+      "db_tables": [
+        "problems",
+        "get_random_problem"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/progress-store.ts",
+      "purpose": "Provides a service for saving user interview sessions and retrieving progress data.",
+      "tech": "Supabase JS Client",
+      "apis_found": [],
+      "db_tables": [
+        "interview_sessions",
+        "assessments",
+        "learner_profiles"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [
+        "console.log statements in saveSession"
+      ],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/server.ts",
+      "purpose": "Provides functions to create Supabase clients for server components and service-role tasks.",
+      "tech": "@supabase/ssr, @supabase/supabase-js, next/headers",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_DIRECT_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/service.ts",
+      "purpose": "Provides a singleton service-role Supabase client bypassing RLS for admin operations.",
+      "tech": "@supabase/supabase-js",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [
+        "SUPABASE_DIRECT_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/type-mapping.ts",
+      "purpose": "Maps TypeScript application types to Supabase database column names.",
+      "tech": "TypeScript",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/user-preferences.ts",
+      "purpose": "Manages user preferences and subscription status, syncing with Supabase and localStorage.",
+      "tech": "Supabase JS Client",
+      "apis_found": [],
+      "db_tables": [
+        "user_preferences",
+        "profiles"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/__tests__/progress-store.test.ts",
+      "purpose": "Unit tests for SupabaseProgressStore, verifying session saving and progress retrieval.",
+      "tech": "Vitest",
+      "apis_found": [],
+      "db_tables": [
+        "interview_sessions",
+        "assessments",
+        "learner_profiles"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/supabase/__tests__/save-session.test.ts",
+      "purpose": "Unit tests for the saveInterviewSession action, testing happy paths and error states.",
+      "tech": "Vitest",
+      "apis_found": [],
+      "db_tables": [
+        "interview_sessions",
+        "assessments",
+        "save_interview_session_atomic"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/upstash/client.ts",
+      "purpose": "Provides a Redis client instance with an integrated circuit breaker pattern.",
+      "tech": "@upstash/redis",
+      "apis_found": [
+        "Upstash Redis REST API"
+      ],
+      "db_tables": [
+        "Redis (Upstash)"
+      ],
+      "env_vars": [
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN"
+      ],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/upstash/__tests__/degradation-circuit.test.ts",
+      "purpose": "Unit tests for the Upstash Redis circuit breaker logic.",
+      "tech": "Vitest",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/cache/dashboardCache.ts",
+      "purpose": "Provides caching functions for user dashboard averages using Upstash Redis.",
+      "tech": "Redis",
+      "apis_found": [],
+      "db_tables": [
+        "Redis cache (Upstash)"
+      ],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/analytics/model-telemetry.ts",
+      "purpose": "Provides server-side in-memory telemetry tracking for AI model routing decisions and latency.",
+      "tech": "TypeScript",
+      "apis_found": [],
+      "db_tables": [],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    },
+    {
+      "file": "src/lib/telemetry/report-error.ts",
+      "purpose": "Provides a non-blocking utility to send client-side errors to the server via beacon or fetch.",
+      "tech": "Browser fetch/sendBeacon",
+      "apis_found": [
+        "POST /api/log-error"
+      ],
+      "db_tables": [],
+      "env_vars": [],
+      "issues_flagged": [],
+      "dead_code_removed": [],
+      "dead_code_flagged": []
+    }
+  ],
+  "section_summary": "This section implements core infrastructure libraries for database access, caching, and analytics. It includes singleton clients for Supabase and Upstash Redis with a custom circuit breaker pattern, services for persisting user session and progress state, and telemetry utilities to track AI model performance and application errors. These foundational tools enable robust data operations, fault tolerance, and observability throughout the application."
+}

@@ -1,0 +1,82 @@
+{
+  "phase6_baseline_captured_at": "2026-04-03T00:00:00Z",
+  "description": "Current correlation header (x-correlation-id) propagation across critical API routes",
+  "middleware_status": {
+    "extracts_from_request": true,
+    "sets_on_response": true,
+    "location": "src/middleware.ts",
+    "behavior": "extracts or generates UUID, sets on response via withCorrelationId()"
+  },
+  "routes_with_correlation_support": [
+    {
+      "path": "src/app/api/cron/trigger/route.ts",
+      "method": "GET",
+      "extracts_header": true,
+      "sets_on_response": true,
+      "includes_in_metadata": true,
+      "status": "implemented"
+    },
+    {
+      "path": "src/app/api/assess/chat/route.ts",
+      "method": "POST",
+      "extracts_header": true,
+      "sets_on_response": true,
+      "includes_in_metadata": false,
+      "status": "partial"
+    }
+  ],
+  "critical_routes_missing_correlation": [
+    {
+      "path": "src/app/api/chat/route.ts",
+      "method": "POST",
+      "reason": "No x-correlation-id header extraction or response propagation",
+      "impact": "cannot trace chat requests across log systems"
+    },
+    {
+      "path": "src/app/api/assess/complete/route.ts",
+      "method": "POST",
+      "reason": "No x-correlation-id header in response",
+      "impact": "assessment completion cannot be correlated with other lifecycle events"
+    },
+    {
+      "path": "src/app/api/assess/save-progress/route.ts",
+      "method": "POST",
+      "reason": "No x-correlation-id header extraction or response propagation",
+      "impact": "assessment progress checkpoints not traceable"
+    },
+    {
+      "path": "src/app/api/admin/events/route.ts",
+      "method": "GET",
+      "reason": "No x-correlation-id header in response",
+      "impact": "admin event queries cannot be traced"
+    },
+    {
+      "path": "src/app/api/health/route.ts",
+      "method": "GET",
+      "reason": "No x-correlation-id header in response",
+      "impact": "health check requests not traceable"
+    }
+  ],
+  "async_boundaries_without_correlation": [
+    {
+      "boundary": "cron trigger → GitHub Actions dispatch → nightly-batch.ts",
+      "status": "no correlation context passed",
+      "risk": "batch job correlates to cron trigger but not to downstream steps"
+    },
+    {
+      "boundary": "cron trigger → supabase functions (review-reminders)",
+      "status": "no correlation context passed",
+      "risk": "edge function events not linked to initiating trigger"
+    }
+  ],
+  "coverage_summary": {
+    "routes_with_support": 2,
+    "critical_routes_missing": 5,
+    "async_edges_without_propagation": 2,
+    "immediate_action_items": [
+      "Add x-correlation-id response header to all JSON responses",
+      "Include correlation context in cron dispatch to GitHub Actions",
+      "Implement correlation preservation in batch and edge functions"
+    ]
+  }
+}

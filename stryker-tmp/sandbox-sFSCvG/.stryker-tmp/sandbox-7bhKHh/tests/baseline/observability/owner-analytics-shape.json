@@ -1,0 +1,89 @@
+{
+  "phase6_baseline_captured_at": "2026-04-03T00:00:00Z",
+  "description": "Current owner analytics tab (src/app/owner/tabs/analytics-tab.tsx) event type usage and schema",
+  "file_location": "src/app/owner/tabs/analytics-tab.tsx",
+  "event_schema_fields_used": {
+    "type": "string (hardcoded event type checks)",
+    "created_at": "ISO timestamp",
+    "model_id": "string | null",
+    "user_id": "string | null",
+    "error_code": "string | null",
+    "error_message": "string | null",
+    "metadata": "any (arbitrary JSON)"
+  },
+  "event_type_filtering_patterns": [
+    {
+      "pattern": "e.type === 'db_error'",
+      "usage": "Panel 3: DB Errors list",
+      "count": 1
+    },
+    {
+      "pattern": "e.type === 'user_rate_limit'",
+      "usage": "Panel 4: User Rate Limits list and chart",
+      "count": 2
+    },
+    {
+      "pattern": "e.type === 'cron_*' (cron_completed, cron_failed, cron_triggered, cron_running)",
+      "usage": "Panel 5: Cron Health tracking",
+      "count": 4
+    }
+  ],
+  "hardcoded_type_color_mappings": {
+    "model_429": "COLORS.chart[0]",
+    "model_deprecated": "COLORS.chart[1]",
+    "model_error": "COLORS.chart[2]",
+    "model_timeout": "COLORS.chart[3]",
+    "model_verification_failed": "COLORS.chart[4]",
+    "db_error": "COLORS.semantic.danger",
+    "user_rate_limit": "#3b82f6",
+    "leetcode_fetch_failed": "#a855f7",
+    "piston_error": "#f97316",
+    "embedding_failed": "#ec4899",
+    "cron_completed": "COLORS.semantic.success",
+    "cron_failed": "COLORS.semantic.danger",
+    "cron_triggered": "#6366f1",
+    "cron_running": "#3b82f6",
+    "batch_job_complete": "#14b8a6",
+    "admin_action": "#64748b"
+  },
+  "type_check_locations": [
+    {
+      "line": "~245",
+      "code": "const dbErrors = (Array.isArray(events) ? events : []).filter(e => e.type === 'db_error').slice(0, 20);",
+      "brittleness": "high (hardcoded string literal)"
+    },
+    {
+      "line": "~250",
+      "code": "const userRateLimits = (Array.isArray(events) ? events : []).filter(e => e.type === 'user_rate_limit');",
+      "brittleness": "high (hardcoded string literal)"
+    },
+    {
+      "line": "~256",
+      "code": "const cronEvents = events.filter(e => e.type === 'cron_completed' || e.type === 'cron_failed' || e.type === 'cron_triggered' || e.type === 'cron_running')",
+      "brittleness": "high (4 hardcoded conditions)"
+    }
+  ],
+  "analytics_payload_from_api": {
+    "AnalyticsRow_type": "interface AnalyticsRow { event_date: string; type: string; count: number; }",
+    "use_of_type_field": "chartData aggregation uses curr.type as object key",
+    "risk": "if event schema changes (type → event_type or restructured), analytics will break silently"
+  },
+  "missing_canonical_event_contract": {
+    "has_type_field_validation": false,
+    "has_severity_field": false,
+    "version_field": false,
+    "strict_type_narrowing": false,
+    "type_refinement_needed": "ALL 16 hardcoded type checks should use EventTypes constant after Phase 6"
+  },
+  "refactor_readiness": {
+    "current_state": "high brittleness with hardcoded type literals",
+    "phase6_requirement": "convert all type checks to use EventTypes constant imports",
+    "test_coverage_gap": "no contract test validating that analytics renders canonical event types without data loss"
+  },
+  "action_items": [
+    "Import EventTypes constant from src/lib/monitoring/events.ts",
+    "Replace all hardcoded type literals with EventTypes.X references",
+    "Add phase 6 contract test: src/app/owner/tabs/__tests__/analytics-schema.contract.test.tsx",
+    "Validate that analytics correctly renders all canonical event types after Phase 6 schema changes"
+  ]
+}

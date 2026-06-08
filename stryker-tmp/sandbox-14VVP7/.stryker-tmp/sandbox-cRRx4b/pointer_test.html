@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <div id="container" style="padding: 50px; background: lightblue;">
+    <button id="btn" style="padding: 20px;">Click Me</button>
+  </div>
+  <div id="log"></div>
+  <script>
+// @ts-nocheck
+
+// 
+
+    const container = document.getElementById('container');
+    const btn = document.getElementById('btn');
+    const log = document.getElementById('log');
+
+    btn.addEventListener('click', () => {
+      log.innerHTML += 'Button clicked!<br>';
+    });
+
+    container.addEventListener('pointerdown', (e) => {
+      container.setPointerCapture(e.pointerId);
+      log.innerHTML += 'Pointer captured by container<br>';
+    });
+
+    container.addEventListener('pointerup', (e) => {
+      container.releasePointerCapture(e.pointerId);
+      log.innerHTML += 'Pointer released by container<br>';
+    });
+  
+
+</script>
+</body>
+</html>

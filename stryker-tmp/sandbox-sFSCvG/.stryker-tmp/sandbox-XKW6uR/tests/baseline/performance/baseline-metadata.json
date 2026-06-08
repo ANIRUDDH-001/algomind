@@ -1,0 +1,82 @@
+{
+  "baseline_id": "phase-7-baseline-default",
+  "created_timestamp": "2026-03-05T14:32:00Z",
+  "git_sha": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+  "git_branch": "main",
+  "environment": "staging",
+  "thresholds": {
+    "absolute": {
+      "p50_ms": 600,
+      "p95_ms": 2000,
+      "p99_ms": 3500,
+      "p50_p95_spread_max_ms": 400,
+      "success_rate_min_pct": 99.0,
+      "error_rate_max_pct": 1.0,
+      "timeout_rate_max_pct": 0.3,
+      "network_error_rate_max_pct": 0.2
+    },
+    "baseline_relative": {
+      "p95_hardFail_pct": 20,
+      "p99_hardFail_pct": 25,
+      "error_rate_hardFail_pct_points": 0.5,
+      "throughput_hardFail_pct": -15,
+      "cost_hardFail_pct": 15,
+      "p95_warning_pct": 10,
+      "throughput_warning_pct": -8
+    }
+  },
+  "scenarios": [
+    {
+      "name": "interview-chat-normal",
+      "duration_seconds": 900,
+      "vus_max": 8,
+      "throughput_rps": 8.0,
+      "p95_ms": 1950,
+      "p99_ms": 3400,
+      "cost_per_1k_usd": 0.0125
+    },
+    {
+      "name": "interview-chat-burst",
+      "duration_seconds": 600,
+      "vus_max": 80,
+      "throughput_rps": 9.0,
+      "p95_ms": 3200,
+      "p99_ms": 3950,
+      "cost_per_1k_usd": 0.0130
+    },
+    {
+      "name": "assess-chat-flow",
+      "duration_seconds": 600,
+      "vus_max": 25,
+      "throughput_rps": 3.125,
+      "p95_ms": 2100,
+      "p99_ms": 2650,
+      "cost_per_1k_usd": 0.0185
+    },
+    {
+      "name": "failure-injection",
+      "duration_seconds": 720,
+      "vus_max": 3,
+      "throughput_rps": 15.0,
+      "p95_ms": 2050,
+      "p99_ms": 3600,
+      "cost_per_1k_usd": 0.0135
+    },
+    {
+      "name": "soak-test",
+      "duration_seconds": 5400,
+      "vus_max": 8,
+      "throughput_rps": 12.0,
+      "p95_ms": 2050,
+      "p99_ms": 3650,
+      "cost_per_1k_usd": 0.0128
+    }
+  ],
+  "cost_model": {
+    "input_cost_per_1k_tokens_usd": 0.01,
+    "output_cost_per_1k_tokens_usd": 0.03,
+    "base_api_cost_per_request_usd": 0.001
+  },
+  "validation_status": "approved",
+  "total_duration_minutes": 63
+}

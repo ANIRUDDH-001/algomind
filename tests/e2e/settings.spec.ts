@@ -224,10 +224,7 @@ test.describe('LeetCode Error State', () => {
 
         // Error message should be shown somewhere (toast or inline)
         const pageText = await page.textContent('body');
-        const _hasError =
-            pageText?.includes('Database error') ||
-            pageText?.includes('Connection failed') ||
-            pageText?.includes('error');
+
 
         // At minimum, the page didn't crash
         expect(pageText).not.toContain('Application error');

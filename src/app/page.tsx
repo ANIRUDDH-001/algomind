@@ -404,7 +404,7 @@ export default function HomePage() {
                 {/* Visual Mockup - Logos */}
                 <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-wrap gap-2 items-center justify-center group-hover:border-emerald-500/40 transition-colors shadow-inner overflow-hidden">
                   // @ts-expect-error -- automated unused local suppression
-                  {['Warm-up', 'Practice', 'Crunch', 'Sprint'].map((co, i) => (
+                  {['Warm-up', 'Practice', 'Crunch', 'Sprint'].map((co) => (
                     <motion.div
                       key={co}
                       whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
