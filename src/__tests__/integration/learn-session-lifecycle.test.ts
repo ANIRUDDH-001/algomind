@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
-import { incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkAndIncrementWeeklySession } from '@/lib/rate-limit/weekly-session-limiter';
 import {
   createTestUser,
   getCurrentWeekStart,
@@ -129,7 +129,7 @@ describeIfIntegration('Learn Session Lifecycle (Integration)', () => {
       confidenceDelta: 0.08,
     });
 
-    await incrementWeeklyUsage(testUser.userId, 'learn');
+    await checkAndIncrementWeeklySession(testUser.userId, 'learn');
 
     const [{ data: state }, { data: signals }, { data: usage }] = await Promise.all([
       testSupabase

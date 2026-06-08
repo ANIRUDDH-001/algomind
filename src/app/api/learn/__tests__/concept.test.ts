@@ -21,7 +21,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getAIClient } from '@/lib/ai/client';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
-import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkAndIncrementWeeklySession } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -47,8 +47,7 @@ vi.mock('@/lib/kai-context', () => ({
 }));
 
 vi.mock('@/lib/rate-limit/weekly-session-limiter', () => ({
-  checkWeeklySessionLimit: vi.fn(),
-  incrementWeeklyUsage: vi.fn(),
+  checkAndIncrementWeeklySession: vi.fn(),
 }));
 
 vi.mock('@/lib/monitoring/events', () => ({
@@ -106,14 +105,14 @@ describe('POST /api/learn/concept', () => {
 
     vi.mocked(buildStudentContext).mockResolvedValue({ userId: 'user-1' } as never);
 
-    vi.mocked(checkWeeklySessionLimit).mockResolvedValue({
+    vi.mocked(checkAndIncrementWeeklySession).mockResolvedValue({
       allowed: true,
       sessionsUsed: 1,
       limit: 5,
       sessionsRemaining: 4,
       reason: 'within_limit',
     });
-    vi.mocked(incrementWeeklyUsage).mockResolvedValue(true);
+
 
     vi.mocked(getAIClient).mockReturnValue({
       generateResponse: mockGenerateResponse,
@@ -230,11 +229,11 @@ describe('POST /api/learn/concept', () => {
       const data = await res.json();
       expect(res.status).toBe(200);
       expect(data.sessionId).toBe('learn-session-1');
-      expect(incrementWeeklyUsage).toHaveBeenCalledWith('user-1', 'learn');
+      expect(checkAndIncrementWeeklySession).toHaveBeenCalledWith('user-1', 'learn');
     });
 
     it('returns 429 when weekly limit reached', async () => {
-      vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+      vi.mocked(checkAndIncrementWeeklySession).mockResolvedValueOnce({
         allowed: false,
         sessionsUsed: 5,
         limit: 5,

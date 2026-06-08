@@ -19,7 +19,7 @@ import { getAIClient } from '@/lib/ai/client';
 import { buildKaiTutorSystemPrompt } from '@/lib/learn/tutor-prompt';
 import { buildStudentContext, invalidateStudentContext } from '@/lib/kai-context';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
-import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkAndIncrementWeeklySession } from '@/lib/rate-limit/weekly-session-limiter';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { getCorrelationIdFromRequest, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const isFirstTurn = action === 'start' || !sessionId;
 
     if (isFirstTurn) {
-      const limitResult = await checkWeeklySessionLimit(user.id, 'learn');
+      const limitResult = await checkAndIncrementWeeklySession(user.id, 'learn');
       if (!limitResult.allowed) {
         return jsonWithCorrelationId(
           {
@@ -151,44 +151,6 @@ export async function POST(req: NextRequest) {
       }
 
       activeSessionId = newSession.id;
-      let incremented = false;
-      try {
-        if (['admin', 'premium', 'gating_disabled'].includes(limitResult.reason)) {
-          incremented = true;
-        } else {
-          incremented = await incrementWeeklyUsage(user.id, 'learn');
-        }
-      } catch (incrementError: unknown) {
-        const errorMessage = incrementError instanceof Error ? incrementError.message : String(incrementError);
-        await logSystemEvent({
-          type: 'db_error',
-          userId: user.id,
-          correlationId,
-          errorMessage,
-          metadata: { context: 'learn_concept.increment_usage', sessionId: activeSessionId },
-        });
-      }
-
-      if (!incremented) {
-        await getServiceClient()
-          .from('learn_sessions')
-          .update({
-            status: 'abandoned',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', activeSessionId)
-          .eq('user_id', user.id);
-
-        return jsonWithCorrelationId(
-          {
-            error: 'Weekly learn session limit reached.',
-            code: 'LIMIT_REACHED',
-            sessionType: 'learn',
-          },
-          { status: 429 }
-        );
-      }
     } else {
       if (!activeSessionId) {
         return jsonWithCorrelationId({ error: 'sessionId is required for turn/end actions' }, { status: 400 });

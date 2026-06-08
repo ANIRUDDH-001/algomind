@@ -10,7 +10,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getKnowledgeGraphService } from '@/lib/knowledge-graph';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { getWeeklySessionLimit } from '@/lib/config/system-config';
-import { checkWeeklySessionLimit } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkWeeklySessionLimitReadOnly } from '@/lib/rate-limit/weekly-session-limiter';
 import type {
   StudentContext,
   ConceptSnapshot,
@@ -128,7 +128,7 @@ async function assembleStudentContext(userId: string): Promise<StudentContext> {
     getUserSubscriptionStatus(userId),
     getWeeklySessionLimit(),
     fetchWeeklyLearnUsage(userId),
-    checkWeeklySessionLimit(userId, 'learn'),
+    checkWeeklySessionLimitReadOnly(userId, 'learn'),
     getKnowledgeGraphService().getNextRecommendedConcept(userId),
   ]);
 

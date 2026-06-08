@@ -16,7 +16,7 @@ import { createHash } from 'crypto';
 import { getAIClient } from '@/lib/ai/client';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { incrementUserUsage, checkUserRateLimit } from '@/lib/rate-limit/user-rate-limiter';
-import { checkWeeklySessionLimit, incrementWeeklyUsage } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkAndIncrementWeeklySession } from '@/lib/rate-limit/weekly-session-limiter';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
         let studentContext: StudentContext | undefined;
         if (isNewInterviewSession && user?.id) {
             const [limitResult, scResult] = await Promise.all([
-                checkWeeklySessionLimit(user.id, 'interview'),
+                checkAndIncrementWeeklySession(user.id, 'interview'),
                 buildStudentContext(user.id).catch(() => undefined)
             ]);
 
@@ -228,20 +228,6 @@ export async function POST(req: NextRequest) {
                     retryable: true,
                     user_action: 'upgrade',
                     headers: { 'X-Sessions-Used': String(limitResult.sessionsUsed), 'X-Sessions-Limit': String(limitResult.limit) },
-                }));
-            }
-
-            let incremented = false;
-            if (['admin', 'premium', 'gating_disabled'].includes(limitResult.reason)) {
-                incremented = true;
-            } else {
-                incremented = await incrementWeeklyUsage(user.id, 'interview');
-            }
-            
-            if (!incremented) {
-                return withCorrelationIdResponse(apiError(429, ErrorCodes.WEEKLY_LIMIT, 'Weekly interview session limit reached.', {
-                    retryable: true,
-                    user_action: 'upgrade',
                 }));
             }
             studentContext = scResult;

@@ -53,10 +53,10 @@ export interface WeeklySessionLimitResult {
 }
 
 /**
- * Check if a user can start a new session of the given type.
- * Call this BEFORE creating any session row.
+ * Read-only check to see if a user has reached their weekly session limit.
+ * This does NOT consume a session. Use this for UI rendering only.
  */
-export async function checkWeeklySessionLimit(
+export async function checkWeeklySessionLimitReadOnly(
   userId: string,
   sessionType: SessionType
 ): Promise<WeeklySessionLimitResult> {
@@ -112,34 +112,69 @@ export async function checkWeeklySessionLimit(
 }
 
 /**
- * Atomically increment the per-type session counter.
- * Returns true if successfully incremented, false if limit was already reached.
+ * Atomically checks AND increments the weekly session count for a user.
  *
- * MUST be awaited — not fire-and-forget.
- * Throws on DB error so the caller can return 500 rather than silently skip.
+ * IMPORTANT: This function ALWAYS increments the counter when called.
+ * Do not call it unless you intend to consume a session slot.
+ * If the result is allowed=false, the increment is rolled back internally.
  */
-export async function incrementWeeklyUsage(
+export async function checkAndIncrementWeeklySession(
   userId: string,
   sessionType: SessionType
-): Promise<boolean> {
-  const configKey = sessionType === 'interview'
-    ? SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_INTERVIEW_LIMIT
-    : SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_LEARN_LIMIT;
-
-  const rawLimit = await getSystemConfig(configKey);
-  const limit = parseInt(rawLimit, 10) || 5;
-
-  const { data, error } = await getServiceClient().rpc('atomic_increment_weekly_usage', {
-    p_user_id: userId,
-    p_type: sessionType,
-    p_limit: limit,
-  });
-
-  if (error) {
-    throw new Error(`Weekly usage increment failed: ${error.message}`);
+): Promise<WeeklySessionLimitResult> {
+  // First run the read-only check to see if they are bypassed (premium, admin, disabled)
+  // If they are bypassed, we do not need to increment the free-tier counter in the DB
+  const readOnlyCheck = await checkWeeklySessionLimitReadOnly(userId, sessionType);
+  
+  if (readOnlyCheck.reason === 'premium' || readOnlyCheck.reason === 'admin' || readOnlyCheck.reason === 'gating_disabled') {
+    return readOnlyCheck;
   }
 
-  return Boolean(data);
+  // We are here -> user is subject to limits. The limit must be an actual number.
+  const limit = readOnlyCheck.limit ?? 5;
+
+  const { data, error } = await getServiceClient().rpc('check_and_increment_weekly_usage', {
+    p_user_id: userId,
+    p_session_type: sessionType,
+    p_weekly_limit: limit,
+  });
+
+  if (error || !data || (data as any[]).length === 0) {
+    console.error('[WeeklyLimiter] RPC failed:', error?.message);
+    // Fail-closed: deny access if we can't check the limit
+    return {
+      allowed: false,
+      sessionsUsed: -1,
+      limit,
+      sessionsRemaining: 0,
+      reason: 'limit_exceeded',
+    };
+  }
+
+  const result = (data as any[])[0] as { allowed: boolean; sessions_used: number; limit_value: number };
+  
+  return {
+    allowed: result.allowed,
+    sessionsUsed: result.sessions_used,
+    limit: result.limit_value,
+    sessionsRemaining: Math.max(0, result.limit_value - result.sessions_used),
+    reason: result.allowed ? 'within_limit' : 'limit_exceeded',
+  };
+}
+
+/**
+ * @deprecated Use checkAndIncrementWeeklySession instead.
+ * Kept for backward compatibility during migration.
+ */
+export async function checkWeeklySessionLimit(
+  userId: string,
+  sessionType: SessionType
+): Promise<WeeklySessionLimitResult> {
+  console.warn(
+    '[WeeklyLimiter] checkWeeklySessionLimit is deprecated and has a TOCTOU race. ' +
+    'Use checkAndIncrementWeeklySession instead.'
+  );
+  return checkAndIncrementWeeklySession(userId, sessionType);
 }
 
 /**

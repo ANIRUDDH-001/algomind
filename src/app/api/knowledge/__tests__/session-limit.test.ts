@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/knowledge/session-limit/route';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { checkWeeklySessionLimit, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkWeeklySessionLimitReadOnly, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { isSessionGatingEnabled } from '@/lib/config/system-config';
 
@@ -25,7 +25,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 vi.mock('@/lib/rate-limit/weekly-session-limiter', () => ({
-  checkWeeklySessionLimit: vi.fn(),
+  checkWeeklySessionLimitReadOnly: vi.fn(),
   getWeeklySessionCount: vi.fn(),
 }));
 
@@ -49,7 +49,7 @@ describe('GET /api/knowledge/session-limit', () => {
     } as never);
 
     vi.mocked(getWeeklySessionCount).mockResolvedValue({ interview: 2, learn: 1, total: 3 });
-    vi.mocked(checkWeeklySessionLimit).mockImplementation(async (_userId, type) => ({
+    vi.mocked(checkWeeklySessionLimitReadOnly).mockImplementation(async (_userId, type) => ({
       allowed: true,
       sessionsUsed: type === 'interview' ? 2 : 1,
       limit: 5,
@@ -83,14 +83,14 @@ describe('GET /api/knowledge/session-limit', () => {
 
   it('returns null sessionsRemaining for premium users', async () => {
     vi.mocked(getUserSubscriptionStatus).mockResolvedValueOnce({ status: 'premium', expiresAt: null });
-    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+    vi.mocked(checkWeeklySessionLimitReadOnly).mockResolvedValueOnce({
       allowed: true,
       sessionsUsed: 0,
       limit: null,
       sessionsRemaining: null,
       reason: 'premium',
     });
-    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+    vi.mocked(checkWeeklySessionLimitReadOnly).mockResolvedValueOnce({
       allowed: true,
       sessionsUsed: 0,
       limit: null,
@@ -107,14 +107,14 @@ describe('GET /api/knowledge/session-limit', () => {
   });
 
   it('returns allowed=false when interview weekly gate is exceeded', async () => {
-    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+    vi.mocked(checkWeeklySessionLimitReadOnly).mockResolvedValueOnce({
       allowed: false,
       sessionsUsed: 5,
       limit: 5,
       sessionsRemaining: 0,
       reason: 'limit_exceeded',
     });
-    vi.mocked(checkWeeklySessionLimit).mockResolvedValueOnce({
+    vi.mocked(checkWeeklySessionLimitReadOnly).mockResolvedValueOnce({
       allowed: true,
       sessionsUsed: 2,
       limit: 5,

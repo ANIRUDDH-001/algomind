@@ -13,7 +13,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { checkWeeklySessionLimit, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
+import { checkWeeklySessionLimitReadOnly, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
 import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
 import { isSessionGatingEnabled } from '@/lib/config/system-config';
 
@@ -29,8 +29,8 @@ export async function GET() {
     const [counts, subStatus, interviewGate, learnGate, gatingEnabled] = await Promise.all([
       getWeeklySessionCount(user.id),
       getUserSubscriptionStatus(user.id),
-      checkWeeklySessionLimit(user.id, 'interview'),
-      checkWeeklySessionLimit(user.id, 'learn'),
+      checkWeeklySessionLimitReadOnly(user.id, 'interview'),
+      checkWeeklySessionLimitReadOnly(user.id, 'learn'),
       isSessionGatingEnabled(),
     ]);
 
