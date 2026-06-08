@@ -7,24 +7,24 @@ AlgoMind is architected as a **Serverless Monolith with Edge Enhancements**. It 
 ```mermaid
 flowchart TD
     %% Client Tier
-    Client((Browser Client))
-    VAD[VAD-Web ONNX]
+    Client(("Browser Client"))
+    VAD["VAD-Web ONNX"]
     
     %% Edge & Gateway
-    VercelEdge[Vercel Edge Middleware\n(Auth & Rate Limits)]
-    API[Next.js API Routes]
+    VercelEdge["Vercel Edge Middleware\n(Auth & Rate Limits)"]
+    API["Next.js API Routes"]
     
     %% Storage & Auth
-    SupabaseDB[(Supabase PostgreSQL)]
-    SupabaseRealtime((Supabase Realtime\nWebSockets))
-    Upstash[(Upstash Redis\nCaching & Limits)]
+    SupabaseDB[("Supabase PostgreSQL")]
+    SupabaseRealtime(("Supabase Realtime\nWebSockets"))
+    Upstash[("Upstash Redis\nCaching & Limits")]
     
     %% Parallel Processing & AI
-    Inngest[Inngest Background\nWorkers]
-    Gemini[Gemini 2.5\nInference]
-    Groq[Groq Whisper\nSTT]
-    AWSPolly[AWS Polly\nTTS]
-    Piston[Piston API\nCode Sandbox]
+    Inngest["Inngest Background\nWorkers"]
+    Gemini["Gemini 2.5\nInference"]
+    Groq["Groq Whisper\nSTT"]
+    AWSPolly["AWS Polly\nTTS"]
+    Piston["Piston API\nCode Sandbox"]
 
     %% Connections
     Client <--> |Voice/UI| VAD

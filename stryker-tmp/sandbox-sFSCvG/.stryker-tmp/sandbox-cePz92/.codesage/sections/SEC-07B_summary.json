@@ -1,7 +1,0 @@
-{
-  "name": "App Routes: Core APIs (Part 2)",
-  "processed": 36,
-  "issues": [
-    "11 files requested were not found on the file system (e.g. system-metrics, proxy/leetcode, session/start, stripe/*, webhooks/*)"
-  ]
-}

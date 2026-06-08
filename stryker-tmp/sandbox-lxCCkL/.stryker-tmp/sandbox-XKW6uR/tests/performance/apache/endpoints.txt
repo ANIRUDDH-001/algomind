@@ -1,6 +1,0 @@
-endpoint_path,method,expected_status,description
-/api/health,GET,200,System health check
-/api/admin/health,GET,200,Admin health check
-/api/assess/start,POST,200,Assessment initialization
-/api/chat,POST,200,Chat endpoint
-/api/v1/problems,GET,200,Problems list

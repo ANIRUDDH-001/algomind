@@ -18,17 +18,12 @@ import { checkCoOwnerStatus } from '@/app/actions/co-owner';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { getFailureMode } from './decision-layer';
 
+import { type RateLimitResult } from './types';
+
 const DAILY_LIMIT = 10; // Free tier: ~1 full interview per day
 
 // Production rate limits. Free tier: 10 questions/day. Owners/admins: unlimited.
 const HACKATHON_UNLIMITED = false;
-
-export interface RateLimitResult {
-    allowed: boolean;
-    remaining: number;
-    isAdmin: boolean;
-    error?: boolean;
-}
 
 /**
  * Check if user has remaining questions for today

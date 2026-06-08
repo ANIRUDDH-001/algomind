@@ -93,9 +93,9 @@ describe('Payment API', () => {
 
       const res = await postCreateOrder();
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(409);
       const json = await res.json();
-      expect(json.error).toBe('Already subscribed');
+      expect(json.error).toBe('SUBSCRIPTION_EXISTS');
     });
 
     it('creates a Razorpay order for free users', async () => {

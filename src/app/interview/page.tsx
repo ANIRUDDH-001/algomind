@@ -22,7 +22,8 @@ import { useProgress } from '@/hooks/useProgress';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProblemById, getRandomProblem, Problem } from '@/lib/supabase/problems';
 import { getGuestProblem, getGuestProblemById } from '@/lib/guest/guest-problems';
-import { checkUserRateLimit, type RateLimitResult } from '@/lib/rate-limit/user-rate-limiter';
+import { checkRateLimitAction } from '@/app/actions/rate-limit';
+import type { RateLimitResult } from '@/lib/rate-limit/types';
 import { BrowserCompatBanner } from '@/components/interview/BrowserCompatBanner';
 import { resolveGuestConfig, resolvePracticeConfig, type InterviewConfig } from '@/lib/interview/interview-config';
 import { getKaiMemory } from '@/app/actions/learn';
@@ -80,7 +81,7 @@ function InterviewContent() {
                 // Parallel data fetching for better performance
                 // 1. Rate Limit Check (Authenticated users only, not history view)
                 const rateLimitPromise: Promise<RateLimitResult | null> =
-                    (!sessionId && userId) ? checkUserRateLimit(userId) : Promise.resolve(null);
+                    (!sessionId && userId) ? checkRateLimitAction(userId) : Promise.resolve(null);
 
                 // 2. Fetch Problem
                 let problemPromise: Promise<Problem | null>;
