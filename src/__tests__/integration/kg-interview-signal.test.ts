@@ -55,13 +55,12 @@ describe('KG Interview Signal Integration', () => {
 
     // Assert: upsert was called with confidence > 0.4 and evidence_count === 3
     expect(mockServiceClient.rpc).toHaveBeenCalledWith(
-      'upsert_concept_states_bulk',
+      'upsert_concept_states_batch',
       expect.objectContaining({
         p_user_id: 'u1',
         p_updates: expect.arrayContaining([
           expect.objectContaining({
             concept_slug: 'arrays-strings',
-            evidence_count: 3,
           }),
         ]),
       })
@@ -69,7 +68,7 @@ describe('KG Interview Signal Integration', () => {
 
     const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
     const arrayUpdate = rpcCallArgs.p_updates.find((u: any) => u.concept_slug === 'arrays-strings');
-    expect(arrayUpdate.confidence).toBeGreaterThan(0.4);
+    expect(arrayUpdate.confidence_delta).toBeGreaterThan(0);
   });
 
   it('updates concept_states confidence downward for a failing score', async () => {
@@ -88,11 +87,11 @@ describe('KG Interview Signal Integration', () => {
       overallScore: 2,
     });
 
-    // Assert: rpc called with confidence < 0.6
+    // Assert: rpc called with negative confidence delta
     expect(mockServiceClient.rpc).toHaveBeenCalled();
     const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
     const arrayUpdate = rpcCallArgs.p_updates.find((u: any) => u.concept_slug === 'arrays-strings');
-    expect(arrayUpdate.confidence).toBeLessThan(0.6);
+    expect(arrayUpdate.confidence_delta).toBeLessThan(0);
   });
 
   it('is a no-op when no tags map to concept slugs', async () => {
@@ -138,8 +137,8 @@ describe('KG Interview Signal Integration', () => {
       error: null,
     });
 
-    // Mock rpc to throw
-    mockServiceClient.rpc = vi.fn().mockRejectedValue(new Error('DB error'));
+    // Mock rpc to return error object
+    mockServiceClient.rpc = vi.fn().mockResolvedValue({ error: { message: 'DB error' } });
 
     const kg = getKnowledgeGraphService();
 
@@ -196,12 +195,11 @@ describe('KG Interview Signal Integration', () => {
       overallScore: 7,
     });
 
-    // Assert: confidence computed from default 0.35
+    // Assert: uses confidence_delta calculated from base 0.35 (in DB)
     expect(mockServiceClient.rpc).toHaveBeenCalled();
     const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
     const arrayUpdate = rpcCallArgs.p_updates[0];
     // overallScore 7 → delta = (7/10 - 0.5) * 0.12 = 0.024
-    // newConfidence = 0.35 + 0.024 = 0.374
-    expect(arrayUpdate.confidence).toBeCloseTo(0.374, 2);
+    expect(arrayUpdate.confidence_delta).toBeCloseTo(0.024, 3);
   });
 });
