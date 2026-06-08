@@ -253,63 +253,43 @@ export class KnowledgeGraphService {
     const conceptSlugs = tagsToConceptSlugs(params.problemTags, params.primaryPattern);
 
     if (conceptSlugs.length === 0) {
+      console.info('[KG] No concept slugs mapped from tags:', params.problemTags);
       return;
     }
 
     const confidenceDelta = (params.overallScore / 10 - 0.5) * 0.12;
-    const now = new Date().toISOString();
+    const performance = params.overallScore >= 7 ? 'good'
+                      : params.overallScore >= 4 ? 'average'
+                      : 'poor';
 
-    for (const conceptSlug of conceptSlugs) {
-      try {
-        const { data: existing } = await getServiceClient()
-          .from('concept_states')
-          .select('confidence, evidence_count, signal_history')
-          .eq('user_id', params.userId)
-          .eq('concept_slug', conceptSlug)
-          .maybeSingle();
+    const updates = conceptSlugs.map(slug => ({
+        concept_slug:      slug,
+        confidence_delta:  confidenceDelta,
+        last_session_id:   params.sessionId,
+        last_performance:  performance,
+    }));
 
-        const currentConfidence = existing?.confidence ?? 0.35;
-        const currentEvidence = existing?.evidence_count ?? 0;
-        const currentHistory = (existing?.signal_history as KGSignalHistoryEntry[] | null) ?? [];
+    const { data, error } = await getServiceClient().rpc('upsert_concept_states_batch', {
+        p_user_id: params.userId,
+        p_updates: updates,
+    });
 
-        const newConfidence = Math.min(1.0, Math.max(0.0, currentConfidence + confidenceDelta));
-
-        const newSignal: KGSignalHistoryEntry = {
-          type: 'session_complete',
-          delta: confidenceDelta,
-          at: now,
-        };
-
-        await getServiceClient()
-          .from('concept_states')
-          .upsert({
-            user_id: params.userId,
-            concept_slug: conceptSlug,
-            confidence: newConfidence,
-            evidence_count: currentEvidence + 1,
-            signal_history: [...currentHistory.slice(-19), newSignal],
-            last_session_id: params.sessionId,
-            last_session_type: 'interview',
-            last_signal_at: now,
-            updated_at: now,
-          }, {
-            onConflict: 'user_id,concept_slug',
-          });
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+    if (error) {
         await logSystemEvent({
-          type: 'db_error',
-          errorMessage: error.message,
-          metadata: {
-            context: 'knowledge_graph.on_interview_session_completed',
-            conceptSlug,
-            operation: 'upsert_concept_state',
-          },
+            type: 'db_error',
+            errorMessage: error.message,
+            metadata: {
+                context: 'knowledge_graph.on_interview_session_completed',
+                userId: params.userId,
+                sessionId: params.sessionId,
+                conceptSlugs,
+                operation: 'upsert_concept_states_batch',
+            },
         });
-        // Continue to next concept
-      }
+        throw new Error(`[KG] Batch upsert failed: ${error.message}`);
     }
 
+    console.info(`[KG] Updated ${data?.length ?? 0} concept states for user ${params.userId}`);
     await this.invalidateCache(params.userId);
   }
 
