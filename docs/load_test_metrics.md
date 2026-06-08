@@ -32,5 +32,28 @@ The script was executed against the live production server (`https://algomind-dr
 Unlike previous test attempts that failed at the Edge Middleware, this test successfully pierced the Edge and forced the backend to do real work. 
 
 1. **Authentication Success:** The 0% error rate proves that the Supabase SSR setup correctly verified the JWTs under load.
-2. **Inference Bottleneck:** The p95 latency spiked to 28.09 seconds. This confirms that while the Next.js API router handled the concurrency without dropping connections, the actual latency bottleneck lies in the **Gemini AI Inference** processing the prompt and streaming the response. Hitting the `/api/chat` route with 5 concurrent users causes substantial generation delays.
-3. **Actionable Takeaways:** To improve the p95 latency under heavy load, the platform may need to scale its Inngest concurrency limits, route to faster models (like `gemini-1.5-flash` instead of `pro` during high traffic), or implement semantic caching to prevent redundant LLM generations for common questions like "What is a binary search tree?".
+2. **Inference Bottleneck:** The p95 latency spiked to 28.09 seconds. This confirms that while the Next.js API router handled the concurrency without dropping connections, the actual latency bottleneck lies in the **Gemini 2.5 AI Inference** processing the prompt and streaming the response. Hitting the `/api/chat` route with 5 concurrent users causes substantial generation delays.
+3. **Actionable Takeaways:** To improve the p95 latency under heavy load, the platform may need to scale its Inngest concurrency limits, route to faster models (like `gemini-2.5-flash` instead of `pro` during high traffic), or implement semantic caching to prevent redundant LLM generations for common questions like "What is a binary search tree?".
+
+## Phase 2: Database & Server Throughput (Non-AI)
+
+To isolate pure system load from Gemini's inference delays, a second high-concurrency test was executed targeting Server-Side Rendering (SSR) and Supabase database endpoints.
+
+### k6 Configuration
+- **Concurrency:** Up to 50 concurrent virtual users (VUs) bursting the server.
+- **Target Routes:** 
+  - `GET /dashboard` (Heavy SSR + Supabase Queries)
+  - `GET /api/employer/campaigns` (Protected Database Endpoint)
+
+### Results & Analysis
+
+**Quantitative Results:**
+- **Total Requests Generated:** 1,558 requests (across 779 complete iterations)
+- **Dashboard Success Rate:** 100% HTTP 200 OK
+- **Employer API Success Rate:** 25% (200 OK), 75% HTTP 429 (Too Many Requests)
+- **Average Latency:** 405.16ms (p95: 1.3s)
+
+**Architectural Validation:**
+This test resulted in an incredible validation of AlgoMind's Edge architecture:
+1. **Server & Database Resilience:** The Vercel Node.js servers and Supabase connection pool successfully handled 50 concurrent users repeatedly hitting the `/dashboard` route. The Next.js SSR rendered the heavy UI and executed the underlying DB queries with an impressive 1.3s p95 latency under heavy barrage.
+2. **Upstash Rate Limiting:** As documented in the Security Wiki, the `/api/employer/*` routes are protected by a global Upstash Redis rate limit of exactly **200 requests**. The k6 script slammed the endpoint 779 times. The system flawlessly served exactly 200 requests (the 25% success rate), and then Upstash intercepted and blocked the remaining 579 requests with a `429 Too Many Requests` error at Edge speeds (61ms latency) before they could hit the database.

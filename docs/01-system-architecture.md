@@ -21,7 +21,7 @@ flowchart TD
     
     %% Parallel Processing & AI
     Inngest[Inngest Background\nWorkers]
-    Gemini[Gemini 1.5/2.0\nInference]
+    Gemini[Gemini 2.5\nInference]
     Groq[Groq Whisper\nSTT]
     AWSPolly[AWS Polly\nTTS]
     Piston[Piston API\nCode Sandbox]
