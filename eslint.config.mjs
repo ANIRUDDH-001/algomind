@@ -27,7 +27,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "public/**",
-    "public/vad/**"
+    "public/vad/**",
+    ".agents/**"
   ]),
   {
     plugins: {

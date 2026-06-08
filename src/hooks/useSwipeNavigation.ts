@@ -55,6 +55,7 @@ export function useSwipeNavigation<T extends string>({
 
     useEffect(() => {
         if (disabled) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             onPointerCancel();
         }
     }, [disabled, onPointerCancel]);
