@@ -11,7 +11,7 @@
  * @issues    No major issues observed.
  * @audit     CODESAGE-v1
  */
-import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkCoOwnerStatus } from '@/app/actions/co-owner';
@@ -22,18 +22,12 @@ const DAILY_LIMIT = 10; // Free tier: ~1 full interview per day
 
 // Production rate limits. Free tier: 10 questions/day. Owners/admins: unlimited.
 const HACKATHON_UNLIMITED = false;
-const LOCAL_STORAGE_KEY = 'algomind_daily_usage';
 
 export interface RateLimitResult {
     allowed: boolean;
     remaining: number;
     isAdmin: boolean;
     error?: boolean;
-}
-
-interface LocalUsage {
-    date: string;
-    count: number;
 }
 
 /**
@@ -53,14 +47,9 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         return { allowed: true, remaining: 999, isAdmin: false };
     }
 
-    const supabase = getSupabase();
-
-    // If Supabase not configured, use localStorage
-    if (!supabase || !isSupabaseConfigured()) {
-        return checkLocalRateLimit();
-    }
-
     try {
+        const supabase = await createServerSupabase();
+
         // Check if user is owner or co-owner — they get unlimited access
         // co_owners check via server action to bypass RLS (A6 fix)
         const { data: profile } = await supabase.from('profiles').select('account_type, rate_limit_override').eq('id', userId).single();
@@ -109,7 +98,9 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
         if (!result) {
             // No data returned - fail CLOSED safely
             console.error('❌ [Rate Limit] No data returned from RPC.');
-            return { allowed: false, remaining: 0, isAdmin: false, error: true };
+            return failureMode === 'fail-open'
+                ? { allowed: true, remaining: DAILY_LIMIT, isAdmin: false }
+                : { allowed: false, remaining: 0, isAdmin: false, error: true };
         }
 
         if (!result.allowed && !result.is_admin_user) {
@@ -139,30 +130,11 @@ export async function checkUserRateLimit(userId: string | null): Promise<RateLim
  */
 export async function incrementUserUsage(userId: string, supabaseClient?: SupabaseClient): Promise<void> {
     if (!userId || userId === 'guest-user') {
-        recordLocalQuestion();
-        return;
-    }
-
-    const supabase = supabaseClient || getSupabase();
-
-    if (!supabase) {
-        console.warn('⚠️ [Rate Limit] No Supabase client available to increment usage');
         return;
     }
 
     try {
-        // We use upsert to simplify the logic: 
-        // if row exists, we want to increment. 
-        // BUT standard REST upsert overrides the row. 
-        // So safest is to use RPC if available, or just insert and handle conflict if we don't have an atomic increment RPC.
-        // Given constraints, we will rely on strict rate limit checking which calls RPC.
-        // Use a simple upsert for now designed to just "ensure" a record exists, 
-        // but for accurate incrementing we should probably use an RPC or careful logic.
-        // Actually, the requirement says: "increment questions_used by 1 for today, or insert a new row with questions_used = 1"
-        // Let's use the `record_user_question` RPC if it exists (it was called in the original code! line 79)
-        // RPC: check_user_rate_limit was mentioned. 
-        // Wait, the original code had: await supabase.rpc('record_user_question', { p_user_id: userId });
-        // I should USE that if it works. 
+        const supabase = supabaseClient || await createServerSupabase();
 
         const { error } = await supabase.rpc('record_user_question', {
             p_user_id: userId
@@ -174,65 +146,6 @@ export async function incrementUserUsage(userId: string, supabaseClient?: Supaba
 
     } catch (error: unknown) {
         console.error('❌ [Rate Limit] Error recording usage:', error);
-    }
-}
-
-/**
- * LocalStorage fallback for when Supabase isn't configured
- */
-function checkLocalRateLimit(): RateLimitResult {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-        if (!stored) {
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
-        }
-
-        const usage: LocalUsage = JSON.parse(stored);
-
-        // Reset if different day
-        if (usage.date !== today) {
-            return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
-        }
-
-        const remaining = Math.max(0, DAILY_LIMIT - usage.count);
-
-        if (remaining === 0) {
-            void logSystemEvent({
-                type: 'user_rate_limit',
-                userId: 'local',
-                metadata: { count: usage.count, limit: DAILY_LIMIT }
-            });
-        }
-
-        return {
-            allowed: remaining > 0,
-            remaining,
-            isAdmin: false
-        };
-    } catch {
-        return { allowed: true, remaining: DAILY_LIMIT, isAdmin: false };
-    }
-}
-
-function recordLocalQuestion(): void {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-        const usage: LocalUsage = { date: today, count: 1 };
-
-        if (stored) {
-            const existing: LocalUsage = JSON.parse(stored);
-            if (existing.date === today) {
-                usage.count = existing.count + 1;
-            }
-        }
-
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(usage));
-    } catch {
-        // Ignore storage errors
     }
 }
 

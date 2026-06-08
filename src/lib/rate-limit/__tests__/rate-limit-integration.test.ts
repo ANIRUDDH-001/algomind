@@ -13,9 +13,35 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { checkUserRateLimit } from '../user-rate-limiter';
+import * as supabaseServerModule from '@/lib/supabase/server';
+
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: vi.fn(),
+}));
+
+vi.mock('@/app/actions/co-owner', () => ({
+    checkCoOwnerStatus: vi.fn().mockResolvedValue({ success: true, data: { isCoOwner: false } })
+}));
 
 // Test that rate limiter respects limits and fails correctly
 describe('Rate limit integration', () => {
+  beforeEach(() => {
+      vi.clearAllMocks();
+      const mockRpc = vi.fn().mockResolvedValue({ data: [{ allowed: true, remaining: 5, is_admin_user: false }], error: null });
+      const mockFrom = vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({ data: { account_type: 'candidate', rate_limit_override: null }, error: null }),
+              }),
+          }),
+      });
+
+      (supabaseServerModule.createServerSupabase as any).mockResolvedValue({
+          rpc: mockRpc,
+          from: mockFrom,
+      });
+  });
+
   it('guest users are always allowed', async () => {
     const result = await checkUserRateLimit(null);
     expect(result.allowed).toBe(true);

@@ -13,11 +13,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { checkUserRateLimit, incrementUserUsage, RATE_LIMIT } from '../user-rate-limiter';
-import * as supabaseClientModule from '@/lib/supabase/client';
+import * as supabaseServerModule from '@/lib/supabase/server';
+import * as clientModule from '@/lib/supabase/client';
 
-vi.mock('@/lib/supabase/client', () => ({
-    getSupabase: vi.fn(),
-    isSupabaseConfigured: vi.fn(() => true)
+vi.mock('@/lib/supabase/server', () => ({
+    createServerSupabase: vi.fn(),
 }));
 
 vi.mock('@/app/actions/co-owner', () => ({
@@ -75,7 +75,7 @@ describe('User Rate Limiter', () => {
         vi.clearAllMocks();
         mockRpc = vi.fn();
 
-        (supabaseClientModule.getSupabase as any).mockReturnValue({
+        (supabaseServerModule.createServerSupabase as any).mockResolvedValue({
             rpc: mockRpc,
             from: buildFromMock(),
         });
@@ -111,7 +111,7 @@ describe('User Rate Limiter', () => {
                 return profileChain;
             });
         };
-        (supabaseClientModule.getSupabase as any).mockReturnValue({
+        (supabaseServerModule.createServerSupabase as any).mockResolvedValue({
             rpc: mockRpc,
             from: buildOwnerFromMock(),
         });
@@ -163,5 +163,14 @@ describe('User Rate Limiter', () => {
 
     it('9. RATE_LIMIT constant exported and equals 10', () => {
         expect(RATE_LIMIT.DAILY_LIMIT).toBe(10);
+    });
+
+    it('10. does not call getSupabase() (browser client) from server-side rate limiter', async () => {
+        const getSupabaseSpy = vi.spyOn(clientModule, 'getSupabase');
+        
+        mockRpc.mockResolvedValue({ data: [{ allowed: true, remaining: 8, is_admin_user: false }], error: null });
+        await checkUserRateLimit('test-user-id');
+        
+        expect(getSupabaseSpy).not.toHaveBeenCalled();
     });
 });
