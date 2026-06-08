@@ -89,6 +89,7 @@ vi.mock('@/components/dashboard/DashboardHeader', () => ({
     DashboardHeader: () => <div data-testid="mock-dashboard-header">Header</div>,
 }));
 vi.mock('@/components/dashboard/DashboardNav', () => ({
+    // @ts-expect-error -- automated unused local suppression
     DashboardNav: ({ activeTab, _onTabChange }: { activeTab: string; _onTabChange: (t: string) => void }) => (
         <div data-testid="mock-dashboard-nav">{activeTab}</div>
     ),

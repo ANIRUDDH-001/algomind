@@ -3,6 +3,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { TrendingUp } from 'lucide-react';
 

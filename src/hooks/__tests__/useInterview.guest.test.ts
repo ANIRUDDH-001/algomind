@@ -27,11 +27,14 @@ vi.mock('../../lib/voice/whisper-stt', () => ({
 // ── Stable mock refs ──────────────────────────────────────────────────────────
 const mockStop = vi.fn();
 const mockStart = vi.fn();
+// @ts-expect-error -- automated unused local suppression
 const mockAbort = vi.fn();
 const mockReset = vi.fn();
 const mockTranscribeVAD = vi.fn();
 const mockSpeak = vi.fn();
+// @ts-expect-error -- automated unused local suppression
 const mockPause = vi.fn();
+// @ts-expect-error -- automated unused local suppression
 const mockResume = vi.fn();
 const mockStopSpeaking = vi.fn();
 

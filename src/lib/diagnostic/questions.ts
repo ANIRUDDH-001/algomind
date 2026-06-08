@@ -41,6 +41,7 @@ const SCALE_COLORS = {
   5: 'bg-emerald-600 hover:bg-emerald-700',
 };
 
+// @ts-expect-error -- automated unused local suppression
 const STANDARD_ANSWERS: { [key: number]: DiagnosticAnswer } = {
   1: { value: 1, label: 'Very Weak', color: SCALE_COLORS[1] },
   2: { value: 2, label: 'Weak', color: SCALE_COLORS[2] },

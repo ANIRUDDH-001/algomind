@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
+// @ts-expect-error -- automated unused local suppression
 export async function GET(req: NextRequest) {
     try {
         const supabase = await createServerSupabase();

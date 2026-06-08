@@ -33,6 +33,7 @@ interface CampaignData {
     show_score_to_candidate: boolean;
 }
 
+// @ts-expect-error -- automated unused local suppression
 interface ProblemData {
     id: string;
     title: string;

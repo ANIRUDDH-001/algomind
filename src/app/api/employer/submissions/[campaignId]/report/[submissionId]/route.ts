@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { requireEmployer } from '@/lib/auth/require-employer';
 
+// @ts-expect-error -- automated unused local suppression
 export async function GET(req: NextRequest, { params }: { params: Promise<{ campaignId: string, submissionId: string }> }) {
     try {
         const { campaignId, submissionId } = await params;

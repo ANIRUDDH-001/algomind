@@ -35,6 +35,7 @@ export default async function AdminsPage({
         dbQuery = dbQuery.ilike('email', `%${query}%`);
     }
 
+    // @ts-expect-error -- automated unused local suppression
     const { data: admins, error } = await dbQuery;
 
     let adminsWithPrefs: any[] = [];

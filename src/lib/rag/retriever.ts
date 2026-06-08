@@ -82,7 +82,7 @@ export class HybridRetriever {
             totalResults: results.length,
             retrievalTimeMs: endTime - startTime,
             modelsUsed: {
-                embedding: 'gemini-embedding-2', // text-embedding-004 shut down Jan 14 2026 → migrated to gemini-embedding-2
+                embedding: 'gemini-embedding-1',
             },
         };
     }

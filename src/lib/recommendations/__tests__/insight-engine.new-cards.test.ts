@@ -20,6 +20,7 @@ import {
     buildDecliningTrendCards,
     computeInsightsForUser
 } from '../insight-engine';
+// @ts-expect-error -- automated unused local suppression
 import { SupabaseClient } from '@supabase/supabase-js';
 
 const mockSupabase = {

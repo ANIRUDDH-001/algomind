@@ -20,6 +20,7 @@ import '@testing-library/jest-dom/vitest';
 import { AnalysisClient } from '@/components/analysis/AnalysisClient';
 import AnalysisPage from '../analysis/page';
 import * as serverSupabase from '@/lib/supabase/server';
+// @ts-expect-error -- automated unused local suppression
 import * as featureFlags from '@/lib/feature-flags-server';
 import { redirect } from 'next/navigation';
 
@@ -27,6 +28,7 @@ import { redirect } from 'next/navigation';
 vi.mock('next/navigation', () => ({
     useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
     usePathname: () => '',
+    // @ts-expect-error -- automated unused local suppression
     redirect: vi.fn().mockImplementation((url) => { throw new Error('NEXT_REDIRECT'); }),
 }));
 

@@ -15,6 +15,7 @@
 /**
  * @vitest-environment jsdom
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';

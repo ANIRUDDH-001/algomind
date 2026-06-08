@@ -3,6 +3,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getDueReviews, getUpcomingReviews } from '@/lib/spaced-repetition/queue';

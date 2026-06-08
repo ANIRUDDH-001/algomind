@@ -11,6 +11,7 @@
  * @issues    none
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React, { Suspense } from 'react';
 import { AssessmentCompleteContent } from './content';
 

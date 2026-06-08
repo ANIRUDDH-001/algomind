@@ -16,6 +16,7 @@ import { createNewFSRSCardData, computeNextReviewFSRS } from '../fsrs';
 
 // Mock the Supabase clients
 const mockUpsert = vi.fn().mockResolvedValue({ error: null });
+// @ts-expect-error -- automated unused local suppression
 const mockSelect = vi.fn();
 const mockMaybeSingle = vi.fn();
 const mockEqChain = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));

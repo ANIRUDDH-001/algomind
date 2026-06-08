@@ -18,8 +18,10 @@
  * on mobile (< 1024px) and '100%' on desktop (>= 1024px).
  * The Monaco <Editor> always receives height="100%".
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
+// @ts-expect-error -- automated unused local suppression
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ─── Track Editor props passed to @monaco-editor/react ───

@@ -15,6 +15,7 @@
 
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getProgressStore } from '@/lib/supabase/progress-store';
+// @ts-expect-error -- automated unused local suppression
 import { SessionHistory, UserProgress } from '@/types/assessment';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

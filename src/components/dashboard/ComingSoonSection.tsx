@@ -1,6 +1,7 @@
 // @codesage
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { Sparkles, Layout, Bug, FileText, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';

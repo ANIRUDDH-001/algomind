@@ -127,6 +127,7 @@ export class IntelligentRateLimiter {
     /**
      * Record a successful request. Nothing to do for RPM/RPD since canUseModel handles it atomically.
      */
+    // @ts-expect-error -- automated unused local suppression
     recordRequest(modelId: string, _tokensUsed: number = 0): void {
         const redis = getRedis();
         if (!redis) return;

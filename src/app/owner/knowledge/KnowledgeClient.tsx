@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// @ts-expect-error -- automated unused local suppression
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';

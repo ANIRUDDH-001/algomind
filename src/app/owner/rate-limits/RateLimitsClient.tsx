@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+// @ts-expect-error -- automated unused local suppression
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2 } from 'lucide-react';

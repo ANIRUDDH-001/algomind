@@ -23,6 +23,22 @@ export async function checkIpRateLimit(
         failureMode?: 'fail-open' | 'fail-closed';
     }
 ): Promise<{ success: boolean; allowed?: boolean; remaining?: number }> {
+    const rawIp = ip && ip !== 'unknown' ? ip : null;
+
+    if (!rawIp) {
+        console.warn('[IPRateLimit] Request received with no IP headers (x-forwarded-for, x-real-ip both null)', {
+            endpoint: options.endpoint,
+        });
+    }
+
+    // When IP is unknown, use a shared conservative key.
+    // This is rate-limited more strictly than known IPs to prevent
+    // load balancer misconfiguration from being exploited.
+    const effectiveIp = rawIp ?? 'shared:unknown-ip';
+    const effectiveMaxRequests = rawIp
+        ? options.maxRequests
+        : Math.floor(options.maxRequests * 0.3); // 30% of normal limit for unknown IPs
+
     const failureMode = options.failureMode
         ?? getFailureMode(options.endpoint)
         ?? 'fail-open';
@@ -30,13 +46,13 @@ export async function checkIpRateLimit(
     try {
         const supabase = getServiceClient();
 
-        const identifier = options.endpoint ? `${options.endpoint}:${ip}` : ip;
+        const identifier = options.endpoint ? `${options.endpoint}:${effectiveIp}` : effectiveIp;
 
         // Use the generic check_code_rate_limit DB function
         const { data } = await supabase.rpc('check_code_rate_limit', {
             p_identifier: identifier,
             p_window_seconds: options.windowSeconds,
-            p_max_attempts: options.maxRequests,
+            p_max_attempts: effectiveMaxRequests,
         });
 
         const result = Array.isArray(data) ? data[0] : data;

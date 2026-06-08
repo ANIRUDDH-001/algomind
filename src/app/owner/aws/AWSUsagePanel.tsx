@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+// @ts-expect-error -- automated unused local suppression
 import { DollarSign, TrendingUp, AlertTriangle, RefreshCw, Cloud, Mic, HardDrive, Brain, Loader2, ShieldAlert } from 'lucide-react';
 
 const SERVICE_META: Record<string, any> = {

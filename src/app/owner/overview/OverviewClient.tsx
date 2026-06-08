@@ -60,6 +60,7 @@ export function OverviewClient({
     const [events, setEvents] = useState<SystemEvent[]>(initialEventsData?.events || []);
     const [analytics, setAnalytics] = useState<AnalyticsRow[]>(initialEventsData?.analytics || []);
     const [models, setModels] = useState<ModelStat[]>(initialModelsData?.models || []);
+    // @ts-expect-error -- automated unused local suppression
     const [systemStats, setSystemStats] = useState<SystemStats | null>(initialEventsData?.systemStats || null);
     const [isLoading, setIsLoading] = useState(!initialEventsData);
     const [isRefreshing, setIsRefreshing] = useState(false);

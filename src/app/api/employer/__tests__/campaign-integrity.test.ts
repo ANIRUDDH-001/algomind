@@ -25,7 +25,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Campaign Integrity', () => {
     let mockSupabase: any;
+    // @ts-expect-error -- automated unused local suppression
     let campaignPostHandler: any;
+    // @ts-expect-error -- automated unused local suppression
     let campaignGetHandler: any;
 
     beforeEach(() => {

@@ -1,4 +1,5 @@
 import { generateStructuredKaiMemory, structuredToText } from '../memory-generator';
+// @ts-expect-error -- automated unused local suppression
 import { getAIClient, UnifiedAIClient } from '../client';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { KaiMemoryStructured } from '@/types/kai-memory';

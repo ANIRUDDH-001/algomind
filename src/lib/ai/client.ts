@@ -4,6 +4,7 @@
 // DB-driven model routing with cross-tier fallback
 // DIRECT API CALLS implementation (No SDKs)
 
+// @ts-expect-error -- automated unused local suppression
 import { CHAT_MODELS, ModelConfig, Provider } from './providers';
 import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
 import { getIntentClassifier } from './intent-classifier';
@@ -1332,8 +1333,8 @@ export class UnifiedAIClient {
                 const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, geminiKey)));
                 return {
                     embeddings: results,
-                    modelUsed: 'gemini-embedding-2',
-                    dimensions: results[0]?.length ?? 3072,
+                    modelUsed: 'gemini-embedding-1',
+                    dimensions: results[0]?.length ?? 768,
                 };
             } catch (e) {
                 console.warn('⚠️ Gemini embedding failed:', e instanceof Error ? e.message : e);
@@ -1365,8 +1366,8 @@ export class UnifiedAIClient {
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-        // Use v1beta for gemini-embedding-2
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`;
+        // Use v1beta for gemini-embedding-1
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-1:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

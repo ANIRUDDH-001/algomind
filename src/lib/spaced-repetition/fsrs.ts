@@ -72,7 +72,12 @@ function dbToCard(record: Partial<FSRSCardData>): Card {
         reps: record.fsrs_reps || 0,
         lapses: record.fsrs_lapses || 0,
         state: (record.fsrs_state || 0) as State,
-        learning_steps: 0, // Not stored in DB yet, default to 0
+        learning_steps: 0,
+        // ↑ Intentional: AlgoMind does not use intra-day re-learning steps.
+        // When a user fails a problem, it returns at the next scheduled session
+        // (next_review_date) rather than multiple times within the same day.
+        // If daily re-practice is added in future, store this in the DB and
+        // populate from concept_states.learning_steps.
         last_review: record.fsrs_last_review ? new Date(record.fsrs_last_review) : undefined,
     };
 }
@@ -92,8 +97,6 @@ export function computeNextReviewFSRS(
     const { card: nextCard } = fsrs.next(card, now, rating);
 
     const intervalDays = nextCard.scheduled_days;
-    // Fix: ts-fsrs uses due natively, but here we format it as needed
-    const dueDate = new Date(now.getTime() + intervalDays * 86_400_000);
 
     return {
         // FSRS fields

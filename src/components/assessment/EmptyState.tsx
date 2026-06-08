@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1
  */
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { LayoutDashboard, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';

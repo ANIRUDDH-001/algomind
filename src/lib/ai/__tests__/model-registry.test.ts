@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 import {
     getActiveModels,
     markModelRateLimited,
+    // @ts-expect-error -- automated unused local suppression
     clearModelRateLimit,
     resetModelRegistry,
     getNextAvailableModel,

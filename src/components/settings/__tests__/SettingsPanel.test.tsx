@@ -61,6 +61,7 @@ vi.mock('@/components/auth/AuthProvider', () => ({
 }));
 
 // ─── Mock feature flags ───
+// @ts-expect-error -- automated unused local suppression
 const mockGetFeatureFlag = vi.fn((key: string) => false);
 const mockSetFeatureFlag = vi.fn();
 vi.mock('@/lib/feature-flags', () => ({

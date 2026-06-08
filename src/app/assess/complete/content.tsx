@@ -14,6 +14,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';

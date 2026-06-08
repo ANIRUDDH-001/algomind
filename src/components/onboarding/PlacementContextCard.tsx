@@ -51,6 +51,7 @@ export function PlacementContextCard({ onComplete, onSkip }: PlacementContextCar
     };
 
     const months = generateMonths();
+    // @ts-expect-error -- automated unused local suppression
     const formatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 
     const handleMonthSelect = (date: Date) => {

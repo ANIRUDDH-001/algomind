@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1 | @skip: test-file
  */
 // @vitest-environment jsdom
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

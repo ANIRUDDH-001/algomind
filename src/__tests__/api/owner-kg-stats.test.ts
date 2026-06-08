@@ -88,6 +88,7 @@ describe('GET /api/owner/kg-stats', () => {
 
         vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
 
+        // @ts-expect-error -- automated unused local suppression
         const mockChain = createChainableMock();
         
         // Mock all the Promise.all queries

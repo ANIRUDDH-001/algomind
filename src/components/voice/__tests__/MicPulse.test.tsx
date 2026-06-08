@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1 | @skip: test-file
  */
 // @vitest-environment jsdom
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MicPulse, PulseState } from '@/components/voice/MicPulse';

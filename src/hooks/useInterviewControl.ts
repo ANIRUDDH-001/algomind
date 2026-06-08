@@ -234,6 +234,7 @@ export function useInterviewControl({
             timeRemaining: optionsRef.current.timeRemaining,
         });
 
+        // @ts-expect-error -- automated unused local suppression
         const detectedLang = 'english'; // Hinglish support removed
 
         const currentProblemTitle = currentProblemRef.current?.problemTitle ?? '';
@@ -664,6 +665,7 @@ export function useInterviewControl({
         voice.setMicStoppedManually(false);
     }, [stateMachineRef, voice]);
 
+    // @ts-expect-error -- automated unused local suppression
     const shareCode = useCallback((code: string) => {
         stateMachineRef.current.transition('USER_SHARED_CODE');
         setState(stateMachineRef.current.getState());

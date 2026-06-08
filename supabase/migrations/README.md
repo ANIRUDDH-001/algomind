@@ -27,3 +27,30 @@ If a migration needs to be reversed, run the rollback SQL manually.
 | 20260316_003_drop_redundant_entry_code_index.sql | Phase 2 | Removes duplicate index |
 | 20260316_004_stuck_analysis_cron.sql | Phase 5 | Auto-flags stuck analyses |
 | 20260403_001_replay_ttl_policy.sql | Phase 2 | Enforces replay expiry default and non-null TTL |
+| 20260523_001_phase4_db_optimizations.sql | Phase 4 | Added CHECK constraints for score columns |
+| 20260527_002_phase3_dsa_upgrades.sql | Phase 3 | Added prerequisites column to concept_tags |
+
+## 20260523_001_phase4_db_optimizations
+
+**Purpose:** Added CHECK constraints for score columns on `interview_sessions` and `assessments`.
+
+**Tables affected:** `interview_sessions`, `assessments`
+
+**Rollback:**
+```sql
+ALTER TABLE public.interview_sessions DROP CONSTRAINT IF EXISTS chk_interview_session_scores;
+ALTER TABLE public.assessments DROP CONSTRAINT IF EXISTS chk_assessment_scores;
+```
+
+---
+
+## 20260527_002_phase3_dsa_upgrades
+
+**Purpose:** Added `prerequisites text[]` column to `concept_tags`.
+
+**Tables affected:** `concept_tags`
+
+**Rollback:**
+```sql
+ALTER TABLE public.concept_tags DROP COLUMN IF EXISTS prerequisites;
+```

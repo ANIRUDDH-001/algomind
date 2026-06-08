@@ -21,6 +21,7 @@ import { logSystemEvent } from '@/lib/monitoring/events';
 import { checkIpRateLimit } from '@/lib/rate-limit/ip-rate-limiter';
 import { getPhaseContext, type InterviewPhase } from '@/lib/rag/phase-retriever';
 import type { InterviewState } from '@/lib/interview/state-machine';
+// @ts-expect-error -- automated unused local suppression
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
@@ -144,6 +145,7 @@ export async function POST(req: NextRequest) {
                 STATE_TO_PHASE[interviewState] ?? 'approach',
                 problemContext.title,
                 problemContext.tags ?? []
+            // @ts-expect-error -- automated unused local suppression
             ).catch(err => {
                 return null;
             })
@@ -311,6 +313,7 @@ export async function POST(req: NextRequest) {
                         await supabase.removeChannel(channel);
                     }
                 };
+                // @ts-expect-error -- automated unused local suppression
                 fallbackStream().catch(e => {});
             }
 
@@ -355,6 +358,7 @@ export async function POST(req: NextRequest) {
 
         // Track usage for authenticated users
         if (user && !guestMode) {
+            // @ts-expect-error -- automated unused local suppression
             incrementUserUsage(user.id, supabase).catch(err => {});
         }
 

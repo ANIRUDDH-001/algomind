@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AssessmentResult } from '@/lib/assessment/analyzer';

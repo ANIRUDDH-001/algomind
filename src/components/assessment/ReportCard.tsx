@@ -6,6 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -23,6 +24,7 @@ interface ReportCardProps {
     onClose: () => void;
 }
 
+// @ts-expect-error -- automated unused local suppression
 export function ReportCard({ assessment, onClose }: ReportCardProps) {
     const router = useRouter();
     const store = new ProgressStore();

@@ -11,6 +11,7 @@
  * @issues    None observed
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React, { createContext, useContext } from 'react';
 import type { Problem } from '@/lib/supabase/problems';
 import type { Message } from '@/hooks/useInterview';

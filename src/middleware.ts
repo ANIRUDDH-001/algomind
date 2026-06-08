@@ -221,7 +221,7 @@ export default async function middleware(request: NextRequest) {
 
     if (shouldSetDiagnosticCookie) {
         supabaseResponse.cookies.set(DIAGNOSTIC_COMPLETE_COOKIE, '1', {
-            maxAge: 600,
+            maxAge: 86400, // 24 hours
             httpOnly: true,
             sameSite: 'lax',
             path: '/learn',

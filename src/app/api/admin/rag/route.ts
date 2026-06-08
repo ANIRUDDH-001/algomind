@@ -229,7 +229,7 @@ async function triggerEmbedding(chunkId: string): Promise<void> {
         .update({
             embedding: embeddings[0],
             embedding_status: 'done',
-            embedding_model: 'gemini-embedding-2', // Updated from gemini-embedding-001 (shutdown July 14, 2026)
+            embedding_model: 'gemini-embedding-1',
         })
         .eq('id', chunkId);
 }

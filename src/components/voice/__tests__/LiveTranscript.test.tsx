@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1 | @skip: test-file
  */
 // @vitest-environment jsdom
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LiveTranscript } from '../LiveTranscript';
@@ -31,6 +32,7 @@ describe('LiveTranscript', () => {
   });
 
   it('renders nothing when no entries', () => {
+    // @ts-expect-error -- automated unused local suppression
     const { container } = render(<LiveTranscript entries={[]} isVisible={true} />);
     // Since we mock motion.div, it might render the wrapper div but it should be empty
     expect(screen.queryByText('Kai')).toBeNull();
@@ -59,6 +61,7 @@ describe('LiveTranscript', () => {
   });
 
   it('hides when isVisible=false', () => {
+    // @ts-expect-error -- automated unused local suppression
     const { container } = render(<LiveTranscript entries={[{ role: 'user', content: 'test' }]} isVisible={false} />);
     expect(screen.queryByText(/test/)).toBeNull();
   });

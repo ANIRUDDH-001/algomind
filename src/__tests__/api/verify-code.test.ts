@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/assess/verify-code/route';
+// @ts-expect-error -- automated unused local suppression
 import * as routeFile from '@/app/api/assess/verify-code/route';
 
 // Mock dependencies

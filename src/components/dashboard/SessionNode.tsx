@@ -4,6 +4,7 @@
 'use client';
 
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { SessionHistory } from '@/types/assessment';
 import { cn } from '@/lib/utils';

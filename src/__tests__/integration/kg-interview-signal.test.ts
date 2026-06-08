@@ -23,6 +23,7 @@ function createChainableMock() {
     eq: vi.fn(function() { return chain; }),
     maybeSingle: vi.fn(function() { return Promise.resolve({ data: null, error: null }); }),
     upsert: vi.fn(function() { return Promise.resolve({ data: null, error: null }); }),
+    rpc: vi.fn(function() { return Promise.resolve({ data: null, error: null }); }),
   };
   return chain;
 }
@@ -53,19 +54,22 @@ describe('KG Interview Signal Integration', () => {
     });
 
     // Assert: upsert was called with confidence > 0.4 and evidence_count === 3
-    expect(mockServiceClient.upsert).toHaveBeenCalledWith(
+    expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+      'upsert_concept_states_bulk',
       expect.objectContaining({
-        user_id: 'u1',
-        concept_slug: 'arrays-strings',
-        evidence_count: 3,
-      }),
-      expect.objectContaining({
-        onConflict: 'user_id,concept_slug',
+        p_user_id: 'u1',
+        p_updates: expect.arrayContaining([
+          expect.objectContaining({
+            concept_slug: 'arrays-strings',
+            evidence_count: 3,
+          }),
+        ]),
       })
     );
 
-    const upsertCall = mockServiceClient.upsert.mock.calls[0][0];
-    expect(upsertCall.confidence).toBeGreaterThan(0.4);
+    const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
+    const arrayUpdate = rpcCallArgs.p_updates.find((u: any) => u.concept_slug === 'arrays-strings');
+    expect(arrayUpdate.confidence).toBeGreaterThan(0.4);
   });
 
   it('updates concept_states confidence downward for a failing score', async () => {
@@ -84,10 +88,11 @@ describe('KG Interview Signal Integration', () => {
       overallScore: 2,
     });
 
-    // Assert: upsert called with confidence < 0.6
-    expect(mockServiceClient.upsert).toHaveBeenCalled();
-    const upsertCall = mockServiceClient.upsert.mock.calls[0][0];
-    expect(upsertCall.confidence).toBeLessThan(0.6);
+    // Assert: rpc called with confidence < 0.6
+    expect(mockServiceClient.rpc).toHaveBeenCalled();
+    const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
+    const arrayUpdate = rpcCallArgs.p_updates.find((u: any) => u.concept_slug === 'arrays-strings');
+    expect(arrayUpdate.confidence).toBeLessThan(0.6);
   });
 
   it('is a no-op when no tags map to concept slugs', async () => {
@@ -100,8 +105,8 @@ describe('KG Interview Signal Integration', () => {
       overallScore: 7,
     });
 
-    // Assert: upsert was never called
-    expect(mockServiceClient.upsert).not.toHaveBeenCalled();
+    // Assert: rpc was never called
+    expect(mockServiceClient.rpc).not.toHaveBeenCalled();
   });
 
   it('calls invalidateCache after updating', async () => {
@@ -133,8 +138,8 @@ describe('KG Interview Signal Integration', () => {
       error: null,
     });
 
-    // Mock upsert to throw
-    mockServiceClient.upsert = vi.fn().mockRejectedValue(new Error('DB error'));
+    // Mock rpc to throw
+    mockServiceClient.rpc = vi.fn().mockRejectedValue(new Error('DB error'));
 
     const kg = getKnowledgeGraphService();
 
@@ -169,8 +174,10 @@ describe('KG Interview Signal Integration', () => {
       overallScore: 7,
     });
 
-    // Assert: upsert called 3 times (arrays-strings, trees-traversal, heaps)
-    expect(mockServiceClient.upsert).toHaveBeenCalledTimes(3);
+    // Assert: rpc called once with 3 updates (arrays-strings, trees-traversal, heaps)
+    expect(mockServiceClient.rpc).toHaveBeenCalledTimes(1);
+    const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
+    expect(rpcCallArgs.p_updates.length).toBe(3);
   });
 
   it('uses default confidence 0.35 for new concepts', async () => {
@@ -190,10 +197,11 @@ describe('KG Interview Signal Integration', () => {
     });
 
     // Assert: confidence computed from default 0.35
-    expect(mockServiceClient.upsert).toHaveBeenCalled();
-    const upsertCall = mockServiceClient.upsert.mock.calls[0][0];
+    expect(mockServiceClient.rpc).toHaveBeenCalled();
+    const rpcCallArgs = mockServiceClient.rpc.mock.calls[0][1];
+    const arrayUpdate = rpcCallArgs.p_updates[0];
     // overallScore 7 → delta = (7/10 - 0.5) * 0.12 = 0.024
     // newConfidence = 0.35 + 0.024 = 0.374
-    expect(upsertCall.confidence).toBeCloseTo(0.374, 2);
+    expect(arrayUpdate.confidence).toBeCloseTo(0.374, 2);
   });
 });

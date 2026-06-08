@@ -13,8 +13,10 @@
  * @skip      test-file
  */
 // @vitest-environment jsdom
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { GuestProblemSelectorModal } from '../GuestProblemSelectorModal';
 import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';

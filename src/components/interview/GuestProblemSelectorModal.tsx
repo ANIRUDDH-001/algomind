@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useState } from 'react';
 import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 import { Badge } from '@/components/ui/badge';

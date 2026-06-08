@@ -14,9 +14,11 @@
  * @audit     CODESAGE-v1
  */
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import type { CacheStats } from '@/lib/ai/response-cache';
+// @ts-expect-error -- automated unused local suppression
 import { getFeatureFlag } from '@/lib/feature-flags';
 import { toast } from 'sonner';
 

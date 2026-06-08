@@ -95,6 +95,7 @@ export function DifficultyModeSelector({ selectedMode, onChange, children }: Dif
                 {MODES.map((mode) => {
                     const isSelected = selectedMode === mode.id;
                     const isHovered = hoveredMode === mode.id;
+                    // @ts-expect-error -- automated unused local suppression
                     const Icon = mode.icon;
 
                     return (

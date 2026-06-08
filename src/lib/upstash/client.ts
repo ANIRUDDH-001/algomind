@@ -12,6 +12,7 @@
  * @audit     CODESAGE-v1
  */
 import { Redis } from '@upstash/redis';
+import { logSystemEvent } from '@/lib/monitoring/events';
 
 // Singleton instance to prevent multiple client creations
 let redisInstance: Redis | null = null;
@@ -59,12 +60,18 @@ export function isCircuitOpen(): boolean {
 export function recordRedisAttempt(success: boolean, error?: unknown): void {
     if (success) {
         if (circuitState.state === 'half-open') {
+            const previousOpenedAt = circuitState.openedAt;
             circuitState = {
                 state: 'closed',
                 consecutiveErrors: 0,
                 openedAt: null,
                 lastError: null,
             };
+            console.info('[Redis] Circuit breaker CLOSED — Redis recovered');
+            void logSystemEvent({
+                type: 'redis_circuit_closed',
+                metadata: { recoveredAfterMs: previousOpenedAt ? Date.now() - previousOpenedAt : undefined },
+            });
             return;
         }
 
@@ -82,6 +89,15 @@ export function recordRedisAttempt(success: boolean, error?: unknown): void {
         circuitState.state = 'open';
         circuitState.openedAt = Date.now();
         circuitState.consecutiveErrors = CIRCUIT_FAILURE_THRESHOLD;
+        console.error('[Redis] Circuit breaker OPENED — Redis is unreachable');
+        void logSystemEvent({
+            type: 'redis_circuit_open',
+            metadata: {
+                failureCount: circuitState.consecutiveErrors,
+                threshold: CIRCUIT_FAILURE_THRESHOLD,
+                nextRetryAt: new Date(Date.now() + CIRCUIT_OPEN_MS).toISOString(),
+            },
+        });
         return;
     }
 
@@ -89,6 +105,15 @@ export function recordRedisAttempt(success: boolean, error?: unknown): void {
     if (circuitState.state === 'closed' && circuitState.consecutiveErrors >= CIRCUIT_FAILURE_THRESHOLD) {
         circuitState.state = 'open';
         circuitState.openedAt = Date.now();
+        console.error('[Redis] Circuit breaker OPENED — Redis is unreachable');
+        void logSystemEvent({
+            type: 'redis_circuit_open',
+            metadata: {
+                failureCount: circuitState.consecutiveErrors,
+                threshold: CIRCUIT_FAILURE_THRESHOLD,
+                nextRetryAt: new Date(Date.now() + CIRCUIT_OPEN_MS).toISOString(),
+            },
+        });
     }
 }
 

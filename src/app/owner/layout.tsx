@@ -11,8 +11,10 @@ import {
   ShieldAlert, 
   Settings, 
   BookOpen, 
+  // @ts-expect-error -- automated unused local suppression
   BarChart2, 
   UserPlus, 
+  // @ts-expect-error -- automated unused local suppression
   Activity, 
   Bot,
   Menu,

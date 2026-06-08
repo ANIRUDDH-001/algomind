@@ -1,6 +1,7 @@
 /**
  * @codesage
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { UserProgress, CognitiveSkill } from '@/types/assessment';

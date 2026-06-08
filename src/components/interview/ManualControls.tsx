@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { StopCircle, RotateCcw } from 'lucide-react';

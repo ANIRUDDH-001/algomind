@@ -10,8 +10,6 @@ import { getCorrelationId } from '@/lib/tracing/correlation';
 const RAZORPAY_PLAN_ID = 'plan_premium_monthly_499';
 
 export async function POST() {
-  const correlationId = await getCorrelationId();
-  
   try {
     validateEnv();
     const supabase = await createServerSupabase();

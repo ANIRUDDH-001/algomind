@@ -181,17 +181,18 @@ export const CHAT_MODELS: ModelConfig[] = [
 ];
 
 // Embedding Models
-// gemini-embedding-001 shutdown July 14, 2026 → migrated to gemini-embedding-2
+// Embedding Models
+// Migrated to gemini-embedding-1
 export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
     {
-        id: "gemini-embedding-2",
+        id: "gemini-embedding-1",
         provider: 'gemini',
         tier: 1,
         rpm: 100,
         tpm: 30000,
         rpd: 1000,
-        dimensions: 3072,        // gemini-embedding-2 supports up to 3072 dims; default recommended
-        description: "Gemini Embedding 2 — primary embeddings provider (replaces gemini-embedding-001, shutdown July 14 2026)"
+        dimensions: 768,        // gemini-embedding-1 default dims
+        description: "Gemini Embedding 1 — primary embeddings provider"
     }
     // Xenova/all-MiniLM-L6-v2 removed as local huggingface fallback is defunct
 ];

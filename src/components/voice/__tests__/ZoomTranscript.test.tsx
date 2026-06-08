@@ -15,6 +15,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+// @ts-expect-error -- automated unused local suppression
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { ZoomTranscript } from '../ZoomTranscript';
 

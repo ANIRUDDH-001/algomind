@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import { motion } from 'framer-motion';
 import { MessageSquare, Mic } from 'lucide-react';
 

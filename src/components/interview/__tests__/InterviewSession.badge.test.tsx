@@ -20,6 +20,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useInterview } from '@/hooks/useInterview';
 import { useGuestSession } from '@/hooks/useGuestSession';
 import * as turnClassifier from '@/lib/interview/turn-classifier';
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 
 // Mock dependencies

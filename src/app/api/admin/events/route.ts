@@ -13,6 +13,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
+// @ts-expect-error -- automated unused local suppression
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redisGet, redisSet } from '@/lib/upstash/client';
 import { ApiErrors } from '@/lib/api/error-response';

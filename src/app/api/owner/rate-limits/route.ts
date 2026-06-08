@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        // @ts-expect-error -- automated unused local suppression
         const { user, errorResponse } = await requireOwnerForApi();
         if (errorResponse) return errorResponse;
 

@@ -38,6 +38,7 @@ export type WhisperSTTCallback = (result: TranscriptionResult) => void;
 
 export class WhisperSTT {
     private onTranscript: WhisperSTTCallback;
+    // @ts-expect-error -- automated unused local suppression
     private config: WhisperConfig;
 
     constructor(onTranscript: WhisperSTTCallback, config?: Partial<WhisperConfig>) {

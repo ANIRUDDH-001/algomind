@@ -1,6 +1,7 @@
 // @codesage
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { LineChart, Line, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';

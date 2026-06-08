@@ -13,6 +13,7 @@ vi.mock('next/dynamic', () => ({
 
 import { ExportReportButton } from '../ExportReportButton';
 import type { UserProgress } from '@/types/assessment';
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 
 const mockProgress: UserProgress = {

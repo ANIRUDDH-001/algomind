@@ -7,6 +7,7 @@
  * @skip: test-file
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import { getVADManager, resetVADManager, VADManager } from '../vad-manager';
 import { VADState } from '../types';
 
@@ -38,6 +39,7 @@ describe('VADManager', () => {
         (globalThis as any).document = {
             querySelector: vi.fn().mockReturnValue(null),
             createElement: vi.fn().mockImplementation(() => ({
+                // @ts-expect-error -- automated unused local suppression
                 set src(val: string) { },
                 get src() { return ''; },
                 onload: null,

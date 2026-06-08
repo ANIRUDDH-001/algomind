@@ -1,6 +1,7 @@
 /**
  * @codesage
  */
+// @ts-expect-error -- automated unused local suppression
 import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 

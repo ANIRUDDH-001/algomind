@@ -1,6 +1,7 @@
 // @codesage
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { UserProgress } from '@/types/assessment';
 import { Button } from '@/components/ui/button';

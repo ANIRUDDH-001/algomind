@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ExecutionResult } from './CodeEditor';

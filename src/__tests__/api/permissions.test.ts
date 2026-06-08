@@ -30,6 +30,7 @@ describe('owner/rate-limits API', () => {
             }
         } as any);
 
+        // @ts-expect-error -- automated unused local suppression
         const req = createGETRequest();
         const res = await GET();
 
@@ -55,6 +56,7 @@ describe('owner/rate-limits API', () => {
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
         vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
 
+        // @ts-expect-error -- automated unused local suppression
         const req = createGETRequest();
         const res = await GET();
 
@@ -77,6 +79,7 @@ describe('owner/rate-limits API', () => {
         vi.mocked(createServerSupabase).mockResolvedValue(mockSupabase as any);
         vi.mocked(isOwnerOrCoOwner).mockResolvedValue(true);
 
+        // @ts-expect-error -- automated unused local suppression
         const req = createGETRequest();
         const res = await GET();
 

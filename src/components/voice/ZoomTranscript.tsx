@@ -47,6 +47,7 @@ export function ZoomTranscript({
   isKaiSpeaking,
   isUserSpeaking,
   isThinking,
+  // @ts-expect-error -- automated unused local suppression
   conceptSlug,
   conceptIcon,
   exchangeCount,

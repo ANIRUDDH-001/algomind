@@ -142,6 +142,7 @@ export class ResponseChunker {
         const streamStart = performance.now();
         let buffer = '';
         let chunkIndex = 0;
+        // @ts-expect-error -- automated unused local suppression
         let firstChunkTime = 0;
         let lastYieldedChunk: ResponseChunk | null = null;
 

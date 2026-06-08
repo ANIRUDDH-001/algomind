@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { LogIn, Sparkles, History, Target, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';

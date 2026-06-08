@@ -11,6 +11,7 @@
  * @issues    None
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';

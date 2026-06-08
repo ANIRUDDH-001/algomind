@@ -131,11 +131,10 @@ export async function POST(req: NextRequest) {
                 : 90 * 60;
 
             try {
-                // ATOMIC: Increment first. If key didn't exist, Redis creates it with value 1.
-                currentCount = await redis.incr(messageCountKey);
+                const existingCount = await redis.get(messageCountKey);
 
-                if (currentCount === 1) {
-                    // We just created a fresh key. Check if DB has prior messages to seed from.
+                if (existingCount === null) {
+                    // Key does not exist — fetch DB count and initialise atomically
                     const { data: submission } = await getServiceClient()
                         .from('candidate_submissions')
                         .select('current_transcript')
@@ -148,13 +147,24 @@ export async function POST(req: NextRequest) {
                             : 0)
                         : 0;
 
-                    if (dbCount > 0) {
-                        // Jump counter from 1 to dbCount + 1 (this request)
-                        currentCount = await redis.incrby(messageCountKey, dbCount);
-                    }
+                    const initialValue = dbCount + 1; // +1 for the current message
 
-                    // Set TTL aligned with JWT expiry
-                    await redis.expire(messageCountKey, expirySeconds);
+                    // SET key value EX ttl NX — only sets if key does not exist
+                    const wasSet = await redis.set(messageCountKey, initialValue, {
+                        ex: expirySeconds,
+                        nx: true,
+                    });
+
+                    if (wasSet === 'OK') {
+                        // We won the race — use the value we set
+                        currentCount = initialValue;
+                    } else {
+                        // Another request set the key between our GET and SET — increment that value
+                        currentCount = await redis.incr(messageCountKey);
+                    }
+                } else {
+                    // Key exists — just increment
+                    currentCount = await redis.incr(messageCountKey);
                 }
             } catch (redisErr) {
                 const { data: submission } = await getServiceClient()

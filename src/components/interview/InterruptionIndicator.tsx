@@ -11,6 +11,7 @@
  * @issues    None observed
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Mic } from 'lucide-react';

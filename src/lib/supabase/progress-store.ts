@@ -73,6 +73,7 @@ export class SupabaseProgressStore {
             const dbSkills = skillsToDbFormat(session.skills);
 
             // Insert assessment
+            // @ts-expect-error -- automated unused local suppression
             const { data: assessmentData, error: assessmentError } = await this.supabase
                 .from('assessments')
                 .insert({

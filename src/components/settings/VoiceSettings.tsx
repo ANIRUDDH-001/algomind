@@ -30,6 +30,7 @@ interface VoiceSettingsProps {
     currentProvider?: 'groq' | 'browser' | 'polly';
 }
 
+// @ts-expect-error -- automated unused local suppression
 export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSettingsProps) {
     const { user } = useAuth();
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);

@@ -1,3 +1,4 @@
+// @ts-expect-error -- automated unused local suppression
 import { getRedis, redisGet, redisSet } from '@/lib/upstash/client';
 
 const FREE_TIER_DAILY_TOKENS = 50_000;

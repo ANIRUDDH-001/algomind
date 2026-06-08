@@ -15,6 +15,7 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { GuestModeBanner } from '../GuestModeBanner';
 

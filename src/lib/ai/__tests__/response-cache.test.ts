@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vite
 import {
     ResponseCache,
     normaliseCacheKey,
+    // @ts-expect-error -- automated unused local suppression
     getResponseCache,
     resetResponseCache,
 } from '../response-cache';

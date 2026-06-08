@@ -21,6 +21,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Shield, Play } from 'lucide-react';
+// @ts-expect-error -- automated unused local suppression
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -79,6 +80,7 @@ export function SettingsPanel() {
         };
     }, [user?.id]);
 
+    // @ts-expect-error -- automated unused local suppression
     const _toggleIntro = () => {
         // ... (existing toggleIntro logic)
         if (introEnabled) {

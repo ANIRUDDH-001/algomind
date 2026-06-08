@@ -11,6 +11,7 @@
  * @issues    None observed
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React, { memo, useEffect, useRef } from 'react';
 import { Message } from '@/hooks/useInterview';
 import { cn } from '@/lib/utils';

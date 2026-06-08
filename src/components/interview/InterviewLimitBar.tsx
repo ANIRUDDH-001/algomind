@@ -11,6 +11,7 @@
  * @issues    None observed
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React, { useState, useEffect } from 'react';
 import { Timer, MessageSquare, ClockAlert } from 'lucide-react';
 

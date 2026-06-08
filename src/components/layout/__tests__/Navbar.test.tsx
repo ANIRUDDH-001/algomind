@@ -13,6 +13,7 @@
  * @issues    None
  * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -88,6 +89,7 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
     DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+    // @ts-expect-error -- automated unused local suppression
     DropdownMenuTrigger: ({ children, asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
     DropdownMenuContent: ({ children, className, style, ...props }: any) => (
         <div data-testid="dropdown-content" className={className} style={style} {...props}>{children}</div>

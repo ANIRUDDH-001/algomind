@@ -35,6 +35,7 @@ export default async function CoOwnersPage({
         dbQuery = dbQuery.ilike('email', `%${query}%`);
     }
 
+    // @ts-expect-error -- automated unused local suppression
     const { data: owners, error } = await dbQuery;
 
     let ownersWithPrefs: any[] = [];

@@ -62,6 +62,7 @@ export function useSwipeNavigation<T extends string>({
 
     // ✅ FIX: Only block swipe if element has HORIZONTAL overflow scroll
     // Vertical scrollers (overflow-y-auto) should NOT block horizontal swipe
+    // @ts-expect-error -- automated unused local suppression
     const isHorizontalScroller = (el: Element | null): boolean => {
         while (el) {
             if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range') {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import type { SessionData } from '../memory-generator';
 
 // ── Module-level mocks ────────────────────────────────────────────────────────

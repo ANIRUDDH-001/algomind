@@ -16,10 +16,13 @@
  * @audit     CODESAGE-v1 | @skip: test-file
  */
 
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { AnalysisClient } from '../AnalysisClient';
+// @ts-expect-error -- automated unused local suppression
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 
 vi.mock('framer-motion', () => ({

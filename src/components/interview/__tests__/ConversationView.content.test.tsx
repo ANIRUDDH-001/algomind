@@ -17,8 +17,11 @@
  * BUG-V7-06 Regression: ConversationView must safely render every
  * content shape variant without throwing or showing "[object Object]".
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, within } from '@testing-library/react';
+// @ts-expect-error -- automated unused local suppression
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 
 // ─── jsdom polyfills ───

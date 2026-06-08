@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useState } from 'react';
 import { X, Sparkles, Clock, MessageSquare, Shield } from 'lucide-react';
 import { GUEST_SESSION_LIMITS } from '@/hooks/useGuestSession';

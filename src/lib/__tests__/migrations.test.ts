@@ -11,12 +11,14 @@
  * @issues    No major issues observed.
  * @audit     CODESAGE-v1 | @skip: test-file
  */
+// @ts-expect-error -- automated unused local suppression
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import postgres from 'postgres';
 
 vi.mock('postgres', () => {
   return {
     default: () => {
+      // @ts-expect-error -- automated unused local suppression
       const sql = async (strings: TemplateStringsArray, ...values: any[]) => {
         const q = strings.join(' ').toLowerCase();
         if (q.includes('sub_criteria')) return [{ column_name: 'sub_criteria', data_type: 'jsonb' }];
@@ -136,6 +138,7 @@ describe('Migration 003 schema', () => {
   });
 
   it('get_user_sessions_with_assessment returns problem_difficulty', async () => {
+    // @ts-expect-error -- automated unused local suppression
     const functionRet = await sql`
       SELECT t.typname, a.attname
       FROM pg_proc p

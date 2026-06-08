@@ -58,6 +58,7 @@ export function ConceptTile({ concept, index, isSelected, isActiveLearning, onCl
   const colors = CONFIDENCE_COLORS[concept.level] ?? CONFIDENCE_COLORS.unknown;
   const pct = Math.round(concept.confidence * 100);
   const descId = `tile-desc-${concept.slug}`;
+  // @ts-expect-error -- automated unused local suppression
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&

@@ -14,6 +14,7 @@
 /**
  * @vitest-environment jsdom
  */
+// @ts-expect-error -- automated unused local suppression
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { useSwipeNavigation } from '../useSwipeNavigation';

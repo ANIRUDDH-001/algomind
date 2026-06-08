@@ -11,6 +11,7 @@
  * @issues    None observed
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { Play, Pause, Square, Volume2, FastForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';

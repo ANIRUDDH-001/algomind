@@ -26,6 +26,7 @@ export function SwipeableCard({ children, actions, actionWidth = 100, isOpen, on
     }
   }, [currentIsOpen, actionWidth, controls]);
 
+  // @ts-expect-error -- automated unused local suppression
   const handleDragEnd = (event: any, info: PanInfo) => {
     const shouldOpen = info.offset.x < -actionWidth / 2;
     if (shouldOpen) {

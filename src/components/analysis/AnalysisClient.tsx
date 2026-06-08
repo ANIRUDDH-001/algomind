@@ -18,6 +18,7 @@
  * @section   AnalysisClient - Main component coordinating the 3-panel layout (Performance, Key Moments, Next Steps).
  */
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

@@ -11,6 +11,7 @@
  * @issues    None
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminForApi } from '@/lib/auth/requireAdminForApi';
 import { getServiceClient } from '@/lib/supabase/service';

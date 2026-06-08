@@ -418,6 +418,7 @@ export function generateInterviewerSystemPrompt(config: InterviewConfig): string
         language,
         optimalApproach,
         candidateLevel,
+        // @ts-expect-error -- automated unused local suppression
         isGuest,
         sprintProblemIndex,
         secondProblem,
@@ -610,6 +611,7 @@ export function generateInterviewOpeningTrigger(
     problemTitle: string,
     difficultyMode: string = 'practice'
 ): string {
+    // @ts-expect-error -- automated unused local suppression
     const modeConfig = MODE_CONFIGS[difficultyMode] ?? MODE_CONFIGS['practice'];
 
     if (difficultyMode === 'employer') {

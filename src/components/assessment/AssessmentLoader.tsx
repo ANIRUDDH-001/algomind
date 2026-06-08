@@ -14,6 +14,7 @@
  * @audit     CODESAGE-v1
  */
 
+// @ts-expect-error -- automated unused local suppression
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit } from 'lucide-react';

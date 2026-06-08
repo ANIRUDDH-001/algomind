@@ -42,6 +42,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+# Development scratch files — never commit
+scratch_*.txt
+scratch_*.html
+*_extracted.txt
+*_extracted.tsx
+*.scratch.ts
+*.scratch.tsx
 
 # env files (can opt-in for committing if needed)
 .env*

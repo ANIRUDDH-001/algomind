@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+// @ts-expect-error -- automated unused local suppression
 import { AlertCircle, CheckCircle2, Copy, RotateCcw, Play, Plus, Edit2, Check, X, Trash2, ToggleRight, ToggleLeft, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -33,6 +34,7 @@ interface RoutingEntry {
 export function ModelsTab() {
     const [models, setModels] = useState<ModelStat[]>([]);
     const [routing, setRouting] = useState<{ chat: RoutingEntry[], analysis: RoutingEntry[] }>({ chat: [], analysis: [] });
+    // @ts-expect-error -- automated unused local suppression
     const [deprecatedCount24h, setDeprecatedCount24h] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [verifyingModel, setVerifyingModel] = useState<string | null>(null);

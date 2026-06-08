@@ -297,6 +297,7 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 import { ReportCard } from '@/components/assessment/ReportCard';
+// @ts-expect-error -- automated unused local suppression
 import { COLORS } from '@/lib/design-tokens';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { AssessmentResult } from '@/lib/assessment/analyzer';

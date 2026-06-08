@@ -11,6 +11,7 @@ export function buildEnrichedTranscript(
     conversationMessages: Array<{ role: string; content: string }>,
     finalCode: string,
     language: string,
+    // @ts-expect-error -- automated unused local suppression
     problemTitle: string
 ): ConversationTurn[] {
     const turns: ConversationTurn[] = conversationMessages.map(m => ({

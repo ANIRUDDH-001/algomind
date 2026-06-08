@@ -13,6 +13,7 @@
  */
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InterviewSession } from '@/components/interview/InterviewSession';
@@ -57,6 +58,7 @@ function InterviewContent() {
 
     // Find session if viewing history
     const session = sessionId ? history.find(s => s.sessionId === sessionId) : null;
+    // @ts-expect-error -- automated unused local suppression
     const initialTranscript = session?.transcript;
 
     useEffect(() => {

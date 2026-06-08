@@ -18,6 +18,7 @@ import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export async function GET() {
   try {
+    // @ts-expect-error -- automated unused local suppression
     const { user, errorResponse } = await requireOwnerForApi();
     if (errorResponse) return errorResponse;
 

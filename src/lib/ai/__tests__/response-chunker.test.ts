@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+// @ts-expect-error -- automated unused local suppression
 import { ResponseChunker, chunkResponseText, createResponseChunker } from '../response-chunker';
 
 describe('Response Chunker', () => {

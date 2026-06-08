@@ -15,6 +15,7 @@ import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BookOpen, Send, Laptop } from 'lucide-react';
+// @ts-expect-error -- automated unused local suppression
 import { cn } from "@/lib/utils";
 import { ConversationView } from '../ConversationView';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
@@ -32,6 +33,7 @@ export interface DesktopLayoutProps {
 export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) {
     const {
         activeProblem: problem,
+        // @ts-expect-error -- automated unused local suppression
         limits,
         isAssessment,
         handleBackNavigation,

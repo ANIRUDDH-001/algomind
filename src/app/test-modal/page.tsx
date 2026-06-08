@@ -1,4 +1,5 @@
 'use client';
+// @ts-expect-error -- automated unused local suppression
 import React, { useState } from 'react';
 import { ResponsiveModal } from '@/components/ui/responsive-modal';
 

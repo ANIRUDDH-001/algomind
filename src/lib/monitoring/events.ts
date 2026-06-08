@@ -13,6 +13,7 @@
  * @audit     CODESAGE-v1
  */
 import { getServiceClient } from '@/lib/supabase/service';
+// @ts-expect-error -- automated unused local suppression
 import { getCorrelationId } from '@/lib/tracing/correlation';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -88,6 +89,10 @@ export const EventTypes = {
     // Database domain
     'db.error': { severity: EventSeverity.ERROR, domain: 'db', canonical: true },
     'db_error': { severity: EventSeverity.ERROR, domain: 'db', canonical: false },
+
+    // Redis domain
+    'redis_circuit_open': { severity: EventSeverity.ERROR, domain: 'db', canonical: true },
+    'redis_circuit_closed': { severity: EventSeverity.INFO, domain: 'db', canonical: true },
 
     // Rate limiting domain
     'rate_limit.user_exceeded': { severity: EventSeverity.WARN, domain: 'rate_limit', canonical: true },

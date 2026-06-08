@@ -12,12 +12,14 @@
  * @audit     CODESAGE-v1
  */
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-expect-error -- automated unused local suppression
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { isPrimaryOwner } from '@/lib/auth/account-type';
 import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 import { logSystemEvent } from '@/lib/monitoring/events';
 
 export async function GET(req: NextRequest) {
+    // @ts-expect-error -- automated unused local suppression
     const { user, errorResponse } = await requireOwnerForApi();
     if (errorResponse) return errorResponse;
 

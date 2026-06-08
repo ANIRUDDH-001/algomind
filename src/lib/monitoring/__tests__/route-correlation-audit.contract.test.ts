@@ -68,6 +68,7 @@ describe('Route Correlation Header Audit Contract (P6-6)', () => {
         console.log(`  Missing (backlog): ${missing.length} (${(missing.length / auditData.length * 100).toFixed(1)}%)`);
         console.log(`\nBacklog Items (top 15 by priority):`);
         
+        // @ts-expect-error -- automated unused local suppression
         const criticalRoutes = [
             '/api/admin/health:high',
             '/api/admin/events:high',

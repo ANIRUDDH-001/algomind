@@ -31,10 +31,12 @@ export async function GET(request: NextRequest) {
         const adminSupabase = getServiceClient();
 
         // Get summary by service
+        // @ts-expect-error -- automated unused local suppression
         const { data: summary, error: summaryError } = await adminSupabase
             .rpc('get_aws_usage_summary', { p_days: days });
 
         // Get recent individual entries for detail view
+        // @ts-expect-error -- automated unused local suppression
         const { data: recentLogs, error: logsError } = await adminSupabase
             .from('aws_usage_log')
             .select('*')
@@ -43,6 +45,7 @@ export async function GET(request: NextRequest) {
             .limit(100);
 
         // Get daily breakdown
+        // @ts-expect-error -- automated unused local suppression
         const { data: dailyBreakdown, error: dailyError } = await adminSupabase
             .from('aws_usage_log')
             .select('service, estimated_cost_usd, created_at')

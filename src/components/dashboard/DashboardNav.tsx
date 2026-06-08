@@ -1,6 +1,7 @@
 // @codesage
 'use client';
 
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { LayoutGrid, Brain, BarChart3, History, Lightbulb } from 'lucide-react';

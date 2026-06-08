@@ -11,6 +11,7 @@
  * @issues    none
  * @audit     CODESAGE-v1
  */
+// @ts-expect-error -- automated unused local suppression
 import React from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';

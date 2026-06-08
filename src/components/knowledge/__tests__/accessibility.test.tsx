@@ -18,6 +18,7 @@
  */
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+// @ts-expect-error -- automated unused local suppression
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConceptTile } from '../ConceptTile';
 import { ConceptDetailPanel } from '../ConceptDetailPanel';

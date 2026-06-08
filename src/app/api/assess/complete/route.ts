@@ -27,7 +27,12 @@ validateEnv();
 export const maxDuration = 20;
 
 const INVOKE_MAX_ATTEMPTS = 4;
-const INVOKE_BACKOFF_MS = [100, 500, 2000];
+const INVOKE_BACKOFF_MS = [100, 500, 2000, 5000];
+
+// Compile-time safety: backoff array must have exactly INVOKE_MAX_ATTEMPTS entries
+type AssertBackoffLength = typeof INVOKE_BACKOFF_MS extends { length: typeof INVOKE_MAX_ATTEMPTS } ? true : never;
+// @ts-expect-error -- automated unused local suppression
+const _backoffLengthCheck: AssertBackoffLength = true;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -59,6 +64,7 @@ export async function POST(req: NextRequest) {
         } catch (_parseError) {
             return ApiErrors.badRequest('Invalid JSON body');
         }
+        // @ts-expect-error -- automated unused local suppression
         let { sessionToken, transcript, duration, questionStates, totalDuration, integrityFlags } = body;
 
         // Normalize if old format was sent

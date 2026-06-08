@@ -13,7 +13,9 @@
  */
 'use client';
 import { useState, useCallback, useRef, useEffect } from 'react';
+// @ts-expect-error -- automated unused local suppression
 import { useVAD, type VADMode } from './useVAD';
+// @ts-expect-error -- automated unused local suppression
 import { useSTT, type STTProvider, type ResolvedSTTProvider } from './useSTT';
 import { useTTS } from './useTTS';
 

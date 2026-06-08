@@ -35,6 +35,7 @@ export default async function EmployersPage({
         dbQuery = dbQuery.ilike('email', `%${query}%`);
     }
 
+    // @ts-expect-error -- automated unused local suppression
     const { data: employers, error } = await dbQuery;
 
     let employersWithPrefs: any[] = [];

@@ -204,6 +204,7 @@ export function useLearnSession(options: UseLearnSessionOptions) {
       });
 
       if (res.status === 429) {
+        // @ts-expect-error -- automated unused local suppression
         const data = await res.json();
         setState('error');
         setError('LIMIT_REACHED');

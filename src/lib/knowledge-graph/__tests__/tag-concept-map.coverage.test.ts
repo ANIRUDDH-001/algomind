@@ -1,3 +1,4 @@
+// @ts-expect-error -- automated unused local suppression
 import { describe, it, expect } from 'vitest';
 import { PROBLEM_TAG_TO_CONCEPT_SLUG, INTENTIONALLY_UNMAPPED_TAGS } from '../tag-concept-map';
 

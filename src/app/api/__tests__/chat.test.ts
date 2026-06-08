@@ -133,6 +133,7 @@ describe('Chat API (/api/chat)', () => {
 
         const req = createRequest({ messages: [{ role: 'user', content: 'hello' }], guestMode: true });
         const res = await POST(req);
+        // @ts-expect-error -- automated unused local suppression
         const _data = await res.json();
 
         expect(res.status).toBe(200);

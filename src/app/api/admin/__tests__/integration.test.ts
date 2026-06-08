@@ -141,6 +141,7 @@ describe('Admin Panel API Integration', () => {
         });
 
         // We rely on the global mockChain which resolves to { data: [] } for all health tables
+        // @ts-expect-error -- automated unused local suppression
         const _req = new Request('http://localhost:3000/api/admin/health');
 
         const response = await getHealth();

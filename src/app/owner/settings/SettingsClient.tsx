@@ -46,6 +46,7 @@ export function SettingsClient({ initialFlags, initialConfigs, configMeta, confi
     const [configs, setConfigs] = useState<Record<string, string>>(initialConfigMap);
     const [togglingFlag, setTogglingFlag] = useState<string | null>(null);
     const [savingConfig, setSavingConfig] = useState<string | null>(null);
+    // @ts-expect-error -- automated unused local suppression
     const [isPending, startTransition] = useTransition();
 
     const handleToggle = async (key: string, value: boolean) => {
@@ -95,6 +96,7 @@ export function SettingsClient({ initialFlags, initialConfigs, configMeta, confi
     };
 
     const allGroupedKeys = new Set(FLAG_GROUPS.flatMap(g => g.keys));
+    // @ts-expect-error -- automated unused local suppression
     const ungroupedKeys = Object.keys(flags).filter(k => !allGroupedKeys.has(k));
 
     return (

@@ -120,8 +120,24 @@ export async function GET(request?: Request) {
             lastRunDurationMs: latestCron ? (latestCron.metadata?.durationMs || null) : null
         };
 
-        // 4. Compute overall System Health
+        // 4. RAG chunks health
+        const { count: ragCount, error: ragError } = await supabase
+            .from('knowledge_chunks')
+            .select('*', { count: 'exact', head: true });
+
+        const ragStatus = ragError ? 'error' : ragCount === 0 ? 'empty' : 'ok';
+        const ragWarning = ragStatus !== 'ok'
+            ? `knowledge_chunks ${ragStatus}: ${ragStatus === 'empty' ? 'no knowledge context available' : ragError?.message}`
+            : null;
+
+        const ragSummary = { status: ragStatus, count: ragCount, warning: ragWarning };
+
+        // 5. Compute overall System Health
         const alerts: string[] = [];
+
+        if (ragWarning) {
+            alerts.push(ragWarning);
+        }
 
         if (modelsSummary.deprecated > 0 && modelsSummary.lastDeprecatedAt) {
             const depAge = Date.now() - new Date(modelsSummary.lastDeprecatedAt).getTime();
@@ -155,6 +171,7 @@ export async function GET(request?: Request) {
             models: modelsSummary,
             events: eventsSummary,
             cron: cronSummary,
+            rag: ragSummary,
             system: {
                 isHealthy,
                 alerts

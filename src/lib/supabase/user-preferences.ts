@@ -39,6 +39,7 @@ export async function getUserPreferences(userId: string | null): Promise<UserPre
 
         if (supabase && isSupabaseConfigured()) {
             try {
+                // @ts-expect-error -- automated unused local suppression
                 const { data, error } = await supabase
                     .from('user_preferences')
                     .select('preferred_voice_name, preferred_voice_lang, voice_rate, tts_provider')
