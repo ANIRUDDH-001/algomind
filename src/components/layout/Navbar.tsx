@@ -29,7 +29,7 @@ import {
 import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { motion } from 'framer-motion';
 import { useLearnKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -42,6 +42,7 @@ export function Navbar() {
     const [hasDeprecatedModels, setHasDeprecatedModels] = useState(false);
     const [accountType, setAccountType] = useState<'candidate' | 'employer' | 'admin' | 'owner'>('candidate');
     const [isOwner, setIsOwner] = useState(false);
+    const bottomNavRef = useRef<HTMLElement>(null);
 
     useLearnKeyboardShortcuts();
 
@@ -92,6 +93,26 @@ export function Navbar() {
             return () => clearInterval(interval);
         }
     }, [isAdmin]);
+
+    // Sync bottom nav height to CSS variable so layout.tsx can add correct padding
+    useEffect(() => {
+        const el = bottomNavRef.current;
+        if (!el) return;
+
+        const sync = () => {
+            const h = el.getBoundingClientRect().height;
+            if (h > 0) {
+                document.documentElement.style.setProperty('--bottom-nav-h', `${h}px`);
+            }
+        };
+
+        sync(); // run immediately on mount
+
+        const ro = new ResizeObserver(sync);
+        ro.observe(el);
+
+        return () => ro.disconnect();
+    }, []); // only needs to run once — ResizeObserver handles resizes
 
     const handleLogout = async () => {
         await signOut();
@@ -331,7 +352,9 @@ export function Navbar() {
 
             {/* MOBILE BOTTOM NAV — show on browse pages only */}
             {!hideBottomNav && (
-                <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden"
+                <nav 
+                    ref={bottomNavRef}
+                    className="fixed bottom-0 left-0 right-0 z-[100] md:hidden"
                     style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="glass border-t border-white/5 px-2 py-1">
                         <div className="flex items-center justify-around">

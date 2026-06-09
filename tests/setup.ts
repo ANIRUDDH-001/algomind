@@ -15,3 +15,11 @@ if (typeof window !== 'undefined') {
     })),
   });
 }
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = ResizeObserverMock;

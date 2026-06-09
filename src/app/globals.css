@@ -233,6 +233,8 @@ input, textarea, select {
 
   /* Navbar height (used for offset calculations) */
   --navbar-h: 64px;
+  /* mobile bottom nav — updated at runtime by Navbar.tsx */
+  --bottom-nav-h: 56px;
 }
 
 @layer components {

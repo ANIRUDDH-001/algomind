@@ -82,7 +82,8 @@ const REQUIRED_VARS = [
     '--ease-out',           // line: cubic-bezier ease-out
     '--shadow-card',        // line 241
     '--shadow-glow',        // used via var(--shadow-glow)
-    '--navbar-h',           // line 246: 64px
+    '--navbar-h',           // top navbar height
+    '--bottom-nav-h',       // mobile bottom nav height
     '--surface-edge',       // line 197: border/divider color
 ];
 
