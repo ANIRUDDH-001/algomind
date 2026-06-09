@@ -46,7 +46,14 @@ export function useSwipeNavigation<T extends string>({
     const isHorizontal = useRef<boolean>(false);
     const [dragOffset, setDragOffset] = useState(0);
 
-    const onPointerCancel = useCallback(() => {
+    const onPointerCancel = useCallback((e?: React.PointerEvent) => {
+        if (e && e.pointerId !== undefined) {
+            try {
+                (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+            } catch {
+                // ignore
+            }
+        }
         isDragging.current = false;
         directionLocked.current = false;
         isHorizontal.current = false;
@@ -99,7 +106,7 @@ export function useSwipeNavigation<T extends string>({
         if (disabled || !isDragging.current) return;
         
         if (e.buttons === 0) { 
-            onPointerCancel(); 
+            onPointerCancel(e); 
             return; 
         }
         
@@ -119,6 +126,12 @@ export function useSwipeNavigation<T extends string>({
                     isHorizontal.current = false;
                     isDragging.current = false;
                     setDragOffset(0);
+                    // Release pointer capture so the browser can handle vertical scroll natively
+                    try {
+                        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+                    } catch {
+                        // Ignore — pointer may not have been captured yet if direction locked early
+                    }
                     return;
                 }
             } else {

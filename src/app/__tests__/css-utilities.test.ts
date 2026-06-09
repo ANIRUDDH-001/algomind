@@ -116,4 +116,10 @@ describe('CSS globals.css — Structural integrity', () => {
     test('Custom scrollbar styles are present for both webkit and base', () => {
         expect(globalCSSContent).toContain('::-webkit-scrollbar');
     });
+
+    test('overscroll-behavior-x is used instead of overscroll-behavior shorthand in .scroll-container', () => {
+        // Ensure we're using axis-specific properties (not the shorthand which blocks pull-to-refresh)
+        expect(globalCSSContent).toContain('overscroll-behavior-x: contain');
+        expect(globalCSSContent).toContain('overscroll-behavior-y: auto');
+    });
 });
