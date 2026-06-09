@@ -13,7 +13,7 @@
  */
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSessionPersistence } from '@/lib/auth/session-manager';
 import { reportError } from '@/lib/telemetry/report-error';
 

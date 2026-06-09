@@ -100,6 +100,38 @@ type_check*.txt
 DIAGNOSTIC_MASTER.md
 MASTER_PLAN.md
  
- #   C O D E S A G E       i n t e r n a l   a u d i t   a r t i f a c t s .   D o   n o t   c o m m i t .  
- . c o d e s a g e /  
- m a s t e r b o o k . m d  
+# ─── Stryker mutation testing ─────────────────────────────────────
+.stryker-tmp/
+
+# ─── CodeSage audit tooling ───────────────────────────────────────
+.codesage/
+
+# ─── Root-level dev scripts (never commit these) ──────────────────
+# Excludes *.js at root EXCEPT the two legitimate config files
+/apply_sec04.js
+/codesage_script.js
+/extract.js
+/fix-unused.js
+/fix_lint.js
+/fix_test.js
+/generate_analysis.js
+/patch.js
+/process.js
+/process_files.js
+/refactor_learn.js
+/scratch_sec05.js
+/split_components.js
+
+# ─── Debug artifacts ──────────────────────────────────────────────
+/dashboard-screenshot.png
+/pointer_test.html
+/masterbook.md
+/ORIGINAL_REQUEST.md
+/owner_dashboard_audit_report.md
+/TEST_INFRA.md
+/TEST_READY.md
+/test.ps1
+
+# ─── Auto-generated Supabase types (keep only in src/types/) ──────
+/supabase_types.ts
+/supabase_types_utf8.ts

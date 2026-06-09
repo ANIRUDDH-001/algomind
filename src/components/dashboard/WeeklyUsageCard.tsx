@@ -35,12 +35,10 @@ export function WeeklyUsageCard() {
   }
 
   const {
-    accountType,
     sessionsUsed = 0,
     limit = null,
     sessionsRemaining = null,
     isUnlimited = false,
-    allowed,
   } = data;
 
   const progressPct = isUnlimited

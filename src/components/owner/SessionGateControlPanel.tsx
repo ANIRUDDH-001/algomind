@@ -134,8 +134,7 @@ export function SessionGateControlPanel() {
 
           {/* Per-type limits */}
           <div className={`space-y-4 transition-opacity ${gatingEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-            <p className="text-xs text-zinc-500 border-t border-zinc-800 pt-3">
-            <div>
+            <div className="pt-3 border-t border-zinc-800">
               <label className="block text-xs font-medium text-zinc-400 mb-2">
                 Candidate Weekly Session Limit
                 <span className="text-zinc-600 ml-1">(interviews + learn combined)</span>

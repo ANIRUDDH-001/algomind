@@ -58,7 +58,7 @@ export interface WeeklySessionLimitResult {
  */
 export async function checkWeeklySessionLimitReadOnly(
   userId: string,
-  sessionType: SessionType
+  _sessionType: SessionType
 ): Promise<WeeklySessionLimitResult> {
   // 1. Global gate switch
   const gatingEnabled = await isSessionGatingEnabled();
@@ -211,23 +211,7 @@ export async function checkWeeklySessionLimit(
   return checkAndIncrementWeeklySession(userId, sessionType);
 }
 
-/**
- * Get the current count for one session type this week.
- */
-async function fetchWeeklyTypeCount(userId: string, sessionType: SessionType): Promise<number> {
-  const weekStart = getMondayUTC();
-  const col = sessionType === 'interview' ? 'interview_sessions_used' : 'learn_sessions_used';
 
-  const { data } = await getServiceClient()
-    .from('user_weekly_usage')
-    .select(col)
-    .eq('user_id', userId)
-    .eq('week_start', weekStart)
-    .maybeSingle();
-
-  if (!data) return 0;
-  return (data as Record<string, number>)[col] ?? 0;
-}
 
 /**
  * Get counts for BOTH types — used by /api/knowledge/session-limit and owner stats.

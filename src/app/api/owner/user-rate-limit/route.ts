@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/supabase/service';
-import { verifyOwnerSession } from '@/lib/auth/owner-auth';
+import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
 
 export async function POST(req: NextRequest) {
   // 1. Auth: owner only
-  const supabase = await createServerSupabase();
-  const isOwner = await verifyOwnerSession(supabase);
-  if (!isOwner) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { errorResponse } = await requireOwnerForApi();
+  if (errorResponse) return errorResponse;
 
   // 2. Parse body
   const body = await req.json();

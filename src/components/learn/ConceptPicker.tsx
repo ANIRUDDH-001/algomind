@@ -22,7 +22,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Target, Zap, Brain, BookOpen, Code2, Search, Database, Activity, BarChart3, Clock, LayoutDashboard } from 'lucide-react';
+import { Sparkles, ArrowRight, Target, Brain, BookOpen, Code2, Search, Database, Activity, BarChart3, Clock, LayoutDashboard } from 'lucide-react';
 import { LimitReachedBanner } from '@/components/limits';
 import type { KGConceptSummary } from '@/lib/knowledge-graph';
 import { getConceptIconKey } from '@/lib/knowledge-graph/concept-icon-keys';
@@ -195,7 +195,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
 
       {/* Session limit warning */}
       {isLimitReached && (
-        <LimitReachedBanner />
+        <LimitReachedBanner used={subscription.sessionsUsedThisWeek} limit={subscription.weeklyLimit} />
       )}
 
       {/* Concept grid */}

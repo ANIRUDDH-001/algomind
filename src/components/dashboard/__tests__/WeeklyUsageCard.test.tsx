@@ -23,16 +23,17 @@ describe('WeeklyUsageCard', () => {
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({
+                accountType: 'candidate',
                 sessionsUsed: 2,
                 limit: 5,
                 sessionsRemaining: 3,
-                subscriptionStatus: 'free'
+                isUnlimited: false,
+                allowed: true,
             }),
         } as Response);
         render(<WeeklyUsageCard />);
         await waitFor(() => {
-            expect(screen.queryByText('2')).not.toBeNull();
-            expect(screen.queryByText(/5 sessions/i)).not.toBeNull();
+            expect(screen.queryByText('2 / 5')).not.toBeNull();
         });
     });
 
@@ -40,16 +41,18 @@ describe('WeeklyUsageCard', () => {
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
             json: () => Promise.resolve({
+                accountType: 'owner',
                 sessionsUsed: 10,
                 limit: null,
                 sessionsRemaining: null,
-                subscriptionStatus: 'premium'
+                isUnlimited: true,
+                allowed: true,
             }),
         } as Response);
         render(<WeeklyUsageCard />);
         await waitFor(() => {
-            expect(screen.queryByText('∞')).not.toBeNull();
-            expect(screen.queryByText(/Premium/i)).not.toBeNull();
+            expect(screen.queryByText('∞ Unlimited')).not.toBeNull();
+            expect(screen.queryByText(/Owner tier/i)).not.toBeNull();
         });
     });
 

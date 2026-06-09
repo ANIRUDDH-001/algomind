@@ -146,7 +146,7 @@ describe('ConceptPicker', () => {
   });
 
   it('does show limit warning and keeps concept cards clickable when weekly limit reached', () => {
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
 
     render(
       <ConceptPicker

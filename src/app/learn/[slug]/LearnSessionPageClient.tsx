@@ -58,7 +58,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   // UI state
   const [mounted, setMounted] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [upgradeDismissed, setUpgradeDismissed] = useState(false);
+
   const [hoveredConcept, setHoveredConcept] = useState<string | null>(null);
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'cognitive'>('details');
@@ -171,7 +171,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     }
   }, [isListening, voice, session]);
 
-  const showUpgrade = session.error === 'LIMIT_REACHED' && !upgradeDismissed;
+
 
   const renderContentWithHighlights = (content: string) => {
     const text = content;
