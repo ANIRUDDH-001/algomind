@@ -3,7 +3,7 @@
  * @file      src/components/providers/ClientProviders.tsx
  * @purpose   Client-side providers wrapper for global hooks (session, telemetry).
  * @tech      React, Next.js
- * @connects  @/lib/auth/session-manager, @/components/upgrade/UpgradeModal, @/lib/telemetry/report-error
+ * @connects  @/lib/auth/session-manager, @/lib/telemetry/report-error
  * @apis      None
  * @db        None
  * @state     Local Component State
@@ -15,7 +15,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSessionPersistence } from '@/lib/auth/session-manager';
-import { UpgradeModal, type UpgradeModalPayload } from '@/components/upgrade/UpgradeModal';
 import { reportError } from '@/lib/telemetry/report-error';
 
 /**
@@ -26,21 +25,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // Initialize session persistence (auto-refresh tokens, handle auth events)
     useSessionPersistence();
 
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-    const [upgradePayload, setUpgradePayload] = useState<UpgradeModalPayload | null>(null);
-
-    useEffect(() => {
-        const listener = (event: Event) => {
-            const customEvent = event as CustomEvent<UpgradeModalPayload>;
-            setUpgradePayload(customEvent.detail ?? null);
-            setIsUpgradeModalOpen(true);
-        };
-
-        window.addEventListener('algomind:upgrade-modal', listener as EventListener);
-        return () => {
-            window.removeEventListener('algomind:upgrade-modal', listener as EventListener);
-        };
-    }, []);
+    // Custom event listener removed
 
     useEffect(() => {
         const handleError = (event: ErrorEvent) => {
@@ -68,11 +53,6 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <>
             {children}
-            <UpgradeModal
-                open={isUpgradeModalOpen}
-                onOpenChange={setIsUpgradeModalOpen}
-                payload={upgradePayload}
-            />
         </>
     );
 }

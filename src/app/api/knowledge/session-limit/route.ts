@@ -13,8 +13,8 @@
  */
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
-import { checkWeeklySessionLimitReadOnly, getWeeklySessionCount } from '@/lib/rate-limit/weekly-session-limiter';
-import { getUserSubscriptionStatus } from '@/lib/supabase/user-preferences';
+import { checkWeeklySessionLimitReadOnly } from '@/lib/rate-limit/weekly-session-limiter';
+import { getServiceClient } from '@/lib/supabase/service';
 import { isSessionGatingEnabled } from '@/lib/config/system-config';
 
 export async function GET() {
@@ -26,44 +26,33 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [counts, subStatus, interviewGate, learnGate, gatingEnabled] = await Promise.all([
-      getWeeklySessionCount(user.id),
-      getUserSubscriptionStatus(user.id),
-      checkWeeklySessionLimitReadOnly(user.id, 'interview'),
-      checkWeeklySessionLimitReadOnly(user.id, 'learn'),
+    const { data: profile } = await getServiceClient()
+      .from('profiles')
+      .select('account_type')
+      .eq('id', user.id)
+      .single();
+
+    const [gatingEnabled, checkResult] = await Promise.all([
       isSessionGatingEnabled(),
+      checkWeeklySessionLimitReadOnly(user.id, 'interview'),
     ]);
 
-    const interviewLimit = interviewGate.limit;
-    const learnLimit = learnGate.limit;
-    const interviewRemaining =
-      typeof interviewLimit === 'number' ? Math.max(0, interviewLimit - counts.interview) : null;
-    const learnRemaining =
-      typeof learnLimit === 'number' ? Math.max(0, learnLimit - counts.learn) : null;
-
     return NextResponse.json({
-      subscriptionStatus: subStatus.status,
+      // Identity
+      accountType: profile?.account_type ?? 'candidate',
+
+      // Gate status
       gatingEnabled,
-      allowed: interviewGate.allowed,
-      reason: interviewGate.reason,
-      interview: {
-        used: counts.interview,
-        limit: interviewLimit,
-        remaining: interviewRemaining,
-        allowed: interviewGate.allowed,
-        reason: interviewGate.reason,
-      },
-      learn: {
-        used: counts.learn,
-        limit: learnLimit,
-        remaining: learnRemaining,
-        allowed: learnGate.allowed,
-        reason: learnGate.reason,
-      },
-      // Legacy combined field (backward compat for InterviewLimitBar)
-      sessionsUsed: counts.interview,
-      limit: interviewLimit,
-      sessionsRemaining: interviewRemaining,
+
+      // Unified result
+      allowed: checkResult.allowed,
+      reason: checkResult.reason,
+
+      // Combined usage (interview + learn)
+      sessionsUsed: checkResult.sessionsUsed,
+      limit: checkResult.limit,           // null = unlimited
+      sessionsRemaining: checkResult.sessionsRemaining,
+      isUnlimited: checkResult.limit === null,
     });
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);

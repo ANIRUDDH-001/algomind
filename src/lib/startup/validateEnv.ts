@@ -46,19 +46,7 @@ export function validateEnv(): void {
         },
         { key: "GEMINI_API_KEY", use: "Gemini API key", anyOf: ["GOOGLE_API_KEY"] },
 
-        // ── Payment (Razorpay) ───────────────────────────────────────────────────
-        {
-            key: "RAZORPAY_KEY_ID",
-            use: "Razorpay public key ID — required for creating payment orders. Missing means no payments can be initiated."
-        },
-        {
-            key: "RAZORPAY_KEY_SECRET",
-            use: "Razorpay key secret — required for verifying payment signatures on the verify route. Missing means payment verification will fail for all users."
-        },
-        {
-            key: "RAZORPAY_WEBHOOK_SECRET",
-            use: "Razorpay webhook HMAC secret — required for authenticating all incoming Razorpay webhook events. MISSING MEANS ALL WEBHOOK EVENTS ARE ACCEPTED WITHOUT AUTHENTICATION, allowing anyone to grant free premium subscriptions or cancel real subscriptions."
-        },
+
     ];
 
     for (const { key, use, anyOf } of criticalVars) {
@@ -108,8 +96,7 @@ export function validateEnv(): void {
     // ── Minimum entropy check for cryptographic secrets ─────────────────────
     const SECRET_MIN_LENGTH = 32;
     const secretVars = [
-        'RAZORPAY_KEY_SECRET',
-        'RAZORPAY_WEBHOOK_SECRET',
+
         'ASSESSMENT_JWT_SECRET',
         'INTERNAL_API_SECRET',
         'SUPABASE_JWT_SECRET',
@@ -153,8 +140,7 @@ export const env = {
     SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
     INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET,
     ASSESSMENT_JWT_SECRET: process.env.ASSESSMENT_JWT_SECRET,
-    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
-    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
 

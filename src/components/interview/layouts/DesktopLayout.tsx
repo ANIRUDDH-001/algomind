@@ -66,7 +66,7 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         isLimitReached,
         limitReason,
         weeklyLimitStatus,
-        openUpgradeModal,
+
     } = useInterviewLayout();
 
     return (
@@ -128,11 +128,6 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                                             limit: weeklyLimitStatus.limit,
                                             allowed: weeklyLimitStatus.allowed,
                                         } : undefined}
-                                        onUpgrade={() => openUpgradeModal({
-                                            reason: 'Upgrade to keep practicing with unlimited sessions.',
-                                            sessionsUsed: weeklyLimitStatus?.sessionsUsed,
-                                            limit: weeklyLimitStatus?.limit ?? undefined,
-                                        })}
                                     />
                                 </div>
                             )}

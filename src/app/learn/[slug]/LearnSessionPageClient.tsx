@@ -29,7 +29,6 @@ import { useUnifiedVoice } from '@/hooks/useUnifiedVoice';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { cn } from '@/lib/utils';
-import { UpgradeModal } from '@/components/upgrade/UpgradeModal';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { TOPIC_DATA } from './topic-data';
 
@@ -681,13 +680,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
           )}
       </AnimatePresence>
 
-      <UpgradeModal
-        open={showUpgrade}
-        onOpenChange={(open) => {
-          if (!open) setUpgradeDismissed(true);
-        }}
-        payload={{ reason: 'limit_reached' }}
-      />
+
     </div>
   );
 }

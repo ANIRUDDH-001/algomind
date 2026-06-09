@@ -23,6 +23,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Target, Zap, Brain, BookOpen, Code2, Search, Database, Activity, BarChart3, Clock, LayoutDashboard } from 'lucide-react';
+import { LimitReachedBanner } from '@/components/limits';
 import type { KGConceptSummary } from '@/lib/knowledge-graph';
 import { getConceptIconKey } from '@/lib/knowledge-graph/concept-icon-keys';
 
@@ -73,15 +74,6 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
     layout: LayoutDashboard,
   } as const;
 
-  const showLimitReachedModal = () => {
-    window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
-      detail: {
-        source: 'learn-concept-picker',
-        sessionsUsed: subscription.sessionsUsedThisWeek,
-        limit: subscription.weeklyLimit ?? undefined,
-      },
-    }));
-  };
 
   // Show diagnostic prompt for new users
   if (!hasCompletedDiagnostic) {
@@ -203,19 +195,7 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
 
       {/* Session limit warning */}
       {isLimitReached && (
-        <div data-testid="limit-warning" className="p-4 rounded-xl bg-red-950/30 border border-red-500/20 flex items-center gap-3">
-          <Zap size={16} className="text-red-400 shrink-0" />
-          <p className="text-sm text-zinc-300">
-            Weekly limit reached: {subscription.sessionsUsedThisWeek}/{subscription.weeklyLimit} sessions used.{" "}
-            <button
-              data-testid="upgrade-trigger"
-              onClick={showLimitReachedModal}
-              className="text-indigo-400 hover:text-indigo-300"
-            >
-              Upgrade for unlimited access
-            </button>
-          </p>
-        </div>
+        <LimitReachedBanner />
       )}
 
       {/* Concept grid */}
@@ -236,7 +216,6 @@ export function ConceptPicker({ concepts, studentContext }: ConceptPickerProps) 
               whileTap={{ scale: 0.99 }}
               onClick={() => {
                 if (isLimitReached) {
-                  showLimitReachedModal();
                   return;
                 }
                 router.push(`/learn/${concept.slug}`);

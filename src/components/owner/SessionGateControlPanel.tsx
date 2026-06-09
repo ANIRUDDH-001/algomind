@@ -18,8 +18,7 @@ import { ToggleLeft, ToggleRight, Save } from 'lucide-react';
 
 export function SessionGateControlPanel() {
   const [gatingEnabled, setGatingEnabled] = useState<boolean | null>(null);
-  const [interviewLimit, setInterviewLimit] = useState<number>(5);
-  const [learnLimit, setLearnLimit] = useState<number>(5);
+  const [candidateLimit, setCandidateLimit] = useState<number>(20);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,8 +42,7 @@ export function SessionGateControlPanel() {
           : data.config || {};
 
       setGatingEnabled(configMap.enable_session_gating === 'true');
-      setInterviewLimit(parseInt(configMap.free_tier_weekly_interview_limit, 10) || 5);
-      setLearnLimit(parseInt(configMap.free_tier_weekly_learn_limit, 10) || 5);
+      setCandidateLimit(parseInt(configMap.free_tier_weekly_interview_limit, 10) || 20);
       setError(null);
     } catch {
       setError('Failed to load config');
@@ -66,8 +64,7 @@ export function SessionGateControlPanel() {
         body: JSON.stringify({
           updates: [
             { key: 'enable_session_gating', value: String(gatingEnabled) },
-            { key: 'free_tier_weekly_interview_limit', value: String(interviewLimit) },
-            { key: 'free_tier_weekly_learn_limit', value: String(learnLimit) },
+            { key: 'free_tier_weekly_interview_limit', value: String(candidateLimit) },
           ],
         }),
       });
@@ -138,39 +135,25 @@ export function SessionGateControlPanel() {
           {/* Per-type limits */}
           <div className={`space-y-4 transition-opacity ${gatingEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
             <p className="text-xs text-zinc-500 border-t border-zinc-800 pt-3">
-              Free tier limits (per week) — Interview and Learn are independent
-            </p>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-zinc-300">Interview Sessions / week</p>
-                <p className="text-xs text-zinc-500">Practice interview sessions</p>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-2">
+                Candidate Weekly Session Limit
+                <span className="text-zinc-600 ml-1">(interviews + learn combined)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={candidateLimit}
+                  onChange={(e) => setCandidateLimit(Number(e.target.value))}
+                  className="w-24 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+                <span className="text-xs text-zinc-500">sessions / week</span>
               </div>
-              <input
-                type="number"
-                value={interviewLimit}
-                onChange={(e) => setInterviewLimit(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
-                min={1}
-                max={99}
-                className="w-20 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-indigo-500"
-                aria-label="Interview session limit per week"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-zinc-300">Learn Sessions / week</p>
-                <p className="text-xs text-zinc-500">Kai-Tutor concept sessions</p>
-              </div>
-              <input
-                type="number"
-                value={learnLimit}
-                onChange={(e) => setLearnLimit(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
-                min={1}
-                max={99}
-                className="w-20 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-indigo-500"
-                aria-label="Learn session limit per week"
-              />
+              <p className="text-xs text-zinc-600 mt-1.5">
+                Applies to all candidate accounts. Admin and employer accounts use a fixed 20/week. Owner accounts are always unlimited.
+              </p>
             </div>
           </div>
 

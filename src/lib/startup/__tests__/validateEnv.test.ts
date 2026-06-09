@@ -147,9 +147,7 @@ describe('validateEnv', () => {
         SUPABASE_JWT_SECRET: 'test-jwt-secret',
         INTERNAL_API_SECRET: 'test-internal-api-secret',
         ASSESSMENT_JWT_SECRET: 'test-assessment-jwt-secret-that-is-at-least-32-chars-long',
-        RAZORPAY_KEY_ID: 'test-razorpay-id',
-        RAZORPAY_KEY_SECRET: 'test-razorpay-secret-that-is-long-enough-now-123',
-        RAZORPAY_WEBHOOK_SECRET: 'test-razorpay-webhook',
+
         GEMINI_API_KEY: 'test-gemini-key',
         UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
         UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
@@ -181,10 +179,7 @@ describe('validateEnv', () => {
         expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: NEXT_PUBLIC_SUPABASE_URL');
     });
 
-    it('3. Missing RAZORPAY_KEY_SECRET (critical var) → throws critical error', () => {
-        delete process.env.RAZORPAY_KEY_SECRET;
-        expect(() => validateEnv()).toThrow('CRITICAL ENV VAR MISSING: RAZORPAY_KEY_SECRET');
-    });
+
 
     it('4. GOOGLE_API_KEY alias satisfies Gemini validation when GEMINI_API_KEY is absent', () => {
         delete process.env.GEMINI_API_KEY;

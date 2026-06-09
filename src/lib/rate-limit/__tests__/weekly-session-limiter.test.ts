@@ -138,17 +138,34 @@ describe('weekly-session-limiter', () => {
       expect(profilesSingle).not.toHaveBeenCalled();
     });
 
-    it('blocks free user when session count hits the limit', async () => {
+    it('gives admin and employer account types a fixed combined limit of 20', async () => {
+      profilesSingle.mockResolvedValueOnce({ data: { account_type: 'employer', rate_limit_override: null }, error: null });
       usageMaybeSingle.mockResolvedValueOnce({
-        data: { interview_sessions_used: 5, learn_sessions_used: 0 },
+        data: { interview_sessions_used: 15, learn_sessions_used: 4 },
+        error: null,
+      });
+
+      const result = await checkWeeklySessionLimitReadOnly('employer-1', 'interview');
+
+      expect(result.allowed).toBe(true);
+      expect(result.limit).toBe(20);
+      expect(result.sessionsUsed).toBe(19);
+      expect(result.sessionsRemaining).toBe(1);
+    });
+
+    it('counts interview and learn sessions in the same combined pool for candidates', async () => {
+      profilesSingle.mockResolvedValueOnce({ data: { account_type: 'candidate', rate_limit_override: null }, error: null });
+      vi.mocked(getSystemConfig).mockResolvedValueOnce('10');
+      usageMaybeSingle.mockResolvedValueOnce({
+        data: { interview_sessions_used: 5, learn_sessions_used: 6 },
         error: null,
       });
 
       const result = await checkWeeklySessionLimitReadOnly('user-1', 'interview');
 
       expect(result.allowed).toBe(false);
-      expect(result.sessionsUsed).toBe(5);
-      expect(result.limit).toBe(5);
+      expect(result.sessionsUsed).toBe(11);
+      expect(result.limit).toBe(10);
       expect(result.reason).toBe('limit_exceeded');
     });
 
@@ -163,7 +180,7 @@ describe('weekly-session-limiter', () => {
 
       expect(result.allowed).toBe(true);
       expect(result.limit).toBe(10);
-      expect(result.sessionsUsed).toBe(6);
+      expect(result.sessionsUsed).toBe(7);
     });
   });
 

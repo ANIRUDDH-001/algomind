@@ -81,33 +81,67 @@ export async function checkWeeklySessionLimitReadOnly(
 
   const coOwner = await isCoOwner(userId, profile?.email);
 
-  if (
-    profile?.account_type === 'admin' ||
+  // ─── 1. Owner / Co-owner → always unlimited ─────────────────────────
+  const isOwner =
     profile?.account_type === 'owner' ||
-    coOwner ||
-    profile?.rate_limit_override === 0
-  ) {
-    return { allowed: true, sessionsUsed: 0, limit: null, sessionsRemaining: null, reason: 'admin' };
+    coOwner ||          // co_owners table entry exists
+    profile?.rate_limit_override === 0; // explicit zero = unlimited override
+
+  if (isOwner) {
+    return {
+      allowed: true,
+      sessionsUsed: 0,
+      limit: null,          // null = unlimited
+      sessionsRemaining: null,
+      reason: 'admin' as const,
+    };
   }
 
-  // 4. Get per-type limit from system_config
-  const configKey = sessionType === 'interview'
-    ? SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_INTERVIEW_LIMIT
-    : SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_LEARN_LIMIT;
+  // ─── 2. Admin + Employer → fixed 20/week combined ────────────────────
+  const ADMIN_EMPLOYER_WEEKLY_LIMIT = 20;
+  const isPrivileged =
+    profile?.account_type === 'admin' ||
+    profile?.account_type === 'employer';
 
-  const rawLimit = await getSystemConfig(configKey);
-  const effectiveLimit = profile?.rate_limit_override ?? (parseInt(rawLimit, 10) || 5);
+  if (isPrivileged) {
+    const counts = await getWeeklySessionCount(userId);
+    const combinedUsed = counts.interview + counts.learn;
+    const remaining = Math.max(0, ADMIN_EMPLOYER_WEEKLY_LIMIT - combinedUsed);
+    return {
+      allowed: combinedUsed < ADMIN_EMPLOYER_WEEKLY_LIMIT,
+      sessionsUsed: combinedUsed,
+      limit: ADMIN_EMPLOYER_WEEKLY_LIMIT,
+      sessionsRemaining: remaining,
+      reason: combinedUsed < ADMIN_EMPLOYER_WEEKLY_LIMIT
+        ? ('within_limit' as const)
+        : ('limit_exceeded' as const),
+    };
+  }
 
-  // 5. Get current per-type usage
-  const sessionsUsed = await fetchWeeklyTypeCount(userId, sessionType);
-  const sessionsRemaining = Math.max(0, effectiveLimit - sessionsUsed);
+  // ─── 3. Candidate / regular user → configurable limit ────────────────
+  const rawLimit = await getSystemConfig(SYSTEM_CONFIG_KEYS.FREE_TIER_WEEKLY_INTERVIEW_LIMIT);
+  const configuredLimit = parseInt(rawLimit ?? '20', 10) || 20;
+  // Per-user override takes precedence over system config
+  // rate_limit_override = null → use system config
+  // rate_limit_override = 0   → unlimited (handled above as isOwner)
+  // rate_limit_override = N   → use N as the limit
+  const effectiveLimit =
+    profile?.rate_limit_override != null && profile.rate_limit_override > 0
+      ? profile.rate_limit_override
+      : configuredLimit;
+
+  const counts = await getWeeklySessionCount(userId);
+  const combinedUsed = counts.interview + counts.learn;
+  const remaining = Math.max(0, effectiveLimit - combinedUsed);
 
   return {
-    allowed: sessionsUsed < effectiveLimit,
-    sessionsUsed,
+    allowed: combinedUsed < effectiveLimit,
+    sessionsUsed: combinedUsed,
     limit: effectiveLimit,
-    sessionsRemaining,
-    reason: sessionsUsed < effectiveLimit ? 'within_limit' : 'limit_exceeded',
+    sessionsRemaining: remaining,
+    reason: combinedUsed < effectiveLimit
+      ? ('within_limit' as const)
+      : ('limit_exceeded' as const),
   };
 }
 

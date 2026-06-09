@@ -65,7 +65,7 @@ interface InterviewLayoutContextType {
     isLimitReached: boolean;
     limitReason: string | null;
     weeklyLimitStatus: any;
-    openUpgradeModal: (payload?: any) => void;
+
     isGuest: boolean;
     guestSession: any;
     showLoginModal: boolean;

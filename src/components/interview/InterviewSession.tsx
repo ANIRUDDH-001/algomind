@@ -475,17 +475,7 @@ export function InterviewSession({
             transcriptLoadedRef.current = true;
         }
     }, [readOnly, initialTranscript, loadTranscript]);
-    const openUpgradeModal = useCallback((payload?: { reason?: string; sessionsUsed?: number; limit?: number }) => {
-        if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('algomind:upgrade-modal', {
-            detail: {
-                source: 'interview',
-                reason: payload?.reason,
-                sessionsUsed: payload?.sessionsUsed,
-                limit: payload?.limit,
-            },
-        }));
-    }, []);
+
 
     const fetchWeeklyLimitStatus = useCallback(async (): Promise<WeeklyLimitStatus | null> => {
         if (isGuest || readOnly) return null;
@@ -530,12 +520,7 @@ export function InterviewSession({
         if (!isGuest && !readOnly && !isAssessment) {
             const latest = await fetchWeeklyLimitStatus();
             if (latest?.allowed === false) {
-                setError('Weekly session limit reached. Upgrade to continue.');
-                openUpgradeModal({
-                    reason: 'Weekly free session quota reached for interview mode.',
-                    sessionsUsed: latest.sessionsUsed,
-                    limit: typeof latest.limit === 'number' ? latest.limit : undefined,
-                });
+                setError('Weekly session limit reached. Please try again after the reset.');
                 return;
             }
         }
@@ -970,11 +955,6 @@ export function InterviewSession({
                                                     limit: weeklyLimitStatus.limit,
                                                     allowed: weeklyLimitStatus.allowed,
                                                 } : undefined}
-                                                onUpgrade={() => openUpgradeModal({
-                                                    reason: 'Upgrade to keep practicing with unlimited sessions.',
-                                                    sessionsUsed: weeklyLimitStatus?.sessionsUsed,
-                                                    limit: weeklyLimitStatus?.limit ?? undefined,
-                                                })}
                                             />
                                         ) : (
                                             <div className={cn(
@@ -1271,7 +1251,7 @@ export function InterviewSession({
             isLimitReached,
             limitReason,
             weeklyLimitStatus,
-            openUpgradeModal,
+
             isGuest,
             guestSession,
             showLoginModal,

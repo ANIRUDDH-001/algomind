@@ -99,9 +99,7 @@ vi.mock('@/hooks/useVAD', () => ({
   }),
 }));
 
-vi.mock('@/components/upgrade/UpgradeModal', () => ({
-  UpgradeModal: () => null,
-}));
+
 
 vi.mock('@/components/voice/ZoomTranscript', () => ({
   ZoomTranscript: () => <div data-testid="zoom-transcript" />,

@@ -43,6 +43,7 @@ vi.mock('lucide-react', () => ({
   BarChart3: () => <span>BarChart3</span>,
   Clock: () => <span>Clock</span>,
   LayoutDashboard: () => <span>LayoutDashboard</span>,
+  RefreshCw: () => <span>RefreshCw</span>,
 }));
 
 const mockConcepts = Array.from({ length: 20 }, (_, i) => ({
@@ -159,28 +160,8 @@ describe('ConceptPicker', () => {
       />
     );
 
-    expect(screen.getByText(/weekly limit reached: 5\/5 sessions used/i)).toBeDefined();
+    expect(screen.getByText(/weekly limit reached/i)).toBeDefined();
     fireEvent.click(screen.getAllByRole('button', { name: /concept 0/i })[0]);
     expect(pushMock).not.toHaveBeenCalledWith('/learn/concept-0');
-    expect(dispatchSpy).toHaveBeenCalled();
-  });
-
-  it('does dispatch upgrade event from warning banner action', async () => {
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
-
-    render(
-      <ConceptPicker
-        concepts={mockConcepts}
-        studentContext={{
-          hasCompletedDiagnostic: true,
-          nextRecommendedConcept: null,
-          weakestConcepts: [],
-          subscription: { sessionsUsedThisWeek: 5, sessionsRemaining: 0, weeklyLimit: 5 },
-        }}
-      />
-    );
-
-    fireEvent.click(screen.getAllByRole('button', { name: /upgrade for unlimited access/i })[0]);
-    expect(dispatchSpy).toHaveBeenCalled();
   });
 });

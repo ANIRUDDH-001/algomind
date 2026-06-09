@@ -27,7 +27,6 @@ interface InterviewLimitBarProps {
         limit: number;
         allowed: boolean;
     };
-    onUpgrade?: () => void;
 }
 
 function formatMs(ms: number): string {
@@ -45,7 +44,6 @@ export function InterviewLimitBar({
     isLimitReached,
     limitReason,
     weeklyUsage,
-    onUpgrade,
 }: InterviewLimitBarProps) {
     const [elapsed, setElapsed] = useState(0);
 
@@ -106,15 +104,6 @@ export function InterviewLimitBar({
                             style={{ width: `${weeklyPercent}%` }}
                         />
                     </div>
-                    {!weeklyUsage.allowed && onUpgrade && (
-                        <button
-                            type="button"
-                            onClick={onUpgrade}
-                            className="text-[10px] uppercase tracking-wide font-bold text-amber-300 hover:text-amber-200"
-                        >
-                            Upgrade
-                        </button>
-                    )}
                 </div>
             )}
         </div>
