@@ -63,8 +63,8 @@ export default async function RateLimitsPage() {
                     <h3 className="font-bold text-zinc-200">Users with Overrides</h3>
                 </div>
                 {overriddenUsers && overriddenUsers.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                    <div className="overflow-x-auto mobile-scroll-container">
+                        <table className="min-w-full text-sm text-left">
                             <thead className="text-xs text-zinc-500 uppercase bg-black/20">
                                 <tr>
                                     <th className="px-4 py-3">Email</th>

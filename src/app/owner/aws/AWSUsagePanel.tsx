@@ -148,8 +148,8 @@ export function AWSUsagePanel({ budgetLimit }: { budgetLimit: number }) {
             <Card className="p-5 bg-[var(--surface-1)] border-[var(--surface-edge)]">
                 <h3 className="font-bold text-zinc-300 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-zinc-500" /> Recent API Calls</h3>
                 {data?.recentLogs && data.recentLogs.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                    <div className="overflow-x-auto mobile-scroll-container">
+                        <table className="min-w-full text-sm">
                             <thead><tr className="text-zinc-500 text-xs uppercase border-b border-zinc-800"><th className="text-left py-2 px-2">Service</th><th className="text-left py-2 px-2">Operation</th><th className="text-right py-2 px-2">Cost</th><th className="text-right py-2 px-2">Time</th></tr></thead>
                             <tbody>
                                 {data.recentLogs.slice(0, 20).map((log: any) => (

@@ -411,8 +411,8 @@ export function OverviewClient({
                             <CheckCircle2 className="w-4 h-4" /> No rate limit events in last 24h ✅
                         </div>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border-[var(--surface-edge)]" style={{ border: '1px solid var(--surface-edge)' }}>
-                            <table className="w-full text-sm text-left">
+                        <div className="overflow-x-auto mobile-scroll-container rounded-xl border-[var(--surface-edge)]" style={{ border: '1px solid var(--surface-edge)' }}>
+                            <table className="min-w-full text-sm text-left">
                                 <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-600 border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
                                     <tr>
                                         <th className="py-3 px-4">Model ID</th>
@@ -582,8 +582,8 @@ export function OverviewClient({
                     {cronEvents.length === 0 ? (
                         <div className="text-zinc-500 text-sm">No recent cron runs logged.</div>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border-[var(--surface-edge)]" style={{ border: '1px solid var(--surface-edge)' }}>
-                            <table className="w-full text-sm text-left shadow-sm">
+                        <div className="overflow-x-auto mobile-scroll-container rounded-xl border-[var(--surface-edge)]" style={{ border: '1px solid var(--surface-edge)' }}>
+                            <table className="min-w-full text-sm text-left shadow-sm">
                                 <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-600 border-b border-[var(--surface-edge)]" style={{ background: 'var(--surface-2)' }}>
                                     <tr>
                                         <th className="py-3 px-4">Timestamp</th>

@@ -111,8 +111,8 @@ export function UsersClient({ initialUsers, initialQuery, title = "Platform User
                     {search ? 'No users found matching your search.' : 'No users found.'}
                 </Card>
             ) : (
-                <div className="bg-[var(--surface-0)] border border-[var(--surface-edge)] rounded-2xl overflow-x-auto">
-                    <table className="w-full text-sm text-left">
+                <div className="bg-[var(--surface-0)] border border-[var(--surface-edge)] rounded-2xl overflow-x-auto mobile-scroll-container">
+                    <table className="min-w-full text-sm text-left">
                         <thead className="bg-[var(--surface-1)] border-b border-[var(--surface-edge)] text-zinc-400">
                             <tr>
                                 <th className="px-6 py-4 font-bold whitespace-nowrap">User</th>

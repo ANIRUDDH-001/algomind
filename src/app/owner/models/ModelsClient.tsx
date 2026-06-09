@@ -266,8 +266,8 @@ export function ModelsTab() {
                 </div>
 
                 <div className="rounded-2xl overflow-hidden bg-[var(--surface-1)] border border-[var(--surface-edge)] shadow-2xl">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left table-fixed sm:table-auto">
+                    <div className="overflow-x-auto mobile-scroll-container">
+                        <table className="min-w-full text-sm text-left">
                             <thead className="text-[10px] uppercase font-black tracking-widest text-zinc-500 border-b border-[var(--surface-edge)] bg-[var(--surface-2)]">
                                 <tr>
                                     <th className="px-3 py-4 w-10 text-center">Status</th>
