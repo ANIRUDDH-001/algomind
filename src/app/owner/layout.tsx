@@ -18,7 +18,8 @@ import {
   Activity, 
   Bot,
   Menu,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react'
 
 const sidebarLinks = [
@@ -77,6 +78,15 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-neutral-700">
+          <Link
+            href="/dashboard"
+            onClick={() => setIsSidebarOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 mb-1 rounded-xl text-zinc-500 hover:text-zinc-200 hover:bg-neutral-800/70 active:bg-neutral-800 transition-all duration-150 text-sm font-medium border border-transparent hover:border-neutral-700/50"
+          >
+            <ArrowLeft size={15} strokeWidth={2.5} />
+            <span>Back to Dashboard</span>
+          </Link>
+          <div className="h-px bg-neutral-800/60 mx-3 mb-3" />
           {sidebarLinks.map((link, idx) => {
             if (link.group) {
               return (
@@ -133,20 +143,30 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 bg-neutral-950 flex flex-col min-h-screen" style={{ marginLeft: 0 }} id="main-content">
+      <div className="flex-1 min-w-0 min-h-0 bg-neutral-950 flex flex-col overflow-x-hidden" style={{ marginLeft: 0 }} id="main-content">
         <style dangerouslySetInnerHTML={{__html: `
           @media (min-width: 768px) {
             #main-content { margin-left: 16rem !important; }
           }
         `}} />
         <header className="h-16 flex items-center px-4 border-b border-neutral-800 md:hidden bg-neutral-900/50 backdrop-blur-md sticky top-0 z-30">
-          <button 
-            className="p-2 -ml-2 mr-2 text-neutral-400 hover:text-white rounded-md hover:bg-neutral-800 transition-colors"
+          <button
             onClick={() => setIsSidebarOpen(true)}
+            className="p-2 -ml-1 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
+            aria-label="Open menu"
           >
             <Menu size={24} />
           </button>
-          <span className="font-semibold text-neutral-100">Owner Dashboard</span>
+          <Link
+            href="/dashboard"
+            className="p-1.5 ml-1 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
+            aria-label="Back to Dashboard"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <span className="font-semibold text-neutral-100 ml-2 text-base tracking-tight">
+            Owner Dashboard
+          </span>
         </header>
 
         <div className="p-4 md:p-8 flex-1">
@@ -154,7 +174,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             {children}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
