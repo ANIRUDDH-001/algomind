@@ -22,7 +22,7 @@ export interface CacheEntry {
     /** Cached response text */
     response: string;
     /** Which model generated the response */
-    model: 'groq' | 'gemini' | 'bedrock';
+    model: 'groq' | 'gemini';
     /** When the entry was created (epoch ms) */
     timestamp: number;
     /** Number of cache hits */
@@ -196,7 +196,7 @@ export class ResponseCache {
     async set(
         query: string,
         response: string,
-        modelOrMetadata?: 'groq' | 'gemini' | 'bedrock' | Record<string, unknown>,
+        modelOrMetadata?: 'groq' | 'gemini' | Record<string, unknown>,
         latencyMs = 0
     ): Promise<void> {
         const isLegacySignature = typeof modelOrMetadata === 'string';
@@ -209,7 +209,7 @@ export class ResponseCache {
 
         const model = isLegacySignature
             ? modelOrMetadata
-            : ((metadata?.model as 'groq' | 'gemini' | 'bedrock' | undefined) ?? 'groq');
+            : ((metadata?.model as 'groq' | 'gemini' | undefined) ?? 'groq');
         const avgLatency = isLegacySignature
             ? latencyMs
             : Number(metadata?.avgLatency ?? 0);

@@ -532,7 +532,6 @@ export function ModelsTab() {
                             >
                                 <option value="groq">Groq</option>
                                 <option value="gemini">Gemini</option>
-                                <option value="bedrock">AWS Bedrock</option>
                             </select>
                         </div>
                         <div className="grid grid-cols-3 gap-3">

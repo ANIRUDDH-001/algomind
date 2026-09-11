@@ -15,7 +15,7 @@ export interface IntentClassification {
     complexity: IntentComplexity;
     category: IntentCategory;
     confidence: number;
-    suggestedModel: 'groq' | 'gemini' | 'bedrock';
+    suggestedModel: 'groq' | 'gemini';
     reasoning?: string;
 }
 
