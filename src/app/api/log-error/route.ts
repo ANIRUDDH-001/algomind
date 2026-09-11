@@ -69,11 +69,50 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 4. Parse and sanitise the body ─────────────────────────────────
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-        body = await req.json();
+        rawBody = await req.json();
     } catch {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const source = req.nextUrl.searchParams.get('source');
+    const isCsp = source === 'csp';
+
+    // Browsers POST CSP violation reports either as {"csp-report": {...}}
+    // (application/csp-report) or [{type:'csp-violation', body:{...}}]
+    // (application/reports+json). Normalise both into a loggable event so the
+    // report-uri endpoint records violations instead of rejecting them.
+    const extractCspReport = (raw: unknown): Record<string, unknown> | null => {
+        if (Array.isArray(raw)) {
+            const entry = raw.find(
+                (r) => r && typeof r === 'object' && ((r as Record<string, unknown>).type === 'csp-violation' || (r as Record<string, unknown>).body)
+            ) as Record<string, unknown> | undefined;
+            const rep = entry?.body ?? (raw[0] as Record<string, unknown> | undefined)?.body;
+            if (rep && typeof rep === 'object') return rep as Record<string, unknown>;
+        }
+        if (raw && typeof raw === 'object' && 'csp-report' in (raw as Record<string, unknown>)) {
+            const rep = (raw as Record<string, unknown>)['csp-report'];
+            if (rep && typeof rep === 'object') return rep as Record<string, unknown>;
+        }
+        return null;
+    };
+
+    let body: Record<string, unknown>;
+    if (isCsp) {
+        const c = extractCspReport(rawBody) ?? {};
+        const directive = c['violated-directive'] ?? c['effectiveDirective'] ?? c['effective-directive'] ?? 'unknown';
+        const blocked = c['blocked-uri'] ?? c['blockedURL'] ?? c['blocked-url'] ?? 'unknown';
+        body = {
+            message: `CSP violation: ${directive} blocked ${blocked}`,
+            url: c['document-uri'] ?? c['documentURL'] ?? '',
+            component: 'csp',
+            severity: 'warn',
+        };
+    } else {
+        body = rawBody && typeof rawBody === 'object' && !Array.isArray(rawBody)
+            ? (rawBody as Record<string, unknown>)
+            : {};
     }
 
     const sanitise = (val: unknown, maxLen: number): string | null => {
@@ -97,12 +136,13 @@ export async function POST(req: NextRequest) {
     const { error: insertError } = await serviceClient
         .from('system_events')
         .insert({
-            type: 'client_error',
-            correlation_id: correlationId,
+            type: isCsp ? 'csp_violation' : 'client_error',
             user_id: userId,
             severity: severity,
+            error_message: errorMessage,
             created_at: new Date().toISOString(),
             metadata: {
+                correlation_id: correlationId,
                 error_message: errorMessage,
                 error_stack: errorStack,
                 component_stack: componentStack,

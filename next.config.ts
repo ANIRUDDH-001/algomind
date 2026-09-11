@@ -94,11 +94,11 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://polly.*.amazonaws.com https://api.groq.com https://*.upstash.io https://api.anthropic.com https://generativelanguage.googleapis.com wss://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.groq.com https://*.upstash.io https://api.anthropic.com https://generativelanguage.googleapis.com wss://*.supabase.co",
               "font-src 'self' https://fonts.gstatic.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https:",
-              "media-src 'self' blob: https://polly.*.amazonaws.com",
+              "media-src 'self' blob:",
               "worker-src 'self' blob:",
               "frame-ancestors 'none'",
               "report-uri /api/log-error?source=csp",
