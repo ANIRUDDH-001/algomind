@@ -192,14 +192,16 @@ export function useVAD(opts: UseVADOptions) {
         // can transcribe the captured audio (fixes the mid-utterance discard bug).
         if (managerRef.current.state === VADState.LISTENING) {
             pendingStopRef.current = true;
-            // Safety fallback: force-stop after 1s if onSpeechEnd never fires
+            // Safety fallback: force-stop only if onSpeechEnd never fires. This MUST be longer
+            // than the VAD redemption/silence window (~1.5–1.8s) — otherwise it fires mid-segment
+            // and discards the utterance before onSpeechEnd can deliver the audio to Whisper.
             if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
             stopFallbackTimerRef.current = setTimeout(async () => {
                 if (pendingStopRef.current) {
                     pendingStopRef.current = false;
                     try { await managerRef.current?.stop(); } catch { /* ignore */ }
                 }
-            }, 1000);
+            }, 3000);
         } else {
             try { await managerRef.current.stop(); } catch { /* ignore */ }
         }

@@ -212,6 +212,13 @@ class VADManager implements VADManagerInterface {
                 baseAssetPath: this._config.baseAssetPath,
                 onnxWASMBasePath: this._config.onnxWASMBasePath,
                 startOnLoad: false,
+                // Cancel the AI's own TTS playback picked up by the mic (speaker users),
+                // preventing the self-echo → false barge-in → AI-transcribes-itself loop.
+                additionalAudioConstraints: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
 
                 onSpeechStart: () => {
                     this._onSpeechStartCbs.forEach((cb) => {
