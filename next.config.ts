@@ -93,10 +93,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.groq.com https://*.upstash.io https://api.anthropic.com https://generativelanguage.googleapis.com wss://*.supabase.co",
-              "font-src 'self' https://fonts.gstatic.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Monaco code editor loads its scripts/styles/workers from the jsdelivr CDN.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net",
+              "connect-src 'self' data: https://*.supabase.co https://*.supabase.in https://api.groq.com https://*.upstash.io https://api.anthropic.com https://generativelanguage.googleapis.com https://cdn.jsdelivr.net wss://*.supabase.co",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https:",
               "media-src 'self' blob:",
               "worker-src 'self' blob:",
