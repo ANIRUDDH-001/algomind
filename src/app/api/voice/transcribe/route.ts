@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
         const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
 
         for (const model of models) {
+            const _t0 = Date.now();
             try {
                 const groqForm = new FormData();
                 groqForm.append('file', audioFile);
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
                     return NextResponse.json({ text: '', model, confidence, duration: data.duration });
                 }
 
+                console.info(`[PIPE][STT-server] ${model} ok in ${Date.now() - _t0}ms conf=${confidence?.toFixed(2) ?? 'n/a'} audioDur=${data.duration}s text="${(data.text || '').trim().slice(0, 80)}"`);
                 return NextResponse.json({
                     text: data.text?.trim() || '',
                     model,

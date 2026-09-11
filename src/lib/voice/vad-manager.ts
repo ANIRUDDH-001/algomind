@@ -36,11 +36,11 @@ import { getVoiceConfig } from '@/config/voice-config';
 // ---------------------------------------------------------------------------
 
 const DEFAULT_CONFIG: VADConfig = {
-    positiveSpeechThreshold: 0.7,   // Medium-high: ignores most background noise, catches clear speech
-    negativeSpeechThreshold: 0.25,  // Stay in speech mode until clearly stopped (lower = more tolerant of pauses)
-    redemptionMs: 1500,             // Wait 1.5s after speech dips before ending — captures full sentences
-    preSpeechPadMs: 300,            // Include 300ms before speech start for cleaner Whisper context
-    minSpeechMs: 1200,              // Ignore short bursts (<1.2s) — reduces Whisper hallucination on noise/coughs
+    positiveSpeechThreshold: 0.6,   // catch the start of speech sooner (reduces first-word clipping)
+    negativeSpeechThreshold: 0.22,  // Stay in speech mode until clearly stopped (lower = more tolerant of pauses)
+    redemptionMs: 1600,             // Wait ~1.6s after speech dips before ending — captures pauses without lag
+    preSpeechPadMs: 600,            // Include 600ms before speech start so the first word isn't clipped
+    minSpeechMs: 600,               // aligned with voice-config vadMinSpeechMs
     model: 'legacy',
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',
@@ -221,6 +221,7 @@ class VADManager implements VADManagerInterface {
                 },
 
                 onSpeechStart: () => {
+                    console.info('[PIPE][VAD] mic speech-start detected');
                     this._onSpeechStartCbs.forEach((cb) => {
                         try { cb(); } catch (err) {
                             console.error('[VADManager] onSpeechStart callback error:', err);
@@ -256,11 +257,12 @@ class VADManager implements VADManagerInterface {
             });
 
             this._state = VADState.PAUSED;
+            console.info('[PIPE][VAD] init OK — mic/VAD ready (echoCancellation on)');
             console.log('[VADManager] MicVAD ready ✓');
         } catch (err) {
             this._state = VADState.ERROR;
             this._error = err instanceof Error ? err.message : 'Unknown error during VAD initialisation';
-            console.error('[VADManager] Init failed:', err);
+            console.error('[PIPE][VAD] init FAILED — mic/VAD unavailable (falling back to push-to-talk/browser STT):', this._error);
             throw err;
         }
     }

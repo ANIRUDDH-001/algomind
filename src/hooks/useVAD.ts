@@ -201,7 +201,7 @@ export function useVAD(opts: UseVADOptions) {
                     pendingStopRef.current = false;
                     try { await managerRef.current?.stop(); } catch { /* ignore */ }
                 }
-            }, 3000);
+            }, 3500);
         } else {
             try { await managerRef.current.stop(); } catch { /* ignore */ }
         }

@@ -66,14 +66,16 @@ const DEFAULTS: VoiceConfigValues = {
     debugMode: false,
     eventStreamMaxSize: 200,
 
-    vadSilenceWindowMs: 1800,
+    // Balance: long enough to tolerate mid-sentence pauses, short enough not to feel laggy.
+    vadSilenceWindowMs: 1900,
     sttRestartDelayBrowserTts: 300,
     sttRestartDelayAudioElement: 200,
 
-    vadPositiveSpeechThreshold: 0.7,
-    vadNegativeSpeechThreshold: 0.25,
-    vadRedemptionMs: 1500,
-    vadMinSpeechMs: 800,
+    vadPositiveSpeechThreshold: 0.6,   // catch the start of speech sooner (less beginning clip)
+    vadNegativeSpeechThreshold: 0.22,
+    vadRedemptionMs: 1600,
+    vadMinSpeechMs: 600,               // don't drop short-but-complete answers
+    // preSpeechPadMs is set in vad-manager (increased to reduce first-word clipping).
 };
 
 // ---------------------------------------------------------------------------

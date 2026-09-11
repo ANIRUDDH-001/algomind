@@ -88,7 +88,7 @@ describe('VADManager', () => {
         // verify override
         expect(createdVADOptions.positiveSpeechThreshold).toBe(0.95);
         // verify default kept
-        expect(createdVADOptions.negativeSpeechThreshold).toBe(0.25);
+        expect(createdVADOptions.negativeSpeechThreshold).toBe(0.22);
         expect(vad.state).toBe(VADState.PAUSED);
     });
 

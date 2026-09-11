@@ -276,11 +276,16 @@ export function useSTT(opts: UseSTTOptions) {
         }
 
         try {
+            const audioMs = Math.round((audio.length / 16000) * 1000);
             const wav = float32ToWav(audio, 16000);
             const form = new FormData();
             form.append('audio', new Blob([wav], { type: 'audio/wav' }), 'audio.wav');
             setIsTranscribing(true);
+            const _t0 = performance.now();
+            console.info(`[PIPE][STT] mic captured ${audioMs}ms of audio (${resolvedProvider}) → transcribing…`);
             const { text } = await transcribeVoiceAudio(form);
+            const _ms = Math.round(performance.now() - _t0);
+            console.info(`[PIPE][STT] transcribed in ${_ms}ms → "${(text || '').slice(0, 120)}" (len=${(text || '').length})${!text?.trim() ? ' ⚠️ EMPTY — nothing captured' : ''}`);
             if (!text?.trim()) {
                 // A4: Notify caller so the UI can show "Didn't catch that" feedback.
                 optsRef.current.onEmpty?.();
