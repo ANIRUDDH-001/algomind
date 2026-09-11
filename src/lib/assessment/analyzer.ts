@@ -237,7 +237,7 @@ export class CognitiveAnalyzer {
                     nextSteps: parsedData.nextSteps || ["Review the session manually."],
                     knowledgeGaps: parsedData.knowledgeGaps || [],
                     codeQuality: parsedData.codeQuality || null,
-                    modelUsed: rawResponse.model ?? 'gemini-2.5-flash',
+                    modelUsed: rawResponse.model ?? 'unknown',
                     validationPassDone: true,
                     hireDecision,
                     isLimitedEvidence,
@@ -369,7 +369,7 @@ export class CognitiveAnalyzer {
             throw new Error(`AI Analysis failed: ${result.error}`);
         }
 
-        return { text: result.response, model: result.modelUsed || 'gemini-2.5-flash' };
+        return { text: result.response, model: result.modelUsed || 'unknown' };
     }
 
 

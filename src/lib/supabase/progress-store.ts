@@ -84,7 +84,7 @@ export class SupabaseProgressStore {
                     skill_evidence: assessment?.skillEvidence || {},
                     overall_feedback: assessment?.overallFeedback || '',
                     next_steps: assessment?.nextSteps || [],
-                    model_used: assessment?.modelUsed || 'gemini-2.5-flash',
+                    model_used: assessment?.modelUsed || 'unknown',
                     confidence: assessment?.confidence || 0.8,
                 })
                 .select()

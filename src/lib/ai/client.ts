@@ -26,6 +26,46 @@ import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
 import { checkTokenBudget, recordTokenUsage } from './cost-guard';
 
+// --- API key pools (round-robin) ------------------------------------------
+// Free-tier providers rate-limit per API key. Supplying several keys via the
+// *_API_KEYS comma-list env spreads load across them (each key has its own
+// RPM/RPD budget), multiplying throughput. Single-key setups keep working via
+// the legacy *_API_KEY fallback. Rotation is per call/attempt so consecutive
+// requests hit different keys, and a rate-limited key is naturally skipped past.
+function parseKeyPool(...envValues: (string | undefined)[]): string[] {
+    const keys: string[] = [];
+    for (const v of envValues) {
+        if (!v) continue;
+        for (const raw of v.split(',')) {
+            const k = raw.trim();
+            if (k && !keys.includes(k)) keys.push(k);
+        }
+    }
+    return keys;
+}
+let __geminiKeyIdx = 0;
+let __groqKeyIdx = 0;
+function geminiKeyPool(): string[] {
+    return parseKeyPool(process.env.GEMINI_API_KEYS, process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY);
+}
+function groqKeyPool(): string[] {
+    return parseKeyPool(process.env.GROQ_API_KEYS, process.env.GROQ_API_KEY);
+}
+function nextGeminiKey(): string | undefined {
+    const pool = geminiKeyPool();
+    if (pool.length === 0) return undefined;
+    const key = pool[__geminiKeyIdx % pool.length];
+    __geminiKeyIdx = (__geminiKeyIdx + 1) % pool.length;
+    return key;
+}
+function nextGroqKey(): string | undefined {
+    const pool = groqKeyPool();
+    if (pool.length === 0) return undefined;
+    const key = pool[__groqKeyIdx % pool.length];
+    __groqKeyIdx = (__groqKeyIdx + 1) % pool.length;
+    return key;
+}
+
 // Types
 export interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -72,11 +112,13 @@ export class UnifiedAIClient {
     }
 
     private validateConfig() {
-        if (!process.env.GROQ_API_KEY) {
+        if (groqKeyPool().length === 0) {
             console.warn("Using UnifiedAIClient without GROQ_API_KEY");
         }
-        if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
+        if (geminiKeyPool().length === 0) {
             console.warn("Using UnifiedAIClient without GEMINI_API_KEY or GOOGLE_API_KEY");
+        } else if (geminiKeyPool().length > 1) {
+            console.log(`[AI] Gemini key pool active: ${geminiKeyPool().length} keys (round-robin)`);
         }
     }
 
@@ -367,7 +409,8 @@ export class UnifiedAIClient {
         messages: Message[],
         options: CompletionOptions
     ) {
-        if (!process.env.GROQ_API_KEY) return { success: false, error: "Missing GROQ_API_KEY" };
+        const groqKey = nextGroqKey();
+        if (!groqKey) return { success: false, error: "Missing GROQ_API_KEY" };
 
         const systemPrompt = options.systemPrompt;
         const apiMessages = [...messages];
@@ -391,7 +434,7 @@ export class UnifiedAIClient {
         const response = await fetch(this.GROQ_API_URL, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                "Authorization": `Bearer ${groqKey}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(body),
@@ -419,7 +462,7 @@ export class UnifiedAIClient {
         messages: Message[],
         options: CompletionOptions
     ) {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        const apiKey = nextGeminiKey();
         if (!apiKey) return { success: false, error: "Missing GEMINI_API_KEY or GOOGLE_API_KEY" };
 
         const url = `${this.GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`;
@@ -863,7 +906,7 @@ export class UnifiedAIClient {
         messages: Message[],
         options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
     ): AsyncGenerator<string> {
-        if (!process.env.GROQ_API_KEY) throw new Error('Missing GROQ_API_KEY');
+        if (groqKeyPool().length === 0) throw new Error('Missing GROQ_API_KEY');
 
         const models = await getActiveModels();
         const groqModels = models.filter(m => m.provider === 'groq');
@@ -884,7 +927,7 @@ export class UnifiedAIClient {
                 const r = await fetch(this.GROQ_API_URL, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                        'Authorization': `Bearer ${nextGroqKey()}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
@@ -949,12 +992,11 @@ export class UnifiedAIClient {
         messages: Message[],
         options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
     ): AsyncGenerator<string> {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-        if (!apiKey) throw new Error('Missing GEMINI_API_KEY');
+        if (geminiKeyPool().length === 0) throw new Error('Missing GEMINI_API_KEY');
 
         const models = await getActiveModels();
         const geminiModels = models.filter(m => m.provider === 'gemini');
-        const candidates = geminiModels.length ? geminiModels.map(m => m.id) : ['gemini-2.5-flash'];
+        const candidates = geminiModels.length ? geminiModels.map(m => m.id) : ['gemini-3.5-flash'];
 
         const contents = messages
             .filter(m => m.role !== 'system')
@@ -973,6 +1015,7 @@ export class UnifiedAIClient {
         let lastErr = '';
         for (const modelId of candidates) {
             try {
+                const apiKey = nextGeminiKey()!;
                 const url = `${this.GEMINI_API_BASE}/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
                 const r = await fetch(url, {
                     method: 'POST',
@@ -1090,7 +1133,7 @@ export class UnifiedAIClient {
         // Ping the first ACTIVE model of each provider (derived from config, never a
         // hardcoded/decommissioned id). Fallbacks are provider-verified live IDs.
         const GROQ_PING_MODEL = models.find(m => m.provider === 'groq')?.id ?? 'openai/gpt-oss-120b';
-        const GEMINI_PING_MODEL = models.find(m => m.provider === 'gemini')?.id ?? 'gemini-2.5-flash';
+        const GEMINI_PING_MODEL = models.find(m => m.provider === 'gemini')?.id ?? 'gemini-3.5-flash';
 
         // 1. Check Groq Availability (Representative)
         let groqResult: { available: boolean; latency: number; error?: string } = { available: false, latency: 0, error: "Provider Unreachable" };
@@ -1230,7 +1273,7 @@ export class UnifiedAIClient {
         const textArray = Array.isArray(texts) ? texts : [texts];
 
         // Gemini is the sole embeddings provider (AWS Bedrock/Titan removed).
-        const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        const geminiKey = nextGeminiKey();
         if (geminiKey) {
             try {
                 const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, geminiKey)));

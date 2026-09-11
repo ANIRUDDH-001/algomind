@@ -147,15 +147,15 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Gemini 3.5 Flash (Stable)"
     },
     {
-        id: "gemini-2.5-flash",
+        id: "gemini-3.1-flash-lite",
         provider: 'gemini',
-        tier: 12,
-        rpm: 5,
-        rpd: 20,
+        tier: 10,
+        rpm: 15,
+        rpd: 500,
         tpm: 250000,
-        contextWindow: 1000000,
+        contextWindow: 1048576,
         supportsEmbeddings: false,
-        description: "Gemini 2.5 Flash"
+        description: "Gemini 3.1 Flash Lite — 15 RPM / 500 RPD (best free-tier budget)"
     },
     {
         id: "gemini-2.5-flash-lite",
