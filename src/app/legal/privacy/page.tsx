@@ -48,8 +48,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-bold text-white mb-3">3. Data Storage</h2>
           <p>
-            Your data is stored on Supabase (PostgreSQL database hosted on AWS). Interview audio
-            is processed in real-time via Groq and AWS Polly — audio is not permanently stored.
+            Your data is stored on Supabase (PostgreSQL database). Interview audio
+            is processed in real-time via Groq and your browser's speech engine — audio is not permanently stored.
             Transcripts are stored in your session history.
           </p>
         </section>
@@ -57,8 +57,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-bold text-white mb-3">4. Data Sharing</h2>
           <p>
-            We do not sell your data. We share data only with: AI providers (Groq, Google Gemini,
-            AWS Bedrock) for generating interview responses and assessments — these providers do not
+            We do not sell your data. We share data only with: AI providers (Groq, Google Gemini)
+            for generating interview responses and assessments — these providers do not
             retain your data for training purposes under our agreements.
           </p>
           <p className="mt-2">
