@@ -101,6 +101,11 @@ export default function HomePage() {
   const loading = authLoading || isRedirecting;
   const router = useRouter();
 
+  // Guard auth-dependent UI so the first client render matches the server render
+  // (useAuth resolves the session on the client only → avoids hydration mismatches).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // Only show onboarding animation for logged-out first-time visitors.
   // Never block logged-in users with it — they should see the home page directly.
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -263,7 +268,7 @@ export default function HomePage() {
               size="lg"
               className="w-full sm:w-auto btn-primary h-14 px-8 text-base shadow-[0_0_40px_rgba(99,102,241,0.3)] rounded-2xl min-w-[200px]"
             >
-              {loading ? (
+              {(!mounted || loading) ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
@@ -272,7 +277,7 @@ export default function HomePage() {
                 </>
               )}
             </Button>
-            {user && (
+            {mounted && user && (
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('start-tour'))}
                 className="w-full sm:w-auto h-14 px-8 text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
@@ -403,7 +408,6 @@ export default function HomePage() {
                 </p>
                 {/* Visual Mockup - Logos */}
                 <div className="mt-auto h-16 lg:h-24 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-wrap gap-2 items-center justify-center group-hover:border-emerald-500/40 transition-colors shadow-inner overflow-hidden">
-                  // @ts-expect-error -- automated unused local suppression
                   {['Warm-up', 'Practice', 'Crunch', 'Sprint'].map((co) => (
                     <motion.div
                       key={co}
@@ -582,7 +586,7 @@ export default function HomePage() {
                     size="lg"
                     className="btn-primary h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl w-full sm:w-auto hover:scale-105 active:scale-95 transition-transform"
                   >
-                    {loading ? (
+                    {(!mounted || loading) ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (user ? 'Go to Dashboard' : guestModeEnabled ? 'Get Started Free' : 'Sign In to Start')}
                   </Button>

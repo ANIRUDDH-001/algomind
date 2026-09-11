@@ -44,6 +44,11 @@ export function Navbar() {
     const [isOwner, setIsOwner] = useState(false);
     const bottomNavRef = useRef<HTMLElement>(null);
 
+    // Auth state resolves on the client only; gate auth-dependent nav on `mounted`
+    // so the first client render matches the server render (avoids hydration mismatch).
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
     useLearnKeyboardShortcuts();
 
     useEffect(() => {
@@ -163,7 +168,7 @@ export function Navbar() {
                             <div className="hidden md:flex items-center gap-6">
                                 {[
                                     { href: '/', label: 'Home', authOnly: false },
-                                    ...(user ? [
+                                    ...((mounted && user) ? [
                                         { href: '/practice', label: 'Practice', authOnly: true },
                                         { href: '/dashboard', label: 'Dashboard', authOnly: true },
                                         { href: '/learn', label: 'Learn', authOnly: true, isNew: true },
@@ -204,7 +209,7 @@ export function Navbar() {
 
                             {/* User Menu */}
                             <div className="flex items-center gap-4">
-                                {loading ? (
+                                {(!mounted || loading) ? (
                                     <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />
                                 ) : user ? (
                                     <DropdownMenu>
@@ -358,7 +363,7 @@ export function Navbar() {
                     style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="glass border-t border-white/5 px-2 py-1">
                         <div className="flex items-center justify-around">
-                            {(user
+                            {((mounted && user)
                                 ? (accountType === 'employer' && process.env.NEXT_PUBLIC_ENABLE_EMPLOYER_TIER === 'true'
                                     ? [
                                         { href: '/', label: 'Home', icon: Home },

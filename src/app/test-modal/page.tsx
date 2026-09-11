@@ -1,10 +1,13 @@
 'use client';
-// @ts-expect-error -- automated unused local suppression
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { notFound } from 'next/navigation';
 import { ResponsiveModal } from '@/components/ui/responsive-modal';
 
+// Internal E2E harness for modal/swipe tests (mobile-modals, swipe-gestures specs).
+// Not exposed in production builds.
 export default function TestModalPage() {
     const [open, setOpen] = useState(false);
+    if (process.env.NODE_ENV === 'production') notFound();
 
     return (
         <div className="p-10">

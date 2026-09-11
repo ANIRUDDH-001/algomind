@@ -14,7 +14,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Diagnostic | AlgoMind',
+  title: 'Diagnostic',
   description: 'Quick assessment to calibrate your AlgoMind profile',
 };
 
