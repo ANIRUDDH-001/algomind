@@ -239,10 +239,7 @@ describe('Chat API (/api/chat)', () => {
         }));
     });
 
-    it('11. Dispatches Inngest event and returns JSON when Accept: text/event-stream header set', async () => {
-        const { inngest } = await import('@/lib/inngest/client');
-        vi.mocked(inngest.send).mockClear();
-
+    it('11. Streams the AI response as SSE when Accept: text/event-stream header set', async () => {
         const req = new NextRequest('http://localhost:3000/api/chat', {
             method: 'POST',
             headers: {
@@ -255,18 +252,14 @@ describe('Chat API (/api/chat)', () => {
         const res = await POST(req);
 
         expect(res.status).toBe(200);
-        const data = await res.json();
-        expect(data.success).toBe(true);
+        expect(res.headers.get('Content-Type')).toContain('text/event-stream');
 
-        expect(inngest.send).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: 'interview/chat',
-                data: expect.objectContaining({
-                    messages: expect.any(Array),
-                    sessionId: 'default-session'
-                })
-            })
-        );
+        // The body carries SSE frames the interview client parses: data: {delta} ... data: {done,fullText}
+        const body = await res.text();
+        expect(body).toContain('data:');
+        expect(body).toContain('"delta":"AI response text"');
+        expect(body).toContain('"done":true');
+        expect(mockAIClient.generateStream).toHaveBeenCalled();
     });
 
     it('14. Returns JSON when no stream Accept header', async () => {

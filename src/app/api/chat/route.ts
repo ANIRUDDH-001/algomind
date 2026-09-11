@@ -27,7 +27,6 @@ import { redisGet, redisSet } from '@/lib/upstash/client';
 import { buildStudentContext, buildStudentContextPromptBlock } from '@/lib/kai-context';
 import type { StudentContext } from '@/lib/kai-context';
 import { buildPromptVersionHeader, generateSystemPromptLegacy, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
-import { inngest } from '@/lib/inngest/client';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId, withCorrelationIdHeaders } from '@/lib/tracing/correlation';
 
@@ -254,71 +253,56 @@ export async function POST(req: NextRequest) {
 
 
         // --- Real SSE Streaming branch ---
-        // When the client sends `Accept: text/event-stream` we fire the Inngest background job
+        // When the client sends `Accept: text/event-stream` we stream the AI response as SSE.
         // which will stream the AI response to the Supabase Realtime channel.
         const acceptsStream = req.headers.get('Accept') === 'text/event-stream';
 
         if (acceptsStream) {
-            try {
-                await inngest.send({
-                    name: 'interview/chat',
-                    data: {
-                        sessionId: effectiveSessionId ?? 'default-session',
-                        messages,
-                        systemPrompt: enhancedSystemPrompt,
-                        userId: user?.id,
-                        correlationId,
-                        guestMode: guestMode ?? false
-                    }
-                });
-            } catch (err) {
-                // Fallback: Run the streaming logic locally if Inngest is down
-                const fallbackStream = async () => {
-                    const { getAIClient } = await import('@/lib/ai/client');
-                    const { getServiceClient } = await import('@/lib/supabase/service');
-                    const { incrementUserUsage } = await import('@/lib/rate-limit/user-rate-limiter');
-                    const supabase = getServiceClient();
-                    const client = getAIClient();
-                    const channel = supabase.channel(`interview_${effectiveSessionId ?? 'default-session'}`);
-                    
+            // Stream the AI response as SSE directly in the response body. The interview client
+            // (useInterview.callChatApi) reads `data: {delta}` / `data: {done,fullText}` frames
+            // from response.body. (Previously this dispatched an Inngest job to a Supabase Realtime
+            // channel the client never subscribed to, so the greeting never arrived.)
+            const streamClient = getAIClient();
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                async start(controller) {
+                    const enqueue = (obj: object) =>
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+                    let fullText = '';
                     try {
-                        await new Promise<void>((resolve, reject) => {
-                            const timeout = setTimeout(() => reject(new Error("Timeout waiting for Supabase Realtime")), 5000);
-                            channel.subscribe((status) => {
-                                if (status === 'SUBSCRIBED') {
-                                    clearTimeout(timeout);
-                                    resolve();
-                                }
-                            });
-                        });
-                        let fullText = '';
-                        for await (const chunk of client.generateStream(messages, {
+                        for await (const chunk of streamClient.generateStream(messages, {
                             systemPrompt: enhancedSystemPrompt,
                             maxTokens: 4096,
+                            signal: req.signal,
                             correlationId,
                             userId: user?.id,
                             sessionId: effectiveSessionId ?? undefined,
-                            preferredModel: 'gemini',
+                            // Groq-first for low first-token latency in the live voice interview
+                            // (falls back to Gemini automatically if Groq fails before any token).
+                            preferredModel: 'auto',
                         })) {
+                            if (req.signal.aborted) break;
                             fullText += chunk;
-                            await channel.send({ type: 'broadcast', event: 'chat_chunk', payload: { delta: chunk } });
+                            enqueue({ delta: chunk });
                         }
-                        await channel.send({ type: 'broadcast', event: 'chat_done', payload: { done: true, fullText: fullText.trim(), modelUsed: 'auto', provider: 'auto' } });
+                        enqueue({ done: true, fullText: fullText.trim(), modelUsed: 'auto', provider: 'gemini' });
                         if (user?.id && !guestMode) {
-                            await incrementUserUsage(user.id, supabase);
+                            incrementUserUsage(user.id, supabase).catch(() => { });
                         }
                     } catch (streamErr) {
-                        await channel.send({ type: 'broadcast', event: 'chat_chunk', payload: { error: String(streamErr), done: true } });
+                        enqueue({ error: streamErr instanceof Error ? streamErr.message : String(streamErr), done: true });
                     } finally {
-                        await supabase.removeChannel(channel);
+                        controller.close();
                     }
-                };
-                // @ts-expect-error -- automated unused local suppression
-                fallbackStream().catch(e => {});
-            }
+                },
+            });
 
-            return NextResponse.json({ success: true, message: 'Event dispatched to background job' }, {
-                headers: withCorrelationIdHeaders(undefined, correlationId),
+            return new NextResponse(stream, {
+                headers: withCorrelationIdHeaders({
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache, no-transform',
+                    'Connection': 'keep-alive',
+                }, correlationId),
             });
         }
 

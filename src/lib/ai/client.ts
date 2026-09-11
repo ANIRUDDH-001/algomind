@@ -746,14 +746,25 @@ export class UnifiedAIClient {
     ): AsyncGenerator<string> {
         const preferredModel = options.preferredModel ?? 'groq';
 
-        // 'auto' and 'groq' both stream via Groq (with connection-level failover);
-        // Gemini is used only when explicitly forced.
-        const provider: 'groq' | 'gemini' = preferredModel === 'gemini' ? 'gemini' : 'groq';
-
-        if (provider === 'gemini') {
+        // 'gemini' is forced only when explicitly requested. 'auto'/'groq' stream via Groq
+        // (fast, with connection-level failover across Groq models) and fall back to Gemini
+        // ONLY if the entire Groq stage fails before emitting any token — so a Groq outage
+        // still yields a response, without ever duplicating a partially-streamed reply.
+        if (preferredModel === 'gemini') {
             yield* this.streamGemini(messages, options);
-        } else {
-            yield* this.streamGroq(messages, options);
+            return;
+        }
+
+        let emitted = false;
+        try {
+            for await (const chunk of this.streamGroq(messages, options)) {
+                emitted = true;
+                yield chunk;
+            }
+        } catch (groqErr) {
+            if (emitted) throw groqErr; // already streamed part of a reply — don't duplicate
+            console.warn('[UnifiedAIClient] Groq streaming failed before any token; falling back to Gemini:', groqErr instanceof Error ? groqErr.message : groqErr);
+            yield* this.streamGemini(messages, options);
         }
     }
 

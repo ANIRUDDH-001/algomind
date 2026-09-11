@@ -471,6 +471,8 @@ export function useInterview(options: UseInterviewOptions) {
         streamingMessageId?: string,
     ): Promise<string> => {
         const endpoint = optionsRef.current.apiEndpoint || '/api/chat';
+        const __pipeT0 = performance.now();
+        console.info(`[PIPE][CHAT] request → ${endpoint} (history=${conversationHistoryRef.current.length})`);
         const requestBody = JSON.stringify({
             messages: [
                 ...conversationHistoryRef.current.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
@@ -544,6 +546,9 @@ export function useInterview(options: UseInterviewOptions) {
                                 throw new Error(parsed.error);
                             }
                             if (typeof parsed.delta === 'string' && parsed.delta.length > 0) {
+                                if (fullText.length === 0) {
+                                    console.info(`[PIPE][CHAT] first token in ${Math.round(performance.now() - __pipeT0)}ms`);
+                                }
                                 fullText += parsed.delta;
                                 if (streamingMessageId) {
                                     const now = Date.now();
@@ -565,6 +570,7 @@ export function useInterview(options: UseInterviewOptions) {
                     try { reader.releaseLock(); } catch { /* noop */ }
                 }
 
+                console.info(`[PIPE][CHAT] done in ${Math.round(performance.now() - __pipeT0)}ms (len=${fullText.length})`);
                 return fullText;
             }
 
