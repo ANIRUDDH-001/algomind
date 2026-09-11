@@ -57,6 +57,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 
 vi.mock('lucide-react', () => ({
   LogOut: () => e('span'),
+  LogIn: () => e('span'),
   Settings: () => e('span'),
   BarChart: () => e('span'),
   History: () => e('span'),
