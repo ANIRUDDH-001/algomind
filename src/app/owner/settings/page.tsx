@@ -17,7 +17,7 @@ export default async function SettingsPage() {
     const supabase = await createServerSupabase();
     
     const [{ data: flags }, { data: configs }] = await Promise.all([
-        supabase.from('system_flags').select('*'),
+        supabase.from('global_feature_flags').select('*'),
         supabase.from('system_config').select('*')
     ]);
 

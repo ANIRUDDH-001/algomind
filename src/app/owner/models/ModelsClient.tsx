@@ -517,7 +517,7 @@ export function ModelsTab() {
                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Model ID</label>
                             <input 
                                 type="text" 
-                                placeholder="e.g. llama-3.3-70b-versatile" 
+                                placeholder="e.g. openai/gpt-oss-120b" 
                                 className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" 
                                 value={newModel.modelId} 
                                 onChange={e => setNewModel(p => ({...p, modelId: e.target.value}))}

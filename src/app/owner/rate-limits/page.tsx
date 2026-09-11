@@ -10,8 +10,8 @@ export default async function RateLimitsPage() {
     
     // Fetch users with rate limit override
     const { data: overriddenUsers } = await supabase
-        .from('users')
-        .select('id, email, rate_limit_override, role')
+        .from('profiles')
+        .select('id, email, rate_limit_override, account_type')
         .not('rate_limit_override', 'is', null);
 
     return (
@@ -77,7 +77,7 @@ export default async function RateLimitsPage() {
                                 {overriddenUsers.map(user => (
                                     <tr key={user.id} className="hover:bg-white/5">
                                         <td className="px-4 py-3 text-white">{user.email}</td>
-                                        <td className="px-4 py-3 text-zinc-400 capitalize">{user.role}</td>
+                                        <td className="px-4 py-3 text-zinc-400 capitalize">{user.account_type}</td>
                                         <td className="px-4 py-3 font-mono text-indigo-400">{user.rate_limit_override}</td>
                                         <td className="px-4 py-3 text-right">
                                             <form action={async () => {
