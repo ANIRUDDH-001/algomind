@@ -183,72 +183,7 @@ export class UnifiedAIClient {
             };
         }
 
-        // ── PRIMARY: Bedrock (when ENABLE_AWS_BEDROCK is ON) ────────────
-        // When the flag is ON, Bedrock is the primary provider.
-        // Free providers (Groq/Gemini) become the fallback.
-        if (process.env.AWS_ACCESS_KEY_ID) {
-            try {
-                const { getGlobalFeatureFlag: getFlag } = await import('@/lib/feature-flags-server');
-                const bedrockEnabled = await getFlag('ENABLE_AWS_BEDROCK');
-                if (bedrockEnabled) {
-                    const { callBedrockModel } = await import('./bedrock-client');
-                    const { logAWSUsage, estimateBedrockCost } = await import('@/lib/aws/usage-logger');
-                    // Get Bedrock models from DB routing table
-                    const bedrockModels = (await getModelsForUseCase(useCase)).filter(m => m.provider === 'bedrock');
-                    const modelId = bedrockModels.length > 0
-                        ? bedrockModels[0].modelId
-                        : 'openai.gpt-oss-120b-1:0'; // default Bedrock model when not in DB
-
-                    try {
-                        const response = await callBedrockModel(
-                            modelId,
-                            messages,
-                            options.systemPrompt,
-                            options.maxTokens,
-                            options.signal
-                        );
-                        const tokensUsed = Math.ceil(response.length / 4);
-                        if (options.userId && options.sessionId && tokensUsed > 0) {
-                            void recordTokenUsage(options.userId, options.sessionId, tokensUsed);
-                        }
-                        void logSystemEvent({
-                            type: 'llm_request',
-                            correlationId,
-                            metadata: {
-                                useCase,
-                                model_id: modelId,
-                                provider: 'bedrock',
-                                duration_ms: Date.now() - callStart,
-                                messageCount: messages.length,
-                            },
-                        });
-                        // Log Bedrock usage for budget tracking
-                        const inputChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0) + (options.systemPrompt?.length || 0);
-                        logAWSUsage({
-                            service: 'bedrock',
-                            operation: 'InvokeModel',
-                            region: process.env.AWS_BEDROCK_REGION || 'us-east-1',
-                            bytesProcessed: inputChars + response.length,
-                            estimatedCostUsd: estimateBedrockCost(inputChars, response.length),
-                            metadata: { model: modelId, useCase, primary: true },
-                        }).catch(() => {});
-                        return {
-                            success: true,
-                            modelUsed: modelId,
-                            provider: 'bedrock' as Provider,
-                            response,
-                            attemptedModels: [...attemptedModels, `bedrock-${modelId}`],
-                        };
-                    } catch (bedrockErr) {
-                        console.warn(`[UnifiedAIClient] Bedrock primary (${modelId}) failed, falling back to free providers:`, bedrockErr instanceof Error ? bedrockErr.message : bedrockErr);
-                        attemptedModels.push(`bedrock-${modelId}`);
-                        // Fall through to free providers below
-                    }
-                }
-            } catch (flagErr) {
-                console.warn('[UnifiedAIClient] Could not check Bedrock flag:', flagErr instanceof Error ? flagErr.message : flagErr);
-            }
-        }
+        // (AWS Bedrock primary path removed — free providers Groq/Gemini serve all traffic.)
 
         // ── FALLBACK: DB-routed free providers (Groq/Gemini) ────────────
         const crossTierFallbackEnabled = await isCrossTierFallbackEnabled();
@@ -395,10 +330,6 @@ export class UnifiedAIClient {
                 return await this.callGroq(model.id, messages, options);
             } else if (model.provider === 'gemini') {
                 return await this.callGemini(model.id, messages, options);
-            } else if (model.provider === 'bedrock') {
-                const { callBedrockModel } = await import('./bedrock-client');
-                const response = await callBedrockModel(model.id, messages, options.systemPrompt, options.maxTokens, options.signal);
-                return { success: true, response };
             }
             return { success: false, error: "Unsupported provider" };
         } catch (error) {
@@ -811,27 +742,18 @@ export class UnifiedAIClient {
             | 'correlationId'
             | 'userId'
             | 'sessionId'
-        > & { preferredModel?: 'groq' | 'gemini' | 'bedrock' | 'auto' } = {}
+        > & { preferredModel?: 'groq' | 'gemini' | 'auto' } = {}
     ): AsyncGenerator<string> {
         const preferredModel = options.preferredModel ?? 'groq';
 
-        let provider: 'groq' | 'gemini' | 'bedrock' = 'groq';
-        if (preferredModel === 'groq' || preferredModel === 'gemini' || preferredModel === 'bedrock') {
-            provider = preferredModel;
-        } else if (preferredModel === 'auto') {
-            // Auto mode: for streaming, skip classification overhead — go straight
-            // to Bedrock if available, else Groq. Gemini is used only when explicitly forced.
-            const { getGlobalFeatureFlag } = await import('@/lib/feature-flags-server');
-            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
-            provider = bedrockEnabled ? 'bedrock' : 'groq';
-        }
+        // 'auto' and 'groq' both stream via Groq (with connection-level failover);
+        // Gemini is used only when explicitly forced.
+        const provider: 'groq' | 'gemini' = preferredModel === 'gemini' ? 'gemini' : 'groq';
 
-        if (provider === 'groq') {
-            yield* this.streamGroq(messages, options);
-        } else if (provider === 'gemini') {
+        if (provider === 'gemini') {
             yield* this.streamGemini(messages, options);
         } else {
-            yield* this.streamBedrock(messages, options);
+            yield* this.streamGroq(messages, options);
         }
     }
 
@@ -934,32 +856,44 @@ export class UnifiedAIClient {
 
         const models = await getActiveModels();
         const groqModels = models.filter(m => m.provider === 'groq');
-        const modelId = groqModels[0]?.id ?? 'openai/gpt-oss-120b';
+        const candidates = groqModels.length ? groqModels.map(m => m.id) : ['openai/gpt-oss-120b'];
 
         const apiMessages = [...messages];
         if (options.systemPrompt && apiMessages[0]?.role !== 'system') {
             apiMessages.unshift({ role: 'system', content: options.systemPrompt });
         }
 
-        const response = await fetch(this.GROQ_API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: modelId,
-                messages: apiMessages,
-                max_tokens: options.maxTokens ?? 4096,
-                temperature: options.temperature ?? 0.7,
-                stream: true,
-            }),
-            signal: options.signal ?? AbortSignal.timeout(30000),
-        });
+        // Connection-level failover: try each active Groq model until one connects OK.
+        // We only commit to a model once the response is OK (before yielding any tokens),
+        // so a dead/rate-limited model no longer dead-ends the whole stream (BUG-18).
+        let response: Response | null = null;
+        let lastErr = '';
+        for (const modelId of candidates) {
+            try {
+                const r = await fetch(this.GROQ_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: modelId,
+                        messages: apiMessages,
+                        max_tokens: options.maxTokens ?? 4096,
+                        temperature: options.temperature ?? 0.7,
+                        stream: true,
+                    }),
+                    signal: options.signal ?? AbortSignal.timeout(30000),
+                });
+                if (r.ok && r.body) { response = r; break; }
+                lastErr = `Groq ${modelId} (${r.status}): ${(await r.text().catch(() => '')).slice(0, 120)}`;
+            } catch (e) {
+                lastErr = `Groq ${modelId}: ${e instanceof Error ? e.message : String(e)}`;
+            }
+        }
 
-        if (!response.ok || !response.body) {
-            const errText = await response.text().catch(() => '');
-            throw new Error(`Groq stream error (${response.status}): ${errText.slice(0, 200)}`);
+        if (!response || !response.body) {
+            throw new Error(`Groq stream error — all models failed. ${lastErr}`);
         }
 
         const reader = response.body.getReader();
@@ -1009,7 +943,7 @@ export class UnifiedAIClient {
 
         const models = await getActiveModels();
         const geminiModels = models.filter(m => m.provider === 'gemini');
-        const modelId = geminiModels[0]?.id ?? 'gemini-2.5-flash';
+        const candidates = geminiModels.length ? geminiModels.map(m => m.id) : ['gemini-2.5-flash'];
 
         const contents = messages
             .filter(m => m.role !== 'system')
@@ -1022,25 +956,35 @@ export class UnifiedAIClient {
             ? { parts: [{ text: options.systemPrompt }] }
             : undefined;
 
-        const url = `${this.GEMINI_API_BASE}/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+        // Connection-level failover: try each active Gemini model until one connects OK,
+        // committing only before any tokens are yielded (BUG-18).
+        let response: Response | null = null;
+        let lastErr = '';
+        for (const modelId of candidates) {
+            try {
+                const url = `${this.GEMINI_API_BASE}/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        systemInstruction,
+                        generationConfig: {
+                            maxOutputTokens: options.maxTokens ?? 4096,
+                            temperature: options.temperature ?? 0.7,
+                        },
+                    }),
+                    signal: options.signal ?? AbortSignal.timeout(30000),
+                });
+                if (r.ok && r.body) { response = r; break; }
+                lastErr = `Gemini ${modelId} (${r.status}): ${(await r.text().catch(() => '')).slice(0, 120)}`;
+            } catch (e) {
+                lastErr = `Gemini ${modelId}: ${e instanceof Error ? e.message : String(e)}`;
+            }
+        }
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents,
-                systemInstruction,
-                generationConfig: {
-                    maxOutputTokens: options.maxTokens ?? 4096,
-                    temperature: options.temperature ?? 0.7,
-                },
-            }),
-            signal: options.signal ?? AbortSignal.timeout(30000),
-        });
-
-        if (!response.ok || !response.body) {
-            const errText = await response.text().catch(() => '');
-            throw new Error(`Gemini stream error (${response.status}): ${errText.slice(0, 200)}`);
+        if (!response || !response.body) {
+            throw new Error(`Gemini stream error — all models failed. ${lastErr}`);
         }
 
         const reader = response.body.getReader();
@@ -1074,36 +1018,13 @@ export class UnifiedAIClient {
     }
 
     /**
-     * Bedrock streaming — True streaming via InvokeModelWithResponseStreamCommand.
-     */
-    private async *streamBedrock(
-        messages: Message[],
-        options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
-    ): AsyncGenerator<string> {
-        const { streamBedrockModel } = await import('./bedrock-client');
-        const models = await getActiveModels();
-        const bedrockModels = models.filter(m => m.provider === 'bedrock');
-        const modelId = bedrockModels[0]?.id ?? 'openai.gpt-oss-120b-1:0';
-
-        const stream = streamBedrockModel(
-            modelId,
-            messages,
-            options.systemPrompt,
-            options.maxTokens,
-            options.signal
-        );
-
-        yield* this.filterThinkTags(stream, options.signal);
-    }
-
-    /**
      * Store a successful AI response in cache (if cache is enabled).
      * Called externally after streaming completes or response is finalized.
      */
     storeInCache(
         query: string,
         response: string,
-        model: 'groq' | 'gemini' | 'bedrock',
+        model: 'groq' | 'gemini',
         latencyMs: number,
         identity?: CacheIdentity
     ): void {

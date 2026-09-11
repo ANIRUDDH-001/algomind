@@ -19,7 +19,6 @@ import { encodeAssessmentSecret } from '@/lib/assess/jwt';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { getRedis } from '@/lib/upstash/client';
 import { getServiceClient } from '@/lib/supabase/service';
-import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { buildPromptVersionHeader, PROMPT_VERSION_TAGS } from '@/lib/interview/prompts';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
 import { getCorrelationIdFromRequest, withCorrelationId } from '@/lib/tracing/correlation';
@@ -238,10 +237,8 @@ export async function POST(req: NextRequest) {
         const userIdFromJwt = typeof payload.sub === 'string' ? payload.sub : undefined;
 
         if (acceptsStream) {
-            // Pick a streaming provider: Bedrock if configured+enabled, else Groq.
-            const bedrockEnabled = !!process.env.AWS_ACCESS_KEY_ID
-                && await getGlobalFeatureFlag('ENABLE_AWS_BEDROCK');
-            const streamProvider: 'bedrock' | 'groq' = bedrockEnabled ? 'bedrock' : 'groq';
+            // Groq streams the assessment chat (with connection-level failover across models).
+            const streamProvider = 'groq' as const;
 
             const encoder = new TextEncoder();
             const stream = new ReadableStream({
