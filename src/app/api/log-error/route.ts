@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const source = req.nextUrl.searchParams.get('source');
+    const source = new URL(req.url).searchParams.get('source');
     const isCsp = source === 'csp';
 
     // Browsers POST CSP violation reports either as {"csp-report": {...}}
