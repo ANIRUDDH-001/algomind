@@ -120,7 +120,19 @@ const ConversationViewImpl = ({
                                             )
                                             : String(msg.content ?? '');
 
-                                return safeContent;
+                                // The reply is meant to be plain spoken text, but models sometimes
+                                // slip in LaTeX/markdown. Strip those artifacts so the bubble reads
+                                // cleanly (e.g. "$O(n^2)$" -> "O(n^2)", "**Problem:**" -> "Problem:").
+                                const displayContent = safeContent
+                                    .replace(/\$\$?([^$]*?)\$\$?/g, '$1')       // $x$ / $$x$$ -> x
+                                    .replace(/\\\(|\\\)|\\\[|\\\]/g, '')        // \( \) \[ \]
+                                    .replace(/^#{1,6}\s+/gm, '')                // # headers
+                                    .replace(/\*\*([^*]+)\*\*/g, '$1')          // **bold** -> bold
+                                    .replace(/__([^_]+)__/g, '$1')              // __bold__ -> bold
+                                    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2') // *italic* -> italic
+                                    .replace(/`([^`]+)`/g, '$1');               // `code` -> code
+
+                                return displayContent;
                             })()}
 
                             {/* Streaming cursor */}

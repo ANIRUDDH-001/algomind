@@ -37,7 +37,26 @@ export class TTSEngine {
         this.onSpeakingChange?.(v);
     }
 
-    async speak(text: string, pollyEnabled: boolean): Promise<{ provider: TTSProvider; success: boolean }> {
+    /**
+     * Strip LaTeX/markdown artifacts so the speech engine never reads out "dollar", "asterisk",
+     * "hash", backticks etc. (e.g. "$O(n^2)$" -> "O(n squared)"). Defensive: the interviewer
+     * prompt already asks for plain speech, but models occasionally slip.
+     */
+    private sanitizeForSpeech(text: string): string {
+        return text
+            .replace(/\$\$?([^$]*)\$\$?/g, '$1')      // $x$ / $$x$$ -> x
+            .replace(/\\\(|\\\)|\\\[|\\\]/g, ' ')     // \( \) \[ \] delimiters
+            .replace(/\^2\b/g, ' squared')
+            .replace(/\^3\b/g, ' cubed')
+            .replace(/\bO\(([^)]+)\)/g, 'O of $1')    // O(n^2) -> O of n squared
+            .replace(/[`*_#>]/g, '')                  // markdown emphasis/headers/code ticks
+            .replace(/\$/g, '')                        // any stray dollar signs
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
+
+    async speak(rawText: string, pollyEnabled: boolean): Promise<{ provider: TTSProvider; success: boolean }> {
+        const text = this.sanitizeForSpeech(rawText ?? '');
         if (!text.trim()) { return { provider: 'browser', success: false }; }
         const id = ++this.invId;
         const wasSpeaking = this._speaking;
@@ -52,6 +71,9 @@ export class TTSEngine {
         this.setSpeaking(true);
         let used: TTSProvider = 'browser';
         let success = false;
+        const _t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+        const _voices = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis.getVoices().length : -1;
+        console.info(`[PIPE][TTS] speak start len=${text.length} pollyEnabled=${pollyEnabled} browserVoices=${_voices}`);
         try {
             if (pollyEnabled && id === this.invId) {
                 const ok = await this.tryPolly(text, id);
@@ -63,6 +85,8 @@ export class TTSEngine {
             }
         } finally {
             if (id === this.invId) this.setSpeaking(false);
+            const _ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - _t0);
+            console.info(`[PIPE][TTS] speak done provider=${used} spokenOk=${success} durationMs=${_ms}${!success ? ' ⚠️ SPEAKER-DID-NOT-PLAY (autoplay-gated or no voices)' : ''}`);
         }
         return { provider: used, success };
     }
@@ -209,11 +233,20 @@ export class TTSEngine {
         return new Promise((resolve) => {
             if (id !== this.invId) { resolve(false); return; }
 
+            const ss = window.speechSynthesis;
+
             // Safety timeout per chunk
             const safetyTimeout = setTimeout(() => {
                 console.warn('[TTS] Browser TTS safety timeout (30s) per chunk — forcing resolve');
+                cleanup();
                 resolve(false);
             }, 30_000);
+
+            // Chrome bug workaround: the engine silently stops speaking after ~15s and can
+            // get stuck in a paused state where speak() is a no-op (this is why speech worked
+            // on some turns but not others). Periodically resume() to keep it alive.
+            const keepAlive = setInterval(() => { try { ss.resume(); } catch { /* noop */ } }, 8000);
+            const cleanup = () => { clearTimeout(safetyTimeout); clearInterval(keepAlive); };
 
             const utt = new SpeechSynthesisUtterance(text);
             utt.volume = 1.0;
@@ -223,15 +256,18 @@ export class TTSEngine {
 
             let started = false;
             utt.onstart = () => { started = true; };
-            utt.onend = () => { clearTimeout(safetyTimeout); resolve(true); };
+            utt.onend = () => { cleanup(); resolve(true); };
             utt.onerror = (e) => {
-                clearTimeout(safetyTimeout);
+                cleanup();
                 if (e.error !== 'interrupted' && e.error !== 'canceled') {
                     console.warn('[TTS] Browser error:', e.error);
                 }
                 resolve(started); // If it started, some speech was heard
             };
-            window.speechSynthesis.speak(utt);
+
+            // Chrome bug: speak() is a no-op when the engine is in a paused state — resume() first.
+            try { ss.resume(); } catch { /* noop */ }
+            ss.speak(utt);
         });
     }
 }

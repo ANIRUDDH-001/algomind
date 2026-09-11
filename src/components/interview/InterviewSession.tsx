@@ -517,6 +517,21 @@ export function InterviewSession({
     }, [fetchWeeklyLimitStatus]);
 
     const handleStart = async () => {
+        // Unlock the browser speech engine synchronously within this click gesture so the AI's
+        // FIRST line (the greeting) can be spoken. Browsers block speechSynthesis that isn't
+        // initiated by a user interaction, which is why the intro was previously silent while
+        // later turns (after the user had spoken) worked.
+        try {
+            const ss = typeof window !== 'undefined' ? window.speechSynthesis : null;
+            if (ss) {
+                ss.cancel();
+                ss.resume();
+                const warm = new SpeechSynthesisUtterance(' ');
+                warm.volume = 0;
+                ss.speak(warm);
+            }
+        } catch { /* ignore — TTS will still attempt on the greeting */ }
+
         if (!isGuest && !readOnly && !isAssessment) {
             const latest = await fetchWeeklyLimitStatus();
             if (latest?.allowed === false) {
