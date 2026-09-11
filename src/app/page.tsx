@@ -179,7 +179,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden bg-surface-base text-white scroll-smooth custom-scrollbar selection:bg-indigo-500/30"
+      className="h-[100dvh] w-full md:snap-y md:snap-mandatory overflow-y-auto overflow-x-hidden bg-surface-base text-white scroll-smooth custom-scrollbar selection:bg-indigo-500/30"
     >
 
       {/* Global CSS for particle animation */}
@@ -192,7 +192,7 @@ export default function HomePage() {
       `}} />
 
       {/* SECTION 1: HERO (Snap Item) */}
-      <section className="snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-10 px-4 overflow-hidden border-b border-transparent">
+      <section className="md:snap-start relative min-h-[100dvh] w-full flex flex-col items-center justify-center py-10 px-4 overflow-hidden border-b border-transparent">
 
 
 

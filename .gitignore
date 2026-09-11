@@ -135,3 +135,6 @@ MASTER_PLAN.md
 # ─── Auto-generated Supabase types (keep only in src/types/) ──────
 /supabase_types.ts
 /supabase_types_utf8.ts
+/campaign/
+/campaign-results/
+/src/app/api/test-harness/
