@@ -120,8 +120,28 @@ export async function POST(req: NextRequest) {
         }
 
         // 5. Prepare Piston Request
-        // PISTON_URL should be the full execute endpoint (e.g. https://emkc.org/api/v2/piston/execute)
-        const pistonExecuteUrl = process.env.PISTON_URL || 'https://emkc.org/api/v2/piston/execute';
+        // PISTON_URL must be a self-hosted Piston execute endpoint. The public emkc.org API is
+        // whitelist-only as of 2026-02-15, so we do NOT fall back to it (it returns 401 → 503).
+        const DEAD_PUBLIC_PISTON = 'emkc.org/api/v2/piston';
+        const pistonExecuteUrl = (process.env.PISTON_URL || '').trim();
+
+        if (!pistonExecuteUrl || pistonExecuteUrl.includes(DEAD_PUBLIC_PISTON)) {
+            void logSystemEvent({
+                type: 'piston_error',
+                errorMessage: 'Code execution backend not configured (public emkc.org Piston API is whitelist-only since 2026-02-15)',
+                metadata: { language, userId: user.id },
+            });
+            // Surface a clear message in the output panel rather than a mysterious 503.
+            const response: ExecuteResponse = {
+                stdout: '',
+                stderr: 'Code execution is currently unavailable: no runner backend is configured.\n'
+                    + 'An admin must deploy a Piston instance and set PISTON_URL — the public emkc.org API is whitelist-only as of 2026-02-15.',
+                exit_code: 1,
+                runtime_ms: 0,
+            };
+            return NextResponse.json(response, { status: 200 });
+        }
+
         const config = LANGUAGE_MAP[language];
 
         const pistonPayload = {
