@@ -4,8 +4,11 @@
 // DB-driven model routing with cross-tier fallback
 // DIRECT API CALLS implementation (No SDKs)
 
-// @ts-expect-error -- automated unused local suppression
-import { CHAT_MODELS, ModelConfig, Provider } from './providers';
+import { EMBEDDING_MODELS, ModelConfig, Provider } from './providers';
+
+// Single source of truth for embeddings (AWS Bedrock/Titan removed).
+const EMBEDDING_MODEL_ID = EMBEDDING_MODELS[0]?.id ?? 'gemini-embedding-001';
+const EMBEDDING_DIMENSIONS = EMBEDDING_MODELS[0]?.dimensions ?? 768;
 import { getRateLimiter, IntelligentRateLimiter } from './rate-limiter';
 import { getIntentClassifier } from './intent-classifier';
 import { getModelTelemetry } from '../analytics/model-telemetry';
@@ -931,7 +934,7 @@ export class UnifiedAIClient {
 
         const models = await getActiveModels();
         const groqModels = models.filter(m => m.provider === 'groq');
-        const modelId = groqModels[0]?.id ?? 'llama-3.3-70b-versatile';
+        const modelId = groqModels[0]?.id ?? 'openai/gpt-oss-120b';
 
         const apiMessages = [...messages];
         if (options.systemPrompt && apiMessages[0]?.role !== 'system') {
@@ -1006,7 +1009,7 @@ export class UnifiedAIClient {
 
         const models = await getActiveModels();
         const geminiModels = models.filter(m => m.provider === 'gemini');
-        const modelId = geminiModels[0]?.id ?? 'gemini-2.0-flash';
+        const modelId = geminiModels[0]?.id ?? 'gemini-2.5-flash';
 
         const contents = messages
             .filter(m => m.role !== 'system')
@@ -1150,9 +1153,12 @@ export class UnifiedAIClient {
             status: 'available' | 'unavailable' | 'unknown';
         }> = {};
 
-        // We will test one model per provider to be efficient.
-        const GROQ_PING_MODEL = "llama-3.1-8b-instant";
-        const GEMINI_PING_MODEL = "gemini-2.0-flash";
+        const models = await getActiveModels();
+
+        // Ping the first ACTIVE model of each provider (derived from config, never a
+        // hardcoded/decommissioned id). Fallbacks are provider-verified live IDs.
+        const GROQ_PING_MODEL = models.find(m => m.provider === 'groq')?.id ?? 'openai/gpt-oss-120b';
+        const GEMINI_PING_MODEL = models.find(m => m.provider === 'gemini')?.id ?? 'gemini-2.5-flash';
 
         // 1. Check Groq Availability (Representative)
         let groqResult: { available: boolean; latency: number; error?: string } = { available: false, latency: 0, error: "Provider Unreachable" };
@@ -1174,22 +1180,9 @@ export class UnifiedAIClient {
             geminiResult.error = e instanceof Error ? e.message : String(e) || "Provider Unreachable";
         }
 
-        const models = await getActiveModels();
-
-        // 3. Map status to all models with honest reporting
+        // 3. Map status to all models with honest reporting.
+        //    (A per-provider representative check; use the on-demand Verify for exact per-model status.)
         for (const model of models) {
-            // A. Handle Preview / Unverified Models (e.g. Gemini 2.5)
-            if (model.id.includes('2.5')) {
-                results[model.id] = {
-                    available: false,
-                    status: 'unknown',
-                    method: 'heuristic',
-                    error: 'Preview model - availability not verified',
-                    latency: undefined
-                };
-                continue;
-            }
-
             // B. Handle Groq Models
             if (model.provider === 'groq') {
                 const isPingModel = model.id === GROQ_PING_MODEL;
@@ -1304,75 +1297,41 @@ export class UnifiedAIClient {
     ): Promise<{ embeddings: number[][]; modelUsed: string; dimensions: number }> {
         const textArray = Array.isArray(texts) ? texts : [texts];
 
-        // When AWS Bedrock is configured, try Titan embeddings FIRST (primary when flag ON)
-        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-            try {
-                const { getGlobalFeatureFlag: getFlag } = await import('@/lib/feature-flags-server');
-                const bedrockEnabled = await getFlag('ENABLE_AWS_BEDROCK');
-                if (bedrockEnabled) {
-                    const { generateBedrockEmbedding } = await import('./bedrock-client');
-                    const results = await Promise.all(textArray.map(t => generateBedrockEmbedding(t)));
-                    if (results.every((r: number[]) => r.length > 0)) {
-                        return {
-                            embeddings: results,
-                            modelUsed: 'amazon.titan-embed-text-v2:0',
-                            dimensions: results[0]?.length ?? 1024,
-                        };
-                    }
-                }
-            } catch (e) {
-                console.warn('⚠️ Bedrock Titan embedding failed, falling back to Gemini:', e instanceof Error ? e.message : e);
-                void logSystemEvent({ type: 'embedding_failed', provider: 'bedrock', correlationId: options.correlationId });
-            }
-        }
-
-        // Fallback: Gemini Embedding
+        // Gemini is the sole embeddings provider (AWS Bedrock/Titan removed).
         const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (geminiKey) {
             try {
                 const results = await Promise.all(textArray.map(t => this.embedWithGemini(t, geminiKey)));
-                return {
-                    embeddings: results,
-                    modelUsed: 'gemini-embedding-1',
-                    dimensions: results[0]?.length ?? 768,
-                };
+                if (results.every((r: number[]) => r.length > 0)) {
+                    return {
+                        embeddings: results,
+                        modelUsed: EMBEDDING_MODEL_ID,
+                        dimensions: results[0]?.length ?? EMBEDDING_DIMENSIONS,
+                    };
+                }
+                throw new Error('Gemini returned an empty embedding vector');
             } catch (e) {
                 console.warn('⚠️ Gemini embedding failed:', e instanceof Error ? e.message : e);
                 void logSystemEvent({ type: 'embedding_failed', provider: 'gemini', correlationId: options.correlationId });
             }
         }
 
-        // Last resort: Bedrock Titan without flag check (credentials-only)
-        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-            try {
-                const { generateBedrockEmbedding } = await import('./bedrock-client');
-                const results = await Promise.all(textArray.map(t => generateBedrockEmbedding(t)));
-                if (results.every((r: number[]) => r.length > 0)) {
-                    return {
-                        embeddings: results,
-                        modelUsed: 'amazon.titan-embed-text-v2:0',
-                        dimensions: results[0]?.length ?? 1024,
-                    };
-                }
-            } catch (e) {
-                console.warn('⚠️ Bedrock embedding (last-resort) also failed:', e instanceof Error ? e.message : e);
-            }
-        }
-
-        // No local embedder. If both fail, RAG context is unavailable — graceful degradation.
-        console.error('❌ All embedding providers failed. Interview will proceed without RAG context.');
-        void logSystemEvent({ type: 'embedding_failed', errorMessage: 'All providers failed', correlationId: options.correlationId });
-        throw new Error('All embedding providers failed. RAG context unavailable.');
+        // Embeddings provider unavailable — RAG context is unavailable (graceful degradation).
+        console.error('❌ Embedding provider unavailable. Interview will proceed without RAG context.');
+        void logSystemEvent({ type: 'embedding_failed', errorMessage: 'Gemini embedding unavailable', correlationId: options.correlationId });
+        throw new Error('Embedding provider unavailable. RAG context unavailable.');
     }
 
     private async embedWithGemini(text: string, apiKey: string): Promise<number[]> {
-        // Use v1beta for gemini-embedding-1
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-1:embedContent?key=${apiKey}`;
+        // gemini-embedding-001 defaults to 3072 dims; the knowledge_chunks corpus is 768-dim,
+        // so we pin outputDimensionality to EMBEDDING_DIMENSIONS to keep query/corpus dims aligned.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL_ID}:embedContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                content: { parts: [{ text }] }
+                content: { parts: [{ text }] },
+                outputDimensionality: EMBEDDING_DIMENSIONS,
             }),
             signal: AbortSignal.timeout(20000),
         });

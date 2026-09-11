@@ -229,7 +229,7 @@ async function triggerEmbedding(chunkId: string): Promise<void> {
         .update({
             embedding: embeddings[0],
             embedding_status: 'done',
-            embedding_model: 'gemini-embedding-1',
+            embedding_model: 'gemini-embedding-001',
         })
         .eq('id', chunkId);
 }

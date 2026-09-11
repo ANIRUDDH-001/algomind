@@ -82,7 +82,7 @@ export class HybridRetriever {
             totalResults: results.length,
             retrievalTimeMs: endTime - startTime,
             modelsUsed: {
-                embedding: 'gemini-embedding-1',
+                embedding: 'gemini-embedding-001',
             },
         };
     }

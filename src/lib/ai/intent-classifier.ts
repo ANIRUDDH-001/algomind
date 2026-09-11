@@ -274,7 +274,7 @@ Rules:
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: 'llama-3.1-8b-instant', // fastest Groq model
+                    model: process.env.GROQ_CLASSIFIER_MODEL_ID || 'openai/gpt-oss-20b', // fastest live Groq model
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: query },

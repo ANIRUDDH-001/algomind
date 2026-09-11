@@ -38,30 +38,33 @@ const GEMINI_FREE_TIER_MODEL_ID = process.env.GEMINI_FREE_TIER_MODEL_ID || "gemi
 // @deprecated — prefer DB-driven routing via getModelsForUseCase() in model-routing.ts
 export const CHAT_MODELS: ModelConfig[] = [
     // --- GROQ MODELS ---
+    // NOTE (2026-06-17): Groq decommissioned llama-3.3-70b-versatile, llama-3.1-8b-instant,
+    // qwen/qwen3-32b, and meta-llama/llama-4-scout-17b-16e-instruct. Replaced below with
+    // provider-verified live IDs (openai/gpt-oss-*, qwen/qwen3.6-27b, qwen/qwen3.8-27b).
     {
-        id: "llama-3.3-70b-versatile", // Mapped from llama-3.3-70b
+        id: "openai/gpt-oss-120b",
         provider: 'groq',
         tier: 1,
         rpm: 25.5, // 30 * 0.85
-        tpm: 5000, // Placeholder/Default if not specified (using low safe default)
+        tpm: 5000,
         rpd: 850,
-        contextWindow: 128000,
+        contextWindow: 200000,
         supportsEmbeddings: false,
-        description: "Groq Llama 3.3 70B"
+        description: "Groq GPT-OSS 120B — primary chat (replaces llama-3.3-70b-versatile)"
     },
     {
-        id: "llama-3.1-8b-instant", // Mapped from llama-3.1-8b
+        id: "openai/gpt-oss-20b",
         provider: 'groq',
         tier: 2,
         rpm: 25.5,
         tpm: 5000,
         rpd: 12240,
-        contextWindow: 128000,
+        contextWindow: 200000,
         supportsEmbeddings: false,
-        description: "Groq Llama 3.1 8B"
+        description: "Groq GPT-OSS 20B — fast small model (replaces llama-3.1-8b-instant)"
     },
     {
-        id: "qwen/qwen3-32b",
+        id: "qwen/qwen3.6-27b",
         provider: 'groq',
         tier: 3,
         rpm: 60,
@@ -69,20 +72,18 @@ export const CHAT_MODELS: ModelConfig[] = [
         rpd: 1000,
         contextWindow: 32768,
         supportsEmbeddings: false,
-        description: "Qwen3 32B — 60 RPM, strong multilingual reasoning"
+        description: "Qwen3.6 27B — strong multilingual reasoning (replaces qwen/qwen3-32b)"
     },
-    // gemma2-9b-it removed — decommissioned by Groq Oct 8 2025, replaced by llama-3.1-8b-instant
-    // Note: llama-4-scout and llama-4-maverick are now verified IDs
     {
-        id: "meta-llama/llama-4-scout-17b-16e-instruct",
+        id: "qwen/qwen3.8-27b",
         provider: 'groq',
         tier: 4,
         rpm: 25.5,
         rpd: 850,
         tpm: 5000,
-        contextWindow: 128000,
+        contextWindow: 32768,
         supportsEmbeddings: false,
-        description: "Groq Llama 4 Scout"
+        description: "Qwen3.8 27B (replaces meta-llama/llama-4-scout-17b-16e-instruct)"
     },
     // llama-4-maverick removed — deprecated by Groq March 9 2026, replaced by openai/gpt-oss-120b
     // Replaced moonshotai/kimi-k2-instruct and kimi-k2-instruct-0905 (both deprecated 2025–2026)
@@ -168,7 +169,7 @@ export const CHAT_MODELS: ModelConfig[] = [
         description: "Gemini 2.5 Flash Lite — 10 RPM / 20 RPD"
     },
     {
-        id: "gemma-3-27b-it",
+        id: "gemma-4-26b-a4b-it",
         provider: 'gemini',
         tier: 12,
         rpm: 30,
@@ -176,23 +177,24 @@ export const CHAT_MODELS: ModelConfig[] = [
         tpm: 15000,
         contextWindow: 131072,
         supportsEmbeddings: false,
-        description: "Gemma 3 27B IT"
+        description: "Gemma 4 26B IT (replaces decommissioned gemma-3-27b-it)"
     },
 ];
 
 // Embedding Models
-// Embedding Models
-// Migrated to gemini-embedding-1
+// gemini-embedding-001 is the sole embeddings provider (AWS Bedrock/Titan removed).
+// It defaults to 3072 dims; the knowledge_chunks corpus is 768-dim, so callers MUST pin
+// outputDimensionality to `dimensions` below when embedding queries.
 export const EMBEDDING_MODELS: EmbeddingModelConfig[] = [
     {
-        id: "gemini-embedding-1",
+        id: process.env.GEMINI_EMBEDDING_MODEL_ID || "gemini-embedding-001",
         provider: 'gemini',
         tier: 1,
         rpm: 100,
         tpm: 30000,
         rpd: 1000,
-        dimensions: 768,        // gemini-embedding-1 default dims
-        description: "Gemini Embedding 1 — primary embeddings provider"
+        dimensions: 768,        // must match stored knowledge_chunks.embedding dimension
+        description: "Gemini Embedding 001 — primary (and only) embeddings provider"
     }
     // Xenova/all-MiniLM-L6-v2 removed as local huggingface fallback is defunct
 ];
