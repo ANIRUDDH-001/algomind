@@ -356,7 +356,10 @@ export class CognitiveAnalyzer {
             {
                 category: 'analysis',
                 systemPrompt: "You are a professional assessment engine. Return only valid JSON.",
-                maxTokens: 4096,
+                // The full assessment (8 skills with evidence/subcriteria + overall feedback +
+                // hire decision + next steps + key moments) is large; 4096 truncated it, which
+                // dropped overallFeedback, hireDecision and half the skills' evidence.
+                maxTokens: 8192,
                 estimatedTokens: 2000,
                 responseFormat: { type: 'json_object' },
             }

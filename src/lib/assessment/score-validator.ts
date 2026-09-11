@@ -169,13 +169,12 @@ export function applyValidation(
         if (correctedScore === null) return;
         const dashId = camelToDash[camelDim];
         if (dashId && corrected[dashId]) {
+            // Apply the corrected score only. Do NOT append the validator's internal reasoning
+            // ("Score adjusted by validator: … Rule 1 … Rule 4") to `improvements` — that field is
+            // shown to the candidate as actionable advice, not QA internals.
             corrected[dashId] = {
                 ...corrected[dashId],
                 score: correctedScore,
-                improvements: [
-                    ...(corrected[dashId].improvements || []),
-                    `Score adjusted by validator: ${validation.validationNotes}`,
-                ],
             };
         }
     });

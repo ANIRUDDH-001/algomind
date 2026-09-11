@@ -147,7 +147,7 @@ describe('Two-pass assessment validation', () => {
             expect(result['problem-decomposition'].score).toBe(5);
         });
 
-        it('applyValidation adds validator note to improvements array', () => {
+        it('applyValidation corrects the score WITHOUT leaking the validator note into user-facing improvements', () => {
             const initial: Record<string, ParsedSkillScore> = {
                 'complexity-analysis': { score: 9, evidence: [], strengths: [], improvements: ['Speak louder'], subCriteria: {} }
             };
@@ -159,8 +159,11 @@ describe('Two-pass assessment validation', () => {
             };
 
             const result = applyValidation(initial, validation);
+            expect(result['complexity-analysis'].score).toBe(6);
+            // existing candidate-facing advice is preserved
             expect(result['complexity-analysis'].improvements).toContain('Speak louder');
-            expect(result['complexity-analysis'].improvements).toContain('Score adjusted by validator: Only answered after prompted.');
+            // but the validator's internal reasoning is NOT surfaced to the candidate
+            expect(result['complexity-analysis'].improvements.some(i => i.includes('Score adjusted by validator'))).toBe(false);
         });
     });
 
@@ -190,12 +193,10 @@ describe('Two-pass assessment validation', () => {
             const validation = await validateAndCorrectScores(initialScores, 15);
             expect(validation.inflationDetected).toBe(true);
 
-            // Step 2: apply
+            // Step 2: apply — score corrected, validator note NOT leaked to the candidate
             const result = applyValidation(initialScores, validation);
             expect(result['complexity-analysis'].score).toBe(4);
-            expect(result['complexity-analysis'].improvements).toContain(
-                'Score adjusted by validator: Evidence is generic, downgraded.'
-            );
+            expect(result['complexity-analysis'].improvements.some(i => i.includes('Score adjusted by validator'))).toBe(false);
         });
     });
 });
