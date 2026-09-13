@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
             sessionId?: string;
             sessionToken?: string;
             systemPromptTurnLayer?: string;
+            difficultyMode?: 'warm-up' | 'practice' | 'crunch' | 'sprint' | 'employer';
         }
 
         let body: ChatRequestBody = { messages: [] };
@@ -73,11 +74,23 @@ export async function POST(req: NextRequest) {
             interviewState,
             sessionId: clientSessionId,
             sessionToken,
+            difficultyMode: rawDifficultyMode,
         } = body;
 
         if (!messages || !Array.isArray(messages)) {
             return withCorrelationIdResponse(ApiErrors.badRequest('Invalid messages format'));
         }
+
+        // Interview mode drives the interviewer's behaviour (MODE_CONFIGS: warm-up is gentler,
+        // crunch is stricter, sprint is timed/multi-problem). Previously this was hardcoded to
+        // 'practice' here, so all four modes behaved identically server-side. Validate the
+        // client value; guests are always 'practice'.
+        const VALID_MODES = ['warm-up', 'practice', 'crunch', 'sprint', 'employer'] as const;
+        type DifficultyMode = typeof VALID_MODES[number];
+        const difficultyMode: DifficultyMode =
+            !guestMode && VALID_MODES.includes(rawDifficultyMode as DifficultyMode)
+                ? (rawDifficultyMode as DifficultyMode)
+                : 'practice';
 
         // ── Authenticate caller ────────────────────────────────────────────────
         // Guest mode is explicitly passed in the request body and validated
@@ -152,8 +165,10 @@ export async function POST(req: NextRequest) {
 
         const effectiveSessionId = clientSessionId || sessionToken || null;
         const callerScope = user?.id || (guestMode ? ip : 'anon');
+        // Namespace the cached system prompt by mode so a session never reuses a prompt built
+        // for a different interview mode.
         const promptCacheKey = effectiveSessionId
-            ? `ai:chat:system-prompt:${callerScope}:${effectiveSessionId}`
+            ? `ai:chat:system-prompt:${callerScope}:${effectiveSessionId}:${difficultyMode}`
             : null;
 
         const promptCachePromise = promptCacheKey ? redisGet(promptCacheKey).catch(() => null) : Promise.resolve(null);
@@ -196,11 +211,11 @@ export async function POST(req: NextRequest) {
                     difficulty: 'medium',
                 },
                 ragContext,
-                'practice'
+                difficultyMode
             );
         }
         if (!baseSystemPrompt) {
-            baseSystemPrompt = generateSystemPromptLegacy(undefined, ragContext, 'practice');
+            baseSystemPrompt = generateSystemPromptLegacy(undefined, ragContext, difficultyMode);
         }
 
         if (promptCacheKey && !cachedPrompt) {
@@ -285,7 +300,16 @@ export async function POST(req: NextRequest) {
                             fullText += chunk;
                             enqueue({ delta: chunk });
                         }
-                        enqueue({ done: true, fullText: fullText.trim(), modelUsed: 'auto', provider: 'gemini' });
+                        // Report the model that ACTUALLY served this stream (was hardcoded 'auto'/'gemini',
+                        // which made it impossible to tell Groq from Gemini fallback in logs/telemetry).
+                        const streamInfo = streamClient.getLastStreamInfo();
+                        enqueue({
+                            done: true,
+                            fullText: fullText.trim(),
+                            modelUsed: streamInfo?.model ?? 'unknown',
+                            provider: streamInfo?.provider ?? 'unknown',
+                        });
+                        console.info(`[PIPE][CHAT-server] served by ${streamInfo?.provider ?? '?'}/${streamInfo?.model ?? '?'} len=${fullText.length}`);
                         if (user?.id && !guestMode) {
                             incrementUserUsage(user.id, supabase).catch(() => { });
                         }

@@ -487,6 +487,9 @@ export function useInterview(options: UseInterviewOptions) {
             sessionToken: optionsRef.current.sessionToken,
             guestMode: optionsRef.current.isGuest ?? false,
             interviewState: stateMachine.current.getState(),
+            // Send the interview mode so the server builds the mode-specific interviewer prompt
+            // (warm-up/crunch/sprint). Without this the server defaulted every session to 'practice'.
+            difficultyMode: currentProblemRef.current?.difficultyMode ?? 'practice',
         });
 
         // Abort any prior in-flight chat request before starting a new one.

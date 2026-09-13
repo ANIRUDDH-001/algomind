@@ -237,6 +237,11 @@ If no code submitted: codeQuality must be null — not 0, not empty object.
 6. knowledgeGaps: 1–3 specific concepts. Empty array if none.
 7. Do not give 10/10 unless genuinely exceptional by expert-level standards.
 8. bonusDimensions scores contribute 10% to the overall score via computeOverallScoreWithBonus() — score them accurately.
+9. DIFFERENTIATE. Every candidate — including strong ones — has relative strengths and weaknesses across the 8 dimensions.
+   Do NOT assign the same score to all 8 dimensions. Before finalising, identify the candidate's 2 strongest and 2 weakest
+   dimensions from the evidence and make sure the scores reflect that ordering (a spread of at least ~1.5 points between
+   the best and worst dimension is expected unless the evidence is genuinely uniform, which is rare). Identical scores
+   across all dimensions are a sign you did not score the sub-criteria independently.
 
 ---
 
@@ -270,14 +275,16 @@ function buildShortSessionNote(userTurnCount: number): string {
     return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
 MANDATORY: Cap ALL dimension scores at 5 regardless of what the transcript shows.
 There is insufficient evidence to justify any score above 5.
-State this in overallFeedback: "This was a brief session — scores capped at 5 due to limited evidence."
+In overallFeedback, note it in candidate-facing terms (do NOT mention caps or internal rules), e.g.:
+"This was a short session, so this assessment is based on limited evidence — a longer conversation would give a fuller picture of your skills."
 Do not write evidence that implies performance higher than a score of 5 would justify.`;
   }
   if (userTurnCount <= 5) {
     return `⚠️ SHORT SESSION — ${userTurnCount} candidate turns detected.
 MANDATORY: Cap ALL dimension scores at 6 regardless of what the transcript shows.
 There is insufficient evidence to justify any score above 6.
-State this in overallFeedback: "This was a brief session — scores capped at 6 due to limited evidence."
+In overallFeedback, note it in candidate-facing terms (do NOT mention caps or internal rules), e.g.:
+"This was a short session, so this assessment is based on limited evidence — a longer conversation would give a fuller picture of your skills."
 Do not write evidence that implies performance higher than a score of 6 would justify.`;
   }
   return '';

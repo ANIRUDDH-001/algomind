@@ -239,9 +239,9 @@ HINT DELIVERY:
 - Escalate hint levels only on successive requests (L1 → L2 → L3 on each subsequent ask).
 - Never jump to Level 3 on a first request.
 
-END OF SESSION FEEDBACK:
-- Full structured feedback with hire decision.
-- Every claim needs an evidence quote from the actual conversation.
+END OF SESSION:
+- Brief spoken close only; the full report card (with hire decision) is generated separately.
+- Any strength/weakness you mention in the close must quote an actual moment from the conversation.
 </mode_behaviour>`,
     },
 
@@ -354,13 +354,13 @@ Step 1 — One attempt: "Would you like to take a moment to think through your a
 Step 2 — If still no engagement after 90 seconds: close the session professionally:
   "Thank you for your time today. I think we've covered what we can in this session. We'll be in touch."
   Then output exactly on its own line: TERMINATE_INTERVIEW
-  Followed immediately by full structured feedback.
+  (Nothing after it — the report card is generated separately.)
 
 WHEN THE CANDIDATE IS HOSTILE OR UNPROFESSIONAL:
 Step 1 — One response: "Let's keep this professional and focus on the problem."
 Step 2 — If behaviour continues: "I'm going to end the session here. Thank you for your time."
   Then output: TERMINATE_INTERVIEW
-  Followed by full structured feedback.
+  (Nothing after it — the report card is generated separately.)
 
 ASSESSMENT STANDARD:
 - Silence is a data point. Note it.
@@ -511,7 +511,7 @@ Repeated non-engagement (third occurrence):
 
 Hostile or demands answer:
 → "Our focus is the problem-solving process, not memorisation. Would you like to continue?"
-→ If it continues: output TERMINATE_INTERVIEW on its own line, then provide full structured feedback immediately.
+→ If it continues: output TERMINATE_INTERVIEW on its own line and nothing after it (the report card is generated separately).
 
 ### INCOHERENT / NON-TECHNICAL INPUT
 If the candidate's message is:
@@ -534,16 +534,14 @@ ${UNIFIED_SCORING_RUBRIC}
 
 ---
 
-## FINAL FEEDBACK STRUCTURE
+## CLOSING THE SESSION
 
-1. Overall Assessment — 2–3 sentences referencing specific moments.
-2. Dimensional Scores — all 8 dimensions, each with an evidence quote from the conversation.
-3. Strengths — 2–3 specific examples with evidence.
-4. Areas for Improvement — 3–5 specific actionable issues with examples.
-5. Actionable Next Steps — 3–5 concrete study or practice recommendations.
-${modeConfig.includeHireDecision
-            ? '6. Hire Decision: STRONG_HIRE | HIRE | BORDERLINE | NO_HIRE | STRONG_NO_HIRE'
-            : '6. (No hire decision — warm-up session has no hiring signal.)'}
+The detailed report card (all 8 dimension scores, evidence, strengths, next steps${modeConfig.includeHireDecision ? ', hire decision' : ''})
+is generated SEPARATELY after the session and shown to the candidate. Do NOT produce it in chat.
+When the session ends, give ONLY a brief spoken close — 2–3 conversational sentences, spoken aloud:
+- thank them, name ONE concrete thing they did well (quote a moment), and ONE thing to work on,
+- then say their full report is being prepared.
+Never output section headers, numbered rubrics, dimension scores, or a hire decision in chat.
 
 ---
 
@@ -666,7 +664,7 @@ Correct with reasoning: Validate and ask about the other dimension.
 Correct but no reasoning: "Good — can you walk me through why it's O(?) rather than just stating it?"
 Wrong: "Let's think about how many times this loop runs as n grows..."${urgency}`,
 
-        'wrap-up': `The session is ending. Provide full structured feedback per the Final Feedback Structure in your system prompt. Reference specific moments and quotes. Every strength and weakness needs a concrete example from this session.`,
+        'wrap-up': `The session is ending. Give ONLY a brief spoken close (2–3 conversational sentences): thank them, quote one concrete thing they did well, name one thing to work on, and say their full report is being prepared. Do NOT output headers, dimension scores, a rubric, or a hire decision — the report card is generated separately.`,
     };
 
     return instructions[phase] ?? instructions['approach'];
@@ -825,7 +823,7 @@ Phase 4 — Complexity + Transition (final ${Math.round(half * 0.12)} min): comp
 Phase 1 — Problem Presentation (first ${p(0.07)}): state problem, accept clarification on wording only.
 Phase 2 — Solution Development (next ${p(0.70)}): observe, do not prompt or guide.
 Phase 3 — Complexity Review (next ${p(0.15)}): ask for time and space complexity. No guidance.
-Phase 4 — Close (final ${p(0.08)}): professional close, then structured feedback.`;
+Phase 4 — Close (final ${p(0.08)}): brief spoken close only (the report card is generated separately).`;
     }
 
     return `## INTERVIEW PHASES (${sessionMinutes}-minute session, all timings relative)
@@ -835,7 +833,7 @@ Phase 2 — Approach (next ${p(0.22)}–${p(0.28)}): elicit thinking BEFORE any 
 Phase 3 — Implementation (next ${p(0.37)}–${p(0.42)}): let them code. Interrupt only for major errors after 2+ minutes off-track.
 Phase 4 — Testing (next ${p(0.12)}–${p(0.15)}): manual trace through example, then edge cases.
 Phase 5 — Complexity (next ${p(0.08)}–${p(0.10)}): time AND space. Ask WHY, not just the answer.
-Phase 6 — Wrap-up (final ${p(0.05)}): structured feedback per Final Feedback Structure.`;
+Phase 6 — Wrap-up (final ${p(0.05)}): brief spoken close only (the report card is generated separately).`;
 }
 
 function buildUrgencyNote(turnsRemaining?: number, timeRemainingSeconds?: number): string {

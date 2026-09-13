@@ -104,6 +104,17 @@ export interface CompletionResult {
 export class UnifiedAIClient {
     private rateLimiter: IntelligentRateLimiter;
     private readonly GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+    /**
+     * The concrete model/provider the most recent generateStream() actually connected with.
+     * generateStream() is an AsyncGenerator<string> with no side channel, so streaming
+     * callers (e.g. /api/chat's SSE `done` event) previously had to report the *selector*
+     * ('auto') instead of the real model. Set at the moment a provider commits to a model.
+     */
+    private lastStream: { model: string; provider: 'groq' | 'gemini' } | null = null;
+    getLastStreamInfo(): { model: string; provider: 'groq' | 'gemini' } | null {
+        return this.lastStream;
+    }
     private readonly GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
     constructor() {
@@ -788,6 +799,7 @@ export class UnifiedAIClient {
         > & { preferredModel?: 'groq' | 'gemini' | 'auto' } = {}
     ): AsyncGenerator<string> {
         const preferredModel = options.preferredModel ?? 'groq';
+        this.lastStream = null; // reset so a stale value from a prior call is never reported
 
         // 'gemini' is forced only when explicitly requested. 'auto'/'groq' stream via Groq
         // (fast, with connection-level failover across Groq models) and fall back to Gemini
@@ -939,7 +951,7 @@ export class UnifiedAIClient {
                     }),
                     signal: options.signal ?? AbortSignal.timeout(30000),
                 });
-                if (r.ok && r.body) { response = r; break; }
+                if (r.ok && r.body) { response = r; this.lastStream = { model: modelId, provider: 'groq' }; break; }
                 lastErr = `Groq ${modelId} (${r.status}): ${(await r.text().catch(() => '')).slice(0, 120)}`;
             } catch (e) {
                 lastErr = `Groq ${modelId}: ${e instanceof Error ? e.message : String(e)}`;
@@ -1030,7 +1042,7 @@ export class UnifiedAIClient {
                     }),
                     signal: options.signal ?? AbortSignal.timeout(30000),
                 });
-                if (r.ok && r.body) { response = r; break; }
+                if (r.ok && r.body) { response = r; this.lastStream = { model: modelId, provider: 'gemini' }; break; }
                 lastErr = `Gemini ${modelId} (${r.status}): ${(await r.text().catch(() => '')).slice(0, 120)}`;
             } catch (e) {
                 lastErr = `Gemini ${modelId}: ${e instanceof Error ? e.message : String(e)}`;
