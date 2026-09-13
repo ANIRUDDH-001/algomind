@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';
 import { logSystemEvent } from '@/lib/monitoring/events';
 import { requireOwnerForApi } from '@/lib/auth/requireOwnerForApi';
+import { getTestAccountIds, notInIdList } from '@/lib/owner/test-accounts';
 
 export async function GET() {
   try {
@@ -24,20 +25,31 @@ export async function GET() {
 
     const svc = getServiceClient();
 
+    // Exclude QA/test accounts so these metrics reflect real learners. Tables here are keyed
+    // by user_id (no email), so resolve the test ids once and filter them out.
+    const testIds = await getTestAccountIds(svc);
+    const excludeTest = notInIdList(testIds);
+    const withoutTest = <Q extends { not: (col: string, op: string, val: string) => Q }>(q: Q): Q =>
+      excludeTest ? q.not('user_id', 'in', excludeTest) : q;
+
     const [
       sessionCountRes,
       conceptStateCountRes,
       diagnosticRes,
       hardestConceptRes,
     ] = await Promise.all([
-      svc
-        .from('learn_sessions')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+      withoutTest(
+        svc
+          .from('learn_sessions')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      ),
 
-      svc
-        .from('concept_states')
-        .select('id', { count: 'exact', head: true }),
+      withoutTest(
+        svc
+          .from('concept_states')
+          .select('id', { count: 'exact', head: true })
+      ),
 
       svc.rpc('count_distinct_diagnosed_users'),
 

@@ -1,6 +1,7 @@
 import { createServerSupabase, createServiceRoleSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { isOwnerOrCoOwner } from '@/lib/auth/account-type';
+import { TEST_ACCOUNT_EMAIL_LIKE } from '@/lib/owner/test-accounts';
 import { OverviewClient } from './OverviewClient';
 
 export default async function OverviewPage() {
@@ -17,10 +18,11 @@ export default async function OverviewPage() {
     }
 
     const adminSupabase = await createServiceRoleSupabase();
+    // Exclude QA/test accounts (@algomind.test) so the headline counts reflect real users.
     const results = await Promise.allSettled([
-        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }),
-        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'admin'),
-        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'employer'),
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).not('email', 'like', TEST_ACCOUNT_EMAIL_LIKE),
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'admin').not('email', 'like', TEST_ACCOUNT_EMAIL_LIKE),
+        adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('account_type', 'employer').not('email', 'like', TEST_ACCOUNT_EMAIL_LIKE),
     ]);
 
     const [usersRes, adminsRes, employersRes] = results;
