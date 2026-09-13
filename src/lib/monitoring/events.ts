@@ -407,10 +407,18 @@ export function normalizeEventPayload(event: SystemEventPayload): StrictSystemEv
             source: 'http', // Default; override in caller
             user_id: event.user_id ?? event.userId,
             session_id: event.session_id ?? event.sessionId,
+            // These were previously DROPPED by the normalizer, so every event logged through the
+            // public logSystemEvent() (nearly all error sites) persisted error_message/provider/
+            // model_id as NULL — making db/model errors undiagnosable from system_events.
+            provider: event.provider,
+            model_id: event.modelId,
+            error_code: event.errorCode,
+            error_message: event.errorMessage,
             metadata: {
                 component: 'unknown',
                 operation: 'unknown',
                 environment: (process.env.NODE_ENV as any) ?? 'development',
+                ...(typeof event.latency_ms === 'number' ? { duration_ms: event.latency_ms } : {}),
                 ...event.metadata,
             },
         };

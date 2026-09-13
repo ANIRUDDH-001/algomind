@@ -94,6 +94,24 @@ describe('Event Taxonomy Contract Tests (P6-4)', () => {
             expect(normalized!.user_id).toBe('user-123');
             expect(normalized!.session_id).toBe('sess-456');
             expect(normalized!.correlation_id).toBe('corr-789');
+            // Regression: these were silently DROPPED by the normalizer, so every db/model error
+            // logged via logSystemEvent() persisted error_message as NULL in system_events.
+            expect(normalized!.error_code).toBe('ERR_TIMEOUT');
+            expect(normalized!.error_message).toBe('Timeout');
+        });
+
+        it('should preserve provider, modelId and latency without data loss', () => {
+            const normalized = normalizeEventPayload({
+                type: 'model_error',
+                provider: 'groq',
+                modelId: 'openai/gpt-oss-120b',
+                latency_ms: 1234,
+                errorMessage: 'boom',
+            });
+            expect(normalized!.provider).toBe('groq');
+            expect(normalized!.model_id).toBe('openai/gpt-oss-120b');
+            expect(normalized!.metadata.duration_ms).toBe(1234);
+            expect(normalized!.error_message).toBe('boom');
         });
 
         it('should preserve snake_case if provided', () => {
