@@ -390,14 +390,16 @@ describe('KnowledgeGraphService', () => {
         confidenceDelta: 0.08,
       });
 
+      // Must be the OBJECT, not JSON.stringify — the RPC persists it verbatim into
+      // learn_sessions.kai_assessment; a stringified value broke the Learn results screen.
       expect(mockRpc).toHaveBeenCalledWith('on_learn_session_completed', {
         p_session_id: 'learn-session-1',
-        p_kai_assessment: JSON.stringify({
+        p_kai_assessment: {
           understood: ['arrays-strings'],
           struggled: ['dynamic-programming'],
           notes: 'Needs practice on DP transitions.',
           confidence_delta: 0.08,
-        }),
+        },
       });
     });
 

@@ -214,9 +214,12 @@ export class KnowledgeGraphService {
       confidence_delta: assessment.confidenceDelta,
     };
 
+    // Pass the object, NOT JSON.stringify(): the RPC stores p_kai_assessment straight into
+    // learn_sessions.kai_assessment, so a stringified value persisted a JSON *string* that the
+    // results route could not parse (Learn results showed confidenceDelta 0 / empty notes).
     const { error } = await getServiceClient().rpc('on_learn_session_completed', {
       p_session_id: sessionId,
-      p_kai_assessment: JSON.stringify(payload),
+      p_kai_assessment: payload,
     });
 
     if (error) {

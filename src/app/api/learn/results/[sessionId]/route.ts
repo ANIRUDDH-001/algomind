@@ -27,6 +27,12 @@ interface KaiAssessmentPayload {
 }
 
 function parseAssessment(payload: unknown): KaiAssessmentPayload {
+  // Tolerate legacy rows where kai_assessment was persisted as a JSON *string* (a prior
+  // double-encoding bug in onLearnSessionCompleted). Without this, those sessions rendered
+  // with confidenceDelta 0 and empty notes on the results screen.
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch { return {}; }
+  }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return {};
   }
