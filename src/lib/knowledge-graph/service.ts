@@ -181,9 +181,13 @@ export class KnowledgeGraphService {
       confidence: result.confidence,
     }));
 
+    // NOTE: pass the array itself, NOT JSON.stringify(). Stringifying sends a JSON *string
+    // scalar* ("[...]") and the SQL function does jsonb_array_length() on it → Postgres
+    // 22023 "cannot get array length of a scalar". This silently 500'd the entire Learn
+    // diagnostic since ~2026-05 (confirmed 14/14 in the 2026-09-13 campaign).
     const { error } = await getServiceClient().rpc('initialize_concept_states', {
       p_user_id: userId,
-      p_results: JSON.stringify(payload),
+      p_results: payload,
     });
 
     if (error) {
@@ -269,10 +273,65 @@ export class KnowledgeGraphService {
         last_performance:  performance,
     }));
 
-    const { data, error } = await getServiceClient().rpc('upsert_concept_states_batch', {
-        p_user_id: params.userId,
-        p_updates: updates,
+    // Direct table upsert — replaces the `upsert_concept_states_batch` RPC.
+    // That RPC's ownership guard raises 42501 "caller does not own this user_id" for the
+    // service role (auth.uid() is NULL and it has no service_role exemption), so it NEVER
+    // succeeded: interviews never updated concept mastery (0/36 in the 2026-09-13 campaign),
+    // and the failure was swallowed. Its body is also untracked in the repo. Implementing
+    // the logic here keeps it versioned + testable and removes the guard dependency.
+    // Semantics preserved: base 0.35 for new concepts, confidence += delta clamped [0,1],
+    // evidence_count++, last_session_* stamped, signal_history appended (capped).
+    const now = new Date().toISOString();
+    const slugs = updates.map((u) => u.concept_slug);
+
+    const { data: existing, error: readError } = await getServiceClient()
+        .from('concept_states')
+        .select('concept_slug, confidence, evidence_count, signal_history')
+        .eq('user_id', params.userId)
+        .in('concept_slug', slugs);
+
+    if (readError) {
+        await logSystemEvent({
+            type: 'db_error',
+            errorMessage: readError.message,
+            metadata: {
+                context: 'knowledge_graph.on_interview_session_completed',
+                userId: params.userId,
+                sessionId: params.sessionId,
+                conceptSlugs,
+                operation: 'select_concept_states',
+            },
+        });
+        console.error(`[KG] Read before upsert failed: ${readError.message}`);
+        return;
+    }
+
+    const bySlug = new Map((existing ?? []).map((r) => [r.concept_slug as string, r]));
+    const SIGNAL_HISTORY_CAP = 50;
+    const rows = updates.map((u) => {
+        const cur = bySlug.get(u.concept_slug);
+        const base = typeof cur?.confidence === 'number' ? cur.confidence : 0.35;
+        const newConfidence = Math.min(1, Math.max(0, base + u.confidence_delta));
+        const history = Array.isArray(cur?.signal_history) ? (cur.signal_history as unknown[]) : [];
+        return {
+            user_id: params.userId,
+            concept_slug: u.concept_slug,
+            confidence: Number(newConfidence.toFixed(4)),
+            evidence_count: (typeof cur?.evidence_count === 'number' ? cur.evidence_count : 0) + 1,
+            last_session_id: u.last_session_id,
+            last_session_type: 'interview',
+            last_signal_at: now,
+            signal_history: [
+                ...history,
+                { type: 'interview', delta: u.confidence_delta, performance: u.last_performance, session_id: u.last_session_id, at: now },
+            ].slice(-SIGNAL_HISTORY_CAP),
+            updated_at: now,
+        };
     });
+
+    const { error } = await getServiceClient()
+        .from('concept_states')
+        .upsert(rows, { onConflict: 'user_id,concept_slug' });
 
     if (error) {
         await logSystemEvent({
@@ -283,14 +342,14 @@ export class KnowledgeGraphService {
                 userId: params.userId,
                 sessionId: params.sessionId,
                 conceptSlugs,
-                operation: 'upsert_concept_states_batch',
+                operation: 'upsert_concept_states',
             },
         });
         console.error(`[KG] Batch upsert failed: ${error.message}`);
         return;
     }
 
-    console.info(`[KG] Updated ${data?.length ?? 0} concept states for user ${params.userId}`);
+    console.info(`[KG] Updated ${rows.length} concept states for user ${params.userId}`);
     await this.invalidateCache(params.userId);
   }
 

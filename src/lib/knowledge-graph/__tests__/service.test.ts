@@ -346,9 +346,12 @@ describe('KnowledgeGraphService', () => {
         { conceptSlug: 'arrays-strings', confidence: 0.7 },
       ]);
 
+      // Must be a JSON ARRAY, not a JSON.stringify'd string — the SQL function calls
+      // jsonb_array_length() on it and a string scalar throws 22023 (this exact bug 500'd
+      // the Learn diagnostic for months; the old assertion here encoded the bug).
       expect(mockRpc).toHaveBeenCalledWith('initialize_concept_states', {
         p_user_id: 'user-1',
-        p_results: JSON.stringify([{ concept_slug: 'arrays-strings', confidence: 0.7 }]),
+        p_results: [{ concept_slug: 'arrays-strings', confidence: 0.7 }],
       });
     });
 
