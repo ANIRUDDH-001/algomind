@@ -182,18 +182,16 @@ async function markDiagnosticCompletedProfile(
   userId: string,
   context: string,
 ): Promise<void> {
-  const maybeFrom = (supabase as { from?: unknown }).from;
-  if (typeof maybeFrom !== 'function') {
+  // Guard for test doubles that don't implement .from(). MUST call it as a bound method —
+  // extracting `supabase.from` into a variable and calling it detached loses `this`, so the
+  // client's internal PostgREST layer is undefined → "Cannot read properties of undefined
+  // (reading 'rest')". That detached call was the 2nd reason the diagnostic returned 500.
+  if (typeof (supabase as { from?: unknown }).from !== 'function') {
     return;
   }
 
-  const from = maybeFrom as (table: string) => {
-    update: (payload: { has_completed_diagnostic: boolean }) => {
-      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>;
-    };
-  };
-
-  const { error } = await from('profiles')
+  const { error } = await supabase
+    .from('profiles')
     .update({ has_completed_diagnostic: true })
     .eq('id', userId);
 
