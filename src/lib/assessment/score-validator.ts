@@ -51,6 +51,10 @@ RULE 2: score > 6 requires evidence showing UNPROMPTED correct behaviour
 RULE 3: score > 8 requires evidence of PROACTIVE behaviour beyond what was asked
         (deduct to 8 max if candidate only met expectations, not exceeded them)
 RULE 4: If evidence array is empty or contains generic statements → cap at 3
+RULE 5: If ALL dimensions carry the SAME score, the scorer did not apply the rubric per-dimension
+        (this is not a valid outcome even for strong candidates). Using the evidence, identify the
+        2 strongest and 2 weakest dimensions and return corrected scores that reflect that ordering
+        with a spread of at least 1 point between best and worst. Leave the others null.
 
 For each dimension, compare score vs evidence and return corrected score if inflation detected.
 Return null for a dimension if the score is justified.

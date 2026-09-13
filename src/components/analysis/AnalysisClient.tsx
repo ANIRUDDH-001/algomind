@@ -511,7 +511,7 @@ export function AnalysisClient({
                         {assessment?.adjustedScore && Math.abs(assessment.adjustedScore - assessment.overallScore) > 0.01 && (
                             <span
                                 className="text-[10px] font-bold text-zinc-400 mt-3 flex items-center gap-1 cursor-help"
-                                title={`Raw Score: ${assessment.overallScore.toFixed(1)} / 10.0\nDifficulty Multiplier Applied`}
+                                title={`Raw score ${assessment.overallScore.toFixed(1)} × ${(assessment.adjustedScore / Math.max(0.01, assessment.overallScore)).toFixed(2)} (problem difficulty) = ${assessment.adjustedScore.toFixed(1)} / 10.0\nHarder problems earn a bonus multiplier (easy ×1.00, medium ×1.15, hard ×1.30), capped at 10.`}
                             >
                                 <AlertTriangle className="w-3 h-3" />
                                 DIFFICULTY-ADJUSTED
