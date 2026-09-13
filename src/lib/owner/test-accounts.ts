@@ -33,12 +33,17 @@ export function isTestAccountEmail(email?: string | null): boolean {
  * Returns [] on error so callers degrade to "no exclusion" rather than failing.
  */
 export async function getTestAccountIds(svc: SupabaseClient): Promise<string[]> {
-    const { data, error } = await svc
-        .from('profiles')
-        .select('id')
-        .like('email', TEST_ACCOUNT_EMAIL_LIKE);
-    if (error || !data) return [];
-    return data.map((r) => r.id as string);
+    try {
+        const { data, error } = await svc
+            .from('profiles')
+            .select('id')
+            .like('email', TEST_ACCOUNT_EMAIL_LIKE);
+        if (error || !data) return [];
+        return data.map((r) => r.id as string);
+    } catch {
+        // Never let a metrics-exclusion lookup break the page — degrade to "no exclusion".
+        return [];
+    }
 }
 
 /**

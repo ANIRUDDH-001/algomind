@@ -26,6 +26,9 @@ function createChainableMock() {
         gte: vi.fn(function() { return chain; }),
         order: vi.fn(function() { return chain; }),
         limit: vi.fn(function() { return chain; }),
+        // Used by the QA/test-account exclusion (getTestAccountIds + `.not('user_id','in',…)`).
+        like: vi.fn(function() { return Promise.resolve({ data: [], error: null }); }),
+        not: vi.fn(function() { return chain; }),
         rpc: vi.fn((fnName: string) => {
             if (fnName === 'count_distinct_diagnosed_users') {
                 return Promise.resolve({ data: 4, error: null });
