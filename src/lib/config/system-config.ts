@@ -35,9 +35,13 @@ export async function getSystemConfig(key: SystemConfigKey): Promise<string> {
         // Try Redis cache first
         const redis = getRedis();
         if (redis) {
-            const cached = await redis.get<string>(cacheKey);
+            const cached = await redis.get<unknown>(cacheKey);
             if (cached !== null && cached !== undefined) {
-                return cached;
+                // Upstash auto-JSON-parses on read: a stored "true" comes back as boolean true and
+                // "5" as number 5. Callers compare against strings (e.g. `value === 'true'`), so a
+                // warm cache silently DISABLED session gating (free users got unlimited interviews).
+                // Always honour this function's `Promise<string>` contract.
+                return String(cached);
             }
         }
     } catch {
