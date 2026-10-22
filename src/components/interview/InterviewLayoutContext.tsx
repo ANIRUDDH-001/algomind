@@ -57,7 +57,6 @@ interface InterviewLayoutContextType {
     handleFinish: () => void;
     roundCount: number;
     isAnalyzing: boolean;
-    sendCountdown: number | null;
     ttsError: any;
     micStoppedManually: boolean;
     submitUserResponse: (content: string, metadata: any) => void;
@@ -71,6 +70,12 @@ interface InterviewLayoutContextType {
     showLoginModal: boolean;
     isPushToTalk: boolean;
     isReviewMode: boolean;
+
+    /** ENABLE_VOICE_MODE — off means typed answers only. */
+    voiceEnabled: boolean;
+    /** Candidate chose "Type instead" (or the mic is blocked) while voice mode is on. */
+    typing: boolean;
+    setTyping: (typing: boolean) => void;
 }
 
 export const InterviewLayoutContext = createContext<InterviewLayoutContextType | null>(null);

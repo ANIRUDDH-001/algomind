@@ -39,13 +39,15 @@ import { GuestProblemSelectorModal } from './GuestProblemSelectorModal';
 import { GUEST_PROBLEMS } from '@/lib/guest/guest-problems';
 import { VoiceOnboarding } from './VoiceOnboarding';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
+import { InterviewComposer } from './InterviewComposer';
 import { MicPulse } from '@/components/voice/MicPulse';
 import { ZoomTranscript } from '@/components/voice/ZoomTranscript';
+import { VoiceCheckLink } from '@/components/voice/VoiceCheckLink';
 import { LiveTranscript } from '@/components/voice/LiveTranscript';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StopCircle, Send, Flag, BookOpen, ArrowLeft, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
+import { StopCircle, Send, Flag, BookOpen, ArrowLeft, Clock, AlertTriangle, ChevronRight, Keyboard } from 'lucide-react';
 import { cn } from "@/lib/utils";
 // framer-motion removed from interview chunk; the single badge animation
 // below is replaced by a CSS keyframe (see globals.css → cognitive-badge-in).
@@ -126,6 +128,8 @@ export function InterviewSession({
 
     // --- 1. Basic State ---
     const [hasStarted, setHasStarted] = useState(false);
+    // "Type instead" while voice is on (always typing when voice is off)
+    const [typing, setTyping] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
     const [lastBadgeSkill, setLastBadgeSkill] = useState<CognitiveSkill>('pattern-recognition');
     const [badgeTriggerPhrase, setBadgeTriggerPhrase] = useState<string>('Signal detected');
@@ -312,9 +316,9 @@ export function InterviewSession({
         isLimitReached,
         limitReason,
         micStoppedManually,
-        sendCountdown,
         ttsError,
         isPushToTalk,
+        voiceEnabled,
         enterCodingMode,
         exitCodingMode,
         shareCode,
@@ -459,6 +463,18 @@ export function InterviewSession({
         return () => clearTimeout(timer);
     }, [voice.isListening, voice.transcript, voice.interimTranscript]);
 
+    // Esc stops Kai speaking (the mic button is a mute switch, not an interrupt).
+    const { isSpeaking: kaiSpeaking, stopSpeaking: stopKai } = voice;
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape' || !kaiSpeaking) return;
+            stopKai();
+            handleInterruption();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [kaiSpeaking, stopKai, handleInterruption]);
+
     useEffect(() => {
         if (readOnly && initialTranscript && initialTranscript.length > 0 && !transcriptLoadedRef.current) {
             const msgs = initialTranscript.map(t => ({
@@ -521,16 +537,8 @@ export function InterviewSession({
         // FIRST line (the greeting) can be spoken. Browsers block speechSynthesis that isn't
         // initiated by a user interaction, which is why the intro was previously silent while
         // later turns (after the user had spoken) worked.
-        try {
-            const ss = typeof window !== 'undefined' ? window.speechSynthesis : null;
-            if (ss) {
-                ss.cancel();
-                ss.resume();
-                const warm = new SpeechSynthesisUtterance(' ');
-                warm.volume = 0;
-                ss.speak(warm);
-            }
-        } catch { /* ignore — TTS will still attempt on the greeting */ }
+        // Must run before any await: the gesture only counts synchronously.
+        if (voiceEnabled) voice.unlock?.();
 
         if (!isGuest && !readOnly && !isAssessment) {
             const latest = await fetchWeeklyLimitStatus();
@@ -540,25 +548,23 @@ export function InterviewSession({
             }
         }
 
-        // Phase 5a: Pre-interview microphone permission check
-        try {
-            const perm = await navigator.permissions.query({
-                name: 'microphone' as PermissionName
-            });
-            if (perm.state === 'denied') {
-                setError(
-                    'Microphone access is blocked. ' +
-                    'Please enable it in your browser settings to use voice features.'
-                );
-                return; // Can't proceed without mic in voice-only mode
+        // Phase 5a: Pre-interview microphone permission check (voice mode only)
+        if (voiceEnabled) {
+            try {
+                const perm = await navigator.permissions.query({
+                    name: 'microphone' as PermissionName
+                });
+                if (perm.state === 'denied') {
+                    // Mic blocked — the interview still works by typing.
+                    setTyping(true);
+                } else if (perm.state === 'prompt') {
+                    // Trigger permission request before starting interview
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(t => t.stop()); // Release immediately
+                }
+            } catch {
+                // permissions API not available — proceed, mic will prompt on use
             }
-            if (perm.state === 'prompt') {
-                // Trigger permission request before starting interview
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(t => t.stop()); // Release immediately
-            }
-        } catch {
-            // permissions API not available — proceed, mic will prompt on use
         }
 
         setHasStarted(true);
@@ -947,6 +953,7 @@ export function InterviewSession({
                         >
                             Begin Interview Experience
                         </Button>
+                        {voiceEnabled && <VoiceCheckLink className="mt-3" />}
                     </div>
                 ) : (
                     <>
@@ -1007,31 +1014,29 @@ export function InterviewSession({
                                     {messages.length === 0 && <div className="flex-1 min-h-0" />}
 
                                     {/* Microphone / Interactions */}
-                                    {!readOnly && !isLimitLocked && (
+                                    {!readOnly && !isLimitLocked && voiceEnabled && !typing && (
                                         <div className="flex flex-col items-center justify-center pb-6 gap-3">
                                             <div className="flex items-center justify-center gap-4 relative">
+                                                <button
+                                                    type="button"
+                                                    aria-label="Type instead"
+                                                    title="Type instead"
+                                                    onClick={() => { voice.stopListening(); setTyping(true); }}
+                                                    className="absolute top-1/2 -translate-y-1/2 -left-16 p-2 rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
+                                                >
+                                                    <Keyboard className="w-5 h-5" />
+                                                </button>
                                                 <MicrophoneButton
                                                     isListening={voice.isListening}
                                                     isReady={voice.isReady}
+                                                    isMuted={voice.isMuted}
                                                     error={voice.error?.message}
-                                                    onClick={() => {
-                                                        if (voice.isSpeaking) {
-                                                            // Interrupt AI speech — mic will auto-activate after
-                                                            voice.stopSpeaking();
-                                                            handleInterruption();
-                                                            return;
-                                                        }
-                                                        if (voice.isListening) {
-                                                            voice.stopListening();
-                                                        } else if (!isProcessing) {
-                                                            voice.startListening();
-                                                        }
-                                                    }}
+                                                    // A real mute switch — usable while Kai thinks or speaks; Esc / "Stop Speaking" interrupt Kai.
+                                                    onClick={() => voice.toggleMute()}
                                                     onRetry={() => {
                                                         setVoiceErrorDismissed(false);
                                                         voice.startListening();
                                                     }}
-                                                    disabled={isProcessing}
                                                 />
                                                 <div className="absolute top-1/2 -translate-y-1/2 -right-16">
                                                     <MicPulse
@@ -1045,6 +1050,27 @@ export function InterviewSession({
                                                     <span>●</span>
                                                     <span>Push to talk</span>
                                                 </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Typed answers: always in text-only mode, or "Type instead" while voice is on */}
+                                    {!readOnly && !isLimitLocked && (!voiceEnabled || typing) && (
+                                        <div className="flex flex-col items-center gap-2 pb-6 w-full px-2">
+                                            <InterviewComposer
+                                                autoFocus
+                                                disabled={isProcessing || !hasStarted}
+                                                placeholder={voiceEnabled ? 'Type instead of speaking…' : 'Type your answer…'}
+                                                onSend={(text) => submitUserResponse(text, { problemTitle: activeProblem.title, problemContent: activeProblem.description })}
+                                            />
+                                            {voiceEnabled && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTyping(false)}
+                                                    className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300"
+                                                >
+                                                    Back to voice
+                                                </button>
                                             )}
                                         </div>
                                     )}
@@ -1115,8 +1141,8 @@ export function InterviewSession({
                                             </div>
                                         )}
 
-                                        {/* Send button: shown when mic is manually stopped AND there is content (or Whisper is in-flight) */}
-                                        {micStoppedManually && (voice.transcript || voice.isTranscribing || voice.interimTranscript) && (
+                                        {/* Send button: commit the turn now, without waiting for the turn detector's silence */}
+                                        {(voice.transcript || voice.isTranscribing || voice.interimTranscript) && (
                                             <Button
                                                 className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 text-xs shadow-lg shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 onClick={() => {
@@ -1129,7 +1155,7 @@ export function InterviewSession({
                                                 title="Send your response"
                                             >
                                                 <Send className="w-3 h-3 mr-2" />
-                                                {voice.isTranscribing ? 'Transcribing…' : sendCountdown !== null ? `Sending in ${sendCountdown}s…` : 'Send Message'}
+                                                {voice.isTranscribing ? 'Transcribing…' : 'Send Message'}
                                             </Button>
                                         )}
 
@@ -1258,7 +1284,6 @@ export function InterviewSession({
             handleFinish,
             roundCount,
             isAnalyzing,
-            sendCountdown,
             ttsError,
             micStoppedManually,
             submitUserResponse,
@@ -1271,7 +1296,10 @@ export function InterviewSession({
             guestSession,
             showLoginModal,
             isPushToTalk,
-            isReviewMode
+            isReviewMode,
+            voiceEnabled,
+            typing,
+            setTyping,
         }}>
             <div className="h-full flex flex-col w-full overflow-y-auto overflow-x-hidden" style={{ background: 'var(--surface-base)' }} data-tour="interview-container">
             {isAnalyzing && <AssessmentLoader />}
@@ -1285,6 +1313,21 @@ export function InterviewSession({
                 ) : (
                     <ErrorBanner message={error} onClose={() => setError(null)} />
                 )
+            )}
+            {voiceEnabled && voice.blocked && (
+                <div className="fixed bottom-36 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            voice.unlock?.();
+                            const lastKai = [...messages].reverse().find(m => m.role === 'assistant')?.content;
+                            if (lastKai) void voice.speak(lastKai);
+                        }}
+                        className="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-300 hover:bg-amber-500/20"
+                    >
+                        Kai&apos;s voice is blocked by the browser. Tap to enable.
+                    </button>
+                </div>
             )}
             {voice.error && !voiceErrorDismissed && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-bounce">
@@ -1330,7 +1373,9 @@ export function InterviewSession({
                 </div>
             )}
 
-            {hasStarted && <VoiceOnboarding />}
+            {/* Before Begin, voice mode only: once started, a modal would cover Kai's greeting and trap focus.
+                Guests pick a problem first — the tutorial must not stack on top of the picker. */}
+            {voiceEnabled && !hasStarted && !readOnly && !(isGuest && showGuestSelector) && <VoiceOnboarding />}
 
             {/* NEW DESKTOP LAYOUT */}
             <div className="hidden lg:flex flex-1 min-h-0 w-full">

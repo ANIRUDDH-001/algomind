@@ -48,9 +48,9 @@ const mockInterviewState = {
     isLimitReached: false,
     limitReason: null,
     micStoppedManually: false,
-    sendCountdown: null,
     ttsError: false,
     isPushToTalk: false,
+    voiceEnabled: true, // desktop voice controls (text-only mode is covered in the orchestrator tests)
 };
 
 // ─── jsdom polyfills ───
@@ -186,19 +186,6 @@ vi.mock('@/lib/supabase/client', () => {
     return { createBrowserSupabase: () => mock, getSupabase: () => mock, isSupabaseConfigured: () => false };
 });
 
-vi.mock('@/lib/voice/interruption-manager', () => ({
-    InterruptionManager: class {
-        handleUserSpeechStart() { return 'WAIT'; }
-        handleUserSpeechEnd() { }
-        handleAIResponseStart() { }
-        handleAIResponseComplete() { }
-        cancelAISpeech() { }
-        reset() { }
-        removeAllListeners() { }
-        on() { return () => { }; }
-    },
-}));
-
 vi.mock('@/lib/interview/silent-observer', () => ({
     SilentObserver: class {
         analyze() { return Promise.resolve({}); }
@@ -242,7 +229,6 @@ vi.mock('../ConversationView', () => ({
 vi.mock('../VoiceOnboarding', () => ({ VoiceOnboarding: () => null }));
 vi.mock('../GuestRegisterModal', () => ({ GuestRegisterModal: () => null }));
 vi.mock('../SilentObserverNudge', () => ({ SilentObserverNudge: () => null }));
-vi.mock('../TextInterviewMode', () => ({ TextInterviewMode: () => null }));
 vi.mock('@/components/voice/MicrophoneButton', () => ({
     MicrophoneButton: () => <button data-testid="mock-mic-button" />,
 }));
@@ -290,7 +276,6 @@ describe('InterviewSession 4-Quadrant Desktop Layout', () => {
         mockInterviewState.isLimitReached = false;
         mockInterviewState.limitReason = null;
         mockInterviewState.micStoppedManually = false;
-        mockInterviewState.sendCountdown = null;
         mockInterviewState.ttsError = false;
         mockInterviewState.isPushToTalk = false;
         mockVoice.isListening = false;

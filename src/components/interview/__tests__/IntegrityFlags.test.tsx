@@ -113,7 +113,6 @@ vi.mock('@/hooks/useInterview', () => ({
         isLimitReached: false,
         limitReason: null,
         micStoppedManually: false,
-        sendCountdown: 0,
         ttsError: null,
         isPushToTalk: false,
         enterCodingMode: vi.fn(),

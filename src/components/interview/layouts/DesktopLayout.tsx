@@ -14,7 +14,7 @@
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BookOpen, Send, Laptop } from 'lucide-react';
+import { ArrowLeft, BookOpen, Send, Laptop, Keyboard } from 'lucide-react';
 // @ts-expect-error -- automated unused local suppression
 import { cn } from "@/lib/utils";
 import { ConversationView } from '../ConversationView';
@@ -25,6 +25,8 @@ import { CodeEditor } from '../CodeEditor';
 import { TestCasePanel } from '../TestCasePanel';
 import { useInterviewLayout } from '../InterviewLayoutContext';
 import { InterviewLimitBar } from '../InterviewLimitBar';
+import { InterviewComposer } from '../InterviewComposer';
+import { VoiceCheckLink } from '@/components/voice/VoiceCheckLink';
 
 export interface DesktopLayoutProps {
     renderProblemCardContent: (showExamples?: boolean, showHeader?: boolean) => React.ReactNode;
@@ -43,7 +45,6 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         hasStarted,
         activeProblem,
         handleStart,
-        handleInterruption,
         setVoiceErrorDismissed,
         isLimitLocked,
         showBadge,
@@ -66,8 +67,14 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
         isLimitReached,
         limitReason,
         weeklyLimitStatus,
-
+        submitUserResponse,
+        voiceEnabled,
+        typing,
+        setTyping,
     } = useInterviewLayout();
+
+    const problemContext = { problemTitle: activeProblem.title, problemContent: activeProblem.description };
+    const pendingSpeech = voice.transcript || voice.interimTranscript;
 
     return (
         <div className="h-full w-full p-2 animate-in fade-in zoom-in-95 duration-500">
@@ -168,34 +175,75 @@ export function DesktopLayout({ renderProblemCardContent }: DesktopLayoutProps) 
                                 />
                             </div>
 
-                            <div className="h-20 shrink-0 border-t flex items-center justify-center bg-black/40 px-6 backdrop-blur-xl" style={{ borderColor: 'var(--surface-edge)' }}>
+                            <div className="min-h-20 shrink-0 border-t flex items-center justify-center gap-4 bg-black/40 px-6 py-2 backdrop-blur-xl" style={{ borderColor: 'var(--surface-edge)' }}>
                                 {!hasStarted ? (
-                                    <Button
-                                        size="lg"
-                                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-12 rounded-xl"
-                                        onClick={handleStart}
-                                        data-tour="begin-button"
-                                        data-testid="begin-interview-btn"
-                                    >
-                                        Begin Interview Experience
-                                    </Button>
-                                ) : (
-                                    <MicrophoneButton
-                                        isListening={voice.isListening}
-                                        error={voice.error}
-                                        onClick={() => {
-                                            if (voice.isListening || isProcessing || voice.isSpeaking) {
-                                                handleInterruption();
-                                            } else {
+                                    <div className="flex w-full flex-col items-center gap-1.5">
+                                        <Button
+                                            size="lg"
+                                            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold h-12 rounded-xl"
+                                            onClick={handleStart}
+                                            data-tour="begin-button"
+                                            data-testid="begin-interview-btn"
+                                        >
+                                            Begin Interview Experience
+                                        </Button>
+                                        {voiceEnabled && <VoiceCheckLink />}
+                                    </div>
+                                ) : readOnly ? null : voiceEnabled && !typing ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            aria-label="Type instead"
+                                            title="Type instead"
+                                            onClick={() => { voice.stopListening(); setTyping(true); }}
+                                            className="p-2 rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
+                                        >
+                                            <Keyboard className="w-5 h-5" />
+                                        </button>
+                                        {/* A real mute switch — usable while Kai thinks or speaks; Esc / "Stop Speaking" interrupt Kai. */}
+                                        <MicrophoneButton
+                                            isListening={voice.isListening}
+                                            isReady={voice.isReady}
+                                            isMuted={voice.isMuted}
+                                            error={voice.error?.message}
+                                            onClick={() => voice.toggleMute()}
+                                            onRetry={() => {
+                                                setVoiceErrorDismissed(false);
                                                 voice.startListening();
-                                            }
-                                        }}
-                                        onRetry={() => {
-                                            setVoiceErrorDismissed(false);
-                                            voice.startListening();
-                                        }}
-                                        disabled={isProcessing || isLimitLocked}
-                                    />
+                                            }}
+                                            disabled={isLimitLocked}
+                                        />
+                                        {(pendingSpeech || voice.isTranscribing) && (
+                                            <Button
+                                                size="sm"
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
+                                                onClick={() => { if (pendingSpeech) submitUserResponse(pendingSpeech, problemContext); }}
+                                                disabled={isProcessing || voice.isTranscribing}
+                                                title="Send your response"
+                                            >
+                                                <Send className="w-3 h-3 mr-2" />
+                                                {voice.isTranscribing ? 'Transcribing…' : 'Send Message'}
+                                            </Button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="w-full flex flex-col items-center gap-1">
+                                        <InterviewComposer
+                                            autoFocus
+                                            disabled={isProcessing || isLimitLocked}
+                                            placeholder={voiceEnabled ? 'Type instead of speaking…' : 'Type your answer…'}
+                                            onSend={(text) => submitUserResponse(text, problemContext)}
+                                        />
+                                        {voiceEnabled && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTyping(false)}
+                                                className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-zinc-300"
+                                            >
+                                                Back to voice
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>

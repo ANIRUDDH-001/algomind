@@ -15,11 +15,20 @@
 // @vitest-environment jsdom
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const useInterviewSpy = vi.fn();
 const startInterview = vi.fn();
+const unlockMock = vi.fn();
+let mockBlocked = false;
+const toggleMuteMock = vi.fn();
+const stopSpeakingMock = vi.fn();
+const handleInterruptionMock = vi.fn();
+const submitUserResponseMock = vi.fn();
+let mockIsProcessing = false;
+let mockVoice: Record<string, unknown> = {};
+let mockVoiceEnabled = true;
 
 vi.mock('@/hooks/useInterview', () => ({
   useInterview: (opts: unknown) => {
@@ -27,11 +36,11 @@ vi.mock('@/hooks/useInterview', () => ({
     return {
       state: 'idle',
       messages: [],
-      isProcessing: false,
+      isProcessing: mockIsProcessing,
       startInterview,
       resetInterview: vi.fn(),
-      submitUserResponse: vi.fn(),
-      handleInterruption: vi.fn(),
+      submitUserResponse: submitUserResponseMock,
+      handleInterruption: handleInterruptionMock,
       endInterview: vi.fn(),
       loadTranscript: vi.fn(),
       roundCount: 0,
@@ -44,15 +53,21 @@ vi.mock('@/hooks/useInterview', () => ({
       enterCodingMode: vi.fn(),
       exitCodingMode: vi.fn(),
       shareCode: vi.fn(),
+      voiceEnabled: mockVoiceEnabled,
       voice: {
+        unlock: unlockMock,
+        blocked: mockBlocked,
         isListening: false,
         isSpeaking: false,
         transcript: '',
         interimTranscript: '',
         startListening: vi.fn(),
         stopListening: vi.fn(),
-        stopSpeaking: vi.fn(),
+        stopSpeaking: stopSpeakingMock,
+        toggleMute: toggleMuteMock,
+        isMuted: false,
         error: null,
+        ...mockVoice,
       },
     };
   },
@@ -118,9 +133,17 @@ vi.mock('@/components/interview/ConversationView', () => ({ ConversationView: ()
 vi.mock('@/components/interview/InterviewLimitBar', () => ({ InterviewLimitBar: () => <div /> }));
 vi.mock('@/components/interview/GuestModeBanner', () => ({ GuestModeBanner: () => <div /> }));
 vi.mock('@/components/interview/GuestResultsOverlay', () => ({ GuestResultsOverlay: () => <div /> }));
-vi.mock('@/components/interview/GuestProblemSelectorModal', () => ({ GuestProblemSelectorModal: () => <div /> }));
-vi.mock('@/components/interview/VoiceOnboarding', () => ({ VoiceOnboarding: () => <div /> }));
-vi.mock('@/components/voice/MicrophoneButton', () => ({ MicrophoneButton: () => <button /> }));
+vi.mock('@/components/interview/GuestProblemSelectorModal', () => ({
+  GuestProblemSelectorModal: ({ isOpen, onSelect }: { isOpen: boolean; onSelect: (p: unknown) => void }) => isOpen
+    ? <button data-testid="guest-pick" onClick={() => onSelect({ id: 'g1', title: 'Two Sum', description: 'Find pair sum.', difficulty: 'easy', examples: [] })}>pick</button>
+    : null,
+}));
+vi.mock('@/components/interview/VoiceOnboarding', () => ({ VoiceOnboarding: () => <div data-testid="voice-onboarding" /> }));
+vi.mock('@/components/voice/MicrophoneButton', () => ({
+  MicrophoneButton: (p: { onClick(): void; disabled?: boolean; isMuted?: boolean }) => (
+    <button data-testid="mic" onClick={p.onClick} disabled={p.disabled}>{p.isMuted ? 'Muted' : 'Mic'}</button>
+  ),
+}));
 vi.mock('@/components/voice/MicPulse', () => ({ MicPulse: () => <div /> }));
 vi.mock('@/components/voice/ZoomTranscript', () => ({ ZoomTranscript: () => <div /> }));
 vi.mock('@/components/voice/LiveTranscript', () => ({ LiveTranscript: () => <div /> }));
@@ -175,6 +198,96 @@ describe('InterviewSession orchestrator contract', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsProcessing = false;
+    mockVoice = {};
+    mockVoiceEnabled = true;
+  });
+  afterEach(cleanup);
+
+  it('both pre-start screens link to /voice-check (new tab) only when voice is on', () => {
+    const { unmount } = render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    const links = screen.getAllByRole('link', { name: /check mic & speaker/i });
+    expect(links).toHaveLength(2); // desktop + mobile pre-start screens
+    for (const link of links) {
+      expect(link.getAttribute('href')).toBe('/voice-check');
+      expect(link.getAttribute('target')).toBe('_blank');
+    }
+    unmount();
+    mockVoiceEnabled = false;
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    expect(screen.queryByRole('link', { name: /check mic & speaker/i })).toBeNull();
+  });
+
+  it('the voice tutorial shows before Begin when voice is on — never over the live interview, never in text-only mode', async () => {
+    const { unmount } = render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    expect(screen.getAllByTestId('voice-onboarding')).toHaveLength(1);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    await screen.findAllByTestId('mic');                         // the interview is live: Kai talking, mic armed
+    expect(screen.queryAllByTestId('voice-onboarding')).toHaveLength(0);
+    unmount();
+
+    mockVoiceEnabled = false;
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    expect(screen.queryAllByTestId('voice-onboarding')).toHaveLength(0);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    await screen.findAllByRole('textbox', { name: 'Your answer' });
+    expect(screen.queryAllByTestId('voice-onboarding')).toHaveLength(0);
+  });
+
+  it('a guest gets the voice tutorial only after picking a problem — never over the problem picker', () => {
+    render(<InterviewSession problem={problem as any} interviewConfig={config} isGuest />);
+    expect(screen.getByTestId('guest-pick')).toBeTruthy();
+    expect(screen.queryAllByTestId('voice-onboarding')).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('guest-pick'));
+    expect(screen.getAllByTestId('voice-onboarding')).toHaveLength(1);
+  });
+
+  it('every mic button (desktop + mobile) toggles mute and stays enabled while Kai is thinking', async () => {
+    mockIsProcessing = true;
+    mockVoice = { isMuted: true };
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    const mics = (await screen.findAllByTestId('mic')) as HTMLButtonElement[];
+    expect(mics).toHaveLength(2);
+    for (const mic of mics) {
+      expect(mic.disabled).toBe(false);
+      expect(mic.textContent).toBe('Muted');
+      fireEvent.click(mic);
+    }
+    expect(toggleMuteMock).toHaveBeenCalledTimes(2);
+    expect(handleInterruptionMock).not.toHaveBeenCalled();
+  });
+
+  it('text-only mode shows the typed composer in every layout (desktop + mobile)', async () => {
+    mockVoiceEnabled = false;
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    expect(await screen.findAllByRole('textbox', { name: 'Your answer' })).toHaveLength(2);
+    expect(screen.queryAllByTestId('mic')).toHaveLength(0);
+  });
+
+  it('Esc stops Kai speaking', () => {
+    mockVoice = { isSpeaking: true };
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(stopSpeakingMock).toHaveBeenCalled();
+    expect(handleInterruptionMock).toHaveBeenCalled();
+  });
+
+  it('Esc does nothing while Kai is silent', () => {
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(stopSpeakingMock).not.toHaveBeenCalled();
+  });
+
+  it('shows Send Message in every layout whenever a transcript exists and sends it immediately', async () => {
+    mockVoice = { transcript: 'I would use a hash map' };
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    const sends = await screen.findAllByRole('button', { name: /send message/i });
+    expect(sends).toHaveLength(2);
+    fireEvent.click(sends[0]);
+    expect(submitUserResponseMock).toHaveBeenCalledWith('I would use a hash map', expect.objectContaining({ problemTitle: 'Two Sum' }));
   });
 
   it('passes interviewConfig and onUserMessage callback into useInterview', () => {
@@ -183,6 +296,22 @@ describe('InterviewSession orchestrator contract', () => {
     const arg = useInterviewSpy.mock.calls[0]?.[0] as any;
     expect(arg.config).toBe(config);
     expect(typeof arg.onUserMessage).toBe('function');
+  });
+
+  it('unlocks the speech engine synchronously inside the Start click', () => {
+    unlockMock.mockClear();
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.click(screen.getAllByTestId('begin-interview-btn')[0]);
+    expect(unlockMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a tap-to-enable banner when the browser blocked Kai's voice", () => {
+    mockBlocked = true;
+    unlockMock.mockClear();
+    render(<InterviewSession problem={problem as any} interviewConfig={config} />);
+    fireEvent.click(screen.getAllByRole('button', { name: /tap to enable/i })[0]);
+    expect(unlockMock).toHaveBeenCalled();
+    mockBlocked = false;
   });
 
   it('renders begin CTA in orchestrator view and is clickable', () => {
