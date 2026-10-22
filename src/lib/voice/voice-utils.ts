@@ -163,3 +163,29 @@ export const splitIntoSpeakableChunks = (text: string): string[] => {
     if (currentChunk) chunks.push(currentChunk);
     return chunks;
 };
+
+const ENGLISH_VOICE_PRIORITY: RegExp[] = [
+    /\(Natural\)/i,                        // Edge online neural voices (free, high quality)
+    /^Google US English$/i,
+    /^Google UK English (Female|Male)$/i,
+    /^(Samantha|Alex|Daniel|Karen)$/i,     // macOS/iOS
+    /Microsoft (Aria|Jenny|Guy|Zira|David|Mark)/i,
+];
+
+/** Best English voice; null when the device has no English voice at all (never a non-English one). */
+export const pickEnglishVoice = (voices: SpeechSynthesisVoice[], preferredName?: string | null): SpeechSynthesisVoice | null => {
+    const english = (voices ?? []).filter(v => /^en([-_]|$)/i.test(v.lang));
+    if (!english.length) return null;
+    if (preferredName) {
+        const pref = english.find(v => v.name === preferredName);
+        if (pref) return pref;
+    }
+    for (const re of ENGLISH_VOICE_PRIORITY) {
+        const hit = english.find(v => re.test(v.name));
+        if (hit) return hit;
+    }
+    return english.find(v => /en[-_]US/i.test(v.lang))
+        ?? english.find(v => /en[-_]GB/i.test(v.lang))
+        ?? english.find(v => /en[-_]IN/i.test(v.lang))
+        ?? english[0];
+};

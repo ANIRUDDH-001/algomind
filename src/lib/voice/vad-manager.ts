@@ -38,10 +38,10 @@ import { getVoiceConfig } from '@/config/voice-config';
 const DEFAULT_CONFIG: VADConfig = {
     positiveSpeechThreshold: 0.6,   // catch the start of speech sooner (reduces first-word clipping)
     negativeSpeechThreshold: 0.22,  // Stay in speech mode until clearly stopped (lower = more tolerant of pauses)
-    redemptionMs: 1600,             // Wait ~1.6s after speech dips before ending — captures pauses without lag
+    redemptionMs: 800,              // aligned with voice-config; the turn detector decides when a turn ends
     preSpeechPadMs: 600,            // Include 600ms before speech start so the first word isn't clipped
-    minSpeechMs: 600,               // aligned with voice-config vadMinSpeechMs
-    model: 'legacy',
+    minSpeechMs: 250,               // aligned with voice-config vadMinSpeechMs
+    model: 'v5',                    // if v5 clips first words in live testing, revert ONLY this to 'legacy'
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',
 };
@@ -147,6 +147,8 @@ class VADManager implements VADManagerInterface {
     private _micVAD: MicVADInstance | null = null;
     private _config: VADConfig = { ...DEFAULT_CONFIG };
     private _error: string | null = null;
+    /** Epoch ms of the last processed audio frame — MicController's watchdog detects a dead mic with it. */
+    lastFrameAt = 0;
 
     private _onSpeechStartCbs = new Set<SpeechStartCallback>();
     private _onSpeechEndCbs = new Set<SpeechEndCallback>();
@@ -212,6 +214,9 @@ class VADManager implements VADManagerInterface {
                 baseAssetPath: this._config.baseAssetPath,
                 onnxWASMBasePath: this._config.onnxWASMBasePath,
                 startOnLoad: false,
+                // Pausing mid-utterance delivers the captured audio via onSpeechEnd
+                // (replaces useVAD's old deferred-stop timer, which raced with restarts).
+                submitUserSpeechOnPause: true,
                 // Cancel the AI's own TTS playback picked up by the mic (speaker users),
                 // preventing the self-echo → false barge-in → AI-transcribes-itself loop.
                 additionalAudioConstraints: {
@@ -246,6 +251,7 @@ class VADManager implements VADManagerInterface {
                 },
 
                 onFrameProcessed: (probabilities: { isSpeech: number }) => {
+                    this.lastFrameAt = Date.now();
                     if (this._onFrameProcessedCbs.size === 0) return;
                     const prob = probabilities.isSpeech;
                     this._onFrameProcessedCbs.forEach((cb) => {
@@ -260,7 +266,9 @@ class VADManager implements VADManagerInterface {
             console.info('[PIPE][VAD] init OK — mic/VAD ready (echoCancellation on)');
             console.log('[VADManager] MicVAD ready ✓');
         } catch (err) {
-            this._state = VADState.ERROR;
+            // Back to IDLE (not a sticky ERROR) so init() can be retried; _error keeps the reason.
+            this._state = VADState.IDLE;
+            this._micVAD = null;
             this._error = err instanceof Error ? err.message : 'Unknown error during VAD initialisation';
             console.error('[PIPE][VAD] init FAILED — mic/VAD unavailable (falling back to push-to-talk/browser STT):', this._error);
             throw err;
@@ -273,6 +281,7 @@ class VADManager implements VADManagerInterface {
         try {
             await this._micVAD!.start();
             this._state = VADState.LISTENING;
+            this.lastFrameAt = Date.now(); // watchdog grace period until the first frame arrives
         } catch (err) {
             this._state = VADState.ERROR;
             this._error = err instanceof Error ? err.message : 'Failed to start VAD';

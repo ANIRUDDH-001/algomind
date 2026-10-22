@@ -50,6 +50,25 @@ const eslintConfig = defineConfig([
       "@next/next/no-img-element": "warn"
     }
   },
+  // Voice: speech-queue.ts is the ONLY owner of window.speechSynthesis. Direct speak()/cancel()
+  // or assigning onvoiceschanged from anywhere else re-creates the cancel→speak race and the
+  // clobbered-voice ("gibberish") bugs from the Sept 2026 live run.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/voice/speech-queue.ts", "src/**/__tests__/**", "src/**/*.test.*", "src/test-utils/**"],
+    rules: {
+      "no-restricted-syntax": ["error",
+        {
+          selector: "MemberExpression[object.property.name='speechSynthesis'][property.name=/^(speak|cancel|onvoiceschanged)$/]",
+          message: "Use getSpeechQueue() — speech-queue.ts is the only owner of speechSynthesis."
+        },
+        {
+          selector: "MemberExpression[object.name='speechSynthesis'][property.name=/^(speak|cancel|onvoiceschanged)$/]",
+          message: "Use getSpeechQueue() — speech-queue.ts is the only owner of speechSynthesis."
+        }
+      ]
+    }
+  },
   // Test files: allow any types (mocking requires flexible typing)
   {
     files: ["**/__tests__/**", "**/*.test.*", "**/test-utils/**"],

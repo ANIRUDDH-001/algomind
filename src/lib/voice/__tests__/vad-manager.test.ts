@@ -135,14 +135,49 @@ describe('VADManager', () => {
         expect(vad.state).toBe(VADState.PAUSED);
     });
 
-    it('5. Error during init: onError callback fires, isReady stays false', async () => {
+    it('5. Error during init: rejects, returns to IDLE (never a sticky ERROR) and a retry can succeed', async () => {
         const vad = getVADManager();
 
         // Force init to branch to error by removing mockMicVAD token
         delete (globalThis as any).window.mockMicVAD;
 
         await expect(vad.init()).rejects.toThrow();
-        expect(vad.state).toBe(VADState.ERROR);
+        expect(vad.state).toBe(VADState.IDLE);
+        expect(vad.error).toMatch(/MicVAD not found/);
+
+        (globalThis as any).window.mockMicVAD = MockMicVAD;
+        await vad.init();
+        expect(vad.state).toBe(VADState.PAUSED);
+    });
+
+    it('9. uses Silero v5 and submits the in-flight utterance when paused', async () => {
+        await getVADManager().init();
+        expect(createdVADOptions.model).toBe('v5');
+        expect(createdVADOptions.submitUserSpeechOnPause).toBe(true);
+    });
+
+    it('11. createBrowserVad applies voice-config turn timings and forwards misfires', async () => {
+        const { createBrowserVad } = await import('../mic-controller');
+        const onMisfire = vi.fn();
+        const handle = await createBrowserVad({ onSpeechStart: vi.fn(), onSpeechEnd: vi.fn(), onFrame: vi.fn(), onMisfire });
+        expect(createdVADOptions.minSpeechMs).toBe(250);   // short answers like "yes" count
+        expect(createdVADOptions.redemptionMs).toBe(800);
+        createdVADOptions.onVADMisfire();
+        expect(onMisfire).toHaveBeenCalledTimes(1);
+        await handle.destroy();
+    });
+
+    it('10. lastFrameAt advances on every frame (even with no frame subscribers) and on start()', async () => {
+        const vad = getVADManager();
+        await vad.init();
+        expect(vad.lastFrameAt).toBe(0);
+        const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+        await vad.start();
+        expect(vad.lastFrameAt).toBe(1_000);
+        nowSpy.mockReturnValue(2_500);
+        createdVADOptions.onFrameProcessed({ isSpeech: 0.1 });
+        expect(vad.lastFrameAt).toBe(2_500);
+        nowSpy.mockRestore();
     });
 
     it('6. isReady: implicitly tracked via VADState.PAUSED after successful init', async () => {
