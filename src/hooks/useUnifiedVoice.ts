@@ -3,7 +3,7 @@
  * @file      src/hooks/useUnifiedVoice.ts
  * @purpose   Consolidates TTS, STT, and VAD into a single manageable React hook.
  * @tech      React
- * @connects  Composes useVAD, useSTT, useTTS; alternative to useInterviewVoice
+ * @connects  Composes useVAD, useSTT, useTTS
  * @apis      none
  * @db        none
  * @state     Unified state machine for voice (idle, listening, processing, speaking, error)

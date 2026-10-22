@@ -14,6 +14,7 @@
 'use client';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { transcribeVoiceAudio } from '@/lib/api/adapters/voice-adapter';
+import { float32ToWav } from '@/lib/voice/wav';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SpeechRecognitionEvent = any;
@@ -32,6 +33,17 @@ export interface UseSTTOptions {
     onError?: (err: string) => void;
     /** Called when Whisper returns empty text (low confidence or noise). */
     onEmpty?: () => void;
+    /** Voice turn timeline hooks: 'start' before the Whisper upload, then 'done' or 'error'. */
+    onTiming?: (e: STTTiming) => void;
+}
+
+export interface STTTiming {
+    phase: 'start' | 'done' | 'error';
+    audioMs?: number;
+    ms?: number;
+    model?: string;
+    serverTiming?: { preMs: number; groqMs: number };
+    error?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -283,8 +295,11 @@ export function useSTT(opts: UseSTTOptions) {
             setIsTranscribing(true);
             const _t0 = performance.now();
             console.info(`[PIPE][STT] mic captured ${audioMs}ms of audio (${resolvedProvider}) → transcribing…`);
-            const { text } = await transcribeVoiceAudio(form);
+            optsRef.current.onTiming?.({ phase: 'start', audioMs });
+            const res = await transcribeVoiceAudio(form);
+            const { text } = res;
             const _ms = Math.round(performance.now() - _t0);
+            optsRef.current.onTiming?.({ phase: 'done', ms: _ms, model: res.model, serverTiming: res.timing });
             console.info(`[PIPE][STT] transcribed in ${_ms}ms → "${(text || '').slice(0, 120)}" (len=${(text || '').length})${!text?.trim() ? ' ⚠️ EMPTY — nothing captured' : ''}`);
             if (!text?.trim()) {
                 // A4: Notify caller so the UI can show "Didn't catch that" feedback.
@@ -301,7 +316,10 @@ export function useSTT(opts: UseSTTOptions) {
             });
             optsRef.current.onTranscript(text, true);
             armTimer();
-        } catch (err) { console.error('[STT] Whisper transcription failed:', err); }
+        } catch (err) {
+            console.error('[STT] Whisper transcription failed:', err);
+            optsRef.current.onTiming?.({ phase: 'error', error: err instanceof Error ? err.message : String(err) });
+        }
         finally { setIsTranscribing(false); }
     }, [resolvedProvider, armTimer]);
 
@@ -335,50 +353,4 @@ export function useSTT(opts: UseSTTOptions) {
         permissionState,
         mediaStreamRef, // A2: exposed for explicit cleanup in endInterview
     };
-}
-
-// Minimal PCM → WAV encoder
-function float32ToWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
-    const numChannels = 1;
-    const bitsPerSample = 16;
-    const bytesPerSample = bitsPerSample / 8;
-    const blockAlign = numChannels * bytesPerSample;
-    const byteRate = sampleRate * blockAlign;
-    const dataSize = samples.length * bytesPerSample;
-    const buffer = new ArrayBuffer(44 + dataSize);
-    const view = new DataView(buffer);
-
-    // RIFF header
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + dataSize, true);  // file size - 8
-    writeString(view, 8, 'WAVE');
-
-    // fmt sub-chunk
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);            // PCM format chunk size
-    view.setUint16(20, 1, true);             // PCM format = 1
-    view.setUint16(22, numChannels, true);   // mono
-    view.setUint32(24, sampleRate, true);    // sample rate
-    view.setUint32(28, byteRate, true);      // byte rate
-    view.setUint16(32, blockAlign, true);    // block align
-    view.setUint16(34, bitsPerSample, true); // bits per sample
-
-    // data sub-chunk (MUST start at offset 36, NOT 38)
-    writeString(view, 36, 'data');
-    view.setUint32(40, dataSize, true);      // data chunk size
-
-    // PCM samples
-    let offset = 44;
-    for (let i = 0; i < samples.length; i++) {
-        const s = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-        offset += 2;
-    }
-    return buffer;
-}
-
-function writeString(view: DataView, offset: number, str: string) {
-    for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i));
-    }
 }

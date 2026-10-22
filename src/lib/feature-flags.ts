@@ -138,6 +138,15 @@ export const FEATURE_FLAGS = {
         description: 'Allow unauthenticated users to run guest/demo interviews.',
         requiresBrowserSupport: false,
     },
+
+    // Master voice switch for Interview + Learn. OFF → typed chat only (Kai's replies shown as text).
+    // Stays OFF in prod until Voice Engine v2 passes the live verification run.
+    ENABLE_VOICE_MODE: {
+        storageKey: 'feature_ENABLE_VOICE_MODE',
+        defaultValue: false,
+        description: 'Spoken interviews and Learn sessions (mic + Kai voice). Off = typed chat only.',
+        requiresBrowserSupport: false,
+    },
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

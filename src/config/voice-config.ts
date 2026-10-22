@@ -66,15 +66,16 @@ const DEFAULTS: VoiceConfigValues = {
     debugMode: false,
     eventStreamMaxSize: 200,
 
-    // Balance: long enough to tolerate mid-sentence pauses, short enough not to feel laggy.
-    vadSilenceWindowMs: 1900,
+    // Short VAD window — how long to keep waiting after a segment is decided by the
+    // turn detector (lib/voice/turn-detector.ts), not by this value.
+    vadSilenceWindowMs: 800,
     sttRestartDelayBrowserTts: 300,
     sttRestartDelayAudioElement: 200,
 
     vadPositiveSpeechThreshold: 0.6,   // catch the start of speech sooner (less beginning clip)
     vadNegativeSpeechThreshold: 0.22,
-    vadRedemptionMs: 1600,
-    vadMinSpeechMs: 600,               // don't drop short-but-complete answers
+    vadRedemptionMs: 800,
+    vadMinSpeechMs: 250,               // short answers like "yes" still count as speech
     // preSpeechPadMs is set in vad-manager (increased to reduce first-word clipping).
 };
 

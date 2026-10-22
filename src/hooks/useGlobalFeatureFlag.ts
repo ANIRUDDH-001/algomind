@@ -67,6 +67,36 @@ async function fetchFlags(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Local override (dev only)
+// ---------------------------------------------------------------------------
+
+const OVERRIDE_PREFIX = 'algomind.flagOverride.';
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
+/**
+ * On a local dev host only, localStorage `algomind.flagOverride.<FLAG>` = 'true' | 'false' beats the
+ * global flag — e.g. the voice live run turns ENABLE_VOICE_MODE on without touching the global row.
+ * Returns null (no override) on every other host, so production users cannot flip flags.
+ */
+export function readLocalFlagOverride(
+    flag: string,
+    hostname: string,
+    storage: Pick<Storage, 'getItem'> | null,
+): boolean | null {
+    if (!storage || !(LOCAL_HOSTS.includes(hostname) || hostname.endsWith('.localhost'))) return null;
+    let raw: string | null;
+    try { raw = storage.getItem(OVERRIDE_PREFIX + flag); } catch { return null; }
+    return raw === 'true' ? true : raw === 'false' ? false : null;
+}
+
+function browserFlagOverride(flag: string): boolean | null {
+    if (typeof window === 'undefined') return null;
+    let storage: Storage | null = null;
+    try { storage = window.localStorage; } catch { /* storage blocked */ }
+    return readLocalFlagOverride(flag, window.location.hostname, storage);
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
@@ -86,6 +116,12 @@ export function useGlobalFeatureFlag(
 
     const refresh = useCallback(async () => {
         await fetchFlags();
+        // Applied after mount (never in the useState initializer) so hydration stays consistent.
+        const override = browserFlagOverride(flagRef.current);
+        if (override !== null) {
+            setValue(override);
+            return;
+        }
         if (_flagCache && flagRef.current in _flagCache) {
             setValue(_flagCache[flagRef.current].value);
         }

@@ -1,20 +1,20 @@
 /**
  * @codesage
  * @file      src/hooks/useVAD.ts
- * @purpose   React wrapper around the VADManager singleton (Voice Activity Detection), cascading between ONNX Silero and push-to-talk.
+ * @purpose   React wrapper around MicController (the single owner of mic + Silero VAD), falling back to push-to-talk.
  * @tech      React
- * @connects  Imports VADManager singleton; used by voice/interview hooks
+ * @connects  MicController + createBrowserVad (lib/voice/mic-controller); used by useInterview, useUnifiedVoice
  * @apis      none
  * @db        none
- * @state     React component state for VAD mode and listening readiness
+ * @state     Mirrors MicController status; support detection
  * @env       none
  * @issues    none
  * @audit     CODESAGE-v1
  */
 'use client';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from 'react';
 
-import { VADState } from '@/lib/voice/types';
+import { MicController, createBrowserVad, type MicStatus } from '@/lib/voice/mic-controller';
 
 export type VADMode = 'onnx' | 'push-to-talk';
 
@@ -23,205 +23,102 @@ export interface UseVADOptions {
     onSpeechStart?: () => void;
     onSpeechEnd?: (audio: Float32Array) => void;
     onError?: (err: Error) => void;
-    /** Called when VAD degrades to push-to-talk — parent should cascade to browser STT */
+    /** Called once when VAD degrades to push-to-talk — parent should cascade to browser STT */
     onFallback?: () => void;
     /** Called each frame with the raw Silero speech probability (0–1) for visualizers. */
     onFrameProcessed?: (prob: number) => void;
+    /** Speech started but was too short to count (cough, click) — no onSpeechEnd follows. */
+    onMisfire?: () => void;
+    /** Every MicController status change (voice telemetry reports 'recovering' / 'failed'). */
+    onStatus?: (status: MicStatus, detail?: string) => void;
 }
 
+function browserSupportsVad(): boolean {
+    // SharedArrayBuffer is NOT required — the vad-bundle UMD build works without it.
+    return typeof window !== 'undefined' &&
+        !!(window.AudioContext || (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext) &&
+        !!navigator?.mediaDevices?.getUserMedia &&
+        typeof WebAssembly !== 'undefined';
+}
+const noSubscribe = () => () => {};
+
 export function useVAD(opts: UseVADOptions) {
-    const [mode, setMode] = useState<VADMode>('push-to-talk');
-    const [isListening, setIsListening] = useState(false);
-    const [isReady, setIsReady] = useState(false);
-    const [initAttempted, setInitAttempted] = useState(false);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const managerRef = useRef<any>(null);
-    const unsubRef = useRef<(() => void) | null>(null);
     const optsRef = useRef(opts);
-    // Synchronous update during render — eliminates timing gap between
-    // render and useEffect that could cause stale callbacks in onSpeechEnd.
-    optsRef.current = opts;
-
-    // Pending-stop: set true when stopListening is called while VAD is still
-    // capturing audio (LISTENING state). The stop is deferred until the
-    // current onSpeechEnd fires so the audio buffer isn't discarded.
-    const pendingStopRef = useRef(false);
-    const stopFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Detect basic browser support on mount.
-    // NOTE: SharedArrayBuffer is NOT required — the vad-bundle.min.js UMD build
-    // handles its own polyfills and works without it (confirmed in production).
-    // Only AudioContext + getUserMedia + WebAssembly are truly required.
-    const onnxSupported = useRef(false);
+    const enabledRef = useRef(opts.enabled);
+    // Latest handlers for the controller's async callbacks (VAD events always fire after commit).
     useEffect(() => {
-        if (!opts.enabled) return;
-        const supported =
-            typeof window !== 'undefined' &&
-            !!(window.AudioContext || (window as any).webkitAudioContext) &&
-            !!navigator?.mediaDevices?.getUserMedia &&
-            typeof WebAssembly !== 'undefined';
-        onnxSupported.current = supported;
-        if (supported) {
-            setMode('onnx');
-            console.log('[useVAD] Browser supports ONNX VAD (AudioContext + getUserMedia + WebAssembly)');
-        } else {
-            console.warn('[useVAD] Browser lacks AudioContext/getUserMedia/WebAssembly. Using push-to-talk.');
-            setMode('push-to-talk');
-            setIsReady(true);
-        }
-    }, [opts.enabled]);
+        optsRef.current = opts;
+        enabledRef.current = opts.enabled;
+    });
 
-    // Register callbacks ONCE when manager is available, not in startListening.
-    // This prevents duplicate subscriptions when startListening is called multiple times.
-    const registerCallback = useCallback((manager: {
-        onSpeechStart?: (cb: () => void) => (() => void);
-        onSpeechEnd?: (cb: (audio: Float32Array) => void) => (() => void);
-        onFrameProcessed?: (cb: (prob: number) => void) => (() => void);
-    }) => {
-        // Unsubscribe previous if any
-        if (unsubRef.current) {
-            unsubRef.current();
-            unsubRef.current = null;
-        }
-        const unsubs: (() => void)[] = [];
+    const [status, setStatus] = useState<MicStatus>('off');
+    // Browser capability never changes; null on the server keeps hydration consistent.
+    const supported = useSyncExternalStore<boolean | null>(noSubscribe, browserSupportsVad, () => null);
+    const fallbackFiredRef = useRef(false);
+    const micRef = useRef<MicController | null>(null);
 
-        const unsubStart = manager.onSpeechStart?.(() => {
-            optsRef.current.onSpeechStart?.();
-        });
-        if (unsubStart) unsubs.push(unsubStart);
-
-        // A7: Forward frame probabilities for the live visualizer.
-        const unsubFrame = manager.onFrameProcessed?.((prob: number) => {
-            optsRef.current.onFrameProcessed?.(prob);
-        });
-        if (unsubFrame) unsubs.push(unsubFrame);
-
-        const unsubEnd = manager.onSpeechEnd?.((audio: Float32Array) => {
-            optsRef.current.onSpeechEnd?.(audio);
-            // If stopListening was called while this segment was in-flight,
-            // now that the audio has been delivered, execute the deferred stop.
-            if (pendingStopRef.current) {
-                pendingStopRef.current = false;
-                if (stopFallbackTimerRef.current) {
-                    clearTimeout(stopFallbackTimerRef.current);
-                    stopFallbackTimerRef.current = null;
-                }
-                managerRef.current?.stop().catch(() => { /* ignore */ });
-            }
-        });
-        if (unsubEnd) unsubs.push(unsubEnd);
-
-        unsubRef.current = () => unsubs.forEach(fn => fn());
+    const fireFallback = useCallback((err?: Error) => {
+        if (err) optsRef.current.onError?.(err);
+        if (fallbackFiredRef.current) return;
+        fallbackFiredRef.current = true;
+        optsRef.current.onFallback?.();
     }, []);
+
+    /** One controller per hook instance, created on first use (never during render). */
+    const getMic = useCallback((): MicController => {
+        if (!micRef.current) {
+            micRef.current = new MicController({
+                createVad: createBrowserVad,
+                onStatus: (s, detail) => {
+                    setStatus(s);
+                    optsRef.current.onStatus?.(s, detail);
+                    if (s === 'failed') fireFallback(new Error(detail || 'Microphone / VAD unavailable'));
+                },
+                onSpeechStart: () => optsRef.current.onSpeechStart?.(),
+                onSpeechEnd: (audio) => optsRef.current.onSpeechEnd?.(audio),
+                onFrame: (prob) => optsRef.current.onFrameProcessed?.(prob),
+                onMisfire: () => optsRef.current.onMisfire?.(),
+            });
+        }
+        return micRef.current;
+    }, [fireFallback]);
 
     const startListening = useCallback(async () => {
-        if (!opts.enabled) {
-            console.log('[useVAD] Not enabled, skipping startListening');
+        if (!enabledRef.current) return;
+        if (!browserSupportsVad()) {
+            console.warn('[useVAD] Browser lacks AudioContext/getUserMedia/WebAssembly. Using push-to-talk.');
+            fireFallback(); // not an error — the parent cascades to push-to-talk / browser STT
             return;
         }
+        await getMic().setIntent('listen');
+    }, [getMic, fireFallback]);
 
-        // If ONNX not supported or already failed, don't retry
-        if (!onnxSupported.current || (initAttempted && mode === 'push-to-talk')) {
-            console.log(`[useVAD] Skipping startListening: onnxSupported=${onnxSupported.current}, mode=${mode}`);
-            setIsListening(false);
-            setIsReady(true);
-            // Notify parent to fall back to browser STT
-            optsRef.current.onFallback?.();
-            return;
-        }
+    // `force` is kept for API compatibility: pausing always delivers the in-flight utterance
+    // (vad-web submitUserSpeechOnPause), so there is no deferred stop any more.
+    const stopListening = useCallback(async (_force = false) => { await micRef.current?.setIntent('off'); }, []);
 
-        // ONNX mode: use vad-manager singleton
-        try {
-            console.log('[useVAD] Starting ONNX VAD...');
-            const { getVADManager } = await import('@/lib/voice/vad-manager');
-            const manager = getVADManager();
-            managerRef.current = manager;
+    const poke = useCallback(async (reason: string) => { await micRef.current?.poke(reason); }, []);
 
-            // Register callback once (idempotent — cleans up previous)
-            registerCallback(manager);
-
-            if (manager.state === VADState.IDLE) {
-                console.log('[useVAD] VADManager in IDLE state, initializing...');
-                setInitAttempted(true);
-                await manager.init();
-                console.log('[useVAD] VADManager initialized, state:', manager.state);
-            }
-
-            if (manager.state === VADState.PAUSED || manager.state === VADState.LISTENING) {
-                if (manager.state !== VADState.LISTENING) {
-                    await manager.start();
-                }
-                setIsListening(true);
-                setIsReady(true);
-                console.log('[useVAD] ONNX VAD listening ✓');
-            } else {
-                throw new Error(`Unexpected VAD state after init: ${manager.state}`);
-            }
-        } catch (err) {
-            const e = err instanceof Error ? err : new Error('VAD init failed');
-            console.error('[useVAD] ONNX VAD failed:', e.message);
-            opts.onError?.(e);
-            // Downgrade to push-to-talk
-            setMode('push-to-talk');
-            setIsListening(false);
-            setIsReady(true);
-            setInitAttempted(true);
-            // Notify parent to fall back to browser STT
-            optsRef.current.onFallback?.();
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [opts.enabled, mode, initAttempted, registerCallback]);
-
-    const stopListening = useCallback(async (force = false) => {
-        setIsListening(false);
-        if (!managerRef.current) return;
-
-        if (force) {
-            pendingStopRef.current = false;
-            if (stopFallbackTimerRef.current) {
-                clearTimeout(stopFallbackTimerRef.current);
-                stopFallbackTimerRef.current = null;
-            }
-            try { await managerRef.current.stop(); } catch { /* ignore */ }
-            return;
-        }
-
-        // If VAD is actively listening, defer the hardware stop until the
-        // current speech segment ends so onSpeechEnd can fire and Whisper
-        // can transcribe the captured audio (fixes the mid-utterance discard bug).
-        if (managerRef.current.state === VADState.LISTENING) {
-            pendingStopRef.current = true;
-            // Safety fallback: force-stop only if onSpeechEnd never fires. This MUST be longer
-            // than the VAD redemption/silence window (~1.5–1.8s) — otherwise it fires mid-segment
-            // and discards the utterance before onSpeechEnd can deliver the audio to Whisper.
-            if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
-            stopFallbackTimerRef.current = setTimeout(async () => {
-                if (pendingStopRef.current) {
-                    pendingStopRef.current = false;
-                    try { await managerRef.current?.stop(); } catch { /* ignore */ }
-                }
-            }, 3500);
-        } else {
-            try { await managerRef.current.stop(); } catch { /* ignore */ }
-        }
+    // A plugged / unplugged microphone gets a fresh VAD instead of a dead stream.
+    useEffect(() => {
+        const devices = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined;
+        if (!devices?.addEventListener) return;
+        const onDeviceChange = () => { void micRef.current?.poke('devicechange'); };
+        devices.addEventListener('devicechange', onDeviceChange);
+        return () => devices.removeEventListener('devicechange', onDeviceChange);
     }, []);
 
-    useEffect(() => () => {
-        // Cleanup subscription
-        if (unsubRef.current) {
-            unsubRef.current();
-            unsubRef.current = null;
-        }
-        if (stopFallbackTimerRef.current) {
-            clearTimeout(stopFallbackTimerRef.current);
-            stopFallbackTimerRef.current = null;
-        }
-        pendingStopRef.current = false;
-        if (managerRef.current) {
-            try { managerRef.current.destroy?.(); } catch { /* ignore */ }
-        }
-    }, []);
+    useEffect(() => () => { void micRef.current?.dispose(); }, []);
 
-    return useMemo(() => ({ mode, isListening, isReady, startListening, stopListening }), [mode, isListening, isReady, startListening, stopListening]);
+    const mode: VADMode = opts.enabled && supported === true && status !== 'failed' ? 'onnx' : 'push-to-talk';
+    const isListening = status === 'listening';
+    // "Ready" = not busy initialising. A disabled VAD (browser STT) has nothing to initialise,
+    // so the mic button must not sit on "Initializing…".
+    const isReady = !opts.enabled || supported === false || (status !== 'starting' && status !== 'recovering');
+
+    // Memoized: consumers put the returned object in effect deps.
+    return useMemo(
+        () => ({ mode, isListening, isReady, status, startListening, stopListening, poke }),
+        [mode, isListening, isReady, status, startListening, stopListening, poke],
+    );
 }
