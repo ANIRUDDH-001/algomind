@@ -29,6 +29,8 @@ interface MicrophoneButtonProps {
     onRetry?: () => void;
     /** Whether the underlying VAD engine is initialized */
     isReady?: boolean;
+    /** Mute-toggle mode: when defined, the button is a mute switch ("Muted" / "Listening..." / "Mic on"). */
+    isMuted?: boolean;
 }
 
 export function MicrophoneButton({
@@ -40,7 +42,10 @@ export function MicrophoneButton({
     audioLevel = 0,
     onRetry,
     isReady = true,
+    isMuted,
 }: MicrophoneButtonProps) {
+    const muteMode = isMuted !== undefined;
+    const idleLabel = muteMode ? (isMuted ? 'Muted' : 'Mic on') : 'Click to speak';
     return (
         <div className="flex flex-col items-center gap-3">
             {/* Outer ring — only visible when listening */}
@@ -76,7 +81,9 @@ export function MicrophoneButton({
                     onClick={error && onRetry ? onRetry : onClick}
                     disabled={disabled}
                     data-testid="mic-button"
-                    aria-label={isListening ? 'Disable microphone' : 'Enable microphone'}
+                    aria-label={muteMode
+                        ? (isMuted ? 'Unmute microphone' : 'Mute microphone')
+                        : (isListening ? 'Disable microphone' : 'Enable microphone')}
                     whileTap={{ scale: 0.92 }}
                     whileHover={{ scale: 1.05 }}
                     className={cn(
@@ -97,7 +104,7 @@ export function MicrophoneButton({
                         ? <AlertCircle className="w-6 h-6 text-red-400" />
                         : !isReady
                             ? <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
-                            : isListening
+                            : isListening && !isMuted
                                 ? <Mic className="w-6 h-6 text-white" />
                                 : <MicOff className="w-6 h-6 text-zinc-400" />
                     }
@@ -106,7 +113,7 @@ export function MicrophoneButton({
 
             {/* State label */}
             <motion.span
-                key={error ? 'error' : isListening ? 'on' : 'off'}
+                key={error ? 'error' : isMuted ? 'muted' : isListening ? 'on' : 'off'}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
@@ -120,9 +127,9 @@ export function MicrophoneButton({
                     ? (onRetry ? "Tap to retry" : "Mic error")
                     : !isReady
                         ? "Initializing..."
-                        : isListening
+                        : isListening && !isMuted
                             ? "Listening..."
-                            : "Click to speak"}
+                            : idleLabel}
             </motion.span>
         </div>
     );

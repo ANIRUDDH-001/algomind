@@ -22,11 +22,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Play, Volume2 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '@/lib/supabase/user-preferences';
-import type { TTSProvider } from '@/lib/voice/tts-engine';
+import { getSpeechQueue } from '@/lib/voice/speech-queue';
 
 interface VoiceSettingsProps {
     inline?: boolean;
-    ttsProvider?: TTSProvider | 'groq' | 'detecting';
+    ttsProvider?: 'polly' | 'browser' | 'groq' | 'detecting';
     currentProvider?: 'groq' | 'browser' | 'polly';
 }
 
@@ -48,10 +48,11 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
             if (typeof window !== 'undefined' && window.speechSynthesis) {
                 const allVoices = window.speechSynthesis.getVoices();
 
+                // English voices only — Kai speaks English; a non-English voice reading English sounds like gibberish.
                 const filtered = allVoices.filter(v =>
                     v.lang === 'en-US' ||
                     v.lang === 'en-GB' ||
-                    v.lang === 'hi-IN'
+                    v.lang === 'en-IN'
                 );
 
                 const uniqueVoices = filtered.filter((v, index, self) =>
@@ -62,7 +63,7 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
                     const getOrder = (lang: string) => {
                         if (lang === 'en-US') return 1;
                         if (lang === 'en-GB') return 2;
-                        if (lang === 'hi-IN') return 3;
+                        if (lang === 'en-IN') return 3;
                         return 4;
                     };
                     return getOrder(a.lang) - getOrder(b.lang);
@@ -86,14 +87,12 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
 
         loadVoices();
 
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
+        // addEventListener, never the global onvoiceschanged property (other owners were clobbered).
+        const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+        synth?.addEventListener?.('voiceschanged', loadVoices);
 
         return () => {
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-                window.speechSynthesis.onvoiceschanged = null;
-            }
+            synth?.removeEventListener?.('voiceschanged', loadVoices);
         };
     }, []);
 
@@ -141,22 +140,18 @@ export function VoiceSettings({ inline, ttsProvider, currentProvider }: VoiceSet
         }
     };
 
+    // Mirror the shared queue's speaking state for the preview button.
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        return getSpeechQueue().on((e) => { if (e.type === 'speaking') setIsPlaying(e.value); });
+    }, []);
+
     const handleTestVoice = () => {
-        if (!selectedVoice || typeof window === 'undefined') return;
-
-        window.speechSynthesis.cancel();
-
-        const voiceObj = voices.find(v => v.name === selectedVoice);
-        if (!voiceObj) return;
-
-        const utterance = new SpeechSynthesisUtterance("Hello! This is how I will sound during your interview practice. Good luck!");
-        utterance.voice = voiceObj;
-        utterance.rate = rate;
-        utterance.onstart = () => setIsPlaying(true);
-        utterance.onend = () => setIsPlaying(false);
-        utterance.onerror = () => setIsPlaying(false);
-
-        window.speechSynthesis.speak(utterance);
+        if (!selectedVoice || typeof window === 'undefined' || !window.speechSynthesis) return;
+        const q = getSpeechQueue();
+        q.configure({ preferredVoiceName: selectedVoice, rate });
+        q.stop();
+        q.enqueue("Hello! This is how I will sound during your interview practice. Good luck!");
     };
 
     const handleRateChange = (vals: number[]) => {

@@ -29,10 +29,12 @@ import {
 import { LogOut, Settings, BarChart, Home, Shield, History, Briefcase, BookOpen, Crown, Brain, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useSyncExternalStore } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { motion } from 'framer-motion';
 import { useLearnKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+
+const noSubscribe = () => () => {};
 
 export function Navbar() {
     const { user, signOut, loading, isConfigured } = useAuth();
@@ -46,8 +48,8 @@ export function Navbar() {
 
     // Auth state resolves on the client only; gate auth-dependent nav on `mounted`
     // so the first client render matches the server render (avoids hydration mismatch).
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
+    // Server snapshot false → hydration renders like the server, then React re-renders with true.
+    const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
 
     useLearnKeyboardShortcuts();
 

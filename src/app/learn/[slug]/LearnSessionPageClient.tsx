@@ -26,6 +26,7 @@ import {
 
 import { useLearnSession } from '@/hooks/useLearnSession';
 import { useUnifiedVoice } from '@/hooks/useUnifiedVoice';
+import { useGlobalFeatureFlag } from '@/hooks/useGlobalFeatureFlag';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { cn } from '@/lib/utils';
@@ -79,11 +80,14 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
     setMounted(true);
   }, []);
 
+  // Master voice switch — OFF means typed chat only (no mic, no Kai voice).
+  const voiceEnabled = useGlobalFeatureFlag('ENABLE_VOICE_MODE', false);
+
   // Voice Hook
   const voice = useUnifiedVoice({
     sttProvider: 'whisper',
     language: 'en-IN',
-    enabled: true,
+    enabled: voiceEnabled,
     onTranscript: (text, isFinal) => {
         if (isFinal && text.trim() && voice.vadMode === 'onnx') {
             if (session.state !== 'active' || session.kaiTyping) return;
@@ -97,7 +101,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
   const session = useLearnSession({
     conceptSlug: slug,
     onSpeakMessage: async (text: string) => {
-      await voice.speak(text);
+      if (voiceEnabled) await voice.speak(text);
     },
     onSessionEnd: (results) => {
       router.push(`/learn/${slug}/results?sessionId=${results.sessionId}`);
@@ -115,13 +119,13 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
 
   // Sync Voice State
   useEffect(() => {
-      if (session.state === 'active' && !session.kaiTyping) {
+      if (voiceEnabled && session.state === 'active' && !session.kaiTyping) {
           voice.start();
       } else {
           voice.stop(true);
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.state, session.kaiTyping]);
+  }, [voiceEnabled, session.state, session.kaiTyping]);
 
   useEffect(() => {
       return () => {
@@ -506,6 +510,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                         )}
 
                         <div className="flex gap-3">
+                        {voiceEnabled && (
                         <button
                             type="button"
                             onClick={handleMicToggle}
@@ -519,6 +524,7 @@ export default function LearnSessionPageClient({ slug }: LearnSessionPageClientP
                         >
                             {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </button>
+                        )}
 
                         <input
                             data-testid="text-input"

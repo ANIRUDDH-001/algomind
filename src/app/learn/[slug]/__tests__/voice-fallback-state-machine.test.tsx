@@ -105,6 +105,11 @@ vi.mock('@/components/voice/ZoomTranscript', () => ({
   ZoomTranscript: () => <div data-testid="zoom-transcript" />,
 }));
 
+let mockVoiceFlag = true;
+vi.mock('@/hooks/useGlobalFeatureFlag', () => ({
+  useGlobalFeatureFlag: (key: string, def: boolean) => (key === 'ENABLE_VOICE_MODE' ? mockVoiceFlag : def),
+}));
+
 vi.mock('@/components/voice/VoiceModeToggle', () => ({
   VoiceModeToggle: () => <div data-testid="voice-toggle" />,
 }));
@@ -121,7 +126,16 @@ describe('Learn voice fallback state machine', () => {
     cleanup();
     mockSttListening = false;
     mockVadMode = 'onnx';
+    mockVoiceFlag = true;
     Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('hides the mic and never starts listening when ENABLE_VOICE_MODE is off', () => {
+    mockVoiceFlag = false;
+    render(<LearnSessionPageClient slug="arrays" />);
+    expect(screen.queryByTitle('Mock Mic Input')).toBeNull();
+    expect(startListeningMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('text-input')).toBeTruthy();
   });
 
   it('shows ONNX auto-listen hint when VAD mode is onnx', () => {

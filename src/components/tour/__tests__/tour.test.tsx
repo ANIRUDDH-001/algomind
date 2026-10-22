@@ -16,6 +16,8 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+const speechQueueMock = vi.hoisted(() => ({ stop: vi.fn(), enqueue: vi.fn() }));
+vi.mock('@/lib/voice/speech-queue', () => ({ getSpeechQueue: () => speechQueueMock }));
 import { TOUR_STEPS, waitForElement, speakHint } from '@/lib/tour/index';
 import { TourCard } from '../TourCard';
 import { KaiModal } from '../KaiModal';
@@ -156,24 +158,15 @@ describe('waitForElement', () => {
 });
 
 // ── speakHint ─────────────────────────────────────────────────────────────────
+// The tour must go through the SpeechQueue (single owner of speechSynthesis):
+// no direct cancel()/speak() and never clobber the global onvoiceschanged.
 
 describe('speakHint', () => {
     beforeEach(() => {
-        // Polyfill SpeechSynthesisUtterance for jsdom
-        if (typeof globalThis.SpeechSynthesisUtterance === 'undefined') {
-            globalThis.SpeechSynthesisUtterance = class {
-                text: string;
-                rate = 1; pitch = 1; volume = 1; voice = null;
-                constructor(text: string) { this.text = text; }
-            } as unknown as typeof SpeechSynthesisUtterance;
-        }
+        speechQueueMock.stop.mockClear();
+        speechQueueMock.enqueue.mockClear();
         Object.defineProperty(window, 'speechSynthesis', {
-            value: {
-                speak: vi.fn(),
-                cancel: vi.fn(),
-                getVoices: () => [],
-                onvoiceschanged: null,
-            },
+            value: { speak: vi.fn(), cancel: vi.fn(), getVoices: () => [], onvoiceschanged: null },
             writable: true,
             configurable: true,
         });
@@ -181,25 +174,26 @@ describe('speakHint', () => {
 
     it('does nothing when enabled=false', () => {
         speakHint('Hello Kai', false);
-        expect(window.speechSynthesis.speak).not.toHaveBeenCalled();
+        expect(speechQueueMock.enqueue).not.toHaveBeenCalled();
     });
 
     it('does nothing for empty string', () => {
         speakHint('', true);
-        expect(window.speechSynthesis.speak).not.toHaveBeenCalled();
+        expect(speechQueueMock.enqueue).not.toHaveBeenCalled();
     });
 
-    it('cancels previous speech before starting', () => {
+    it('replaces the previous hint through the queue (stop, then enqueue)', () => {
         speakHint('First', true);
         speakHint('Second', true);
-        // cancel() is called once per speakHint invocation (2 total)
-        expect(window.speechSynthesis.cancel).toHaveBeenCalledTimes(2);
+        expect(speechQueueMock.stop).toHaveBeenCalledTimes(2);
+        expect(speechQueueMock.enqueue).toHaveBeenLastCalledWith('Second');
     });
 
-    it('registers onvoiceschanged when getVoices returns empty array', () => {
+    it('never touches speechSynthesis directly or assigns onvoiceschanged', () => {
         speakHint('Test voice', true);
-        // onvoiceschanged should be set because getVoices() returns []
-        expect(window.speechSynthesis.onvoiceschanged).toBeTruthy();
+        expect(window.speechSynthesis.speak).not.toHaveBeenCalled();
+        expect(window.speechSynthesis.cancel).not.toHaveBeenCalled();
+        expect(window.speechSynthesis.onvoiceschanged).toBeNull();
     });
 });
 

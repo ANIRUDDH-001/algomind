@@ -12,6 +12,7 @@
  * @issues    No major issues observed.
  * @audit     CODESAGE-v1
  */
+import { getSpeechQueue } from '@/lib/voice/speech-queue';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -284,52 +285,23 @@ export function waitForElement(
 }
 
 // ─── speakHint ────────────────────────────────────────────────────────────────
-// Reads the kaiSays line using Web Speech API (SpeechSynthesis).
-// No API key required. Graceful no-op on unsupported browsers.
-// Always cancels previous utterance before starting the new one.
+// Reads the kaiSays line through the SpeechQueue — the single owner of
+// speechSynthesis (English-voice guarantee, no cancel→speak race, no global
+// onvoiceschanged clobbering). Graceful no-op on unsupported browsers.
+// Always replaces the previous hint.
 
 export function speakHint(text: string, enabled: boolean): void {
     if (!enabled) return;
     if (typeof window === 'undefined') return;
     if (!window.speechSynthesis || !text.trim()) return;
 
-    window.speechSynthesis.cancel();
-
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 0.9;
-    utt.pitch = 1.05;
-    utt.volume = 0.8;
-
-    // Prefer a natural en-* voice. getVoices() is async on some browsers —
-    // attach an event handler if the list is empty on first call.
-    const trySpeak = () => {
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-            const nice = voices.find(
-                (v) =>
-                    v.lang.startsWith('en') &&
-                    (v.name.includes('Google') ||
-                        v.name.includes('Samantha') || // macOS
-                        v.name.includes('Daniel') ||   // macOS UK
-                        v.name.includes('Alex'))       // macOS legacy
-            ) || voices.find((v) => v.lang.startsWith('en'));
-            if (nice) utt.voice = nice;
-        }
-        window.speechSynthesis.speak(utt);
-    };
-
-    if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.onvoiceschanged = () => {
-            window.speechSynthesis.onvoiceschanged = null;
-            trySpeak();
-        };
-    } else {
-        trySpeak();
-    }
+    const q = getSpeechQueue();
+    q.stop();
+    q.enqueue(text);
 }
 
 export function stopSpeech(): void {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+        getSpeechQueue().stop();
     }
 }

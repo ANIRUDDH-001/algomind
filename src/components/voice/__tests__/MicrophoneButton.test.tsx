@@ -102,6 +102,20 @@ describe('MicrophoneButton', () => {
         expect(screen.getByText('Click to speak')).toBeDefined();
     });
 
+    it('9. Mute toggle: shows "Muted" with the mic-off icon when muted', () => {
+        render(<MicrophoneButton isListening={false} isMuted={true} onClick={() => { }} />);
+        expect(screen.getByText('Muted')).toBeDefined();
+        expect(screen.getByTestId('icon-mic-off')).toBeDefined();
+    });
+
+    it('10. Mute toggle: unmuted mic says "Listening..." or "Mic on" (never "Click to speak")', () => {
+        render(<MicrophoneButton isListening={false} isMuted={false} onClick={() => { }} />);
+        expect(screen.getByText('Mic on')).toBeDefined();
+        cleanup();
+        render(<MicrophoneButton isListening={true} isMuted={false} onClick={() => { }} />);
+        expect(screen.getByText('Listening...')).toBeDefined();
+    });
+
     it('9. State label shows "Mic error" when error is provided', () => {
         render(<MicrophoneButton isListening={false} error="Some error" onClick={() => { }} />);
         expect(screen.getByText('Mic error')).toBeDefined();
