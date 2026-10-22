@@ -146,6 +146,11 @@ export const EventTypes = {
     'voice.vad_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: true },
     'vad_fallback': { severity: EventSeverity.WARN, domain: 'voice', canonical: false },
 
+    // Voice engine v2 telemetry (POST /api/voice/telemetry) — one row per spoken turn
+    'voice.turn_timeline': { severity: EventSeverity.INFO, domain: 'voice', canonical: true },
+    'voice.engine_error': { severity: EventSeverity.WARN, domain: 'voice', canonical: true },
+    'voice.mic_status': { severity: EventSeverity.INFO, domain: 'voice', canonical: true },
+
     // Integration domain
     'integration.leetcode_fetch_failed': { severity: EventSeverity.WARN, domain: 'integration', canonical: true },
     'leetcode_fetch_failed': { severity: EventSeverity.WARN, domain: 'integration', canonical: false },
@@ -272,6 +277,10 @@ const NEVER_SAMPLE_TYPES = new Set<SystemEventType>([
     'db_error',
     'batch.failed',
     'edge.review_reminders_failed',
+    // Voice timelines are the only evidence a voice bug leaves behind (≈1 row per turn) — keep all.
+    'voice.turn_timeline',
+    'voice.engine_error',
+    'voice.mic_status',
 ]);
 
 const DEFAULT_SAMPLE_RATES: Record<EventSeverity, number> = {

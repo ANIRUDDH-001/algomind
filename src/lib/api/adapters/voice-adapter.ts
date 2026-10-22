@@ -24,6 +24,12 @@ export interface VoiceRuntimeFlags {
 
 export interface VoiceTranscriptionResponse {
   text: string;
+  model?: string;
+  confidence?: number;
+  duration?: number;
+  keyIndex?: number;
+  /** Server-side breakdown: preamble (auth/flag/form) and Groq round trip, in ms. */
+  timing?: { preMs: number; groqMs: number };
 }
 
 const FLAG_CACHE_TTL_MS = 30_000;

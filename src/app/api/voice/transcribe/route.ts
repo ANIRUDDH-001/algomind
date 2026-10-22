@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getGlobalFeatureFlag } from '@/lib/feature-flags-server';
 import { ApiErrors, apiError, ErrorCodes } from '@/lib/api/error-response';
+import { groqKeyPool, nextGroqKeyStart } from '@/lib/ai/key-pool';
+import { loadCooldowns, isCooling, markCooldown, parseRetryAfterSeconds } from '@/lib/ai/provider-cooldown';
 
 export const maxDuration = 30;
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-    // Auth check
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const _tPre = Date.now();
+    // Independent preamble work runs concurrently (was 4 serial awaits before Groq was contacted).
+    const [authResult, whisperEnabled, formData, cooldowns] = await Promise.all([
+        createServerSupabase().then(sb => sb.auth.getUser()),
+        getGlobalFeatureFlag('ENABLE_WHISPER_STT'),
+        req.formData().catch(() => null),
+        loadCooldowns('groq'),
+    ]);
+    const user = authResult.data.user;
 
     if (!user) {
         const ip =
@@ -29,19 +37,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if Whisper is enabled globally
-    const whisperEnabled = await getGlobalFeatureFlag('ENABLE_WHISPER_STT');
     if (!whisperEnabled) {
         return apiError(503, ErrorCodes.FEATURE_DISABLED, 'Whisper STT not enabled', { degraded_mode: 'browser_stt' });
     }
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-    if (!groqApiKey) {
+    const keys = groqKeyPool();
+    if (keys.length === 0) {
         return ApiErrors.serverError('Server misconfiguration', 'GROQ_API_KEY missing');
     }
 
     try {
-        const formData = await req.formData();
-        const audioFile = formData.get('audio') as File;
+        const audioFile = formData?.get('audio') as File | null;
 
         if (!audioFile) {
             return ApiErrors.badRequest('No audio file provided');
@@ -57,10 +63,16 @@ export async function POST(req: NextRequest) {
             return ApiErrors.badRequest('Audio too large (max 10MB)');
         }
 
-        // Try turbo model first, fall back to large-v3
+        // Try turbo model first, fall back to large-v3 — each across the key pool, skipping
+        // (key, model) pairs already known to be out of quota (shared with the chat client).
         const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
+        const preMs = Date.now() - _tPre;
+        const startKey = nextGroqKeyStart(keys.length);
 
         for (const model of models) {
+          for (let n = 0; n < keys.length; n++) {
+            const keyIndex = (startKey + n) % keys.length;
+            if (isCooling(cooldowns, keyIndex, model)) continue;
             const _t0 = Date.now();
             try {
                 const groqForm = new FormData();
@@ -78,17 +90,23 @@ export async function POST(req: NextRequest) {
 
                 const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${groqApiKey}` },
+                    headers: { 'Authorization': `Bearer ${keys[keyIndex]}` },
                     body: groqForm,
                 });
 
                 if (!response.ok) {
                     const errorBody = await response.json().catch(() => ({ error: { message: response.statusText } }));
                     const errMsg = errorBody.error?.message || 'Groq API error';
-                    console.error(`[Transcribe] Groq ${model} returned ${response.status}: ${errMsg}`);
-                    if (response.status === 429) continue; // Rate limited, try next model
+                    console.error(`[Transcribe] Groq ${model} key#${keyIndex} returned ${response.status}: ${errMsg}`);
+                    if (response.status === 429) {
+                        // Out of quota for this key+model — remember it and try the next key.
+                        await markCooldown('groq', keyIndex, model, parseRetryAfterSeconds(response.headers, errMsg));
+                        continue;
+                    }
                     throw new Error(errMsg);
                 }
+                const groqMs = Date.now() - _t0;
+                const timing = { 'Server-Timing': `pre;dur=${preMs}, groq;dur=${groqMs}` };
 
                 const data = await response.json();
 
@@ -106,20 +124,23 @@ export async function POST(req: NextRequest) {
 
                 // Drop only if BOTH confidence low AND text too short (likely noise)
                 if (!confidenceOk && !hasSubstantiveText) {
-                    return NextResponse.json({ text: '', model, confidence, duration: data.duration });
+                    return NextResponse.json({ text: '', model, confidence, duration: data.duration, keyIndex, timing: { preMs, groqMs } }, { headers: timing });
                 }
 
-                console.info(`[PIPE][STT-server] ${model} ok in ${Date.now() - _t0}ms conf=${confidence?.toFixed(2) ?? 'n/a'} audioDur=${data.duration}s text="${(data.text || '').trim().slice(0, 80)}"`);
+                console.info(`[PIPE][STT-server] ${model} key#${keyIndex} ok pre=${preMs}ms groq=${groqMs}ms conf=${confidence?.toFixed(2) ?? 'n/a'} audioDur=${data.duration}s text="${(data.text || '').trim().slice(0, 80)}"`);
                 return NextResponse.json({
                     text: data.text?.trim() || '',
                     model,
                     confidence,
                     duration: data.duration,
-                });
+                    keyIndex,
+                    timing: { preMs, groqMs },
+                }, { headers: timing });
             } catch (err) {
-                if (model === models[models.length - 1]) throw err;
-                console.warn(`[Transcribe] ${model} failed, trying fallback:`, err);
+                if (model === models[models.length - 1] && n === keys.length - 1) throw err;
+                console.warn(`[Transcribe] ${model} key#${keyIndex} failed, trying fallback:`, err);
             }
+          }
         }
 
         return apiError(502, ErrorCodes.PROVIDER_ERROR, 'All STT models failed', { retryable: true, degraded_mode: 'browser_stt' });

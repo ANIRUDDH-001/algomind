@@ -372,5 +372,11 @@ describe('Event Taxonomy Contract Tests (P6-4)', () => {
             expect(EventTypes['edge.review_reminders_queued']).toBeDefined();
             expect(EventTypes['edge.review_reminders_failed']).toBeDefined();
         });
+
+        it('should register the voice engine telemetry events', () => {
+            expect(EventTypes['voice.turn_timeline']).toEqual({ severity: EventSeverity.INFO, domain: 'voice', canonical: true });
+            expect(EventTypes['voice.engine_error']).toEqual({ severity: EventSeverity.WARN, domain: 'voice', canonical: true });
+            expect(EventTypes['voice.mic_status']).toEqual({ severity: EventSeverity.INFO, domain: 'voice', canonical: true });
+        });
     });
 });
