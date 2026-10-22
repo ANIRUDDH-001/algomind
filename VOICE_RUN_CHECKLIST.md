@@ -1,34 +1,97 @@
 # Voice Pipeline — Live Run Checklist
 
-Run this in your **real Chrome** (the in-app browser has no mic/audio). Open DevTools → Console
-**before** you click Start, and filter the console by `[PIPE]`. Do it once on **desktop** and once
-on **phone** (Chrome). Two short interviews (~4–5 turns each) is enough.
+Run this in your **real Chrome** on **localhost** (the in-app browser has no mic/audio). Do it once on
+**desktop** and once on **phone** (Chrome). Two interviews of ~10 turns each is enough.
 
-**Two ways to get me the evidence** — pick either:
-- **(A) Live:** tell me "starting voice run now" and I'll attach via Claude-in-Chrome to read your
-  console `[PIPE]` lines as they happen (no copy-paste).
-- **(B) Paste:** after the run, copy the `[PIPE]`-filtered console and paste it to me.
+**Evidence now lands in the database.** Every turn posts a timeline to `/api/voice/telemetry`, which
+writes one `system_events` row per turn (`voice.turn_timeline`, or `voice.engine_error` when the turn
+failed) and one row per mic recovery/failure (`voice.mic_status`). After the run, the SQL below is the
+record: no console copy-paste needed. The console still prints one `[PIPE][TURN]` summary line per turn
+if you want to watch live.
 
 ---
 
-## Steps → what to observe → the log line that proves it
+## Steps → what to observe → where it shows up
 
-| # | Do this | Observe (your ears/eyes) | Log line that must appear |
+| # | Do this | Observe (your ears/eyes) | Evidence |
 |---|---|---|---|
-| 1 | Click **Start** | — | `[PIPE][VAD] init OK — mic/VAD ready (echoCancellation on)` (if you see `init FAILED` → mic/VAD is broken, note it) |
-| 2 | Wait for Kai's **first greeting** | 🔊 **Is it spoken aloud?** (This was the "silent intro" bug) | `[PIPE][TTS] speak start …` then `[PIPE][TTS] speak done … spokenOk=true`. If you see `spokenOk=false ⚠️ SPEAKER-DID-NOT-PLAY` → the bug is back. Note `browserVoices=` (0 = no voices installed) |
-| 3 | Say a **full sentence** that starts with a soft word: *"So, I think we could use a hash map here."* | Did it capture the **"So, I think"** at the start, and the **"here"** at the end? (This was the cut-off bug) | `[PIPE][VAD] mic speech-start detected` → `[PIPE][STT] mic captured NNNNms of audio` → `[PIPE][STT] transcribed in NNNms → "…"`. **Compare the transcribed text to what you said** — note any missing start/end words. |
-| 4 | After you stop speaking, **count the seconds** until Kai replies | Is the pause acceptable (<3s) or long? Does it feel laggy? | Time between `[PIPE][STT] transcribed` and `[PIPE][CHAT] first token in NNNms`. Note both numbers. |
-| 5 | Say something **with a mid-sentence pause**: *"The complexity is… (pause 1.5s) …O of n log n."* | Did it wait for you, or cut you off at the pause and send half? | One `mic captured` line (good) vs two (it split your sentence — VAD redemption too short) |
-| 6 | Let Kai reach **message 4** (keep answering) | 🔊 Is the **4th** Kai message spoken? (Chrome TTS pause bug) | 4th `[PIPE][TTS] speak done … spokenOk=true`. Note any `spokenOk=false` on ANY message and which number. |
-| 7 | **Interrupt** Kai while it's speaking (barge-in) — start talking mid-sentence | Does Kai stop and listen? | `speech-start detected` while a `speak start` is still open (before its `speak done`) |
-| 8 | Say **one-word answer**: *"Sort."* | Was it captured, or dropped as too short? | `mic captured` + transcribed `"Sort"` (if EMPTY ⚠️ → minSpeech too high) |
-| 9 | Mention **complexity in words**: *"O of n squared"* | Does Kai's spoken reply say "O of n squared" or read symbols/dollar signs aloud? | Kai's `speak start` text shouldn't contain `$`, `^`, or `**` |
-| 10 | Finish the interview | Report loads | (text-mode already verified; just confirm it renders) |
+| 1 | Open `/voice-check` first | All four rows ✓ (mic, speech detection, transcription, speaker) | The page itself; **Copy report** for bug reports |
+| 2 | Start an interview, wait for Kai's **greeting** | 🔊 Spoken aloud? | Turn `0` row, `outcome = 'spoken'` |
+| 3 | Say a **full sentence** starting with a soft word: *"So, I think we could use a hash map here."* | Were "So, I think" and "here" both captured? | Console `[PIPE][STT] transcribed in NNNms → "…"` — compare with what you said |
+| 4 | After you stop speaking, **count the seconds** until Kai replies | Acceptable (< 3 s)? | `derived.turnGapMs` for that turn (query B) |
+| 5 | Pause **3 s mid-sentence**: *"The complexity is… (pause) …O of n log n."* | Did it wait, or send half? | One turn row with both halves, not two |
+| 6 | Keep going to Kai's **message 4+** | 🔊 Every reply spoken? | No `outcome = 'error'` rows (query C) |
+| 7 | Press **Esc** while Kai speaks | Kai stops and the mic listens | That turn is `aborted` (`details.kaiInterrupted = 'user'`) — not `error` |
+| 8 | **Mute** (mic button), wait through one Kai reply, **unmute** | Mic stays off while muted; comes back on unmute | Mic indicator; no turn rows while muted |
+| 9 | Switch tabs for 10 s, come back | Mic listening again without a click | No `voice.mic_status` `failed` row (query C) |
+| 10 | Say a **one-word answer**: *"Yes."* | Captured, not dropped? | Console `[PIPE][STT] transcribed … → "Yes"` (transcripts are never stored in telemetry) |
+| 11 | Finish the interview | Report loads | — |
 
 ## Also note (no log needed)
 - Any moment the mic indicator looks ON but nothing gets captured
 - Any moment Kai talks over you / you talk over Kai and it garbles
-- Phone only: does it work with the screen locked? on speakerphone vs earpiece?
+- Any transcript that contains **Kai's own words** (echo)
+- Phone only: does it work on speakerphone vs earpiece?
 
-Copy your notes into a quick list keyed by step number (e.g. "3: missed 'So' at start; 6: msg 4 silent").
+---
+
+## Owner queries (Supabase SQL editor)
+
+Columns used: `system_events.type`, `created_at`, `user_id`, `metadata` (jsonb). Per-turn fields live
+under `metadata`: `sessionId`, `turn`, `outcome`, `stages`, `derived`, `details`, `ua`.
+
+**A. Hourly health, last 24 h** (errors are stored as `voice.engine_error`, so both types are counted):
+
+```sql
+select date_trunc('hour', created_at) as hour,
+       count(*) as turns,
+       percentile_cont(0.5) within group (order by (metadata->'derived'->>'turnGapMs')::int) as p50_gap_ms,
+       percentile_cont(0.95) within group (order by (metadata->'derived'->>'turnGapMs')::int) as p95_gap_ms,
+       percentile_cont(0.5) within group (order by (metadata->'derived'->>'sttMs')::int) as p50_stt_ms,
+       count(*) filter (where metadata->>'outcome' = 'error') as errors,
+       count(*) filter (where metadata->>'outcome' = 'aborted') as aborted
+from system_events
+where type in ('voice.turn_timeline', 'voice.engine_error')
+  and created_at > now() - interval '24 hours'
+group by 1 order by 1 desc;
+```
+
+**B. One run, turn by turn** (latest session first; pick the `sessionId` of your run):
+
+```sql
+select metadata->>'sessionId' as session,
+       (metadata->>'turn')::int as turn,
+       metadata->>'outcome' as outcome,
+       (metadata->'derived'->>'turnGapMs')::int as gap_ms,
+       (metadata->'derived'->>'sttMs')::int as stt_ms,
+       (metadata->'derived'->>'commitWaitMs')::int as commit_wait_ms,
+       (metadata->'derived'->>'ttftMs')::int as ttft_ms,
+       (metadata->'derived'->>'ttfaMs')::int as ttfa_ms,
+       metadata->'details' as details,
+       created_at
+from system_events
+where type in ('voice.turn_timeline', 'voice.engine_error')
+  and created_at > now() - interval '3 hours'
+order by created_at desc, (metadata->>'turn')::int desc;
+```
+
+**C. What went wrong, last 24 h** (TTS codes, STT/chat errors, mic failures):
+
+```sql
+select type,
+       coalesce(metadata->'details'->>'ttsError',
+                metadata->'details'->>'sttError',
+                metadata->'details'->>'chatError',
+                metadata->'details'->>'micStatus') as reason,
+       metadata->'details'->>'micDetail' as mic_detail,
+       count(*) as n,
+       max(created_at) as last_seen
+from system_events
+where type in ('voice.engine_error', 'voice.mic_status')
+  and created_at > now() - interval '24 hours'
+group by 1, 2, 3 order by n desc;
+```
+
+**Pass bar for flipping `ENABLE_VOICE_MODE` on:** query C shows no `watchdog` / `no-english-voice`
+codes and no TTS- or mic-caused errors; query A shows `p50_gap_ms ≤ 3000`, `p95_gap_ms ≤ 4500`,
+`p50_stt_ms ≤ 1200`.
