@@ -2,6 +2,7 @@
 // Routes queries to Groq (simple/fast) or Gemini (complex/deep)
 // Target: < 100ms total classification latency
 
+import { extractJsonObject, groqReasoningParams } from './reasoning';
 import {
     ALL_PATTERNS,
     type IntentCategory,
@@ -245,6 +246,7 @@ export class IntentClassifier {
     private async llmClassify(query: string): Promise<IntentClassification | null> {
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) return null;
+        const classifierModel = process.env.GROQ_CLASSIFIER_MODEL_ID || 'openai/gpt-oss-20b';
 
         const systemPrompt = `You are a query complexity classifier for a coding interview platform.
 Classify the user's query into exactly ONE JSON object. Respond ONLY with valid JSON, no markdown.
@@ -274,13 +276,14 @@ Rules:
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    model: process.env.GROQ_CLASSIFIER_MODEL_ID || 'openai/gpt-oss-20b', // fastest live Groq model
+                    model: classifierModel, // fastest live Groq model
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: query },
                     ],
                     max_tokens: 150,
                     temperature: 0.1, // deterministic
+                    ...groqReasoningParams(classifierModel), // reasoning must not eat the 150-token budget
                 }),
                 signal: controller.signal,
             });
@@ -291,9 +294,8 @@ Rules:
             const text = data.choices?.[0]?.message?.content?.trim();
             if (!text) return null;
 
-            // Parse JSON response (strip markdown fences if present)
-            const cleaned = text.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
-            const parsed = JSON.parse(cleaned);
+            // Parse JSON response (strips reasoning tags, fences, surrounding prose)
+            const parsed = extractJsonObject<{ complexity: IntentComplexity; category: IntentCategory; confidence: number; reasoning?: string }>(text);
 
             // Validate shape
             const validComplexities = ['simple', 'medium', 'complex'];

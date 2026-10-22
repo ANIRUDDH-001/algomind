@@ -6,6 +6,7 @@ import { UnifiedAIClient, getAIClient } from '../client';
 import type { Message, CompletionOptions } from '../client';
 import type { ModelConfig } from '../providers';
 import { getActiveModels } from '../model-registry';
+import { __resetCooldownMemory } from '../provider-cooldown';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 // Must be declared before any imports that trigger module execution.
@@ -165,6 +166,7 @@ describe('UnifiedAIClient', () => {
     afterAll(() => server.close());
 
     beforeEach(async () => {
+        __resetCooldownMemory(); // quota cooldowns are module-level; isolate tests
         vi.clearAllMocks();
         vi.unstubAllEnvs();
         vi.stubEnv('GROQ_API_KEY', process.env.TEST_GROQ_API_KEY || 'mock-groq-key-do-not-use');

@@ -80,6 +80,25 @@ describe('generateStructuredKaiMemory', () => {
         expect(mockGenerateCompletion).toHaveBeenCalled();
     });
 
+    it('parses memory JSON surrounded by reasoning and prose (live-run <think> crash)', async () => {
+        const json = JSON.stringify({
+            topStrength: { skill: 'pattern-recognition', evidence: 'x' },
+            mainWeakness: { skill: 'complexity-analysis', evidence: 'y' },
+            communicationStyle: 'terse',
+            focusForNextSession: 'z',
+        });
+        mockGenerateCompletion.mockResolvedValueOnce({ success: true, response: `<think>He wants JSON</think>Here is the memory:
+${json}
+Done.` });
+        const result = await generateStructuredKaiMemory({ userId: 'u', recentSessions: [mockSession], existingMemory: null });
+        expect(result?.communicationStyle).toBe('terse');
+    });
+
+    it('requests enough tokens for reasoning models to finish the JSON', async () => {
+        await generateStructuredKaiMemory({ userId: 'u', recentSessions: [mockSession], existingMemory: null });
+        expect(mockGenerateCompletion.mock.calls.at(-1)?.[1]).toMatchObject({ maxTokens: 800 });
+    });
+
     it('falls back to existing memory on AI failure', async () => {
         mockGenerateCompletion.mockResolvedValueOnce({ success: false, error: 'API Error' });
 

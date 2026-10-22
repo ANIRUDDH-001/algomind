@@ -15,6 +15,8 @@ import { getModelTelemetry } from '../analytics/model-telemetry';
 import { getResponseCache } from './response-cache';
 import type { CacheIdentity } from './response-cache';
 import { getActiveModels } from './model-registry';
+import { stripReasoning, groqReasoningParams } from './reasoning';
+import { loadCooldowns, isCooling, markCooldown, parseRetryAfterSeconds, isChatModel } from './provider-cooldown';
 import {
     buildRoutingStagePlan,
     getEmergencyFallbackModels,
@@ -25,44 +27,17 @@ import {
 import { logSystemEvent } from '../monitoring/events';
 import type { GenerateResponseOptions, AIResponse } from './types';
 import { checkTokenBudget, recordTokenUsage } from './cost-guard';
+import { groqKeyPool, geminiKeyPool, nextGroqKeyStart } from './key-pool';
 
 // --- API key pools (round-robin) ------------------------------------------
-// Free-tier providers rate-limit per API key. Supplying several keys via the
-// *_API_KEYS comma-list env spreads load across them (each key has its own
-// RPM/RPD budget), multiplying throughput. Single-key setups keep working via
-// the legacy *_API_KEY fallback. Rotation is per call/attempt so consecutive
-// requests hit different keys, and a rate-limited key is naturally skipped past.
-function parseKeyPool(...envValues: (string | undefined)[]): string[] {
-    const keys: string[] = [];
-    for (const v of envValues) {
-        if (!v) continue;
-        for (const raw of v.split(',')) {
-            const k = raw.trim();
-            if (k && !keys.includes(k)) keys.push(k);
-        }
-    }
-    return keys;
-}
+// Pools live in ./key-pool (shared with the STT route). Rotation is per
+// call/attempt so consecutive requests hit different keys.
 let __geminiKeyIdx = 0;
-let __groqKeyIdx = 0;
-function geminiKeyPool(): string[] {
-    return parseKeyPool(process.env.GEMINI_API_KEYS, process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY);
-}
-function groqKeyPool(): string[] {
-    return parseKeyPool(process.env.GROQ_API_KEYS, process.env.GROQ_API_KEY);
-}
 function nextGeminiKey(): string | undefined {
     const pool = geminiKeyPool();
     if (pool.length === 0) return undefined;
     const key = pool[__geminiKeyIdx % pool.length];
     __geminiKeyIdx = (__geminiKeyIdx + 1) % pool.length;
-    return key;
-}
-function nextGroqKey(): string | undefined {
-    const pool = groqKeyPool();
-    if (pool.length === 0) return undefined;
-    const key = pool[__groqKeyIdx % pool.length];
-    __groqKeyIdx = (__groqKeyIdx + 1) % pool.length;
     return key;
 }
 
@@ -328,7 +303,7 @@ export class UnifiedAIClient {
         activeModels: ModelConfig[]
     ): Promise<CompletionResult> {
         // Get models for this provider
-        const models = activeModels.filter(m => m.provider === provider);
+        const models = activeModels.filter(m => m.provider === provider && isChatModel(m.id));
 
         // Sort by tier (lower is better/higher priority)
         models.sort((a, b) => a.tier - b.tier);
@@ -379,12 +354,17 @@ export class UnifiedAIClient {
         options: CompletionOptions
     ): Promise<{ success: boolean; response?: string; error?: string }> {
         try {
+            let result: { success: boolean; response?: string; error?: string };
             if (model.provider === 'groq') {
-                return await this.callGroq(model.id, messages, options);
+                result = await this.callGroq(model.id, messages, options);
             } else if (model.provider === 'gemini') {
-                return await this.callGemini(model.id, messages, options);
+                result = await this.callGemini(model.id, messages, options);
+            } else {
+                return { success: false, error: "Unsupported provider" };
             }
-            return { success: false, error: "Unsupported provider" };
+            // Single choke point: no caller ever sees <think>/<reasoning> content (memory-generator JSON crash).
+            if (result.response) result.response = stripReasoning(result.response);
+            return result;
         } catch (error) {
             if (error instanceof Error && error.name === 'TimeoutError') {
                 void logSystemEvent({ type: 'model_timeout', provider: model.provider, modelId: model.id, correlationId: options.correlationId });
@@ -420,8 +400,8 @@ export class UnifiedAIClient {
         messages: Message[],
         options: CompletionOptions
     ) {
-        const groqKey = nextGroqKey();
-        if (!groqKey) return { success: false, error: "Missing GROQ_API_KEY" };
+        const keys = groqKeyPool();
+        if (keys.length === 0) return { success: false, error: "Missing GROQ_API_KEY" };
 
         const systemPrompt = options.systemPrompt;
         const apiMessages = [...messages];
@@ -436,25 +416,41 @@ export class UnifiedAIClient {
             messages: apiMessages,
             max_tokens: options.maxTokens,
             temperature: options.temperature ?? 0.7,
+            ...groqReasoningParams(modelId),
         };
 
         if (options.responseFormat) {
             body.response_format = options.responseFormat;
         }
 
-        const response = await fetch(this.GROQ_API_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${groqKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body),
-            signal: options.signal ?? AbortSignal.timeout(15000),
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`Groq API Error (${response.status}): ${err}`);
+        // Sweep keys for this model, skipping (key, model) pairs already known to be out of quota.
+        const cooldowns = await loadCooldowns('groq');
+        const startKey = nextGroqKeyStart(keys.length);
+        let response: Response | null = null;
+        let last429 = '';
+        for (let n = 0; n < keys.length; n++) {
+            const keyIndex = (startKey + n) % keys.length;
+            if (isCooling(cooldowns, keyIndex, modelId)) continue;
+            const r = await fetch(this.GROQ_API_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${keys[keyIndex]}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body),
+                signal: options.signal ?? AbortSignal.timeout(15000),
+            });
+            if (r.ok) { response = r; break; }
+            const err = await r.text();
+            if (r.status === 429) {
+                await markCooldown('groq', keyIndex, modelId, parseRetryAfterSeconds(r.headers, err));
+                last429 = err;
+                continue;
+            }
+            throw new Error(`Groq API Error (${r.status}): ${err}`);
+        }
+        if (!response) {
+            throw new Error(`Groq API Error (429): ${last429 || `every key is cooling down for ${modelId}`}`);
         }
 
         const data = await response.json();
@@ -581,11 +577,7 @@ export class UnifiedAIClient {
      * buffer in generateStream() (Phase 2).
      */
     private stripThinkingTokens(raw: string): string {
-        return raw
-            .replace(/<think>[\s\S]*?<\/think>/gi, '')
-            .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-            .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-            .trim();
+        return stripReasoning(raw);
     }
 
     /**
@@ -918,45 +910,58 @@ export class UnifiedAIClient {
         messages: Message[],
         options: NonNullable<Parameters<UnifiedAIClient['generateStream']>[1]>
     ): AsyncGenerator<string> {
-        if (groqKeyPool().length === 0) throw new Error('Missing GROQ_API_KEY');
+        const keys = groqKeyPool();
+        if (keys.length === 0) throw new Error('Missing GROQ_API_KEY');
 
         const models = await getActiveModels();
-        const groqModels = models.filter(m => m.provider === 'groq');
-        const candidates = groqModels.length ? groqModels.map(m => m.id) : ['openai/gpt-oss-120b'];
+        const groqModels = models.filter(m => m.provider === 'groq' && isChatModel(m.id));
+        const candidates = groqModels.length ? groqModels.map(m => m.id) : ['openai/gpt-oss-20b'];
+        const cooldowns = await loadCooldowns('groq');
+        const startKey = nextGroqKeyStart(keys.length);
 
         const apiMessages = [...messages];
         if (options.systemPrompt && apiMessages[0]?.role !== 'system') {
             apiMessages.unshift({ role: 'system', content: options.systemPrompt });
         }
 
-        // Connection-level failover: try each active Groq model until one connects OK.
-        // We only commit to a model once the response is OK (before yielding any tokens),
-        // so a dead/rate-limited model no longer dead-ends the whole stream (BUG-18).
+        // Connection-level failover over (model x key). We only commit once a response is OK
+        // (before yielding any tokens), so a dead/rate-limited model never dead-ends the stream
+        // (BUG-18). Pairs that returned 429 are remembered, so later turns skip them instead of
+        // re-paying the failed round trip on every turn.
         let response: Response | null = null;
         let lastErr = '';
-        for (const modelId of candidates) {
-            try {
-                const r = await fetch(this.GROQ_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${nextGroqKey()}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: modelId,
-                        messages: apiMessages,
-                        max_tokens: options.maxTokens ?? 4096,
-                        temperature: options.temperature ?? 0.7,
-                        stream: true,
-                    }),
-                    signal: options.signal ?? AbortSignal.timeout(30000),
-                });
-                if (r.ok && r.body) { response = r; this.lastStream = { model: modelId, provider: 'groq' }; break; }
-                lastErr = `Groq ${modelId} (${r.status}): ${(await r.text().catch(() => '')).slice(0, 120)}`;
-            } catch (e) {
-                lastErr = `Groq ${modelId}: ${e instanceof Error ? e.message : String(e)}`;
+        let skipped = 0;
+        outer: for (const modelId of candidates) {
+            for (let n = 0; n < keys.length; n++) {
+                const keyIndex = (startKey + n) % keys.length;
+                if (isCooling(cooldowns, keyIndex, modelId)) { skipped++; continue; }
+                try {
+                    const r = await fetch(this.GROQ_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${keys[keyIndex]}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            model: modelId,
+                            messages: apiMessages,
+                            max_tokens: options.maxTokens ?? 4096,
+                            temperature: options.temperature ?? 0.7,
+                            ...groqReasoningParams(modelId),
+                            stream: true,
+                        }),
+                        signal: options.signal ?? AbortSignal.timeout(30000),
+                    });
+                    if (r.ok && r.body) { response = r; this.lastStream = { model: modelId, provider: 'groq' }; break outer; }
+                    const text = await r.text().catch(() => '');
+                    if (r.status === 429) await markCooldown('groq', keyIndex, modelId, parseRetryAfterSeconds(r.headers, text));
+                    lastErr = `Groq ${modelId} key#${keyIndex} (${r.status}): ${text.slice(0, 120)}`;
+                } catch (e) {
+                    lastErr = `Groq ${modelId} key#${keyIndex}: ${e instanceof Error ? e.message : String(e)}`;
+                }
             }
         }
+        if (skipped > 0) console.info(`[PIPE][AI] groq skipped ${skipped} cooled key/model pairs`);
 
         if (!response || !response.body) {
             throw new Error(`Groq stream error — all models failed. ${lastErr}`);

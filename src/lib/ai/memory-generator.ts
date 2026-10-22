@@ -8,6 +8,7 @@
  * Server-side only (updateKaiMemory uses the service-role Supabase client).
  */
 
+import { extractJsonObject } from './reasoning';
 import { UnifiedAIClient } from './client';
 import { SKILL_DEFINITIONS } from '@/lib/assessment/skill-registry';
 import { getServiceClient } from '@/lib/supabase/service';
@@ -176,14 +177,13 @@ export async function generateStructuredKaiMemory(params: {
             [{ role: 'user', content: promptContent }],
             {
                 preferredProvider: 'groq',
-                maxTokens: 300,
+                maxTokens: 800, // reasoning tokens count against the cap — 300 cut qwen off mid-<think>
                 temperature: 0.1,
             }
         );
 
         if (result.success && result.response) {
-            const clean = result.response.replace(/```json|```/gi, '').trim();
-            return JSON.parse(clean) as KaiMemoryStructured;
+            return extractJsonObject<KaiMemoryStructured>(result.response);
         }
 
         console.warn('[memory-generator] AI generation failed:', result.error);
