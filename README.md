@@ -56,6 +56,8 @@ npm run build
 
 The default Playwright suite requires a configured test account. The [separate voice suite](playwright.voice.config.ts) mocks its backend calls and can be run with `npx playwright test --config playwright.voice.config.ts` after installing Chromium. Run it with a local app instance.
 
+GitHub Actions needs the Supabase test workspace secrets `SUPABASE_TEST_URL`, `SUPABASE_TEST_ANON_KEY`, and `SUPABASE_TEST_SERVICE_KEY`, plus `TEST_USER_EMAIL` for a seeded test account. Set `TEST_USER_PASSWORD` if the test account uses password sign-in. For the Test Suite workflow, `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD` are accepted as fallbacks.
+
 ## Deployment and limitations
 
 The [hosted app](https://algomind-drab.vercel.app/) uses the Vercel configuration in [vercel.json](vercel.json). Voice behavior depends on browser support, feature flags, and provider access. Code execution, background assessment, and schema checks require the corresponding services. Automated interview feedback is intended for practice.
