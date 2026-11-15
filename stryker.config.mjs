@@ -17,7 +17,7 @@ const config = {
   // ── Test Runner ────────────────────────────────────────────
   testRunner: 'vitest',
   packageManager: 'npm',
-  tempDirName: 'stryker-tmp',
+  tempDirName: '.stryker-tmp',
 
   // ── Mutate Scope ───────────────────────────────────────────
   // Only mutate critical business logic — keeps runs fast and focused.
@@ -34,8 +34,6 @@ const config = {
     'src/lib/spaced-repetition/fsrs.ts',
     'src/lib/knowledge-graph/service.ts',
     'src/lib/rate-limit/weekly-session-limiter.ts',
-    'src/app/api/payment/verify/route.ts',
-    'src/app/api/payment/webhook/route.ts',
     'src/lib/assess/jwt.ts',
     'src/lib/rate-limit/decision-layer.ts',
   ],
@@ -43,11 +41,13 @@ const config = {
   // ── Exclude generated and type-only files ─────────────────────────
   ignorePatterns: [
     'src/types/supabase.ts',
-    '**/__tests__/**',
-    '**/*.test.ts',
-    '**/*.spec.ts',
     '**/node_modules/**',
     '.agents/**',
+    '.local-maintenance/**',
+    '.next/**',
+    'playwright-report/**',
+    'test-results/**',
+    'coverage/**',
   ],
 
   // ── Reporters ──────────────────────────────────────────────
@@ -68,8 +68,7 @@ const config = {
   // ── Vitest config ─────────────────────────────────────────────────
   vitest: {
       configFile: 'vitest.config.ts',
-      dir: 'src',
-      related: false,
+      related: true,
   },
 };
 
