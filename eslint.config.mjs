@@ -28,7 +28,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "public/**",
     "public/vad/**",
-    ".agents/**"
+    ".agents/**",
+    ".local-maintenance/**"
   ]),
   {
     plugins: {

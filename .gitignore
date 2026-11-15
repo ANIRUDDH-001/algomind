@@ -147,3 +147,12 @@ MASTER_PLAN.md
 /ALGOMIND_VOICE_PLAN.md
 /VOICE_RUN_CHECKLIST.md
 /docs/superpowers/
+
+/.local-maintenance/
+/.claude/launch.json
+/docs/load_test_metrics.md
+/scripts/benchmark-results.json
+/scripts/playwright_audit_results.json
+/scripts/audit_owner_dashboard.js
+/scripts/fix-promises.js
+/.claude/settings.local.json
