@@ -4,7 +4,8 @@ on: [push, pull_request]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 browser binaries are available for Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +26,19 @@ jobs:
           REDIS_TEST_TOKEN: ${{ secrets.REDIS_TEST_TOKEN }}
         run: npx vitest run src/__tests__/integration
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || secrets.E2E_TEST_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || secrets.E2E_TEST_PASSWORD }}
+          TEST_API_SECRET: ${{ secrets.TEST_API_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx playwright test --project=chromium
+
       - name: Mutation Testing (high-risk modules)
         run: npx stryker run
         env:
@@ -40,15 +54,6 @@ jobs:
 
       - name: Run observability simulation check
         run: npx tsx scripts/simulate-observability-check.ts
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        env:
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
-        run: npx playwright test --project=chromium
 
       - name: Upload E2E report
         uses: actions/upload-artifact@v4
