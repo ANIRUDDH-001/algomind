@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll, type Mock } from 'vitest';
 import { http, HttpResponse } from 'msw';
+import { logSystemEvent } from '@/lib/monitoring/events';
+import { checkTokenBudget, recordTokenUsage } from '../cost-guard';
+import { buildRoutingStagePlan, getModelsForUseCase, isCrossTierFallbackEnabled } from '../model-routing';
 import { setupServer } from 'msw/node';
 import { UnifiedAIClient, getAIClient } from '../client';
 import type { Message, CompletionOptions } from '../client';
@@ -10,6 +13,11 @@ import { __resetCooldownMemory } from '../provider-cooldown';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 // Must be declared before any imports that trigger module execution.
+
+vi.mock('../cost-guard', () => ({
+    checkTokenBudget: vi.fn().mockResolvedValue({ allowed: true }),
+    recordTokenUsage: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('../rate-limiter', () => ({
     getRateLimiter: vi.fn(() => mockRateLimiter),
@@ -169,8 +177,11 @@ describe('UnifiedAIClient', () => {
         __resetCooldownMemory(); // quota cooldowns are module-level; isolate tests
         vi.clearAllMocks();
         vi.unstubAllEnvs();
+        vi.stubEnv('GROQ_API_KEYS', '');
+        vi.stubEnv('GEMINI_API_KEYS', '');
+        vi.stubEnv('GOOGLE_API_KEY', '');
         vi.stubEnv('GROQ_API_KEY', process.env.TEST_GROQ_API_KEY || 'mock-groq-key-do-not-use');
-        vi.stubEnv('GEMINI_API_KEY', process.env.TEST_GEMINI_API_KEY || 'mock-gemini-key-do-not-use');
+        vi.stubEnv('GEMINI_API_KEY', 'mock-gemini-key-do-not-use');
 
         // Default: rate limiter allows everything
         mockRateLimiter.canUseModel.mockResolvedValue({ allowed: true, model: groqModel });
@@ -629,6 +640,278 @@ describe('UnifiedAIClient', () => {
             const a = getAIClient();
             const b = getAIClient();
             expect(a).toBe(b);
+        });
+    });
+
+    describe('provider streaming contract', () => {
+        const geminiStream = (text: string) =>
+            `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] })}\n\n`;
+
+        function streamResponse(chunks: string[]) {
+            const encoder = new TextEncoder();
+            return new Response(new ReadableStream({
+                start(controller) {
+                    for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+                    controller.close();
+                },
+            }));
+        }
+
+        async function collect(chunks: AsyncIterable<string>) {
+            const result = [];
+            for await (const chunk of chunks) result.push(chunk);
+            return result.join('');
+        }
+
+        afterEach(() => vi.restoreAllMocks());
+
+        it('fails over Gemini models and preserves the request and SSE message boundaries', async () => {
+            const standby = { ...geminiModel, id: 'gemini-standby' };
+            vi.mocked(getActiveModels).mockResolvedValue([groqModel, geminiModel, standby]);
+            const first = geminiStream('Visible <THINK');
+            const fetch = vi.spyOn(globalThis, 'fetch')
+                .mockRejectedValueOnce(new Error('connection reset'))
+                .mockResolvedValueOnce(streamResponse([
+                    ': heartbeat\n' + first.slice(0, 25),
+                    first.slice(25) + 'data: {bad json}\n' + geminiStream('>internal'),
+                    geminiStream('</TH') + geminiStream('INK>answer') + 'data: [DONE]\n' + geminiStream('discarded'),
+                ]));
+            const signal = new AbortController().signal;
+
+            const result = await collect(client.generateStream([
+                { role: 'system', content: 'old instruction' },
+                { role: 'user', content: 'Question' },
+                { role: 'assistant', content: 'Previous answer' },
+            ], { preferredModel: 'gemini', systemPrompt: 'New instruction', maxTokens: 314, temperature: 0, signal }));
+
+            expect(result).toBe('Visible answer');
+            expect(client.getLastStreamInfo()).toEqual({ model: standby.id, provider: 'gemini' });
+            expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
+                `${GEMINI_API_BASE}/${geminiModel.id}:streamGenerateContent?key=mock-gemini-key-do-not-use&alt=sse`,
+                `${GEMINI_API_BASE}/${standby.id}:streamGenerateContent?key=mock-gemini-key-do-not-use&alt=sse`,
+            ]);
+            const init = fetch.mock.calls[1][1];
+            expect(init).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'application/json' }, signal });
+            expect(init?.signal).toBe(signal);
+            expect(JSON.parse(String(init?.body))).toEqual({
+                contents: [
+                    { role: 'user', parts: [{ text: 'Question' }] },
+                    { role: 'model', parts: [{ text: 'Previous answer' }] },
+                ],
+                systemInstruction: { parts: [{ text: 'New instruction' }] },
+                generationConfig: { maxOutputTokens: 314, temperature: 0 },
+            });
+        });
+
+        it('falls back from Groq before emitting text and uses Gemini streaming defaults', async () => {
+            vi.mocked(getActiveModels).mockResolvedValue([groqModel]);
+            const fetch = vi.spyOn(globalThis, 'fetch')
+                .mockResolvedValueOnce(new Response('service down', { status: 503 }))
+                .mockResolvedValueOnce(streamResponse([geminiStream('fallback text')]));
+
+            await expect(collect(client.generateStream(userMessages))).resolves.toBe('fallback text');
+            expect(fetch.mock.calls[0][0]).toBe(GROQ_API_URL);
+            expect(String(fetch.mock.calls[1][0])).toContain('/gemini-3.5-flash:streamGenerateContent?');
+            expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toEqual({
+                contents: [{ role: 'user', parts: [{ text: userMessages[0].content }] }],
+                generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
+            });
+            expect(client.getLastStreamInfo()).toEqual({ model: 'gemini-3.5-flash', provider: 'gemini' });
+        });
+
+        it('does not fall back after Groq has emitted text', async () => {
+            const visible = 'An answer long enough to pass the streaming buffer.';
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: visible } }] })}\n\n`));
+                },
+                pull(controller) {
+                    controller.error(new Error('upstream stream interrupted'));
+                },
+            }, { highWaterMark: 0 });
+            const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream));
+            const iterator = client.generateStream(userMessages);
+
+            await expect(iterator.next()).resolves.toEqual({ value: visible.slice(0, -20), done: false });
+            await expect(iterator.next()).rejects.toThrow('upstream stream interrupted');
+            expect(fetch).toHaveBeenCalledTimes(1);
+            expect(client.getLastStreamInfo()).toEqual({ model: groqModel.id, provider: 'groq' });
+        });
+
+        it('does not retain a previous model after a new Gemini connection fails', async () => {
+            vi.mocked(getActiveModels).mockResolvedValue([geminiModel]);
+            const fetch = vi.spyOn(globalThis, 'fetch')
+                .mockResolvedValueOnce(streamResponse([geminiStream('connected')]))
+                .mockResolvedValueOnce(new Response('quota exceeded', { status: 429 }));
+
+            await expect(collect(client.generateStream(userMessages, { preferredModel: 'gemini' }))).resolves.toBe('connected');
+            await expect(collect(client.generateStream(userMessages, { preferredModel: 'gemini' })))
+                .rejects.toThrow(`Gemini stream error — all models failed. Gemini ${geminiModel.id} (429): quota exceeded`);
+            expect(client.getLastStreamInfo()).toBeNull();
+            expect(fetch).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('model status and embeddings', () => {
+        afterEach(() => {
+            vi.useRealTimers();
+            vi.restoreAllMocks();
+        });
+
+        it.each(['groq', 'gemini'] as const)('reports direct and representative status when %s is down', async (unavailable) => {
+            const extraGroq = { ...groqModel, id: 'groq-secondary' };
+            const extraGemini = { ...geminiModel, id: 'gemini-secondary' };
+            vi.mocked(getActiveModels).mockResolvedValue([groqModel, extraGroq, geminiModel, extraGemini]);
+            const requested: string[] = [];
+            const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+                const body = JSON.parse(String(init?.body));
+                const isGroq = url === GROQ_API_URL;
+                requested.push(isGroq ? body.model : String(url));
+                const success = isGroq
+                    ? { choices: [{ message: { content: 'ok' } }] } : { candidates: [{ content: { parts: [{ text: 'ok' }] } }] };
+                return unavailable === (isGroq ? 'groq' : 'gemini')
+                    ? new Response('unavailable for health probe', { status: 400 }) : Response.json(success);
+            });
+
+            const status = await client.runHealthCheck();
+
+            expect(fetch).toHaveBeenCalledTimes(2);
+            expect(requested[0]).toBe(groqModel.id);
+            expect(requested[1]).toContain(`/${geminiModel.id}:generateContent`);
+            expect(Object.keys(status)).toEqual([groqModel.id, extraGroq.id, geminiModel.id, extraGemini.id]);
+            for (const [model, method] of [
+                [groqModel, 'direct_check'], [extraGroq, 'provider_representative_check'],
+                [geminiModel, 'direct_check'], [extraGemini, 'provider_representative_check'],
+            ] as const) {
+                const available = model.provider !== unavailable;
+                expect(status[model.id]).toEqual({
+                    available, method, status: available ? 'available' : 'unavailable',
+                    latency: available ? expect.any(Number) : undefined,
+                    error: available ? undefined : expect.stringContaining('unavailable for health probe'),
+                });
+            }
+        });
+
+        it('checks a named model, reporting an unknown model and a timed-out request independently', async () => {
+            vi.useFakeTimers();
+            vi.mocked(getActiveModels).mockResolvedValue([groqModel]);
+            const call = vi.spyOn(client, 'callModel').mockResolvedValueOnce({
+                success: true, response: 'ok',
+            }).mockImplementationOnce(() => new Promise(() => {}));
+
+            await expect(client.checkSpecificModel('missing')).resolves.toEqual({
+                available: false, error: 'Model ID missing not found in configuration', method: 'direct_check', status: 'unavailable',
+            });
+            await expect(client.checkSpecificModel(groqModel.id)).resolves.toEqual({
+                available: true, latency: 0, method: 'direct_check', status: 'available',
+            });
+            const pending = client.checkSpecificModel(groqModel.id);
+            const checked = expect(pending).resolves.toEqual({
+                available: false, error: 'Health check timeout (3s)', method: 'direct_check', status: 'unavailable',
+            });
+            await vi.advanceTimersByTimeAsync(3000);
+            await checked;
+            expect(call).toHaveBeenCalledTimes(2);
+            expect(call).toHaveBeenLastCalledWith(groqModel, [{ role: 'user', content: 'ping' }], { maxTokens: 1 });
+        });
+
+        it('sends each embedding input at the index dimensionality and preserves result order', async () => {
+            const fetch = vi.spyOn(globalThis, 'fetch')
+                .mockResolvedValueOnce(Response.json({ embedding: { values: [0.13, 0.17] } }))
+                .mockResolvedValueOnce(Response.json({ embedding: { values: [0.23, 0.27] } }));
+
+            await expect(client.embed(['first', 'second'])).resolves.toEqual({
+                embeddings: [[0.13, 0.17], [0.23, 0.27]], modelUsed: 'gemini-embedding-001', dimensions: 2,
+            });
+            expect(fetch.mock.calls).toHaveLength(2);
+            for (const [index, input] of ['first', 'second'].entries()) {
+                const [url, init] = fetch.mock.calls[index];
+                expect(String(url)).toBe(`${GEMINI_API_BASE}/gemini-embedding-001:embedContent?key=mock-gemini-key-do-not-use`);
+                expect(init).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: expect.any(AbortSignal) });
+                expect(JSON.parse(String(init?.body))).toEqual({ content: { parts: [{ text: input }] }, outputDimensionality: 768 });
+            }
+        });
+
+        it.each([400, 200])('reports index unavailability on a bad embedding response (%i)', async (status) => {
+            const systemEvent = vi.mocked(logSystemEvent);
+            const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(status === 400
+                ? new Response('embedding request rejected', { status }) : Response.json({ embedding: {} }));
+            await expect(client.embed('question', { correlationId: 'embed-check' }))
+                .rejects.toThrow('Embedding provider unavailable. RAG context unavailable.');
+            expect(fetch).toHaveBeenCalledTimes(1);
+            expect(systemEvent).toHaveBeenNthCalledWith(1, { type: 'embedding_failed', provider: 'gemini', correlationId: 'embed-check' });
+            expect(systemEvent).toHaveBeenNthCalledWith(2, { type: 'embedding_failed', errorMessage: 'Gemini embedding unavailable', correlationId: 'embed-check' });
+        });
+    });
+
+    describe('routing and budget enforcement', () => {
+        afterEach(() => vi.restoreAllMocks());
+
+        it.each([
+            ['daily_limit', "You've reached your daily usage limit. Your limit resets in a few hours."],
+            ['session_limit', 'This session has reached its token limit. Please start a new session.'],
+        ] as const)('returns the %s response without dispatching provider calls', async (reason, response) => {
+            vi.mocked(checkTokenBudget).mockResolvedValueOnce({ allowed: false, reason, remaining_daily: 0, remaining_session: 0 });
+            const dispatch = vi.spyOn(client, 'callModel');
+
+            await expect(client.generateCompletion(userMessages, { userId: 'learner', sessionId: 'session' })).resolves.toEqual({
+                success: true, modelUsed: 'budget_guard', response, attemptedModels: [], budgetExceeded: true,
+            });
+            expect(checkTokenBudget).toHaveBeenCalledExactlyOnceWith('learner', 'session', 500);
+            expect(dispatch).not.toHaveBeenCalled();
+            expect(recordTokenUsage).not.toHaveBeenCalled();
+        });
+
+        it('skips denied and previously attempted models across stages, then accounts for the successful response', async () => {
+            const models = ['denied', 'failing', 'alternate'].map(id => ({ ...groqModel, id }));
+            const route = (modelId: string, maxTokensOverride: number | null = null) => ({
+                modelId, provider: 'groq' as const, priority: 1, maxTokensOverride,
+            });
+            vi.mocked(getActiveModels).mockResolvedValue(models);
+            vi.mocked(isCrossTierFallbackEnabled).mockResolvedValueOnce(true);
+            vi.mocked(buildRoutingStagePlan).mockReturnValueOnce([
+                { stage: 'primary', useCase: 'analysis' },
+                { stage: 'secondary', useCase: 'chat' },
+                { stage: 'emergency', useCase: 'analysis' },
+            ]);
+            vi.mocked(getModelsForUseCase)
+                .mockResolvedValueOnce([route('denied'), route('failing')])
+                .mockResolvedValueOnce([route('failing'), route('alternate', 128)]);
+            mockRateLimiter.canUseModel
+                .mockResolvedValueOnce({ allowed: false })
+                .mockResolvedValueOnce({ allowed: true })
+                .mockResolvedValueOnce({ allowed: true });
+            const dispatch = vi.spyOn(client, 'callModel')
+                .mockResolvedValueOnce({ success: false, error: 'upstream failure' })
+                .mockResolvedValueOnce({ success: true, response: '123456789' });
+            const options = {
+                userId: 'learner', sessionId: 'session', category: 'analysis',
+                estimatedTokens: 80, maxTokens: 256, correlationId: 'trace-1',
+            };
+
+            await expect(client.generateCompletion(userMessages, options)).resolves.toEqual({
+                success: true, modelUsed: 'alternate', provider: 'groq', response: '123456789',
+                attemptedModels: ['failing', 'alternate'],
+            });
+
+            expect(checkTokenBudget).toHaveBeenCalledExactlyOnceWith('learner', 'session', 80);
+            expect(buildRoutingStagePlan).toHaveBeenCalledExactlyOnceWith('analysis', true);
+            expect(vi.mocked(getModelsForUseCase).mock.calls).toEqual([['analysis'], ['chat']]);
+            expect(mockRateLimiter.canUseModel.mock.calls).toEqual([
+                ['denied', models, 80], ['failing', models, 80], ['alternate', models, 80],
+            ]);
+            expect(dispatch.mock.calls.map(([model, messages, opts]) => [model.id, messages, opts])).toEqual([
+                ['failing', userMessages, options],
+                ['alternate', userMessages, { ...options, maxTokens: 128 }],
+            ]);
+            expect(mockRateLimiter.recordError).toHaveBeenCalledExactlyOnceWith('failing', 'upstream failure');
+            expect(mockRateLimiter.recordRequest).toHaveBeenCalledExactlyOnceWith('alternate', 3);
+            expect(recordTokenUsage).toHaveBeenCalledExactlyOnceWith('learner', 'session', 3);
+            expect(logSystemEvent).toHaveBeenCalledExactlyOnceWith({
+                type: 'llm_request', correlationId: 'trace-1',
+                metadata: { useCase: 'analysis', model_id: 'alternate', provider: 'groq', duration_ms: expect.any(Number), messageCount: 1 },
+            });
         });
     });
 });
